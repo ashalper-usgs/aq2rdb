@@ -1,0 +1,5 @@
+#! /bin/sh
+
+node aq2rdb.js &		# start service
+curl 'http://localhost:8081/aq2rdb?&z=prod&t=uv'
+kill $!
