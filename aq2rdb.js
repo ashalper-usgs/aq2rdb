@@ -2,6 +2,7 @@
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
 var querystring = require('querystring');
+var syncRequest = require('sync-request'); // make synchronous HTTP requests
 
 var PORT = 8081; 
 
@@ -37,36 +38,36 @@ function getParameter(parameter, response) {
 
 // GET request handler
 httpdispatcher.onGet('/aq2rdb', function(request, response) {
-    response.writeHead(200, {'Content-Type': 'text/plain'});
-        // parse HTTP query parameters in GET request URL
+    // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(request.url);
     var username = getParameter(arg.Username, response);
     var password = getParameter(arg.Password, response);
     var z = getParameter(arg.z, response);
     var t = getParameter(arg.t, response);
 
+    // data type ("t") parameter domain validation
     var msg;
     switch (t) {
     case 'ms':
-        msg = 'Pseudo-time series (e.g., gage inspections)';
+        msg = 'Pseudo-time series (e.g., gage inspections) are not supported';
         break;
     case 'vt':
-	msg = 'Sensor inspections and readings';
+	msg = 'Sensor inspections and readings are not supported';
         break;
     case 'pk':
-	msg = 'Peak-flow data';
+	msg = 'Peak-flow data are not supported';
 	break;
     case 'dc':
-	msg = '';		// <- TODO
+	msg = 'Data corrections are not supported';
 	break;
     case 'sv':
-	msg = 'Quantitative site-visit data';
+	msg = 'Quantitative site-visit data are not supported';
 	break;
     case 'wl':
-	msg = 'Discrete groundwater-levels data';
+	msg = 'Discrete groundwater-levels data are not supported';
 	break;
     case 'qw':
-	msg = 'Discrete water quality data';
+	msg = 'Discrete water quality data are not supported';
 	break;
     default:
 	msg = 'Unknown \"t\" parameter value: \"' + t + '\"';
@@ -77,14 +78,15 @@ httpdispatcher.onGet('/aq2rdb', function(request, response) {
     console.log('z: ' + z);
     console.log('t: ' + t);
 
-    // send (synchronous) request to GetAQToken for AQUARIUS token
-    /*
+    // send (synchronous) request to GetAQToken service for AQUARIUS
+    // authentication token
     var getAQTokenResponse =
-            syncRequest(
-                'GET',
-                'http://localhost:8080/services/GetAQToken?&userName=apiuser&password=2KcbuMDkSHMl&uriString=http://nwists.usgs.gov/AQUARIUS/'
-            );
-    */
+        syncRequest(
+            'GET',
+            'http://localhost:8080/services/GetAQToken?&userName=' +
+		username + '&password=' + password +
+		'&uriString=http://nwists.usgs.gov/AQUARIUS/'
+        );
     
     // TODO: need to handle AQUARIUS server GET response errors before
     // here
