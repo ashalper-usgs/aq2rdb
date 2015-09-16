@@ -10,8 +10,17 @@ function handleRequest(request, response){
     try {
         console.log(request.url);
         httpdispatcher.dispatch(request, response);
-    } catch (err) {
-        console.log(err);
+    } catch (error) {
+	if (error.message === 'connect ECONNREFUSED') {
+	    console.log('aq2rdb: ' + 'could not connect to AQUARIUS');
+	    response.writeHead(504);
+	    response.end('Gateway Timeout');
+	}
+	else {
+	    console.log(error.toString());
+	    response.writeHead(500);
+	    response.end('Internal Server Error');
+	}
     }
 }
 
@@ -96,7 +105,8 @@ httpdispatcher.onGet('/aq2rdb', function(request, response) {
     // TODO: AQUARIUS Web service request and callback goes here
 
     // TODO: move to callback
-    response.writeHead(200, {'Content-Type': 'text/plain'});       
+    // response.writeHead(200, {'Content-Type': 'text/plain'});
+
     // TODO: RDB output goes here
     response.end('aq2rdb');
 });    
