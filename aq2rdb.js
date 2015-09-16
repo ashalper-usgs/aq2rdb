@@ -5,49 +5,58 @@ var httpdispatcher = require('httpdispatcher');
 var querystring = require('querystring');
 var syncRequest = require('sync-request'); // make synchronous HTTP requests
 
-var PORT = 8081; 
+var PORT = 8081;
 
-function handleRequest(request, response){
+function handleRequest(request, response) {
     try {
         console.log(request.url);
         httpdispatcher.dispatch(request, response);
     } catch (error) {
+        var statusMessage;
+
         if (error.message === 'connect ECONNREFUSED') {
-            console.log(name + ': ' + 'could not connect to AQUARIUS');
-            response.writeHead(504);
-            response.end('Gateway Timeout');
+            statusMessage = 'could not connect to AQUARIUS';
+            console.log(name + ': ' + statusMessage);
+            response.writeHead(504, statusMessage,
+                               {'Content-Length': statusMessage.length,
+                                'Content-Type': 'text/plain'});
         }
         else {
-            console.log(error.toString());
-            response.writeHead(500);
-            response.end('Internal Server Error');
+            // unknown error
+            response.writeHead(500, error.message,
+                               {'Content-Length': error.message.length,
+                                'Content-Type': 'text/plain'});
+            console.log(name + ': ' + error.toString());
         }
+        response.end();
     }
 }
 
 // HTTP query parameter existence and non-empty content validation
 function getParameter(parameter, response) {
+    var statusMessage;
+
     if (parameter === undefined) {
         // "Bad Request" HTTP status code
-        var statusMessage = 'Required parameter not present';
+        statusMessage = 'Required parameter not present';
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
-                            'Content-Type': 'text/html'});
+                            'Content-Type': 'text/plain'});
         response.end();
     }
-    else if (parameter.trim() == '') {
+    else if (parameter.trim() === '') {
         // "Bad Request" HTTP status code
-        var statusMessage = 'No content in parameter';
+        statusMessage = 'No content in parameter';
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
-                            'Content-Type': 'text/html'});
+                            'Content-Type': 'text/plain'});
         response.end();
     }
     return parameter;
 }
 
 // GET request handler
-httpdispatcher.onGet('/' + name, function(request, response) {
+httpdispatcher.onGet('/' + name, function (request, response) {
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(request.url);
     var username = getParameter(arg.Username, response);
@@ -56,31 +65,39 @@ httpdispatcher.onGet('/' + name, function(request, response) {
     var t = getParameter(arg.t, response);
 
     // data type ("t") parameter domain validation
-    var msg;
+    var statusMessage;
     switch (t) {
     case 'ms':
-        msg = 'Pseudo-time series (e.g., gage inspections) are not supported';
+        statusMessage =
+            'Pseudo-time series (e.g., gage inspections) are not supported';
         break;
     case 'vt':
-        msg = 'Sensor inspections and readings are not supported';
+        statusMessage = 'Sensor inspections and readings are not supported';
         break;
     case 'pk':
-        msg = 'Peak-flow data are not supported';
+        statusMessage = 'Peak-flow data are not supported';
         break;
     case 'dc':
-        msg = 'Data corrections are not supported';
+        statusMessage = 'Data corrections are not supported';
         break;
     case 'sv':
-        msg = 'Quantitative site-visit data are not supported';
+        statusMessage = 'Quantitative site-visit data are not supported';
         break;
     case 'wl':
-        msg = 'Discrete groundwater-levels data are not supported';
+        statusMessage = 'Discrete groundwater-levels data are not supported';
         break;
     case 'qw':
-        msg = 'Discrete water quality data are not supported';
+        statusMessage = 'Discrete water quality data are not supported';
         break;
     default:
-        msg = 'Unknown \"t\" parameter value: \"' + t + '\"';
+        statusMessage = 'Unknown \"t\" parameter value: \"' + t + '\"';
+    }
+
+    if (statusMessage != undefined) {
+        response.writeHead(400, statusMessage,
+                           {'Content-Length': statusMessage.length,
+                            'Content-Type': 'text/plain'});
+        response.end('Bad Request');
     }
 
     console.log('Username: ' + username);
@@ -97,7 +114,7 @@ httpdispatcher.onGet('/' + name, function(request, response) {
                 username + '&password=' + password +
                 '&uriString=http://nwists.usgs.gov/AQUARIUS/'
         );
-    
+
     // TODO: need to handle AQUARIUS server GET response errors before
     // here
 
@@ -110,10 +127,10 @@ httpdispatcher.onGet('/' + name, function(request, response) {
 
     // TODO: RDB output goes here
     response.end('aq2rdb');
-});    
+});
 
 var server = http.createServer(handleRequest);
 
-server.listen(PORT, function(){
+server.listen(PORT, function () {
     console.log('Server listening on: http://localhost:%s', PORT);
 });
