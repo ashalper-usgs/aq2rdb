@@ -1,4 +1,5 @@
 'use strict';
+var name = 'aq2rdb';
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
 var querystring = require('querystring');
@@ -11,42 +12,42 @@ function handleRequest(request, response){
         console.log(request.url);
         httpdispatcher.dispatch(request, response);
     } catch (error) {
-	if (error.message === 'connect ECONNREFUSED') {
-	    console.log('aq2rdb: ' + 'could not connect to AQUARIUS');
-	    response.writeHead(504);
-	    response.end('Gateway Timeout');
-	}
-	else {
-	    console.log(error.toString());
-	    response.writeHead(500);
-	    response.end('Internal Server Error');
-	}
+        if (error.message === 'connect ECONNREFUSED') {
+            console.log(name + ': ' + 'could not connect to AQUARIUS');
+            response.writeHead(504);
+            response.end('Gateway Timeout');
+        }
+        else {
+            console.log(error.toString());
+            response.writeHead(500);
+            response.end('Internal Server Error');
+        }
     }
 }
 
 // HTTP query parameter existence and non-empty content validation
 function getParameter(parameter, response) {
     if (parameter === undefined) {
-	// "Bad Request" HTTP status code
-	var statusMessage = 'Required parameter not present';
-	response.writeHead(400, statusMessage,
-			   {'Content-Length': statusMessage.length,
-			    'Content-Type': 'text/html'});
-	response.end();
+        // "Bad Request" HTTP status code
+        var statusMessage = 'Required parameter not present';
+        response.writeHead(400, statusMessage,
+                           {'Content-Length': statusMessage.length,
+                            'Content-Type': 'text/html'});
+        response.end();
     }
     else if (parameter.trim() == '') {
-	// "Bad Request" HTTP status code
-	var statusMessage = 'No content in parameter';
-	response.writeHead(400, statusMessage,
-			   {'Content-Length': statusMessage.length,
-			    'Content-Type': 'text/html'});
-	response.end();
+        // "Bad Request" HTTP status code
+        var statusMessage = 'No content in parameter';
+        response.writeHead(400, statusMessage,
+                           {'Content-Length': statusMessage.length,
+                            'Content-Type': 'text/html'});
+        response.end();
     }
     return parameter;
 }
 
 // GET request handler
-httpdispatcher.onGet('/aq2rdb', function(request, response) {
+httpdispatcher.onGet('/' + name, function(request, response) {
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(request.url);
     var username = getParameter(arg.Username, response);
@@ -61,25 +62,25 @@ httpdispatcher.onGet('/aq2rdb', function(request, response) {
         msg = 'Pseudo-time series (e.g., gage inspections) are not supported';
         break;
     case 'vt':
-	msg = 'Sensor inspections and readings are not supported';
+        msg = 'Sensor inspections and readings are not supported';
         break;
     case 'pk':
-	msg = 'Peak-flow data are not supported';
-	break;
+        msg = 'Peak-flow data are not supported';
+        break;
     case 'dc':
-	msg = 'Data corrections are not supported';
-	break;
+        msg = 'Data corrections are not supported';
+        break;
     case 'sv':
-	msg = 'Quantitative site-visit data are not supported';
-	break;
+        msg = 'Quantitative site-visit data are not supported';
+        break;
     case 'wl':
-	msg = 'Discrete groundwater-levels data are not supported';
-	break;
+        msg = 'Discrete groundwater-levels data are not supported';
+        break;
     case 'qw':
-	msg = 'Discrete water quality data are not supported';
-	break;
+        msg = 'Discrete water quality data are not supported';
+        break;
     default:
-	msg = 'Unknown \"t\" parameter value: \"' + t + '\"';
+        msg = 'Unknown \"t\" parameter value: \"' + t + '\"';
     }
 
     console.log('Username: ' + username);
@@ -93,8 +94,8 @@ httpdispatcher.onGet('/aq2rdb', function(request, response) {
         syncRequest(
             'GET',
             'http://localhost:8080/services/GetAQToken?&userName=' +
-		username + '&password=' + password +
-		'&uriString=http://nwists.usgs.gov/AQUARIUS/'
+                username + '&password=' + password +
+                '&uriString=http://nwists.usgs.gov/AQUARIUS/'
         );
     
     // TODO: need to handle AQUARIUS server GET response errors before
