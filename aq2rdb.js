@@ -35,16 +35,48 @@ function getParameter(parameter, response) {
     return parameter;
 }
 
+// GET request handler
 httpdispatcher.onGet('/aq2rdb', function(request, response) {
     response.writeHead(200, {'Content-Type': 'text/plain'});
         // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(request.url);
+    var username = getParameter(arg.Username, response);
+    var password = getParameter(arg.Password, response);
     var z = getParameter(arg.z, response);
     var t = getParameter(arg.t, response);
 
+    var msg;
+    switch (t) {
+    case 'ms':
+        msg = 'Pseudo-time series (e.g., gage inspections)';
+        break;
+    case 'vt':
+	msg = 'Sensor inspections and readings';
+        break;
+    case 'pk':
+	msg = 'Peak-flow data';
+	break;
+    case 'dc':
+	msg = '';		// <- TODO
+	break;
+    case 'sv':
+	msg = 'Quantitative site-visit data';
+	break;
+    case 'wl':
+	msg = 'Discrete groundwater-levels data';
+	break;
+    case 'qw':
+	msg = 'Discrete water quality data';
+	break;
+    default:
+	msg = 'Unknown \"t\" parameter value: \"' + t + '\"';
+    }
+
+    console.log('Username: ' + username);
+    console.log('Password: ' + password);
     console.log('z: ' + z);
     console.log('t: ' + t);
-    
+
     // send (synchronous) request to GetAQToken for AQUARIUS token
     /*
     var getAQTokenResponse =
@@ -70,5 +102,5 @@ httpdispatcher.onGet('/aq2rdb', function(request, response) {
 var server = http.createServer(handleRequest);
 
 server.listen(PORT, function(){
-    console.log("Server listening on: http://localhost:%s", PORT);
+    console.log('Server listening on: http://localhost:%s', PORT);
 });
