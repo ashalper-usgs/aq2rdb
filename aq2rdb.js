@@ -41,9 +41,14 @@ httpdispatcher.onGet('/' + name, function (request, response) {
     var z = getParameter(arg.z, response);
     var t = getParameter(arg.t, response);
 
+    // default environment ("z") parameter
+    if (z === undefined) {
+	z = 'production';
+    }
+
     // data type ("t") parameter domain validation
     var statusMessage;
-    switch (t) {
+    switch (t.toLowerCase()) {
     case 'ms':
         statusMessage =
             'Pseudo-time series (e.g., gage inspections) are not supported';
