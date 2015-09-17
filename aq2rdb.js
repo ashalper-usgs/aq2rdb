@@ -7,31 +7,6 @@ var syncRequest = require('sync-request'); // make synchronous HTTP requests
 
 var PORT = 8081;
 
-function handleRequest(request, response) {
-    try {
-        console.log(request.url);
-        httpdispatcher.dispatch(request, response);
-    } catch (error) {
-        var statusMessage;
-
-        if (error.message === 'connect ECONNREFUSED') {
-            statusMessage = 'could not connect to AQUARIUS';
-            console.log(name + ': ' + statusMessage);
-            response.writeHead(504, statusMessage,
-                               {'Content-Length': statusMessage.length,
-                                'Content-Type': 'text/plain'});
-        }
-        else {
-            // unknown error
-            response.writeHead(500, error.message,
-                               {'Content-Length': error.message.length,
-                                'Content-Type': 'text/plain'});
-            console.log(name + ': ' + error.toString());
-        }
-        response.end();
-    }
-}
-
 // HTTP query parameter existence and non-empty content validation
 function getParameter(parameter, response) {
     var statusMessage;
@@ -39,6 +14,7 @@ function getParameter(parameter, response) {
     if (parameter === undefined) {
         // "Bad Request" HTTP status code
         statusMessage = 'Required parameter not present';
+        console.log(name + ': ' + statusMessage);
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
                             'Content-Type': 'text/plain'});
@@ -47,6 +23,7 @@ function getParameter(parameter, response) {
     else if (parameter.trim() === '') {
         // "Bad Request" HTTP status code
         statusMessage = 'No content in parameter';
+        console.log(name + ': ' + statusMessage);
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
                             'Content-Type': 'text/plain'});
@@ -89,31 +66,38 @@ httpdispatcher.onGet('/' + name, function (request, response) {
     case 'qw':
         statusMessage = 'Discrete water quality data are not supported';
         break;
+    case 'dv':
+    case 'uv':
+        // the only valid "t" parameter values right now
+        break;
     default:
         statusMessage = 'Unknown \"t\" parameter value: \"' + t + '\"';
-    }
-
-    if (statusMessage != undefined) {
-        response.writeHead(400, statusMessage,
-                           {'Content-Length': statusMessage.length,
-                            'Content-Type': 'text/plain'});
-        response.end('Bad Request');
     }
 
     console.log('Username: ' + username);
     console.log('Password: ' + password);
     console.log('z: ' + z);
     console.log('t: ' + t);
+    console.log('statusMessage: ' + statusMessage);
 
-    // send (synchronous) request to GetAQToken service for AQUARIUS
-    // authentication token
-    var getAQTokenResponse =
-        syncRequest(
-            'GET',
-            'http://localhost:8080/services/GetAQToken?&userName=' +
-                username + '&password=' + password +
-                '&uriString=http://nwists.usgs.gov/AQUARIUS/'
-        );
+    if (statusMessage === undefined) {
+        // send (synchronous) request to GetAQToken service for AQUARIUS
+        // authentication token
+        var getAQTokenResponse =
+            syncRequest(
+                'GET',
+                'http://localhost:8080/services/GetAQToken?&userName=' +
+                    username + '&password=' + password +
+                    '&uriString=http://nwists.usgs.gov/AQUARIUS/'
+            );
+    }
+    else {
+        // there was an error
+        response.writeHead(400, statusMessage,
+                           {'Content-Length': statusMessage.length,
+                            'Content-Type': 'text/plain'});
+        response.end();
+    }
 
     // TODO: need to handle AQUARIUS server GET response errors before
     // here
@@ -128,6 +112,31 @@ httpdispatcher.onGet('/' + name, function (request, response) {
     // TODO: RDB output goes here
     response.end('aq2rdb');
 });
+
+function handleRequest(request, response) {
+    try {
+        console.log(request.url);
+        httpdispatcher.dispatch(request, response);
+    } catch (error) {
+        var statusMessage;
+
+        if (error.message === 'connect ECONNREFUSED') {
+            statusMessage = 'could not connect to AQUARIUS';
+            console.log(name + ': ' + statusMessage);
+            response.writeHead(504, statusMessage,
+                               {'Content-Length': statusMessage.length,
+                                'Content-Type': 'text/plain'});
+        }
+        else {
+            // unknown error
+            console.log(name + ': ' + error.message);
+            response.writeHead(500, error.message,
+                               {'Content-Length': error.message.length,
+                                'Content-Type': 'text/plain'});
+        }
+        response.end();
+    }
+}
 
 var server = http.createServer(handleRequest);
 
