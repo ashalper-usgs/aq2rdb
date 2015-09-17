@@ -74,16 +74,11 @@ httpdispatcher.onGet('/' + name, function (request, response) {
         statusMessage = 'Unknown \"t\" parameter value: \"' + t + '\"';
     }
 
-    console.log('Username: ' + username);
-    console.log('Password: ' + password);
-    console.log('z: ' + z);
-    console.log('t: ' + t);
-    console.log('statusMessage: ' + statusMessage);
-
+    var getAQTokenResponse;
     if (statusMessage === undefined) {
         // send (synchronous) request to GetAQToken service for AQUARIUS
         // authentication token
-        var getAQTokenResponse =
+        getAQTokenResponse =
             syncRequest(
                 'GET',
                 'http://localhost:8080/services/GetAQToken?&userName=' +
@@ -110,12 +105,11 @@ httpdispatcher.onGet('/' + name, function (request, response) {
     // response.writeHead(200, {'Content-Type': 'text/plain'});
 
     // TODO: RDB output goes here
-    response.end('aq2rdb');
+    response.end(getAQTokenResponse.getBody().toString('utf-8'));
 });
 
 function handleRequest(request, response) {
     try {
-        console.log(request.url);
         httpdispatcher.dispatch(request, response);
     } catch (error) {
         var statusMessage;
