@@ -41,9 +41,9 @@ httpdispatcher.onGet('/' + name, function (request, response) {
     var z = getParameter(arg.z, response);
     var t = getParameter(arg.t, response);
 
-    // default environment ("z") parameter
+    // default environment ("z") parameter value
     if (z === undefined) {
-	z = 'production';
+        z = 'production';
     }
 
     // data type ("t") parameter domain validation
@@ -80,7 +80,15 @@ httpdispatcher.onGet('/' + name, function (request, response) {
     }
 
     var getAQTokenResponse;
-    if (statusMessage === undefined) {
+    if (statusMessage != undefined) {
+        // there was an error
+        response.writeHead(400, statusMessage,
+                           {'Content-Length': statusMessage.length,
+                            'Content-Type': 'text/plain'});
+        response.end();
+    }
+
+    try {
         // send (synchronous) request to GetAQToken service for AQUARIUS
         // authentication token
         getAQTokenResponse =
@@ -91,18 +99,11 @@ httpdispatcher.onGet('/' + name, function (request, response) {
                     '&uriString=http://nwists.usgs.gov/AQUARIUS/'
             );
     }
-    else {
-        // there was an error
-        response.writeHead(400, statusMessage,
-                           {'Content-Length': statusMessage.length,
-                            'Content-Type': 'text/plain'});
-        response.end();
+    catch (error) {
+        unknownError(response, error.message);
     }
 
-    // TODO: need to handle AQUARIUS server GET response errors before
-    // here
-
-    // var token = getAQTokenResponse.getBody().toString('utf-8');
+    var token = getAQTokenResponse.getBody().toString('utf-8');
 
     // TODO: AQUARIUS Web service request and callback goes here
 
@@ -110,8 +111,15 @@ httpdispatcher.onGet('/' + name, function (request, response) {
     // response.writeHead(200, {'Content-Type': 'text/plain'});
 
     // TODO: RDB output goes here
-    response.end(getAQTokenResponse.getBody().toString('utf-8'));
+    response.end(token);
 });
+
+function unknownError(response, message) {
+    console.log(name + ': ' + error.message);
+    response.writeHead(500, error.message,
+                       {'Content-Length': error.message.length,
+                        'Content-Type': 'text/plain'});
+}
 
 function handleRequest(request, response) {
     try {
@@ -127,11 +135,7 @@ function handleRequest(request, response) {
                                 'Content-Type': 'text/plain'});
         }
         else {
-            // unknown error
-            console.log(name + ': ' + error.message);
-            response.writeHead(500, error.message,
-                               {'Content-Length': error.message.length,
-                                'Content-Type': 'text/plain'});
+            unknownError(response, error.message);
         }
         response.end();
     }
