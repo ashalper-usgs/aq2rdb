@@ -14,7 +14,8 @@ function getParameter(parameterName, parameterValue, description, response) {
 
     if (parameterValue === undefined) {
         // "Bad Request" HTTP status code
-        statusMessage = 'Required parameter not present';
+        statusMessage = 'Required parameter \"' + parameterName +
+            '\" (' + description + ') not present';
         console.log(serviceName + ': ' + statusMessage);
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
@@ -23,7 +24,8 @@ function getParameter(parameterName, parameterValue, description, response) {
     }
     else if (parameterValue.trim() === '') {
         // "Bad Request" HTTP status code
-        statusMessage = 'No content in parameter';
+        statusMessage = 'No content in parameter \"' + parameterName +
+            '\" (' + description + ')';
         console.log(serviceName + ': ' + statusMessage);
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
@@ -47,17 +49,25 @@ httpdispatcher.onGet('/' + serviceName, function (request, response) {
     var aquariusHostname = 'nwists.usgs.gov'; // AQUARIUS host name
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(request.url);
-    var username = getParameter(arg.Username, response);
-    var password = getParameter(arg.Password, response);
-    var z = getParameter('z', arg.z, 'AQUARIUS environment', response);
+    var username =
+        getParameter('Username', arg.Username, 'AQUARIUS user name',
+                     response);
+    var password =
+        getParameter('Password', arg.Password, 'AQUARIUS password',
+                     response);
+    var z = getParameter('z', arg.z, 'AQUARIUS environment',
+                         response);
     var t = getParameter('t', arg.t, 'data type', response);
-    var a = getParameter('a', arg.a, 'agency code', response);
     var n = getParameter('n', arg.n, 'site number', response);
 
     // default environment ("z") parameter value
     if (z === undefined) {
         z = 'production';
     }
+
+    // default agency code to "USGS" if not present
+    var locationIdentifier =
+        arg.a === undefined ? n + '-USGS' : n + '-' + arg.a;
 
     // data type ("t") parameter domain validation
     var statusMessage;
@@ -89,7 +99,9 @@ httpdispatcher.onGet('/' + serviceName, function (request, response) {
     case 'uv':
         break;
     default:
-        statusMessage = 'Unknown \"t\" parameter value: \"' + t + '\"';
+        statusMessage =
+            'Unknown \"t\" (data type) parameter value: \"' + t +
+            '\"';
     }
 
     if (statusMessage != undefined) {
@@ -99,8 +111,6 @@ httpdispatcher.onGet('/' + serviceName, function (request, response) {
                             'Content-Type': 'text/plain'});
         response.end(statusMessage);
     }
-
-    // TODO: validate site number ("n") parameter here
 
     var getAQTokenResponse;
     try {
@@ -120,10 +130,6 @@ httpdispatcher.onGet('/' + serviceName, function (request, response) {
     }
 
     var token = getAQTokenResponse.getBody().toString('utf-8');
-
-    // default agency code to "USGS" if not present
-    var locationIdentifier =
-        a === undefined ? n + '-USGS' : n + '-' + a;
 
     var aquariusResponse;
     try {
