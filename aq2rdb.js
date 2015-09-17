@@ -1,5 +1,5 @@
 'use strict';
-var name = 'aq2rdb';
+var serviceName = 'aq2rdb';
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
 var querystring = require('querystring');
@@ -9,42 +9,50 @@ var syncRequest = require('sync-request'); // make synchronous HTTP requests
 var PORT = 8081;
 
 // HTTP query parameter existence and non-empty content validation
-function getParameter(parameter, response) {
+function getParameter(parameterName, parameterValue, description, response) {
     var statusMessage;
 
-    if (parameter === undefined) {
+    if (parameterValue === undefined) {
         // "Bad Request" HTTP status code
         statusMessage = 'Required parameter not present';
-        console.log(name + ': ' + statusMessage);
+        console.log(serviceName + ': ' + statusMessage);
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
                             'Content-Type': 'text/plain'});
-        response.end();
+        response.end(statusMessage);
     }
-    else if (parameter.trim() === '') {
+    else if (parameterValue.trim() === '') {
         // "Bad Request" HTTP status code
         statusMessage = 'No content in parameter';
-        console.log(name + ': ' + statusMessage);
+        console.log(serviceName + ': ' + statusMessage);
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
                             'Content-Type': 'text/plain'});
-        response.end();
+        response.end(statusMessage);
     }
-    return parameter;
+    return parameterValue;
+}
+
+function unknownError(response, message) {
+    console.log(serviceName + ': ' + message);
+    response.writeHead(500, message,
+                       {'Content-Length': message.length,
+                        'Content-Type': 'text/plain'});
+    response.end(message);
 }
 
 // GET request handler
-httpdispatcher.onGet('/' + name, function (request, response) {
+httpdispatcher.onGet('/' + serviceName, function (request, response) {
     var getAQTokenHostname = 'localhost';     // GetAQToken service host name
     var aquariusHostname = 'nwists.usgs.gov'; // AQUARIUS host name
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(request.url);
     var username = getParameter(arg.Username, response);
     var password = getParameter(arg.Password, response);
-    var z = getParameter(arg.z, response); // AQUARIUS "environment"
-    var t = getParameter(arg.t, response); // data type
-    var a = getParameter(arg.a, response); // agency code
-    var n = getParameter(arg.n, response); // site number
+    var z = getParameter('z', arg.z, 'AQUARIUS environment', response);
+    var t = getParameter('t', arg.t, 'data type', response);
+    var a = getParameter('a', arg.a, 'agency code', response);
+    var n = getParameter('n', arg.n, 'site number', response);
 
     // default environment ("z") parameter value
     if (z === undefined) {
@@ -89,7 +97,7 @@ httpdispatcher.onGet('/' + name, function (request, response) {
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
                             'Content-Type': 'text/plain'});
-        response.end();
+        response.end(statusMessage);
     }
 
     // TODO: validate site number ("n") parameter here
@@ -142,13 +150,6 @@ httpdispatcher.onGet('/' + name, function (request, response) {
     response.end(token);
 });
 
-function unknownError(response, message) {
-    console.log(name + ': ' + message);
-    response.writeHead(500, message,
-                       {'Content-Length': message.length,
-                        'Content-Type': 'text/plain'});
-}
-
 function handleRequest(request, response) {
     try {
         httpdispatcher.dispatch(request, response);
@@ -157,7 +158,7 @@ function handleRequest(request, response) {
 
         if (error.message === 'connect ECONNREFUSED') {
             statusMessage = 'could not connect to AQUARIUS';
-            console.log(name + ': ' + statusMessage);
+            console.log(serviceName + ': ' + statusMessage);
             response.writeHead(504, statusMessage,
                                {'Content-Length': statusMessage.length,
                                 'Content-Type': 'text/plain'});
@@ -165,7 +166,7 @@ function handleRequest(request, response) {
         else {
             unknownError(response, error.message);
         }
-        response.end();
+        response.end(statusMessage);
     }
 }
 
