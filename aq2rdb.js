@@ -1,3 +1,12 @@
+/**
+ * @fileOverview A Web service to map AQUARIUS, time series data
+ *               requests to USGS-variant RDB files.
+ *
+ * @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
+ *
+ * @see <a href="https://sites.google.com/a/usgs.gov/nwis_integrator/data_retrieval/cli/aqts2rdb">aqts2rdb</a>.
+ */
+
 'use strict';
 var serviceName = 'aq2rdb';
 var http = require('http');
@@ -5,10 +14,15 @@ var httpdispatcher = require('httpdispatcher');
 var querystring = require('querystring');
 var syncRequest = require('sync-request'); // make synchronous HTTP requests
 
-// port the aq2rdb service listens on
+/**
+   @description The port the aq2rdb service listens on.
+*/
 var PORT = 8081;
 
-// HTTP query parameter existence and non-empty content validation
+/**
+   @description HTTP query parameter existence and check for non-empty
+                parameter content.
+*/
 function getParameter(parameterName, parameterValue, description, response) {
     var statusMessage;
 
