@@ -5,6 +5,7 @@ var httpdispatcher = require('httpdispatcher');
 var querystring = require('querystring');
 var syncRequest = require('sync-request'); // make synchronous HTTP requests
 
+// port the aq2rdb service listens on
 var PORT = 8081;
 
 // HTTP query parameter existence and non-empty content validation
@@ -34,12 +35,16 @@ function getParameter(parameter, response) {
 
 // GET request handler
 httpdispatcher.onGet('/' + name, function (request, response) {
+    var getAQTokenHostname = 'localhost';     // GetAQToken service host name
+    var aquariusHostname = 'nwists.usgs.gov'; // AQUARIUS host name
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(request.url);
     var username = getParameter(arg.Username, response);
     var password = getParameter(arg.Password, response);
-    var z = getParameter(arg.z, response);
-    var t = getParameter(arg.t, response);
+    var z = getParameter(arg.z, response); // AQUARIUS "environment"
+    var t = getParameter(arg.t, response); // data type
+    var a = getParameter(arg.a, response); // agency code
+    var n = getParameter(arg.n, response); // site number
 
     // default environment ("z") parameter value
     if (z === undefined) {
@@ -71,15 +76,14 @@ httpdispatcher.onGet('/' + name, function (request, response) {
     case 'qw':
         statusMessage = 'Discrete water quality data are not supported';
         break;
+    // these are the only valid "t" parameter values right now
     case 'dv':
     case 'uv':
-        // the only valid "t" parameter values right now
         break;
     default:
         statusMessage = 'Unknown \"t\" parameter value: \"' + t + '\"';
     }
 
-    var getAQTokenResponse;
     if (statusMessage != undefined) {
         // there was an error
         response.writeHead(400, statusMessage,
@@ -88,13 +92,17 @@ httpdispatcher.onGet('/' + name, function (request, response) {
         response.end();
     }
 
+    // TODO: validate site number ("n") parameter here
+
+    var getAQTokenResponse;
     try {
         // send (synchronous) request to GetAQToken service for AQUARIUS
         // authentication token
         getAQTokenResponse =
             syncRequest(
                 'GET',
-                'http://localhost:8080/services/GetAQToken?&userName=' +
+                'http://' + getAQTokenHostname +
+                    ':8080/services/GetAQToken?&userName=' +
                     username + '&password=' + password +
                     '&uriString=http://nwists.usgs.gov/AQUARIUS/'
             );
@@ -105,7 +113,27 @@ httpdispatcher.onGet('/' + name, function (request, response) {
 
     var token = getAQTokenResponse.getBody().toString('utf-8');
 
-    // TODO: AQUARIUS Web service request and callback goes here
+    // default agency code to "USGS" if not present
+    var locationIdentifier =
+        a === undefined ? n + '-USGS' : n + '-' + a;
+
+    var aquariusResponse;
+    try {
+        // send (synchronous) request to GetAQToken service for AQUARIUS
+        // authentication token
+        aquariusResponse =
+            syncRequest(
+                'GET',
+                'http://' + aquariusHostname +
+                    '/AQUARIUS/Publish/V2/' +
+                    'getTimeSeriesDescriptionList?' +
+                    '&token=' + token + '&format=json' +
+                    '&locationIdentifier=' + locationIdentifier
+            );
+    }
+    catch (error) {
+        unknownError(response, error.message);
+    }
 
     // TODO: move to callback
     // response.writeHead(200, {'Content-Type': 'text/plain'});
@@ -115,9 +143,9 @@ httpdispatcher.onGet('/' + name, function (request, response) {
 });
 
 function unknownError(response, message) {
-    console.log(name + ': ' + error.message);
-    response.writeHead(500, error.message,
-                       {'Content-Length': error.message.length,
+    console.log(name + ': ' + message);
+    response.writeHead(500, message,
+                       {'Content-Length': message.length,
                         'Content-Type': 'text/plain'});
 }
 
