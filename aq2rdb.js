@@ -130,7 +130,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME,
             '\"';
     }
 
-    if (statusMessage != undefined) {
+    if (statusMessage !== undefined) {
         // there was an error
         aq2rdbResponse.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
@@ -167,7 +167,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME,
                 var aquarius = JSON.parse(messageBody);
 
                 if (getTimeSeriesDescriptionListResponse.statusCode === 400) {
-                var statusMessage =
+                statusMessage =
                 '# There was a problem forwarding the request to AQUARIUS:\n' +
                 '#\n' +
                 '#   ' + aquarius.ResponseStatus.Message + '\n';
@@ -217,12 +217,6 @@ httpdispatcher.onGet('/' + SERVICE_NAME,
             username + '&password=' + password +
             '&uriString=http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/'
     }, getAQTokenCallback).end();
-
-    // TODO: move to callback
-    // aq2rdbResponse.writeHead(200, {'Content-Type': 'text/plain'});
-
-    // TODO: need to somehow pass error messages down here to pass to
-    // aq2rdbResponse.end().
 });
 
 /**
