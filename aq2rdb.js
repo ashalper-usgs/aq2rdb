@@ -28,36 +28,6 @@ var PORT = 8081;
 var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 
 /**
-   @description HTTP query parameter existence and check for non-empty
-                parameter content.
-*/
-function getParameter(
-    parameterName, parameterValue, description, response
-) {
-    var statusMessage;
-
-    if (parameterValue === undefined) {
-        // "Bad Request" HTTP status code
-        statusMessage = 'Required parameter \"' + parameterName +
-            '\" (' + description + ') not present';
-        response.writeHead(400, statusMessage,
-                           {'Content-Length': statusMessage.length,
-                            'Content-Type': 'text/plain'});
-        response.end(statusMessage);
-    }
-    else if (parameterValue.trim() === '') {
-        // "Bad Request" HTTP status code
-        statusMessage = 'No content in parameter \"' + parameterName +
-            '\" (' + description + ')';
-        response.writeHead(400, statusMessage,
-                           {'Content-Length': statusMessage.length,
-                            'Content-Type': 'text/plain'});
-        response.end(statusMessage);
-    }
-    return parameterValue;
-}
-
-/**
    @description Process unforeseen errors.
 */
 function unknownError(response, message) {
@@ -68,35 +38,75 @@ function unknownError(response, message) {
 }
 
 /**
+   @description Consolodated error message writer.
+*/ 
+function writeErrorMessage(response, statusCode, statusMessage) {
+    response.writeHead(statusCode, statusMessage,
+                       {'Content-Length': statusMessage.length,
+                        'Content-Type': 'text/plain'});
+    response.end(statusMessage);
+}
+
+/**
    @description Service GET request handler.
 */ 
-httpdispatcher.onGet('/' + SERVICE_NAME,
-                     function (aq2rdbRequest, aq2rdbResponse) {
+httpdispatcher.onGet('/' + SERVICE_NAME, function (
+    aq2rdbRequest, aq2rdbResponse
+) {
     var getAQTokenHostname = 'localhost';     // GetAQToken service host name
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(aq2rdbRequest.url);
-    var username =
-        getParameter('Username', arg.Username, 'AQUARIUS user name',
-                     aq2rdbResponse);
-    var password =
-        getParameter('Password', arg.Password, 'AQUARIUS password',
-                     aq2rdbResponse);
-    var z = getParameter('z', arg.z, 'AQUARIUS environment',
-                         aq2rdbResponse);
-    var t = getParameter('t', arg.t, 'data type', aq2rdbResponse);
-    var n = getParameter('n', arg.n, 'site number', aq2rdbResponse);
+    var statusMessage;
 
-    // default environment ("z") parameter value
-    if (z === undefined) {
-        z = 'production';
+    if (arg.Username.length === 0) {
+	writeErrorMessage(
+	    aq2rdbResponse, 400,
+	    '# ' + SERVICE_NAME + ': Required parameter ' +
+		'\"Username\" not found'
+	);
+	return;
     }
+    var username = arg.Username;
+
+    if (arg.Password.length === 0) {
+	writeErrorMessage(
+	    aq2rdbResponse, 400,
+	    '# ' + SERVICE_NAME + ': Required parameter ' +
+		'\"Password\" not found'
+	);
+	return;
+    }
+    var password = arg.Password;
+
+    if (arg.z.length === 0) {
+        z = 'production';	// set default
+    }
+
+    if (arg.t.length === 0) {
+	writeErrorMessage(
+	    aq2rdbResponse, 400,
+	    '# ' + SERVICE_NAME + ': Required parameter ' +
+		'\"t\" (data type) not found'
+	);
+	return;
+    }
+    var t = arg.t;
+
+    if (arg.n.length === 0) {
+	writeErrorMessage(
+	    aq2rdbResponse, 400,
+	    '# ' + SERVICE_NAME + ': Required parameter ' +
+		'\"n\" (site number) not found'
+	);
+	return;
+    }
+    var n = arg.n;
 
     // default agency code to "USGS" if not present
     var locationIdentifier =
         arg.a === undefined ? n + '-USGS' : n + '-' + arg.a;
 
     // data type ("t") parameter domain validation
-    var statusMessage;
     switch (t.toLowerCase()) {
     case 'ms':
         statusMessage =
@@ -132,10 +142,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME,
 
     if (statusMessage !== undefined) {
         // there was an error
-        aq2rdbResponse.writeHead(400, statusMessage,
-                           {'Content-Length': statusMessage.length,
-                            'Content-Type': 'text/plain'});
-        aq2rdbResponse.end(statusMessage);
+	writeErrorMessage(aq2rdbResponse, statusCode, statusMessage);
     }
 
     /**
