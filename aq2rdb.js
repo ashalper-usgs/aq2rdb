@@ -61,27 +61,19 @@ function getParameter(parameterName, parameterValue, description, response) {
    @description Process unforeseen errors.
 */
 function unknownError(response, message) {
-    console.log('unknownError(');
-    console.log('  request: ' + response);
-    console.log('  message: ' + message);
-    console.log(')');
-
-    console.log(SERVICE_NAME + ': ' + message);
     response.writeHead(500, message,
                        {'Content-Length': message.length,
                         'Content-Type': 'text/plain'});
     response.end(message);
 }
 
+/**
+   @description Retreive time series data from AQUARIUS API.
+*/
 function aquariusRequest(token, locationIdentifier) {
-    console.log(SERVICE_NAME + '.aquariusRequest().token: ' +
-                token);
-    console.log(
-        SERVICE_NAME +
-            ': Sending AQUARIUS getTimeSeriesDescriptionList ' +
-            'request...'
-    );
-
+    /**
+       @description Buffer response from AQUARIUS API.
+    */
     function getTimeSeriesDescriptionListCallback(response) {
         var data = '';
 
@@ -99,10 +91,6 @@ function aquariusRequest(token, locationIdentifier) {
         });
     } // getTimeSeriesDescriptionListCallback
 
-    console.log('AQUARIUS_HOSTNAME: ' + AQUARIUS_HOSTNAME);
-    console.log('token: ' + token);
-    console.log('locationIdentifier: ' + locationIdentifier);
-
     http.request({
         host: AQUARIUS_HOSTNAME,
         path: '/AQUARIUS/Publish/V2/' +
@@ -110,17 +98,12 @@ function aquariusRequest(token, locationIdentifier) {
             '&token=' + token + '&format=json' +
             '&locationIdentifier=' + locationIdentifier
     }, getTimeSeriesDescriptionListCallback).end();
-}
+} // aquariusRequest
 
 /**
    @description Service GET request handler.
 */ 
 httpdispatcher.onGet('/' + SERVICE_NAME, function (request, response) {
-    console.log('httpdispatcher.onGet(');
-    console.log('  request: ' + request);
-    console.log('  response: ' + response);
-    console.log(')');
-
     var getAQTokenHostname = 'localhost';     // GetAQToken service host name
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(request.url);
@@ -230,10 +213,6 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (request, response) {
                 dispatch).
 */ 
 function handleRequest(request, response) {
-    console.log('handleRequest(');
-    console.log('  request: ' + request);
-    console.log('  response: ' + response);
-    console.log(')');
     try {
         httpdispatcher.dispatch(request, response);
     }
