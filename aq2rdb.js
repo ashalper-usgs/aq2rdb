@@ -8,16 +8,24 @@
  */
 
 'use strict';
-var serviceName = 'aq2rdb';
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
 var querystring = require('querystring');
-var syncRequest = require('sync-request'); // make synchronous HTTP requests
+
+/**
+   @description The aq2rdb Web service name.
+*/
+var SERVICE_NAME = 'aq2rdb';
 
 /**
    @description The port the aq2rdb service listens on.
 */
 var PORT = 8081;
+
+/**
+   @description AQUARIUS host.
+*/
+var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 
 /**
    @description HTTP query parameter existence and check for non-empty
@@ -30,7 +38,7 @@ function getParameter(parameterName, parameterValue, description, response) {
         // "Bad Request" HTTP status code
         statusMessage = 'Required parameter \"' + parameterName +
             '\" (' + description + ') not present';
-        console.log(serviceName + ': ' + statusMessage);
+        console.log(SERVICE_NAME + ': ' + statusMessage);
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
                             'Content-Type': 'text/plain'});
@@ -40,7 +48,7 @@ function getParameter(parameterName, parameterValue, description, response) {
         // "Bad Request" HTTP status code
         statusMessage = 'No content in parameter \"' + parameterName +
             '\" (' + description + ')';
-        console.log(serviceName + ': ' + statusMessage);
+        console.log(SERVICE_NAME + ': ' + statusMessage);
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
                             'Content-Type': 'text/plain'});
@@ -49,18 +57,71 @@ function getParameter(parameterName, parameterValue, description, response) {
     return parameterValue;
 }
 
+/**
+   @description Process unforeseen errors.
+*/
 function unknownError(response, message) {
-    console.log(serviceName + ': ' + message);
+    console.log('unknownError(');
+    console.log('  request: ' + response);
+    console.log('  message: ' + message);
+    console.log(')');
+
+    console.log(SERVICE_NAME + ': ' + message);
     response.writeHead(500, message,
                        {'Content-Length': message.length,
                         'Content-Type': 'text/plain'});
     response.end(message);
 }
 
-// GET request handler
-httpdispatcher.onGet('/' + serviceName, function (request, response) {
+function aquariusRequest(token, locationIdentifier) {
+    console.log(SERVICE_NAME + '.aquariusRequest().token: ' +
+                token);
+    console.log(
+        SERVICE_NAME +
+            ': Sending AQUARIUS getTimeSeriesDescriptionList ' +
+            'request...'
+    );
+
+    function getTimeSeriesDescriptionListCallback(response) {
+        var data = '';
+
+        // accumulate response
+        response.on('data', function (chunk) {
+            data += chunk;
+        });
+
+        response.on('end', function () {
+            console.log(
+                SERVICE_NAME +
+                    ': getTimeSeriesDescriptionList request ' +
+                    'complete; data: ' + data
+            );
+        });
+    } // getTimeSeriesDescriptionListCallback
+
+    console.log('AQUARIUS_HOSTNAME: ' + AQUARIUS_HOSTNAME);
+    console.log('token: ' + token);
+    console.log('locationIdentifier: ' + locationIdentifier);
+
+    http.request({
+        host: AQUARIUS_HOSTNAME,
+        path: '/AQUARIUS/Publish/V2/' +
+            'getTimeSeriesDescriptionList?' +
+            '&token=' + token + '&format=json' +
+            '&locationIdentifier=' + locationIdentifier
+    }, getTimeSeriesDescriptionListCallback).end();
+}
+
+/**
+   @description Service GET request handler.
+*/ 
+httpdispatcher.onGet('/' + SERVICE_NAME, function (request, response) {
+    console.log('httpdispatcher.onGet(');
+    console.log('  request: ' + request);
+    console.log('  response: ' + response);
+    console.log(')');
+
     var getAQTokenHostname = 'localhost';     // GetAQToken service host name
-    var aquariusHostname = 'nwists.usgs.gov'; // AQUARIUS host name
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(request.url);
     var username =
@@ -126,62 +187,77 @@ httpdispatcher.onGet('/' + serviceName, function (request, response) {
         response.end(statusMessage);
     }
 
-    var getAQTokenResponse;
-    try {
-        // send (synchronous) request to GetAQToken service for AQUARIUS
-        // authentication token
-        getAQTokenResponse =
-            syncRequest(
-                'GET',
-                'http://' + getAQTokenHostname +
-                    ':8080/services/GetAQToken?&userName=' +
-                    username + '&password=' + password +
-                    '&uriString=http://nwists.usgs.gov/AQUARIUS/'
-            );
-    }
-    catch (error) {
-        unknownError(response, error.message);
-    }
+    /**
+       @description Store AQUARIUS Web service API authentication
+                    token.
+    */
+    var token = '';
 
-    var token = getAQTokenResponse.getBody().toString('utf-8');
+    /**
+       @description GetAQToken service response callback.
+    */
+    function getAQTokenCallback(response) {
+        // accumulate response
+        response.on('data', function (chunk) {
+            token += chunk;
+        });
 
-    var aquariusResponse;
-    try {
-        // send (synchronous) request to GetAQToken service for AQUARIUS
-        // authentication token
-        aquariusResponse =
-            syncRequest(
-                'GET',
-                'http://' + aquariusHostname +
-                    '/AQUARIUS/Publish/V2/' +
-                    'getTimeSeriesDescriptionList?' +
-                    '&token=' + token + '&format=json' +
-                    '&locationIdentifier=' + locationIdentifier
-            );
-    }
-    catch (error) {
-        unknownError(response, error.message);
-    }
+        // response complete
+        response.on('end', function () {
+            // now interrogate AQUARIUS API for water data
+            // TODO: more parameters need to be passed here?
+            aquariusRequest(token, locationIdentifier);
+        });
+    } // getAQTokenCallback
+
+    // GetAQToken service request for AQUARIUS authentication token
+    // needed for AQUARIUS API
+    http.request({
+        host: getAQTokenHostname,
+        port: '8080',
+        path: '/services/GetAQToken?&userName=' +
+            username + '&password=' + password +
+            '&uriString=http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/'
+    }, getAQTokenCallback).end();
 
     // TODO: move to callback
     // response.writeHead(200, {'Content-Type': 'text/plain'});
 
-    // TODO: RDB output goes here
-    response.end(token);
 });
 
+/**
+   @description Service dispatcher (there is only one path to
+                dispatch).
+*/ 
 function handleRequest(request, response) {
+    console.log('handleRequest(');
+    console.log('  request: ' + request);
+    console.log('  response: ' + response);
+    console.log(')');
     try {
         httpdispatcher.dispatch(request, response);
-    } catch (error) {
+    }
+    catch (error) {
+        // TODO: this is greedily catching all errors in
+        // httpdispatcher.onGet() above, which is not what we want
+        // (e.g. when AQUARIUS replies with a HTTP 400 error when a
+        // site does not exist in the database).
+
         var statusMessage;
 
         if (error.message === 'connect ECONNREFUSED') {
             statusMessage = 'could not connect to AQUARIUS';
-            console.log(serviceName + ': ' + statusMessage);
+            console.log(SERVICE_NAME + ': ' + statusMessage);
             response.writeHead(504, statusMessage,
                                {'Content-Length': statusMessage.length,
                                 'Content-Type': 'text/plain'});
+        }
+        else if (error.statusCode === 400) {
+            console.log(
+                'handleRequest::error.statusCode: ' +
+                    error.statusCode.toString()
+            );
+            console.log('error.message: ' + error.message);
         }
         else {
             unknownError(response, error.message);
@@ -190,8 +266,14 @@ function handleRequest(request, response) {
     }
 }
 
+/**
+   @description Create HTTP server.
+*/ 
 var server = http.createServer(handleRequest);
 
+/**
+   @description Start listening for requests.
+*/ 
 server.listen(PORT, function () {
     console.log('Server listening on: http://localhost:%s', PORT);
 });
