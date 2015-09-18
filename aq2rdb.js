@@ -40,7 +40,6 @@ function getParameter(
         // "Bad Request" HTTP status code
         statusMessage = 'Required parameter \"' + parameterName +
             '\" (' + description + ') not present';
-        console.log(SERVICE_NAME + ': ' + statusMessage);
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
                             'Content-Type': 'text/plain'});
@@ -50,7 +49,6 @@ function getParameter(
         // "Bad Request" HTTP status code
         statusMessage = 'No content in parameter \"' + parameterName +
             '\" (' + description + ')';
-        console.log(SERVICE_NAME + ': ' + statusMessage);
         response.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
                             'Content-Type': 'text/plain'});
@@ -166,22 +164,8 @@ httpdispatcher.onGet('/' + SERVICE_NAME,
                 });
 
             getTimeSeriesDescriptionListResponse.on('end', function () {
-                console.log(
-                    SERVICE_NAME +
-                        ': getTimeSeriesDescriptionList request ' +
-                        'complete; messageBody: ' + messageBody
-                );
-                console.log(
-                    SERVICE_NAME +
-                        ': getTimeSeriesDescriptionListResponse.statusCode: ' +
-                        getTimeSeriesDescriptionListResponse.statusCode
-                );
                 var aquarius = JSON.parse(messageBody);
-                console.log(
-                    SERVICE_NAME +
-                        '.aquarius.ResponseStatus.ErrorCode: ' +
-                        aquarius.ResponseStatus.ErrorCode
-                );
+
                 if (getTimeSeriesDescriptionListResponse.statusCode === 400) {
                 var statusMessage =
                 '# There was a problem forwarding the request to AQUARIUS:\n' +
@@ -259,7 +243,7 @@ function handleRequest(request, response) {
 
         if (error.message === 'connect ECONNREFUSED') {
             statusMessage = 'could not connect to AQUARIUS';
-            console.log(SERVICE_NAME + ': ' + statusMessage);
+
             response.writeHead(504, statusMessage,
                                {'Content-Length': statusMessage.length,
                                 'Content-Type': 'text/plain'});
