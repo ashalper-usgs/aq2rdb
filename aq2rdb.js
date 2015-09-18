@@ -68,55 +68,22 @@ function unknownError(response, message) {
 }
 
 /**
-   @description Retreive time series data from AQUARIUS API.
-*/
-function aquariusRequest(token, locationIdentifier) {
-    /**
-       @description Buffer response from AQUARIUS API.
-    */
-    function getTimeSeriesDescriptionListCallback(response) {
-        var data = '';
-
-        // accumulate response
-        response.on('data', function (chunk) {
-            data += chunk;
-        });
-
-        response.on('end', function () {
-            console.log(
-                SERVICE_NAME +
-                    ': getTimeSeriesDescriptionList request ' +
-                    'complete; data: ' + data
-            );
-        });
-    } // getTimeSeriesDescriptionListCallback
-
-    http.request({
-        host: AQUARIUS_HOSTNAME,
-        path: '/AQUARIUS/Publish/V2/' +
-            'getTimeSeriesDescriptionList?' +
-            '&token=' + token + '&format=json' +
-            '&locationIdentifier=' + locationIdentifier
-    }, getTimeSeriesDescriptionListCallback).end();
-} // aquariusRequest
-
-/**
    @description Service GET request handler.
 */ 
-httpdispatcher.onGet('/' + SERVICE_NAME, function (request, response) {
+httpdispatcher.onGet('/' + SERVICE_NAME, function (aq2rdbRequest, aq2rdbResponse) {
     var getAQTokenHostname = 'localhost';     // GetAQToken service host name
     // parse HTTP query parameters in GET request URL
-    var arg = querystring.parse(request.url);
+    var arg = querystring.parse(aq2rdbRequest.url);
     var username =
         getParameter('Username', arg.Username, 'AQUARIUS user name',
-                     response);
+                     aq2rdbResponse);
     var password =
         getParameter('Password', arg.Password, 'AQUARIUS password',
-                     response);
+                     aq2rdbResponse);
     var z = getParameter('z', arg.z, 'AQUARIUS environment',
-                         response);
-    var t = getParameter('t', arg.t, 'data type', response);
-    var n = getParameter('n', arg.n, 'site number', response);
+                         aq2rdbResponse);
+    var t = getParameter('t', arg.t, 'data type', aq2rdbResponse);
+    var n = getParameter('n', arg.n, 'site number', aq2rdbResponse);
 
     // default environment ("z") parameter value
     if (z === undefined) {
@@ -164,10 +131,10 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (request, response) {
 
     if (statusMessage != undefined) {
         // there was an error
-        response.writeHead(400, statusMessage,
+        aq2rdbResponse.writeHead(400, statusMessage,
                            {'Content-Length': statusMessage.length,
                             'Content-Type': 'text/plain'});
-        response.end(statusMessage);
+        aq2rdbResponse.end(statusMessage);
     }
 
     /**
@@ -175,6 +142,49 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (request, response) {
                     token.
     */
     var token = '';
+
+    /**
+       @description Retreive time series data from AQUARIUS API.
+    */
+    function getAquariusResponse(token, locationIdentifier) {
+        /**
+           @description Buffer response from AQUARIUS API.
+        */
+        function getTimeSeriesDescriptionListCallback(response) {
+            var messageBody = '';
+
+            // accumulate response
+            response.on('data', function (chunk) {
+                messageBody += chunk;
+            });
+
+            response.on('end', function () {
+                console.log(
+                    SERVICE_NAME +
+                        ': getTimeSeriesDescriptionList request ' +
+                        'complete; messageBody: ' + messageBody
+                );
+                console.log(
+                    SERVICE_NAME +
+                        ': response.statusCode: ' + response.statusCode
+                );
+                var aquarius = JSON.parse(messageBody);
+                console.log(
+                    SERVICE_NAME +
+                        '.aquarius.ResponseStatus.ErrorCode: ' +
+                        aquarius.ResponseStatus.ErrorCode
+                );
+            });
+        } // getTimeSeriesDescriptionListCallback
+
+        http.request({
+            host: AQUARIUS_HOSTNAME,
+            path: '/AQUARIUS/Publish/V2/' +
+                'getTimeSeriesDescriptionList?' +
+                '&token=' + token + '&format=json' +
+                '&locationIdentifier=' + locationIdentifier
+        }, getTimeSeriesDescriptionListCallback).end();
+    } // getAquariusResponse
 
     /**
        @description GetAQToken service response callback.
@@ -189,7 +199,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (request, response) {
         response.on('end', function () {
             // now interrogate AQUARIUS API for water data
             // TODO: more parameters need to be passed here?
-            aquariusRequest(token, locationIdentifier);
+            getAquariusResponse(token, locationIdentifier);
         });
     } // getAQTokenCallback
 
@@ -204,8 +214,10 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (request, response) {
     }, getAQTokenCallback).end();
 
     // TODO: move to callback
-    // response.writeHead(200, {'Content-Type': 'text/plain'});
+    // aq2rdbResponse.writeHead(200, {'Content-Type': 'text/plain'});
 
+    // TODO: need to somehow pass error messages down here to pass to
+    // aq2rdbResponse.end().
 });
 
 /**
