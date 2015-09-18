@@ -31,7 +31,9 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
    @description HTTP query parameter existence and check for non-empty
                 parameter content.
 */
-function getParameter(parameterName, parameterValue, description, response) {
+function getParameter(
+    parameterName, parameterValue, description, response
+) {
     var statusMessage;
 
     if (parameterValue === undefined) {
@@ -70,7 +72,8 @@ function unknownError(response, message) {
 /**
    @description Service GET request handler.
 */ 
-httpdispatcher.onGet('/' + SERVICE_NAME, function (aq2rdbRequest, aq2rdbResponse) {
+httpdispatcher.onGet('/' + SERVICE_NAME,
+                     function (aq2rdbRequest, aq2rdbResponse) {
     var getAQTokenHostname = 'localhost';     // GetAQToken service host name
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(aq2rdbRequest.url);
@@ -150,15 +153,19 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (aq2rdbRequest, aq2rdbResponse
         /**
            @description Buffer response from AQUARIUS API.
         */
-        function getTimeSeriesDescriptionListCallback(response) {
+        function getTimeSeriesDescriptionListCallback(
+            getTimeSeriesDescriptionListResponse
+        ) {
             var messageBody = '';
 
             // accumulate response
-            response.on('data', function (chunk) {
-                messageBody += chunk;
-            });
+            getTimeSeriesDescriptionListResponse.on(
+                'data',
+                function (chunk) {
+                    messageBody += chunk;
+                });
 
-            response.on('end', function () {
+            getTimeSeriesDescriptionListResponse.on('end', function () {
                 console.log(
                     SERVICE_NAME +
                         ': getTimeSeriesDescriptionList request ' +
@@ -166,7 +173,8 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (aq2rdbRequest, aq2rdbResponse
                 );
                 console.log(
                     SERVICE_NAME +
-                        ': response.statusCode: ' + response.statusCode
+                        ': getTimeSeriesDescriptionListResponse.statusCode: ' +
+                        getTimeSeriesDescriptionListResponse.statusCode
                 );
                 var aquarius = JSON.parse(messageBody);
                 console.log(
@@ -174,6 +182,19 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (aq2rdbRequest, aq2rdbResponse
                         '.aquarius.ResponseStatus.ErrorCode: ' +
                         aquarius.ResponseStatus.ErrorCode
                 );
+                if (getTimeSeriesDescriptionListResponse.statusCode === 400) {
+                var statusMessage =
+                '# There was a problem forwarding the request to AQUARIUS:\n' +
+                '#\n' +
+                '#   ' + aquarius.ResponseStatus.Message + '\n';
+                    aq2rdbResponse.writeHead(
+                        getTimeSeriesDescriptionListResponse.statusCode,
+                        statusMessage,
+                        {'Content-Length': statusMessage.length,
+                         'Content-Type': 'text/plain'}
+                    );
+                    aq2rdbResponse.end(statusMessage);
+                }
             });
         } // getTimeSeriesDescriptionListCallback
 
