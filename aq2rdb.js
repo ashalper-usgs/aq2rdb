@@ -59,46 +59,46 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     var statusMessage;
 
     if (arg.Username.length === 0) {
-	writeErrorMessage(
-	    aq2rdbResponse, 400,
-	    '# ' + SERVICE_NAME + ': Required parameter ' +
-		'\"Username\" not found'
-	);
-	return;
+        writeErrorMessage(
+            aq2rdbResponse, 400,
+            '# ' + SERVICE_NAME + ': Required parameter ' +
+                '\"Username\" not found'
+        );
+        return;
     }
     var username = arg.Username;
 
     if (arg.Password.length === 0) {
-	writeErrorMessage(
-	    aq2rdbResponse, 400,
-	    '# ' + SERVICE_NAME + ': Required parameter ' +
-		'\"Password\" not found'
-	);
-	return;
+        writeErrorMessage(
+            aq2rdbResponse, 400,
+            '# ' + SERVICE_NAME + ': Required parameter ' +
+                '\"Password\" not found'
+        );
+        return;
     }
     var password = arg.Password;
 
     if (arg.z.length === 0) {
-        z = 'production';	// set default
+        z = 'production';       // set default
     }
 
     if (arg.t.length === 0) {
-	writeErrorMessage(
-	    aq2rdbResponse, 400,
-	    '# ' + SERVICE_NAME + ': Required parameter ' +
-		'\"t\" (data type) not found'
-	);
-	return;
+        writeErrorMessage(
+            aq2rdbResponse, 400,
+            '# ' + SERVICE_NAME + ': Required parameter ' +
+                '\"t\" (data type) not found'
+        );
+        return;
     }
     var t = arg.t;
 
     if (arg.n.length === 0) {
-	writeErrorMessage(
-	    aq2rdbResponse, 400,
-	    '# ' + SERVICE_NAME + ': Required parameter ' +
-		'\"n\" (site number) not found'
-	);
-	return;
+        writeErrorMessage(
+            aq2rdbResponse, 400,
+            '# ' + SERVICE_NAME + ': Required parameter ' +
+                '\"n\" (site number) not found'
+        );
+        return;
     }
     var n = arg.n;
 
@@ -142,7 +142,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
     if (statusMessage !== undefined) {
         // there was an error
-	writeErrorMessage(aq2rdbResponse, statusCode, statusMessage);
+        writeErrorMessage(aq2rdbResponse, statusCode, statusMessage);
     }
 
     /**
@@ -171,13 +171,12 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
                 });
 
             getTimeSeriesDescriptionListResponse.on('end', function () {
-                var aquarius = JSON.parse(messageBody);
-
-                if (getTimeSeriesDescriptionListResponse.statusCode === 400) {
-                statusMessage =
+                switch (getTimeSeriesDescriptionListResponse.statusCode) {
+                case 400:
+                    statusMessage =
                 '# There was a problem forwarding the request to AQUARIUS:\n' +
                 '#\n' +
-                '#   ' + aquarius.ResponseStatus.Message + '\n';
+                '#   ' + timeSeriesDescriptionList.ResponseStatus.Message;
                     aq2rdbResponse.writeHead(
                         getTimeSeriesDescriptionListResponse.statusCode,
                         statusMessage,
@@ -185,8 +184,27 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
                          'Content-Type': 'text/plain'}
                     );
                     aq2rdbResponse.end(statusMessage);
+                    return;
+                case 401:
+                    // TODO: "401: Unauthorized"
+                    return;
                 }
             });
+
+            // TODO: trap any other unexpected errors here
+
+            var timeSeriesDescriptionList;
+            try {
+                timeSeriesDescriptionList = JSON.parse(messageBody);
+            }
+            catch (error) {
+                console.log(
+                    'getTimeSeriesDescriptionListResponse.statusCode: ' +
+                        getTimeSeriesDescriptionListResponse.statusCode);
+                console.log('messageBody: ' + messageBody.length);
+                unknownError(aq2rdbResponse, error.message);
+                return;
+            }
         } // getTimeSeriesDescriptionListCallback
 
         http.request({
