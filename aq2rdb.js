@@ -31,6 +31,7 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
    @description Process unforeseen errors.
 */
 function unknownError(response, message) {
+    console.log(SERVICE_NAME + ': unknownError()');
     response.writeHead(500, message,
                        {'Content-Length': message.length,
                         'Content-Type': 'text/plain'});
@@ -94,15 +95,6 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     }
     var t = arg.t;
 
-    // site number (a.k.a. station number)
-    if (arg.n.length === 0) {
-        writeErrorMessage(
-            aq2rdbResponse, 400,
-            '# ' + SERVICE_NAME + ': Required parameter ' +
-                '\"n\" (site number) not found'
-        );
-        return;
-    }
     var n = arg.n;
 
     // time-series identifier
@@ -180,11 +172,12 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
                 switch (getTimeSeriesCorrectedDataResponse.statusCode) {
                 case 400:
                     // TODO: it is unlikely, but there could be errors
-                    // in parsing the JSON here, so this needs its own
-                    // error handling
+                    // in parsing the JSON reply here, so this needs
+                    // its own error handling
                     var messageObject = JSON.parse(messageBody);
                     // TODO: this could probably be made more
-                    // robust/helpful
+                    // robust/helpful. Right now the message is just
+                    // the vague "Unable to bind request".
                     statusMessage =
                         '# There was a problem forwarding the ' +
                         'request to AQUARIUS:\n' +
@@ -222,30 +215,8 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
                         invocation errors.
         */
         request.on('error', function (error) {
-            switch (getTimeSeriesCorrectedDataResponse.statusCode) {
-            case 400:
-                statusMessage =
-                    '# There was a problem forwarding the data ' +
-                    'request to AQUARIUS:\n' +
-                    '#\n' +
-                    '#   ' +
-                    getTimeSeriesCorrectedDataResponse.toString();
-
-                aq2rdbResponse.writeHead(
-                    getTimeSeriesCorrectedDataResponse.statusCode,
-                    statusMessage,
-                    {'Content-Length': statusMessage.length,
-                     'Content-Type': 'text/plain'}
-                );
-                aq2rdbResponse.end(statusMessage);
-                return;
-            case 401:
-                // TODO: "401: Unauthorized"
-                return;
-            default:
-                handleService('GetTimeSeriesCorrectedData',
-                              aq2rdbResponse, error);
-            }
+            handleService('GetTimeSeriesCorrectedData',
+                          aq2rdbResponse, error);
         });
 
         request.end();
