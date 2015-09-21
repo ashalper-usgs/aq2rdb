@@ -179,10 +179,18 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
             getTimeSeriesCorrectedDataResponse.on('end', function () {
                 switch (getTimeSeriesCorrectedDataResponse.statusCode) {
                 case 400:
+                    // TODO: it is unlikely, but there could be errors
+                    // in parsing the JSON here, so this needs its own
+                    // error handling
+                    var messageObject = JSON.parse(messageBody);
+                    // TODO: this could probably be made more
+                    // robust/helpful
                     statusMessage =
-                '# There was a problem forwarding the request to AQUARIUS:\n' +
-                '#\n' +
-                '#   ' + timeSeriesDescriptionList.ResponseStatus.Message;
+                        '# There was a problem forwarding the ' +
+                        'request to AQUARIUS:\n' +
+                        '#\n' +
+                        '#   ' + messageObject.ResponseStatus.Message;
+                    // write error as a plain text RDB comment
                     aq2rdbResponse.writeHead(
                         getTimeSeriesCorrectedDataResponse.statusCode,
                         statusMessage,
@@ -196,32 +204,51 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
                     return;
                 }
             });
-
-            // TODO: trap any other unexpected errors here
-
-            var timeSeriesDescriptionList;
-            try {
-                timeSeriesDescriptionList = JSON.parse(messageBody);
-            }
-            catch (error) {
-                console.log(
-                    'getTimeSeriesCorrectedDataResponse.statusCode: ' +
-                        getTimeSeriesCorrectedDataResponse.statusCode);
-                console.log('messageBody: ' + messageBody.length);
-                unknownError(aq2rdbResponse, error.message);
-                return;
-            }
         } // getTimeSeriesCorrectedDataCallback
 
-        // TODO: getTimeSeriesCorrectedDataCallback
-        // see http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDataCorrectedServiceRequest
-        http.request({
-            host: AQUARIUS_HOSTNAME,
-            path: '/AQUARIUS/Publish/V2/' +
-                'GetTimeSeriesCorrectedData?' +
-                '&token=' + token + '&format=json' +
-                '&TimeSeriesUniqueId=' + u
-        }, getTimeSeriesCorrectedDataCallback).end();
+        // see
+        // http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDataCorrectedServiceRequest
+        var request =
+            http.request({
+                host: AQUARIUS_HOSTNAME,
+                path: '/AQUARIUS/Publish/V2/' +
+                    'GetTimeSeriesCorrectedData?' +
+                    '&token=' + token + '&format=json' +
+                    '&TimeSeriesUniqueId=' + u
+            }, getTimeSeriesCorrectedDataCallback);
+
+        /**
+           @description Handle GetTimeSeriesCorrectedData service
+                        invocation errors.
+        */
+        request.on('error', function (error) {
+            switch (getTimeSeriesCorrectedDataResponse.statusCode) {
+            case 400:
+                statusMessage =
+                    '# There was a problem forwarding the data ' +
+                    'request to AQUARIUS:\n' +
+                    '#\n' +
+                    '#   ' +
+                    getTimeSeriesCorrectedDataResponse.toString();
+
+                aq2rdbResponse.writeHead(
+                    getTimeSeriesCorrectedDataResponse.statusCode,
+                    statusMessage,
+                    {'Content-Length': statusMessage.length,
+                     'Content-Type': 'text/plain'}
+                );
+                aq2rdbResponse.end(statusMessage);
+                return;
+            case 401:
+                // TODO: "401: Unauthorized"
+                return;
+            default:
+                handleService('GetTimeSeriesCorrectedData',
+                              aq2rdbResponse, error);
+            }
+        });
+
+        request.end();
     } // getAquariusResponse
 
     /**
@@ -245,16 +272,17 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
        @description GetAQToken service request for AQUARIUS
                     authentication token needed for AQUARIUS API.
     */
-    var request = http.request({
-        host: getAQTokenHostname,
-        port: '8080',
-        path: '/services/GetAQToken?&userName=' +
-            username + '&password=' + password +
-            '&uriString=http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/'
-    }, getAQTokenCallback);
+    var request =
+        http.request({
+            host: getAQTokenHostname,
+            port: '8080',
+            path: '/services/GetAQToken?&userName=' +
+                username + '&password=' + password +
+                '&uriString=http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/'
+        }, getAQTokenCallback);
 
     /**
-       @description GetAQToken service invocation error handler.
+       @description Handle GetAQToken service invocation errors.
     */
     request.on('error', function(error) {
         if (error.message === 'connect ECONNREFUSED') {
