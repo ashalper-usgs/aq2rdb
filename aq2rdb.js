@@ -213,8 +213,8 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
             }
         } // getTimeSeriesCorrectedDataCallback
 
-	// TODO: getTimeSeriesCorrectedDataCallback
-	// see http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDataCorrectedServiceRequest
+        // TODO: getTimeSeriesCorrectedDataCallback
+        // see http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDataCorrectedServiceRequest
         http.request({
             host: AQUARIUS_HOSTNAME,
             path: '/AQUARIUS/Publish/V2/' +
@@ -241,15 +241,37 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
         });
     } // getAQTokenCallback
 
-    // GetAQToken service request for AQUARIUS authentication token
-    // needed for AQUARIUS API
-    http.request({
+    /**
+       @description GetAQToken service request for AQUARIUS
+                    authentication token needed for AQUARIUS API.
+    */
+    var request = http.request({
         host: getAQTokenHostname,
         port: '8080',
         path: '/services/GetAQToken?&userName=' +
             username + '&password=' + password +
             '&uriString=http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/'
-    }, getAQTokenCallback).end();
+    }, getAQTokenCallback);
+
+    /**
+       @description GetAQToken service invocation error handler.
+    */
+    request.on('error', function(error) {
+        if (error.message === 'connect ECONNREFUSED') {
+            statusMessage = '# ' + SERVICE_NAME +
+                ': Could not connect to AQUARIUS';
+
+            aq2rdbResponse.writeHead(504, statusMessage,
+                               {'Content-Length': statusMessage.length,
+                                'Content-Type': 'text/plain'});
+        }
+        else {
+            unknownError(aq2rdbResponse, error.message);
+        }
+        aq2rdbResponse.end(statusMessage);
+    });
+
+    request.end();
 }); // httpdispatcher.onGet()
 
 /**
@@ -261,31 +283,7 @@ function handleRequest(request, response) {
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
-        // TODO: this is greedily catching all errors in
-        // httpdispatcher.onGet() above, which is not what we want
-        // (e.g. when AQUARIUS replies with a HTTP 400 error when a
-        // site does not exist in the database).
-
-        var statusMessage;
-
-        if (error.message === 'connect ECONNREFUSED') {
-            statusMessage = 'could not connect to AQUARIUS';
-
-            response.writeHead(504, statusMessage,
-                               {'Content-Length': statusMessage.length,
-                                'Content-Type': 'text/plain'});
-        }
-        else if (error.statusCode === 400) {
-            console.log(
-                'handleRequest::error.statusCode: ' +
-                    error.statusCode.toString()
-            );
-            console.log('error.message: ' + error.message);
-        }
-        else {
-            unknownError(response, error.message);
-        }
-        response.end(statusMessage);
+        unknownError(response, error.message);
     }
 }
 
