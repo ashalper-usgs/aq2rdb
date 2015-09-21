@@ -1,8 +1,16 @@
 #! /bin/sh
 
 node aq2rdb.js &		# start service
-curl "http://localhost:8081/aq2rdb?&Username=apiuser&Password=$Password&z=prod&t=uv"
-#curl \
-#    "http://localhost:8081/aq2rdb?&Username=apiuser&Password=$Password\
-#&z=prod&t=uv&a=USPS&n=09471550"
+
+curl \
+    "http://localhost:8081/aq2rdb?&Username=apiuser&Password=$Password\
+&z=prod&t=uv"
+
+echo
+echo
+
+curl \
+    "http://localhost:8081/aq2rdb?&Username=apiuser&Password=$Password\
+&z=prod&t=uv&n=09482950&u=Discharge.TS0001@09380000"
+
 kill $!
