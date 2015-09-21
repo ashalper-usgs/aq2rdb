@@ -78,10 +78,12 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     }
     var password = arg.Password;
 
+    // AQUARIUS "environment"
     if (arg.z.length === 0) {
         z = 'production';       // set default
     }
 
+    // data type
     if (arg.t.length === 0) {
         writeErrorMessage(
             aq2rdbResponse, 400,
@@ -92,6 +94,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     }
     var t = arg.t;
 
+    // site number (a.k.a. station number)
     if (arg.n.length === 0) {
         writeErrorMessage(
             aq2rdbResponse, 400,
@@ -101,6 +104,9 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
         return;
     }
     var n = arg.n;
+
+    // time-series identifier
+    var u = arg.u;
 
     // default agency code to "USGS" if not present
     var locationIdentifier =
@@ -156,29 +162,29 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     */
     function getAquariusResponse(token, locationIdentifier) {
         /**
-           @description Buffer response from AQUARIUS API.
+           @description Handle response from AQUARIUS API.
         */
-        function getTimeSeriesDescriptionListCallback(
-            getTimeSeriesDescriptionListResponse
+        function getTimeSeriesCorrectedDataCallback(
+            getTimeSeriesCorrectedDataResponse
         ) {
             var messageBody = '';
 
             // accumulate response
-            getTimeSeriesDescriptionListResponse.on(
+            getTimeSeriesCorrectedDataResponse.on(
                 'data',
                 function (chunk) {
                     messageBody += chunk;
                 });
 
-            getTimeSeriesDescriptionListResponse.on('end', function () {
-                switch (getTimeSeriesDescriptionListResponse.statusCode) {
+            getTimeSeriesCorrectedDataResponse.on('end', function () {
+                switch (getTimeSeriesCorrectedDataResponse.statusCode) {
                 case 400:
                     statusMessage =
                 '# There was a problem forwarding the request to AQUARIUS:\n' +
                 '#\n' +
                 '#   ' + timeSeriesDescriptionList.ResponseStatus.Message;
                     aq2rdbResponse.writeHead(
-                        getTimeSeriesDescriptionListResponse.statusCode,
+                        getTimeSeriesCorrectedDataResponse.statusCode,
                         statusMessage,
                         {'Content-Length': statusMessage.length,
                          'Content-Type': 'text/plain'}
@@ -199,21 +205,23 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
             }
             catch (error) {
                 console.log(
-                    'getTimeSeriesDescriptionListResponse.statusCode: ' +
-                        getTimeSeriesDescriptionListResponse.statusCode);
+                    'getTimeSeriesCorrectedDataResponse.statusCode: ' +
+                        getTimeSeriesCorrectedDataResponse.statusCode);
                 console.log('messageBody: ' + messageBody.length);
                 unknownError(aq2rdbResponse, error.message);
                 return;
             }
-        } // getTimeSeriesDescriptionListCallback
+        } // getTimeSeriesCorrectedDataCallback
 
+	// TODO: getTimeSeriesCorrectedDataCallback
+	// see http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDataCorrectedServiceRequest
         http.request({
             host: AQUARIUS_HOSTNAME,
             path: '/AQUARIUS/Publish/V2/' +
-                'getTimeSeriesDescriptionList?' +
+                'GetTimeSeriesCorrectedData?' +
                 '&token=' + token + '&format=json' +
-                '&locationIdentifier=' + locationIdentifier
-        }, getTimeSeriesDescriptionListCallback).end();
+                '&TimeSeriesUniqueId=' + u
+        }, getTimeSeriesCorrectedDataCallback).end();
     } // getAquariusResponse
 
     /**
@@ -242,7 +250,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
             username + '&password=' + password +
             '&uriString=http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/'
     }, getAQTokenCallback).end();
-});
+}); // httpdispatcher.onGet()
 
 /**
    @description Service dispatcher (there is only one path to
@@ -282,7 +290,7 @@ function handleRequest(request, response) {
 }
 
 /**
-   @description Create HTTP server.
+   @description Create HTTP server to host the service.
 */ 
 var server = http.createServer(handleRequest);
 
