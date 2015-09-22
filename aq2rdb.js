@@ -41,11 +41,30 @@ function unknownError(response, message) {
 /**
    @description Consolodated error message writer.
 */ 
-function writeErrorMessage(response, statusCode, statusMessage) {
+function aq2rdbErrorMessage(response, statusCode, statusMessage) {
     response.writeHead(statusCode, statusMessage,
                        {'Content-Length': statusMessage.length,
                         'Content-Type': 'text/plain'});
     response.end(statusMessage);
+}
+
+function aquariusErrorMessage(response) {
+    var statusMessage = '';
+
+    // TODO: for some of these, AQUARIUS may return JSON with more
+    // information; need to check for that.
+    switch (response.statusCode) {
+    case 301:
+    case 400:
+    case 401:
+        statusMessage =
+            '# There was a problem forwarding the data ' +
+            'request to AQUARIUS. The message was:\n' +
+            '#\n' +
+            '#   ' + response.statusCode.toString() + ' ' +
+            response.statusMessage;
+        return statusMessage;
+    }
 }
 
 /**
@@ -68,51 +87,10 @@ function getTimeSeriesDescriptionList(
             });
 
         response.on('end', function () {
-            var statusMessage = '';
-
-            switch (response.statusCode) {
-            case 301:
-                statusMessage =
-                    '# There was a problem forwarding the data ' +
-                    'request to AQUARIUS. The message was:\n' +
-                    '#\n' +
-                    '#   ' + response.statusMessage;
-                // write error as a plain text RDB comment
-                aq2rdbResponse.writeHead(
-                    response.statusCode,
-                    statusMessage,
-                    {'Content-Length': statusMessage.length,
-                     'Content-Type': 'text/plain'}
-                );
-                aq2rdbResponse.end(statusMessage);
-                return;
-            case 400:
-                // TODO: it is unlikely, but there could be errors
-                // in parsing the JSON reply here, so this needs
-                // its own error handling
-                var messageObject = JSON.parse(messageBody);
-                // TODO: this could probably be made more
-                // robust/helpful. Right now the message is just
-                // the vague "Unable to bind request".
-                statusMessage =
-                    '# There was a problem forwarding the data ' +
-                    'request to AQUARIUS. The message was:\n' +
-                    '#\n' +
-                    '#   ' + messageObject.ResponseStatus.Message;
-                // write error as a plain text RDB comment
-                aq2rdbResponse.writeHead(
-                    response.statusCode,
-                    statusMessage,
-                    {'Content-Length': statusMessage.length,
-                     'Content-Type': 'text/plain'}
-                );
-                aq2rdbResponse.end(statusMessage);
-                return;
-            case 401:
-                // TODO: "401: Unauthorized"
-                return;
-            }
-            aq2rdbResponse.end(messageBody);
+            var timeSeriesDescriptionList = JSON.parse(messageBody);
+            var timeSeriesDescriptions =
+                timeSeriesDescriptionList.TimeSeriesDescriptions;
+            aq2rdbResponse.end(JSON.stringify(timeSeriesDescriptions[1]));
         });
     } // callback
 
@@ -120,9 +98,10 @@ function getTimeSeriesDescriptionList(
         http.request({
             host: AQUARIUS_HOSTNAME,
             path:
-                'AQUARIUS/Publish/V2/getTimeSeriesDescriptionList?' +
-                '&token=' + token + '&format=json' +
-                '&Parameter=Discharge&ExtendedFilters=' +
+                '/AQUARIUS/Publish/V2/getTimeSeriesDescriptionList?' +
+                'token=' + token + '&format=json' +
+                '&Parameter=Discharge' +
+                '&ExtendedFilters=' +
                 '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]' +
                 '&locationIdentifier=' + locationIdentifier
         }, callback);
@@ -151,7 +130,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     var statusMessage;
 
     if (arg.Username.length === 0) {
-        writeErrorMessage(
+        aq2rdbErrorMessage(
             aq2rdbResponse, 400,
             '# ' + SERVICE_NAME + ': Required parameter ' +
                 '\"Username\" not found'
@@ -161,7 +140,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     var username = arg.Username;
 
     if (arg.Password.length === 0) {
-        writeErrorMessage(
+        aq2rdbErrorMessage(
             aq2rdbResponse, 400,
             '# ' + SERVICE_NAME + ': Required parameter ' +
                 '\"Password\" not found'
@@ -177,7 +156,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
     // data type
     if (arg.t.length === 0) {
-        writeErrorMessage(
+        aq2rdbErrorMessage(
             aq2rdbResponse, 400,
             '# ' + SERVICE_NAME + ': Required parameter ' +
                 '\"t\" (data type) not found'
@@ -232,7 +211,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
     if (statusMessage !== undefined) {
         // there was an error
-        writeErrorMessage(aq2rdbResponse, statusCode, statusMessage);
+        aq2rdbErrorMessage(aq2rdbResponse, statusCode, statusMessage);
     }
 
     /**
@@ -291,8 +270,11 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
             });
         } // getTimeSeriesCorrectedDataCallback
 
-        // see
-        // http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDataCorrectedServiceRequest
+        console.log(AQUARIUS_HOSTNAME + '://' + '/AQUARIUS/Publish/V2/' +
+                    'GetTimeSeriesCorrectedData?' +
+                    '&token=' + token + '&format=json' +
+                    '&TimeSeriesUniqueId=' + u);
+
         var request =
             http.request({
                 host: AQUARIUS_HOSTNAME,
