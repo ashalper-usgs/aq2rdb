@@ -68,7 +68,24 @@ function getTimeSeriesDescriptionList(
             });
 
         response.on('end', function () {
+            var statusMessage = '';
+
             switch (response.statusCode) {
+            case 301:
+                statusMessage =
+                    '# There was a problem forwarding the data ' +
+                    'request to AQUARIUS. The message was:\n' +
+                    '#\n' +
+                    '#   ' + response.statusMessage;
+                // write error as a plain text RDB comment
+                aq2rdbResponse.writeHead(
+                    response.statusCode,
+                    statusMessage,
+                    {'Content-Length': statusMessage.length,
+                     'Content-Type': 'text/plain'}
+                );
+                aq2rdbResponse.end(statusMessage);
+                return;
             case 400:
                 // TODO: it is unlikely, but there could be errors
                 // in parsing the JSON reply here, so this needs
@@ -78,8 +95,8 @@ function getTimeSeriesDescriptionList(
                 // robust/helpful. Right now the message is just
                 // the vague "Unable to bind request".
                 statusMessage =
-                    '# There was a problem forwarding the ' +
-                    'request to AQUARIUS:\n' +
+                    '# There was a problem forwarding the data ' +
+                    'request to AQUARIUS. The message was:\n' +
                     '#\n' +
                     '#   ' + messageObject.ResponseStatus.Message;
                 // write error as a plain text RDB comment
@@ -95,26 +112,27 @@ function getTimeSeriesDescriptionList(
                 // TODO: "401: Unauthorized"
                 return;
             }
+            aq2rdbResponse.end(messageBody);
         });
     } // callback
 
-    // see
-    // http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDataCorrectedServiceRequest
     var request =
         http.request({
             host: AQUARIUS_HOSTNAME,
-            path: '/AQUARIUS/Publish/V2/' +
-                'GetTimeSeriesCorrectedData?' +
+            path:
+                'AQUARIUS/Publish/V2/getTimeSeriesDescriptionList?' +
                 '&token=' + token + '&format=json' +
-                '&TimeSeriesUniqueId=' + u
+                '&Parameter=Discharge&ExtendedFilters=' +
+                '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]' +
+                '&locationIdentifier=' + locationIdentifier
         }, callback);
 
     /**
-       @description Handle GetTimeSeriesCorrectedData service
-       invocation errors.
+       @description Handle GetTimeSeriesDescriptionList service
+                    invocation errors.
     */
     request.on('error', function (error) {
-        handleService('GetTimeSeriesCorrectedData',
+        handleService('GetTimeSeriesDescriptionList',
                       aq2rdbResponse, error);
     });
 
@@ -307,16 +325,16 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
         // response complete
         response.on('end', function () {
-	    // TODO: analyze aq2rdb parameters and dispatch to
-	    // appropriate AQUARIUS API call here? e.g.:
-	    //
-	    // http://172.16.20.43/AQUARIUS/Publish/V2/getTimeSeriesDescriptionList?token=e20b10ba2117493384e3b2db97a39b57&format=json&Parameter=Discharge&ExtendedFilters=[{FilterName:ACTIVE_FLAG,FilterValue:Y}]&locationIdentifier=09380000
+            // TODO: analyze aq2rdb parameters and dispatch to
+            // appropriate AQUARIUS API call here?
 
-	    if (locationIdentifier !== undefined) {
-		console.log(
-		    SERVICE_NAME +
-			': getTimeSeriesDescriptionList will be called here someday');
-	    }
+            // if time-series identifier not present, and location
+            // identifier is present
+            if (u === undefined && locationIdentifier !== undefined) {
+                getTimeSeriesDescriptionList(
+                    token, locationIdentifier, aq2rdbResponse
+                );
+            }
 
             // now interrogate AQUARIUS API for water data
             // TODO: more parameters need to be passed here?
@@ -344,7 +362,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
         if (error.message === 'connect ECONNREFUSED') {
             statusMessage = '# ' + SERVICE_NAME +
                 ': Could not connect to GetAQToken service for ' +
-		'AQUARIUS authentication token';
+                'AQUARIUS authentication token';
 
             aq2rdbResponse.writeHead(504, statusMessage,
                                {'Content-Length': statusMessage.length,
