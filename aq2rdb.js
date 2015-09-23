@@ -74,7 +74,7 @@ function getTimeSeriesDescriptionList(
     token, locationIdentifier, aq2rdbResponse
 ) {
     /**
-       @description Handle response from getTimeSeriesDescriptionList
+       @description Handle response from GetTimeSeriesDescriptionList.
     */
     function callback(response) {
         var messageBody = '';
@@ -98,7 +98,7 @@ function getTimeSeriesDescriptionList(
         http.request({
             host: AQUARIUS_HOSTNAME,
             path:
-                '/AQUARIUS/Publish/V2/getTimeSeriesDescriptionList?' +
+                '/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList?' +
                 'token=' + token + '&format=json' +
                 '&Parameter=Discharge' +
                 '&ExtendedFilters=' +
@@ -117,6 +117,55 @@ function getTimeSeriesDescriptionList(
 
     request.end();
 } // getTimeSeriesDescriptionList
+
+function getTimeSeriesCorrectedData(token, path, aq2rdbResponse)
+{
+    /**
+       @description Handle response from
+                    TimeSeriesDataCorrectedServiceRequest.
+    */
+    function callback(response) {
+        var messageBody = '';
+
+        // accumulate response
+        response.on(
+            'data',
+            function (chunk) {
+                messageBody += chunk;
+            });
+
+        response.on('end', function () {
+            var timeSeriesDataCorrected = JSON.parse(messageBody);
+            aq2rdbResponse.end(JSON.stringify(timeSeriesDataCorrected));
+        });
+    } // callback
+
+    var request = http.request({
+        host: AQUARIUS_HOSTNAME,
+        path: path
+    }, callback);
+
+    /**
+       @description Handle GetTimeSeriesDescriptionList service
+                    invocation errors.
+    */
+    request.on('error', function (error) {
+        handleService('TimeSeriesDataCorrectedServiceRequest',
+                      aq2rdbResponse, error);
+    });
+
+    request.end();
+} // getTimeSeriesCorrectedData
+
+/**
+   @description Create a valid HTTP query field/value pair substring.
+*/ 
+function pair(field, value) {
+    if (value === undefined) {
+        return '';
+    }
+    return '&' + field + '=' + value;
+}
 
 /**
    @description Service GET request handler.
@@ -174,6 +223,9 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     // programmer lazyness
     var locationIdentifier =
         arg.a === undefined ? n : n + '-' + arg.a;
+
+    var b = arg.b;
+    var e = arg.e;
 
     // data type ("t") parameter domain validation
     switch (t.toLowerCase()) {
@@ -240,33 +292,10 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
                 });
 
             getTimeSeriesCorrectedDataResponse.on('end', function () {
-                switch (getTimeSeriesCorrectedDataResponse.statusCode) {
-                case 400:
-                    // TODO: it is unlikely, but there could be errors
-                    // in parsing the JSON reply here, so this needs
-                    // its own error handling
-                    var messageObject = JSON.parse(messageBody);
-                    // TODO: this could probably be made more
-                    // robust/helpful. Right now the message is just
-                    // the vague "Unable to bind request".
-                    statusMessage =
-                        '# There was a problem forwarding the ' +
-                        'request to AQUARIUS:\n' +
-                        '#\n' +
-                        '#   ' + messageObject.ResponseStatus.Message;
-                    // write error as a plain text RDB comment
-                    aq2rdbResponse.writeHead(
-                        getTimeSeriesCorrectedDataResponse.statusCode,
-                        statusMessage,
-                        {'Content-Length': statusMessage.length,
-                         'Content-Type': 'text/plain'}
-                    );
-                    aq2rdbResponse.end(statusMessage);
-                    return;
-                case 401:
-                    // TODO: "401: Unauthorized"
-                    return;
-                }
+                console.log(
+                    SERVICE_NAME +
+                        ': getTimeSeriesCorrectedDataResponse.on()'
+                );
             });
         } // getTimeSeriesCorrectedDataCallback
 
@@ -307,20 +336,25 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
         // response complete
         response.on('end', function () {
-            // TODO: analyze aq2rdb parameters and dispatch to
-            // appropriate AQUARIUS API call here?
+            // if time-series identifier is present
+            if (u !== undefined) {
+                var path = '/AQUARIUS/Publish/V2/' +
+                    'GetTimeSeriesCorrectedData?' +
+                    'token=' + token + '&format=json' +
+                    '&TimeSeriesUniqueId=' + '8b1d6f626f63470cb12631027b60479e' +
+                    pair('QueryFrom', b) + pair('QueryTo', e);
+                getTimeSeriesCorrectedData(
+                    token, path, aq2rdbResponse
+                );
+            }
 
-            // if time-series identifier not present, and location
+            // if time-series identifier is not present, and location
             // identifier is present
             if (u === undefined && locationIdentifier !== undefined) {
                 getTimeSeriesDescriptionList(
                     token, locationIdentifier, aq2rdbResponse
                 );
             }
-
-            // now interrogate AQUARIUS API for water data
-            // TODO: more parameters need to be passed here?
-            // getAquariusResponse(token, locationIdentifier);
         });
     } // getAQTokenCallback
 
