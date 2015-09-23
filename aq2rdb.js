@@ -70,9 +70,7 @@ function aquariusErrorMessage(response) {
 /**
    @description Retreive time series data from AQUARIUS API.
 */
-function getTimeSeriesDescriptionList(
-    token, locationIdentifier, aq2rdbResponse
-) {
+function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
     /**
        @description Handle response from GetTimeSeriesDescriptionList.
     */
@@ -103,7 +101,7 @@ function getTimeSeriesDescriptionList(
                 '&Parameter=Discharge' +
                 '&ExtendedFilters=' +
                 '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]' +
-                '&locationIdentifier=' + locationIdentifier
+                '&locationIdentifier=' + field.locationIdentifier
         }, callback);
 
     /**
@@ -160,12 +158,42 @@ function getTimeSeriesCorrectedData(token, path, aq2rdbResponse)
 /**
    @description Create a valid HTTP query field/value pair substring.
 */ 
-function pair(field, value) {
+function bind(field, value) {
     if (value === undefined) {
         return '';
     }
     return '&' + field + '=' + value;
 }
+
+/**
+   @description Figure out what the aq2rdb request is, then call the
+                necessary AQUARIUS API services to accomplish it.
+*/ 
+function aquariusDispatch(field, aq2rdbResponse) {
+    // if time-series identifier is present
+    if (field.timeSeriesIdentifier !== undefined) {
+        // TODO: instead of building URL paths here, consider passing
+        // (the rather ephemeral) Web service parameters as a
+        // JavaScript object.
+        var path = '/AQUARIUS/Publish/V2/' +
+            'GetTimeSeriesCorrectedData?' +
+            'token=' + field.token + '&format=json' +
+            '&TimeSeriesUniqueId=' +
+            '8b1d6f626f63470cb12631027b60479e' +
+            bind('QueryFrom', field.queryFrom) +
+            bind('QueryTo', field.QueryTo);
+        getTimeSeriesCorrectedData(
+            field.token, path, aq2rdbResponse
+        );
+    }
+
+    // if time-series identifier is not present, and location
+    // identifier is present
+    if (field.timeSeriesIdentifier === undefined &&
+        field.locationIdentifier !== undefined) {
+        getTimeSeriesDescriptionList(field, aq2rdbResponse);
+    }
+} // aquariusDispatch
 
 /**
    @description Service GET request handler.
@@ -176,6 +204,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     var getAQTokenHostname = 'localhost';     // GetAQToken service host name
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(aq2rdbRequest.url);
+    var field = new Object();
     var statusMessage;
 
     if (arg.Username.length === 0) {
@@ -216,16 +245,16 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
     var n = arg.n;
 
-    // time-series identifier
-    var u = arg.u;
+    // "time-series identifier"
+    field.timeSeriesIdentifier = arg.u;
 
     // AQUARIUS does ill-advised things with site PK to accomodate
     // programmer lazyness
-    var locationIdentifier =
+    field.locationIdentifier =
         arg.a === undefined ? n : n + '-' + arg.a;
 
-    var b = arg.b;
-    var e = arg.e;
+    field.queryFrom = arg.b;
+    field.queryTo = arg.e;
 
     // data type ("t") parameter domain validation
     switch (t.toLowerCase()) {
@@ -273,59 +302,6 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     var token = '';
 
     /**
-       @description Retreive time series data from AQUARIUS API.
-    */
-    function getAquariusResponse(token, locationIdentifier) {
-        /**
-           @description Handle response from AQUARIUS API.
-        */
-        function getTimeSeriesCorrectedDataCallback(
-            getTimeSeriesCorrectedDataResponse
-        ) {
-            var messageBody = '';
-
-            // accumulate response
-            getTimeSeriesCorrectedDataResponse.on(
-                'data',
-                function (chunk) {
-                    messageBody += chunk;
-                });
-
-            getTimeSeriesCorrectedDataResponse.on('end', function () {
-                console.log(
-                    SERVICE_NAME +
-                        ': getTimeSeriesCorrectedDataResponse.on()'
-                );
-            });
-        } // getTimeSeriesCorrectedDataCallback
-
-        console.log(AQUARIUS_HOSTNAME + '://' + '/AQUARIUS/Publish/V2/' +
-                    'GetTimeSeriesCorrectedData?' +
-                    '&token=' + token + '&format=json' +
-                    '&TimeSeriesUniqueId=' + u);
-
-        var request =
-            http.request({
-                host: AQUARIUS_HOSTNAME,
-                path: '/AQUARIUS/Publish/V2/' +
-                    'GetTimeSeriesCorrectedData?' +
-                    '&token=' + token + '&format=json' +
-                    '&TimeSeriesUniqueId=' + u
-            }, getTimeSeriesCorrectedDataCallback);
-
-        /**
-           @description Handle GetTimeSeriesCorrectedData service
-                        invocation errors.
-        */
-        request.on('error', function (error) {
-            handleService('GetTimeSeriesCorrectedData',
-                          aq2rdbResponse, error);
-        });
-
-        request.end();
-    } // getAquariusResponse
-
-    /**
        @description GetAQToken service response callback.
     */
     function getAQTokenCallback(response) {
@@ -336,25 +312,8 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
         // response complete
         response.on('end', function () {
-            // if time-series identifier is present
-            if (u !== undefined) {
-                var path = '/AQUARIUS/Publish/V2/' +
-                    'GetTimeSeriesCorrectedData?' +
-                    'token=' + token + '&format=json' +
-                    '&TimeSeriesUniqueId=' + '8b1d6f626f63470cb12631027b60479e' +
-                    pair('QueryFrom', b) + pair('QueryTo', e);
-                getTimeSeriesCorrectedData(
-                    token, path, aq2rdbResponse
-                );
-            }
-
-            // if time-series identifier is not present, and location
-            // identifier is present
-            if (u === undefined && locationIdentifier !== undefined) {
-                getTimeSeriesDescriptionList(
-                    token, locationIdentifier, aq2rdbResponse
-                );
-            }
+            field.token = token;
+            aquariusDispatch(field, aq2rdbResponse);
         });
     } // getAQTokenCallback
 
