@@ -28,14 +28,10 @@ var PORT = 8081;
 var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 
 /**
-   @description Process unforeseen errors.
+   @description Primitive logging function for debugging purposes.
 */
-function unknownError(response, message) {
-    console.log(SERVICE_NAME + ': unknownError()');
-    response.writeHead(500, message,
-                       {'Content-Length': message.length,
-                        'Content-Type': 'text/plain'});
-    response.end(message);
+function log(message) {
+    console.log(SERVICE_NAME + ': ' + message);
 }
 
 /**
@@ -97,8 +93,8 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
             host: AQUARIUS_HOSTNAME,
             path:
                 '/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList?' +
-                'token=' + token + '&format=json' +
-                '&Parameter=Discharge' +
+                'token=' + field.token + '&format=json' +
+                '&Parameter=' + field.parameter +
                 '&ExtendedFilters=' +
                 '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]' +
                 '&locationIdentifier=' + field.locationIdentifier
@@ -116,8 +112,8 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
     request.end();
 } // getTimeSeriesDescriptionList
 
-function getTimeSeriesCorrectedData(token, path, aq2rdbResponse)
-{
+function getTimeSeriesCorrectedData(path, aq2rdbResponse) {
+    log(': path: ' + path);
     /**
        @description Handle response from
                     TimeSeriesDataCorrectedServiceRequest.
@@ -172,6 +168,28 @@ function bind(field, value) {
 function aquariusDispatch(field, aq2rdbResponse) {
     // if time-series identifier is present
     if (field.timeSeriesIdentifier !== undefined) {
+        // On Wed, Sep 23, 2015 at 1:24 PM, Scott Bartholoma said:
+        // 
+        // Parse out the Parameter (the part before the first "." and
+        // the location identifier (the part after the "@") form the
+        // identifier string
+
+        // TODO: need error handling here
+        field.parameter = field.timeSeriesIdentifier.split('.')[0];
+        field.locationIdentifier = field.timeSeriesIdentifier.split('@')[1];
+
+        // Use GetTimeSeriesDescriptionList with the
+        // LocationIdentifier and Parameter parameters in the URL and
+        // then find the requested timeseries in the output to get tue
+        // GUID
+
+        // see
+        // https://sites.google.com/a/usgs.gov/aquarius-api-wiki/publish/gettimeseriesdescriptionlist
+        getTimeSeriesDescriptionList(field, aq2rdbResponse);
+
+        // Use GetTimeSeriesRawDaa [sic] or getTimeSeriesCorrectedData
+        // with the TimeSeriesUniqueId parameter to get the data.
+
         // TODO: instead of building URL paths here, consider passing
         // (the rather ephemeral) Web service parameters as a
         // JavaScript object.
@@ -182,9 +200,7 @@ function aquariusDispatch(field, aq2rdbResponse) {
             '8b1d6f626f63470cb12631027b60479e' +
             bind('QueryFrom', field.queryFrom) +
             bind('QueryTo', field.QueryTo);
-        getTimeSeriesCorrectedData(
-            field.token, path, aq2rdbResponse
-        );
+        getTimeSeriesCorrectedData(path, aq2rdbResponse);
     }
 
     // if time-series identifier is not present, and location
@@ -201,31 +217,31 @@ function aquariusDispatch(field, aq2rdbResponse) {
 httpdispatcher.onGet('/' + SERVICE_NAME, function (
     aq2rdbRequest, aq2rdbResponse
 ) {
-    var getAQTokenHostname = 'localhost';     // GetAQToken service host name
+    log('httpdispatcher.onGet()');
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(aq2rdbRequest.url);
     var field = new Object();
     var statusMessage;
 
-    if (arg.Username.length === 0) {
+    if (arg.userName.length === 0) {
         aq2rdbErrorMessage(
             aq2rdbResponse, 400,
             '# ' + SERVICE_NAME + ': Required parameter ' +
-                '\"Username\" not found'
+                '\"userName\" not found'
         );
         return;
     }
-    var username = arg.Username;
+    var userName = arg.userName;
 
-    if (arg.Password.length === 0) {
+    if (arg.password.length === 0) {
         aq2rdbErrorMessage(
             aq2rdbResponse, 400,
             '# ' + SERVICE_NAME + ': Required parameter ' +
-                '\"Password\" not found'
+                '\"password\" not found'
         );
         return;
     }
-    var password = arg.Password;
+    var password = arg.password;
 
     // AQUARIUS "environment"
     if (arg.z.length === 0) {
@@ -323,10 +339,10 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     */
     var request =
         http.request({
-            host: getAQTokenHostname,
+            host: 'localhost',
             port: '8080',
-            path: '/services/GetAQToken?&userName=' +
-                username + '&password=' + password +
+            path: '/services/GetAQToken?userName=' +
+                userName + '&password=' + password +
                 '&uriString=http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/'
         }, getAQTokenCallback);
 
@@ -344,8 +360,9 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
                                 'Content-Type': 'text/plain'});
         }
         else {
-            unknownError(aq2rdbResponse, error.message);
+            log('361: error.message: ' + error.message);
         }
+        log('statusMessage: ' + statusMessage);
         aq2rdbResponse.end(statusMessage);
     });
 
@@ -361,7 +378,7 @@ function handleRequest(request, response) {
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
-        unknownError(response, error.message);
+        log('379: error.message: ' + error.message);
     }
 }
 
@@ -374,5 +391,5 @@ var server = http.createServer(handleRequest);
    @description Start listening for requests.
 */ 
 server.listen(PORT, function () {
-    console.log('Server listening on: http://localhost:%s', PORT);
+    log('Server listening on: http://localhost:' + PORT.toString());
 });
