@@ -113,10 +113,8 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
 } // getTimeSeriesDescriptionList
 
 function getTimeSeriesCorrectedData(path, aq2rdbResponse) {
-    log(': path: ' + path);
     /**
-       @description Handle response from
-                    TimeSeriesDataCorrectedServiceRequest.
+       @description Handle response from GetTimeSeriesCorrectedData.
     */
     function callback(response) {
         var messageBody = '';
@@ -130,7 +128,22 @@ function getTimeSeriesCorrectedData(path, aq2rdbResponse) {
 
         response.on('end', function () {
             var timeSeriesDataCorrected = JSON.parse(messageBody);
-            aq2rdbResponse.end(JSON.stringify(timeSeriesDataCorrected));
+
+            if (response.statusCode === 500) {
+                var statusMessage =
+                    '# ' + SERVICE_NAME +
+                    ': AQUARIUS replied with an error. ' +
+                    'The message was:\n' +
+                    '#\n' +
+                    '#   ' +
+                    timeSeriesDataCorrected.ResponseStatus.Message;
+                aq2rdbResponse.writeHead(
+                    504, statusMessage,
+                    {'Content-Length': statusMessage.length,
+                     'Content-Type': 'text/plain'}
+                );
+                aq2rdbResponse.end(statusMessage);
+            }
         });
     } // callback
 
@@ -140,12 +153,11 @@ function getTimeSeriesCorrectedData(path, aq2rdbResponse) {
     }, callback);
 
     /**
-       @description Handle GetTimeSeriesDescriptionList service
+       @description Handle GetTimeSeriesCorrectedData service
                     invocation errors.
     */
     request.on('error', function (error) {
-        handleService('TimeSeriesDataCorrectedServiceRequest',
-                      aq2rdbResponse, error);
+        log('getTimeSeriesCorrectedData.request.on(\'error\')');
     });
 
     request.end();
