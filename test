@@ -1,16 +1,18 @@
 #! /bin/sh
 
+# function to make calls more terse
+aq2rdb () {
+    u=$1
+    b=$2
+    e=$3
+
+    curl -g "http://localhost:8081/aq2rdb?&Username=apiuser&Password=$Password&z=prod&t=uv&u=$u&b=$b&e=$e"
+    echo
+    echo
+} # aq2rdb
+
 node aq2rdb.js &		# start service
 
-curl \
-    "http://localhost:8081/aq2rdb?&Username=apiuser&Password=$Password\
-&z=prod&t=uv"
-
-echo
-echo
-
-curl \
-    "http://localhost:8081/aq2rdb?&Username=apiuser&Password=$Password\
-&z=prod&t=uv&n=09482950&u=Discharge.TS0001@09380000"
+aq2rdb 'Discharge.ft^3/s.Mean@09380000' '2015-01-01T00%3A00%3A00-07%3A00' '2015-01-03T00%3A00%3A00-07%3A00'
 
 kill $!
