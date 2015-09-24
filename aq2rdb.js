@@ -45,6 +45,8 @@ function aq2rdbErrorMessage(response, statusCode, message) {
     response.end(statusMessage);
 }
 
+// TODO: reconcile/merge this with aq2rdbErrorMessage() above at some
+// point
 function aquariusErrorMessage(response) {
     var statusMessage = '';
 
@@ -266,15 +268,15 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
         }
     }
 
-    // check for argument completion
-
-    // date-time validation
+    // begin date validation
     if (field.queryFrom !== undefined) {
-        // if queryFrom ("b" field) is not a valid ISO date string
+        // if (AQUARIUS) queryFrom (aq2rdb "b") field is not a valid
+	// ISO date string
         if (isNaN(Date.parse(field.queryFrom))) {
             aq2rdbErrorMessage(
                 aq2rdbResponse, 400,
-                'If \"b\" is specified, a valid 14-digit ISO ' +
+                SERVICE_NAME +
+		    ': If \"b\" is specified, a valid 14-digit ISO ' +
                     'date must be provided.'
             );
             return;
@@ -298,12 +300,6 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
             '\"n\", \"d\", and \"y\" fields ' +
                 'must be present when \"t\" is \"MEAS\"'
         );
-
-        // TODO: provide URL to aq2rdb documentation instead?
-        // nwrt2rdb_usage();
-
-        // TODO: map to HTTP error code?
-        // status = 124;
         return;
     }
 
