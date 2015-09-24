@@ -280,7 +280,7 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
                 aq2rdbErrorMessage(
                     aq2rdbResponse, 400,
                     'If \"b\" is specified, a valid 14-digit ISO ' +
-                        'date-time must be provided'
+                        'date must be provided'
                 );
 
                 // TODO: provide URL to aq2rdb documentation instead?
@@ -300,9 +300,10 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
         // mixed in with the rdb output which would make things
         // difficult for a pipeline. -z, and -a will default, and
         // -m is ignored.
-        if (field.locationIdentifier === undefined ||
-            ddID === undefined || dataType === undefined ||
-            (dataType === 'MEAS' && field.transportCode === undefined)) {
+        if (dataType === 'MEAS' &&
+            (field.locationIdentifier === undefined ||
+             ddID === undefined ||
+             field.transportCode === undefined)) {
                 aq2rdbErrorMessage(
                     aq2rdbResponse, 400,
                     '\"n\", \"d\", and \"y\" fields ' +
@@ -427,16 +428,16 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
        @description GetAQToken service response callback.
     */
     function getAQTokenCallback(response) {
-        var token = '';
+        var messageBody = '';
 
         // accumulate response
         response.on('data', function (chunk) {
-            token += chunk;
+            messageBody += chunk;
         });
 
-        // response complete
+        // Response complete; token received.
         response.on('end', function () {
-            aquariusDispatch(token, arg, aq2rdbResponse);
+            aquariusDispatch(messageBody, arg, aq2rdbResponse);
         });
     } // getAQTokenCallback
 
