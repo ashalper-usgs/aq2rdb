@@ -37,7 +37,8 @@ function log(message) {
 /**
    @description Consolodated error message writer.
 */ 
-function aq2rdbErrorMessage(response, statusCode, statusMessage) {
+function aq2rdbErrorMessage(response, statusCode, message) {
+    var statusMessage = '# ' + message;
     response.writeHead(statusCode, statusMessage,
                        {'Content-Length': statusMessage.length,
                         'Content-Type': 'text/plain'});
@@ -84,7 +85,7 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
             var timeSeriesDescriptionList = JSON.parse(messageBody);
             var timeSeriesDescriptions =
                 timeSeriesDescriptionList.TimeSeriesDescriptions;
-            aq2rdbResponse.end(JSON.stringify(timeSeriesDescriptions[1]));
+            aq2rdbResponse.end(JSON.stringify(timeSeriesDescriptions));
         });
     } // callback
 
@@ -112,7 +113,9 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
     request.end();
 } // getTimeSeriesDescriptionList
 
-function getTimeSeriesCorrectedData(path, aq2rdbResponse) {
+// see
+// https://sites.google.com/a/usgs.gov/aquarius-api-wiki/publish/gettimeseriescorrecteddata
+function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
     /**
        @description Handle response from GetTimeSeriesCorrectedData.
     */
@@ -127,26 +130,37 @@ function getTimeSeriesCorrectedData(path, aq2rdbResponse) {
             });
 
         response.on('end', function () {
-            var timeSeriesDataCorrected = JSON.parse(messageBody);
+            var timeSeriesCorrectedData = JSON.parse(messageBody);
+            var statusMessage;
 
-            if (response.statusCode === 500) {
-                var statusMessage =
+            log('response.statusCode: ' + response.statusCode);
+            if (200 < response.statusCode) {
+                statusMessage =
                     '# ' + SERVICE_NAME +
                     ': AQUARIUS replied with an error. ' +
                     'The message was:\n' +
                     '#\n' +
                     '#   ' +
-                    timeSeriesDataCorrected.ResponseStatus.Message;
+                    timeSeriesCorrectedData.ResponseStatus.Message;
                 aq2rdbResponse.writeHead(
-                    504, statusMessage,
+                    response.statusCode, statusMessage,
                     {'Content-Length': statusMessage.length,
                      'Content-Type': 'text/plain'}
                 );
                 aq2rdbResponse.end(statusMessage);
             }
+            else {
+                aq2rdbResponse.end(messageBody);
+            }
         });
     } // callback
 
+    var path = '/AQUARIUS/Publish/V2/GetTimeSeriesCorrectedData?' +
+            'token=' + field.token + '&format=json' +
+            bind('timeSeriesIdentifier', field.timeSeriesIdentifier) +
+            bind('queryFrom', field.queryFrom) +
+            bind('queryTo', field.queryTo);
+    log('path: ' + path);
     var request = http.request({
         host: AQUARIUS_HOSTNAME,
         path: path
@@ -176,43 +190,156 @@ function bind(field, value) {
 /**
    @description Figure out what the aq2rdb request is, then call the
                 necessary AQUARIUS API services to accomplish it.
-*/ 
-function aquariusDispatch(field, aq2rdbResponse) {
+*/
+function aquariusDispatch(token, arg, aq2rdbResponse) {
+    var field = {
+        // some defaults
+        token: token,
+        environment: 'production',
+        applyRounding: true,
+        computed: false,
+        timeOffset: 'LOC',
+        combineDateAndTime: true
+    };
+    var dataType, ddID;
+
+    // get HTTP query arguments
+    for (var opt in arg) {
+        log(' arg[opt]: ' + arg[opt]);
+        switch (opt) {
+        case 'z':
+            // -z now indicates environment, not database number. In
+            // AQUARIUS Era, logical database numbers have been
+            // superseded by named time-series environments. The
+            // default is 'production', and will work fine unless you
+            // know otherwise.
+            field.environment = arg[opt];
+            break;
+        case 'a':
+            field.agencyCode = arg[opt];
+            break;
+        case 'b':
+            field.queryFrom = arg[opt];
+            break;
+        case 'n':
+            // AQUARIUS seems to do ill-advised, implicit things with
+            // site PK
+            field.locationIdentifier =
+                arg.a === undefined ? arg[opt] : arg[opt] + '-' + arg.a;
+            break;
+        case 'u':
+            // -u is a new option for specifying a time-series
+            // identifier, and is preferred over -d whenever possible.
+            // If used, -a, -n, -t, -s, -d, and -p are ignored.
+            field.timeSeriesIdentifier = arg[opt];
+            break;
+        case 'd':
+            // -d data descriptor number is supported but is
+            // deprecated. This option will work for time series that
+            // were migrated from ADAPS. This will *not work for new
+            // time series* created in AQUARIUS (relies on ADAPS_DD
+            // time-series extended attribute). We prefer you use -u
+            // whenever possible.
+            ddID = arg[opt];
+            break;
+        case 'r':
+            field.applyRounding = false;
+            break;
+        case 'c':
+            // For [data] type "dv", Output COMPUTED daily values
+            // only. For other types except pseudo-UV retrievals,
+            // combine date and time in a single column.
+            field.computed = true;
+            break;
+        case 't':
+            dataType = arg[opt].toUpperCase();
+            break;
+        case 'l':
+            field.timeOffset = arg[opt];
+            break;
+        // TODO: might be deprecated; awaiting reply from Brad Garner
+        // <bdgarner@usgs.gov>.
+        case 'y':
+            field.transportCode = arg[opt];
+            break;
+        case 'e':
+            field.queryTo = arg[opt];
+            break;
+        }
+
+        // check for argument completion
+
+        // date-time validation
+        if (field.queryFrom !== undefined) {
+            try {
+                // TODO: this is an "80% solution"; will probably need
+                // more detailed date validation eventually
+                Date.parse(queryFrom);
+            }
+            catch (error) {
+                aq2rdbErrorMessage(
+                    aq2rdbResponse, 400,
+                    'If \"b\" is specified, a valid 14-digit ISO ' +
+                        'date-time must be provided'
+                );
+
+                // TODO: provide URL to aq2rdb documentation instead?
+                // nwrt2rdb_usage ();
+
+                // TODO: map to HTTP error code?
+                // status = 128;
+                return;
+            }
+        }           
+
+        // Arguments -n, -d, -t, -i, and -y if -t is "MEAS" must
+        // be present as the prompting for missing arguments uses
+        // ADAPS subroutines that write the prompts to stdout
+        // (they're ports form Prime, remember?  so the RDB output
+        // has to go to a file, otherwise the prompts would be
+        // mixed in with the rdb output which would make things
+        // difficult for a pipeline. -z, and -a will default, and
+        // -m is ignored.
+        if (field.locationIdentifier === undefined ||
+            ddID === undefined || dataType === undefined ||
+            (dataType === 'MEAS' && field.transportCode === undefined)) {
+                aq2rdbErrorMessage(
+                    aq2rdbResponse, 400,
+                    '\"n\", \"d\", and \"y\" fields ' +
+                        'must be present when \"t\" is \"MEAS\"'
+                );
+
+            // TODO: provide URL to aq2rdb documentation instead?
+            // nwrt2rdb_usage();
+
+            // TODO: map to HTTP error code?
+            // status = 124;
+            return;
+        }
+
+        // set expand rating flag as a character
+        // TODO: "-e" was maybe an "overloaded" option in
+        // nwts2rdb? Need to find out if this is still
+        // relevant.
+        /*
+          if (eflag) {
+          strcpy (expandit,'Y');
+          }
+          else {
+          strcpy (expandit,'N');
+          }
+        */
+    }
+
     // if time-series identifier is present
     if (field.timeSeriesIdentifier !== undefined) {
-        // On Wed, Sep 23, 2015 at 1:24 PM, Scott Bartholoma said:
-        // 
-        // Parse out the Parameter (the part before the first "." and
-        // the location identifier (the part after the "@") form the
-        // identifier string
-
-        // TODO: need error handling here
-        field.parameter = field.timeSeriesIdentifier.split('.')[0];
-        field.locationIdentifier = field.timeSeriesIdentifier.split('@')[1];
-
-        // Use GetTimeSeriesDescriptionList with the
-        // LocationIdentifier and Parameter parameters in the URL and
-        // then find the requested timeseries in the output to get tue
-        // GUID
-
         // see
         // https://sites.google.com/a/usgs.gov/aquarius-api-wiki/publish/gettimeseriesdescriptionlist
         getTimeSeriesDescriptionList(field, aq2rdbResponse);
 
         // Use GetTimeSeriesRawDaa [sic] or getTimeSeriesCorrectedData
         // with the TimeSeriesUniqueId parameter to get the data.
-
-        // TODO: instead of building URL paths here, consider passing
-        // (the rather ephemeral) Web service parameters as a
-        // JavaScript object.
-        var path = '/AQUARIUS/Publish/V2/' +
-            'GetTimeSeriesCorrectedData?' +
-            'token=' + field.token + '&format=json' +
-            '&TimeSeriesUniqueId=' +
-            '8b1d6f626f63470cb12631027b60479e' +
-            bind('QueryFrom', field.queryFrom) +
-            bind('QueryTo', field.QueryTo);
-        getTimeSeriesCorrectedData(path, aq2rdbResponse);
+        getTimeSeriesCorrectedData(field, aq2rdbResponse);
     }
 
     // if time-series identifier is not present, and location
@@ -232,8 +359,10 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     log('httpdispatcher.onGet()');
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(aq2rdbRequest.url);
-    var field = new Object();
     var statusMessage;
+
+    // some pre-validation to see if it's worthwhile to call
+    // GetAQToken to proceed to the next step
 
     if (arg.userName.length === 0) {
         aq2rdbErrorMessage(
@@ -255,62 +384,33 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     }
     var password = arg.password;
 
-    // AQUARIUS "environment"
-    if (arg.z.length === 0) {
-        z = 'production';       // set default
-    }
-
-    // data type
-    if (arg.t.length === 0) {
-        aq2rdbErrorMessage(
-            aq2rdbResponse, 400,
-            '# ' + SERVICE_NAME + ': Required parameter ' +
-                '\"t\" (data type) not found'
-        );
-        return;
-    }
-    var t = arg.t;
-
-    var n = arg.n;
-
-    // "time-series identifier"
-    field.timeSeriesIdentifier = arg.u;
-
-    // AQUARIUS does ill-advised things with site PK to accomodate
-    // programmer lazyness
-    field.locationIdentifier =
-        arg.a === undefined ? n : n + '-' + arg.a;
-
-    field.queryFrom = arg.b;
-    field.queryTo = arg.e;
-
     // data type ("t") parameter domain validation
-    switch (t.toLowerCase()) {
-    case 'ms':
+    switch (arg.t.toUpperCase()) {
+    case 'MS':
         statusMessage =
             'Pseudo-time series (e.g., gage inspections) are not supported';
         break;
-    case 'vt':
+    case 'VT':
         statusMessage = 'Sensor inspections and readings are not supported';
         break;
-    case 'pk':
+    case 'PK':
         statusMessage = 'Peak-flow data are not supported';
         break;
-    case 'dc':
+    case 'DC':
         statusMessage = 'Data corrections are not supported';
         break;
-    case 'sv':
+    case 'SV':
         statusMessage = 'Quantitative site-visit data are not supported';
         break;
-    case 'wl':
+    case 'WL':
         statusMessage = 'Discrete groundwater-levels data are not supported';
         break;
-    case 'qw':
+    case 'QW':
         statusMessage = 'Discrete water quality data are not supported';
         break;
     // these are the only valid "t" parameter values right now
-    case 'dv':
-    case 'uv':
+    case 'DV':
+    case 'UV':
         break;
     default:
         statusMessage =
@@ -320,19 +420,15 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
     if (statusMessage !== undefined) {
         // there was an error
-        aq2rdbErrorMessage(aq2rdbResponse, statusCode, statusMessage);
+        aq2rdbErrorMessage(aq2rdbResponse, 400, statusMessage);
     }
-
-    /**
-       @description Store AQUARIUS Web service API authentication
-                    token.
-    */
-    var token = '';
 
     /**
        @description GetAQToken service response callback.
     */
     function getAQTokenCallback(response) {
+        var token = '';
+
         // accumulate response
         response.on('data', function (chunk) {
             token += chunk;
@@ -340,8 +436,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
         // response complete
         response.on('end', function () {
-            field.token = token;
-            aquariusDispatch(field, aq2rdbResponse);
+            aquariusDispatch(token, arg, aq2rdbResponse);
         });
     } // getAQTokenCallback
 
@@ -372,7 +467,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
                                 'Content-Type': 'text/plain'});
         }
         else {
-            log('361: error.message: ' + error.message);
+            log('error.message: ' + error.message);
         }
         log('statusMessage: ' + statusMessage);
         aq2rdbResponse.end(statusMessage);
@@ -390,7 +485,7 @@ function handleRequest(request, response) {
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
-        log('379: error.message: ' + error.message);
+        log('error.message: ' + error.message);
     }
 }
 
