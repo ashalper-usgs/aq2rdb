@@ -28,6 +28,11 @@ var PORT = 8081;
 var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 
 /**
+   @description AQUARIUS Web services path prefix.
+*/
+var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
+
+/**
    @description Primitive logging function for debugging purposes.
 */
 function log(message) {
@@ -91,16 +96,23 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
         });
     } // callback
 
+    var parameter = field.timeSeriesIdentifier.split('.')[0];
+    // TODO: error handling for (unlikely) parameter parsing errors
+
+    var locationIdentifier = field.timeSeriesIdentifier.split('@')[1];
+    // TODO: error handling for (unlikely) locationIdentifier parsing
+    // errors
+
     var request =
         http.request({
             host: AQUARIUS_HOSTNAME,
             path:
-                '/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList?' +
+                AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
                 'token=' + field.token + '&format=json' +
-                '&Parameter=' + field.parameter +
+                bind('Parameter', parameter) +
                 '&ExtendedFilters=' +
                 '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]' +
-                '&locationIdentifier=' + field.locationIdentifier
+                bind('LocationIdentifier', locationIdentifier)
         }, callback);
 
     /**
@@ -156,7 +168,7 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
         });
     } // callback
 
-    var path = '/AQUARIUS/Publish/V2/GetTimeSeriesCorrectedData?' +
+    var path = AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
             'token=' + field.token + '&format=json' +
             bind('timeSeriesIdentifier', field.timeSeriesIdentifier) +
             bind('queryFrom', field.queryFrom) +
@@ -271,12 +283,12 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
     // begin date validation
     if (field.queryFrom !== undefined) {
         // if (AQUARIUS) queryFrom (aq2rdb "b") field is not a valid
-	// ISO date string
+        // ISO date string
         if (isNaN(Date.parse(field.queryFrom))) {
             aq2rdbErrorMessage(
                 aq2rdbResponse, 400,
                 SERVICE_NAME +
-		    ': If \"b\" is specified, a valid 14-digit ISO ' +
+                    ': If \"b\" is specified, a valid 14-digit ISO ' +
                     'date must be provided.'
             );
             return;
