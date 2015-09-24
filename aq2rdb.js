@@ -133,7 +133,6 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
             var timeSeriesCorrectedData = JSON.parse(messageBody);
             var statusMessage;
 
-            log('response.statusCode: ' + response.statusCode);
             if (200 < response.statusCode) {
                 statusMessage =
                     '# ' + SERVICE_NAME +
@@ -160,7 +159,7 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
             bind('timeSeriesIdentifier', field.timeSeriesIdentifier) +
             bind('queryFrom', field.queryFrom) +
             bind('queryTo', field.queryTo);
-    log('path: ' + path);
+
     var request = http.request({
         host: AQUARIUS_HOSTNAME,
         path: path
@@ -205,7 +204,6 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
 
     // get HTTP query arguments
     for (var opt in arg) {
-        log(' arg[opt]: ' + arg[opt]);
         switch (opt) {
         case 'z':
             // -z now indicates environment, not database number. In
@@ -266,71 +264,61 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
             field.queryTo = arg[opt];
             break;
         }
+    }
 
-        // check for argument completion
+    // check for argument completion
 
-        // date-time validation
-        if (field.queryFrom !== undefined) {
-            try {
-                // TODO: this is an "80% solution"; will probably need
-                // more detailed date validation eventually
-                Date.parse(queryFrom);
-            }
-            catch (error) {
-                aq2rdbErrorMessage(
-                    aq2rdbResponse, 400,
-                    'If \"b\" is specified, a valid 14-digit ISO ' +
-                        'date must be provided'
-                );
-
-                // TODO: provide URL to aq2rdb documentation instead?
-                // nwrt2rdb_usage ();
-
-                // TODO: map to HTTP error code?
-                // status = 128;
-                return;
-            }
-        }           
-
-        // Arguments -n, -d, -t, -i, and -y if -t is "MEAS" must
-        // be present as the prompting for missing arguments uses
-        // ADAPS subroutines that write the prompts to stdout
-        // (they're ports form Prime, remember?  so the RDB output
-        // has to go to a file, otherwise the prompts would be
-        // mixed in with the rdb output which would make things
-        // difficult for a pipeline. -z, and -a will default, and
-        // -m is ignored.
-        if (dataType === 'MEAS' &&
-            (field.locationIdentifier === undefined ||
-             ddID === undefined ||
-             field.transportCode === undefined)) {
-                aq2rdbErrorMessage(
-                    aq2rdbResponse, 400,
-                    '\"n\", \"d\", and \"y\" fields ' +
-                        'must be present when \"t\" is \"MEAS\"'
-                );
-
-            // TODO: provide URL to aq2rdb documentation instead?
-            // nwrt2rdb_usage();
-
-            // TODO: map to HTTP error code?
-            // status = 124;
+    // date-time validation
+    if (field.queryFrom !== undefined) {
+        // if queryFrom ("b" field) is not a valid ISO date string
+        if (isNaN(Date.parse(field.queryFrom))) {
+            aq2rdbErrorMessage(
+                aq2rdbResponse, 400,
+                'If \"b\" is specified, a valid 14-digit ISO ' +
+                    'date must be provided.'
+            );
             return;
         }
+    }           
 
-        // set expand rating flag as a character
-        // TODO: "-e" was maybe an "overloaded" option in
-        // nwts2rdb? Need to find out if this is still
-        // relevant.
-        /*
-          if (eflag) {
-          strcpy (expandit,'Y');
-          }
-          else {
-          strcpy (expandit,'N');
-          }
-        */
+    // Arguments -n, -d, -t, -i, and -y if -t is "MEAS" must
+    // be present as the prompting for missing arguments uses
+    // ADAPS subroutines that write the prompts to stdout
+    // (they're ports form Prime, remember?  so the RDB output
+    // has to go to a file, otherwise the prompts would be
+    // mixed in with the RDB output which would make things
+    // difficult for a pipeline. -z, and -a will default, and
+    // -m is ignored.
+    if (dataType === 'MEAS' &&
+        (field.locationIdentifier === undefined ||
+         ddID === undefined ||
+         field.transportCode === undefined)) {
+        aq2rdbErrorMessage(
+            aq2rdbResponse, 400,
+            '\"n\", \"d\", and \"y\" fields ' +
+                'must be present when \"t\" is \"MEAS\"'
+        );
+
+        // TODO: provide URL to aq2rdb documentation instead?
+        // nwrt2rdb_usage();
+
+        // TODO: map to HTTP error code?
+        // status = 124;
+        return;
     }
+
+    // set expand rating flag as a character
+    // TODO: "-e" was maybe an "overloaded" option in
+    // nwts2rdb? Need to find out if this is still
+    // relevant.
+    /*
+      if (eflag) {
+      strcpy (expandit,'Y');
+      }
+      else {
+      strcpy (expandit,'N');
+      }
+    */
 
     // if time-series identifier is present
     if (field.timeSeriesIdentifier !== undefined) {
@@ -357,7 +345,6 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
 httpdispatcher.onGet('/' + SERVICE_NAME, function (
     aq2rdbRequest, aq2rdbResponse
 ) {
-    log('httpdispatcher.onGet()');
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(aq2rdbRequest.url);
     var statusMessage;
