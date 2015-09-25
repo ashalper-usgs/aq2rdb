@@ -156,6 +156,7 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
 
         response.on('end', function () {
             var timeSeriesCorrectedData = JSON.parse(messageBody);
+            // TODO: JSON parse error handling?
             var statusMessage;
 
             if (200 < response.statusCode) {
@@ -176,7 +177,19 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
                 aq2rdbResponse.end(statusMessage);
             }
             else {
-                aq2rdbResponse.end(messageBody);
+                // make an RDB file
+                var points = timeSeriesCorrectedData.Points;
+                var n = points.length;
+                var rdb = '';
+
+                for (var i = 0; i < n; i++) {
+                    rdb += timeSeriesCorrectedData.LocationIdentifier + '\t' +
+                        timeSeriesCorrectedData.Parameter + '\t' +
+                        timeSeriesCorrectedData.Label + '\t' +
+                        points[i].Timestamp + '\t' +
+                        points[i].Value.Numeric.toString() + '\n';
+                }
+                aq2rdbResponse.end(rdb);
             }
         });
     } // callback
