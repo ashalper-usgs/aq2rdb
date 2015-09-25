@@ -139,6 +139,52 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
     request.end();
 } // getTimeSeriesDescriptionList
 
+/**
+   @description Convert an ISO 8601 date string to (a specific
+                instance of) an RFC3339 date (for our purposes, the
+                instance of which doesn't happen to have a specific
+                name).
+*/
+function rfc3339(isoString) {
+    return isoString.replace('T', ' ').replace(/\.\d*/, '');
+}
+
+// TODO: figure out how much of this stuff gets retained (actually a
+// JIRA ticket now)
+function header(queryFrom, queryTo) {
+    var d = new Date();
+    var isoString = d.toISOString();
+    var retrieved = rfc3339(isoString);
+
+    // TODO: these are just place-holders; replace with passed-in
+    // parameters eventually
+    var agency_cd = 'USGS', site_no = '', tz_cd = '-7',
+    local_time_fg = 'N', station_nm = '', parm_cd = '', parm_nm = '';
+
+    var header =
+    '# //UNITED STATES GEOLOGICAL SURVEY       ' +
+        'http://water.usgs.gov/\n' +
+    '# //NATIONAL WATER INFORMATION SYSTEM     ' +
+        'http://water.usgs.gov/data.html\n' +
+    '# //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS\n' +
+    '# //RETRIEVED: ' + retrieved + '\n' +
+    '# //FILE TYPE=\"NWIS-I DAILY-VALUES\" EDITABLE=NO\n' +
+    '# //STATION AGENCY=\"' + agency_cd + ' \" NUMBER=\"' + site_no +
+        '       \" TIME_ZONE=\"' + tz_cd + '\" DST_FLAG=' +
+        local_time_fg + '\n' +
+    '# //STATION NAME=\"' + station_nm + '\"\n' +
+    '# //LOCATION NUMBER=-1 NAME=\"*** LOC NOT FOUND ***\"\n' +
+    '# //DD LABEL=\"*** NOT IN DD FILE ***\"\n' +
+    '# //PARAMETER CODE=\"' + parm_cd + '\" SNAME = \"\"\n' +
+    '# //PARAMETER LNAME=\"' + parm_nm + '\"\n' +
+    '# //STATISTIC CODE=\"     \" SNAME=\"*** INVALID STAT ***\"\n' +
+    '# //STATISTIC LNAME=\"\"\n' +
+    '# //TYPE NAME=\"FINAL\" DESC = \"EDITED AND COMPUTED DAILY VALUES\"\n' +
+    '# //RANGE START=\"' + queryFrom + '\" END=\"' + queryTo + '\"\n';
+
+    return header;
+}
+
 // TODO: this is going to need to be modified into something like
 // "aggregateTimeSeriesCorrectedData", accepting an array of
 // "UniqueId"s, calling GetTimeSeriesCorrectedData n times,
@@ -183,10 +229,11 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
                 // make an RDB file
                 var points = timeSeriesCorrectedData.Points;
                 var n = points.length;
-                var rdb = '';
+                var rdb = header(field.queryFrom, field.queryTo);
 
                 for (var i = 0; i < n; i++) {
                     var d = new Date(points[i].Timestamp);
+                    // TODO: Date parse error handling
 
                     // TODO: need to figure out something for time
                     // display here
