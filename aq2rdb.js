@@ -75,6 +75,8 @@ function aquariusErrorMessage(response) {
    @description Retreive time series data from AQUARIUS API.
 */
 function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
+    var timeSeriesDescriptionList;
+
     /**
        @description Handle response from GetTimeSeriesDescriptionList.
     */
@@ -89,10 +91,13 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
             });
 
         response.on('end', function () {
-            var timeSeriesDescriptionList = JSON.parse(messageBody);
-            var timeSeriesDescriptions =
-                timeSeriesDescriptionList.TimeSeriesDescriptions;
-            aq2rdbResponse.end(JSON.stringify(timeSeriesDescriptions));
+            timeSeriesDescriptionList = JSON.parse(messageBody);
+            // TODO: JSON parsing error handling
+
+            // TODO: need to figure out how to pass
+            // timeSeriesDescriptionList back to
+            // getTimeSeriesDescriptionList() caller on success
+            aq2rdbResponse.end(messageBody);
         });
     } // callback
 
@@ -103,16 +108,20 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
     // TODO: error handling for (unlikely) locationIdentifier parsing
     // errors
 
+    var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
+        '&token=' + field.token + '&format=json' +
+        bind('Parameter', parameter) +
+        '&ExtendedFilters=' +
+        '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]' +
+        bind('LocationIdentifier', locationIdentifier);
+
+    log('url: http://' + AQUARIUS_HOSTNAME + path);
+    log('path: ' + path);
+
     var request =
         http.request({
             host: AQUARIUS_HOSTNAME,
-            path:
-                AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
-                'token=' + field.token + '&format=json' +
-                bind('Parameter', parameter) +
-                '&ExtendedFilters=' +
-                '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]' +
-                bind('LocationIdentifier', locationIdentifier)
+            path: path                
         }, callback);
 
     /**
@@ -120,6 +129,7 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
                     invocation errors.
     */
     request.on('error', function (error) {
+        log('error: ' + error);
         handleService('GetTimeSeriesDescriptionList',
                       aq2rdbResponse, error);
     });
@@ -328,22 +338,18 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
       }
     */
 
-    // if time-series identifier is present
+    // if time-series identifier is not present, and location
+    // identifier is present
     if (field.timeSeriesIdentifier !== undefined) {
-        // see
-        // https://sites.google.com/a/usgs.gov/aquarius-api-wiki/publish/gettimeseriesdescriptionlist
+        // Use GetTimeSeriesDescriptionList with the
+        // LocationIdentifier and Parameter parameters in the URL and
+        // then find the requested timeseries in the output to get tue
+        // [sic] GUID
         getTimeSeriesDescriptionList(field, aq2rdbResponse);
 
         // Use GetTimeSeriesRawDaa [sic] or getTimeSeriesCorrectedData
         // with the TimeSeriesUniqueId parameter to get the data.
-        getTimeSeriesCorrectedData(field, aq2rdbResponse);
-    }
-
-    // if time-series identifier is not present, and location
-    // identifier is present
-    if (field.timeSeriesIdentifier === undefined &&
-        field.locationIdentifier !== undefined) {
-        getTimeSeriesDescriptionList(field, aq2rdbResponse);
+        // getTimeSeriesCorrectedData(field, aq2rdbResponse);
     }
 } // aquariusDispatch
 
@@ -452,7 +458,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     /**
        @description Handle GetAQToken service invocation errors.
     */
-    request.on('error', function(error) {
+    request.on('error', function (error) {
         if (error.message === 'connect ECONNREFUSED') {
             statusMessage = '# ' + SERVICE_NAME +
                 ': Could not connect to GetAQToken service for ' +
