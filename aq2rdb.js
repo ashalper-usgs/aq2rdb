@@ -94,20 +94,14 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
             timeSeriesDescriptionList = JSON.parse(messageBody);
             // TODO: JSON parsing error handling
 
-            // TODO: need to figure out how to pass
-            // timeSeriesDescriptionList back to
-            // getTimeSeriesDescriptionList() caller on success?
-
             var timeSeriesDescriptions =
                 timeSeriesDescriptionList.TimeSeriesDescriptions;
             var n = timeSeriesDescriptions.length;
-            var rdb = '';
             for (var i = 0; i < n; i++) {
-                rdb += 'UniqueId: ' +
-                    timeSeriesDescriptions[i].UniqueId + '\n';
+                field.timeSeriesUniqueId =
+                    timeSeriesDescriptions[i].UniqueId;
+                getTimeSeriesCorrectedData(field, aq2rdbResponse);
             }
-
-            aq2rdbResponse.end('n: ' + n.toString() + '\n' + rdb);
         });
     } // callback
 
@@ -165,6 +159,8 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
             var statusMessage;
 
             if (200 < response.statusCode) {
+                // TODO: probably want to re-factor this into a
+                // function eventually
                 statusMessage =
                     '# ' + SERVICE_NAME +
                     ': AQUARIUS replied with an error. ' +
@@ -187,7 +183,7 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
 
     var path = AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
             'token=' + field.token + '&format=json' +
-            bind('timeSeriesIdentifier', field.timeSeriesIdentifier) +
+            bind('timeSeriesUniqueId', field.timeSeriesUniqueId) +
             bind('queryFrom', field.queryFrom) +
             bind('queryTo', field.queryTo);
 
