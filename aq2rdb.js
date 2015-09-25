@@ -8,6 +8,7 @@
  */
 
 'use strict';
+var sprintf = require("sprintf-js").sprintf;
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
 var querystring = require('querystring');
@@ -138,8 +139,10 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
     request.end();
 } // getTimeSeriesDescriptionList
 
-// see
-// https://sites.google.com/a/usgs.gov/aquarius-api-wiki/publish/gettimeseriescorrecteddata
+// TODO: this is going to need to be modified into something like
+// "aggregateTimeSeriesCorrectedData", accepting an array of
+// "UniqueId"s, calling GetTimeSeriesCorrectedData n times,
+// accumulating the result, and finally, writing to an RDB file.
 function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
     /**
        @description Handle response from GetTimeSeriesCorrectedData.
@@ -183,10 +186,19 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
                 var rdb = '';
 
                 for (var i = 0; i < n; i++) {
+                    var d = new Date(points[i].Timestamp);
+
+                    // TODO: need to figure out something for time
+                    // display here
                     rdb += timeSeriesCorrectedData.LocationIdentifier + '\t' +
                         timeSeriesCorrectedData.Parameter + '\t' +
                         timeSeriesCorrectedData.Label + '\t' +
-                        points[i].Timestamp + '\t' +
+                        sprintf(
+                            "%d%02d%02d",
+                            d.getFullYear(),
+                            d.getMonth() + 1,
+                            d.getDay() + 1
+                        ) + '\t' +
                         points[i].Value.Numeric.toString() + '\n';
                 }
                 aq2rdbResponse.end(rdb);
@@ -194,15 +206,13 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
         });
     } // callback
 
-    var path = AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
+    var request = http.request({
+        host: AQUARIUS_HOSTNAME,
+        path: AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
             'token=' + field.token + '&format=json' +
             bind('timeSeriesUniqueId', field.timeSeriesUniqueId) +
             bind('queryFrom', field.queryFrom) +
-            bind('queryTo', field.queryTo);
-
-    var request = http.request({
-        host: AQUARIUS_HOSTNAME,
-        path: path
+            bind('queryTo', field.queryTo)
     }, callback);
 
     /**
