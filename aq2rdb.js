@@ -96,8 +96,18 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
 
             // TODO: need to figure out how to pass
             // timeSeriesDescriptionList back to
-            // getTimeSeriesDescriptionList() caller on success
-            aq2rdbResponse.end(messageBody);
+            // getTimeSeriesDescriptionList() caller on success?
+
+            var timeSeriesDescriptions =
+                timeSeriesDescriptionList.TimeSeriesDescriptions;
+            var n = timeSeriesDescriptions.length;
+            var rdb = '';
+            for (var i = 0; i < n; i++) {
+                rdb += 'UniqueId: ' +
+                    timeSeriesDescriptions[i].UniqueId + '\n';
+            }
+
+            aq2rdbResponse.end('n: ' + n.toString() + '\n' + rdb);
         });
     } // callback
 
@@ -114,9 +124,6 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
         '&ExtendedFilters=' +
         '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]' +
         bind('LocationIdentifier', locationIdentifier);
-
-    log('url: http://' + AQUARIUS_HOSTNAME + path);
-    log('path: ' + path);
 
     var request =
         http.request({
@@ -279,11 +286,6 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
         case 'l':
             field.timeOffset = arg[opt];
             break;
-        // TODO: might be deprecated; awaiting reply from Brad Garner
-        // <bdgarner@usgs.gov>.
-        case 'y':
-            field.transportCode = arg[opt];
-            break;
         case 'e':
             field.queryTo = arg[opt];
             break;
@@ -319,16 +321,15 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
          field.transportCode === undefined)) {
         aq2rdbErrorMessage(
             aq2rdbResponse, 400,
-            '\"n\", \"d\", and \"y\" fields ' +
+            '\"n\" and \"d\" fields ' +
                 'must be present when \"t\" is \"MEAS\"'
         );
         return;
     }
 
     // set expand rating flag as a character
-    // TODO: "-e" was maybe an "overloaded" option in
-    // nwts2rdb? Need to find out if this is still
-    // relevant.
+    // TODO: "-e" was maybe an "overloaded" option in nwts2rdb? Need
+    // to find out if this is still relevant.
     /*
       if (eflag) {
       strcpy (expandit,'Y');
