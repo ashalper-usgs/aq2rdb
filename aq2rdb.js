@@ -102,12 +102,29 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
         });
     } // callback
 
-    var parameter = field.timeSeriesIdentifier.split('.')[0];
-    // TODO: error handling for (unlikely) parameter parsing errors
+    // try to parse Parameter field value
+    var f = field.timeSeriesIdentifier.split('.');
+    if (f.length < 2) {
+        aq2rdbErrorMessage(
+            aq2rdbResponse, 400, 
+            'Could not parse \"Parameter\" field value from ' +
+                '\"timeSeriesIdentifier\" field value'
+        );
+        return;
+    }
+    var parameter = f[0];
 
-    var locationIdentifier = field.timeSeriesIdentifier.split('@')[1];
-    // TODO: error handling for (unlikely) locationIdentifier parsing
-    // errors
+    // try to parse locationIdentifier field value
+    f = field.timeSeriesIdentifier.split('@');
+    if (f.length < 2) {
+        aq2rdbErrorMessage(
+            aq2rdbResponse, 400, 
+            'Could not parse \"locationIdentifier\" field value from ' +
+                '\"timeSeriesIdentifier\" field value'
+        );
+        return;
+    }
+    var locationIdentifier = f[1];
 
     var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
         '&token=' + field.token + '&format=json' +
