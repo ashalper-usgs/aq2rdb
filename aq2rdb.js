@@ -33,11 +33,35 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 */
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 
+/**
+   @description TimeSeriesIdentifier prototype.
+*/
 var TimeSeriesIdentifier = function(text) {
     this.text = text;
 
     this.siteNumber = function () {
+        // TODO: this needs to be more robust
         return this.text.split('@')[1]; // return parsed site number
+    }
+
+    this.parameter = function () {
+        // try to parse "Parameter" field value
+        var field = this.text.split('.');
+
+        if (field.length < 2) {
+            return;             // failure
+        }
+        return field[0];
+    }
+
+    this.locationIdentifier = function () {
+        // try to parse "locationIdentifier" field value
+        var field = this.text.split('@');
+
+        if (field.length < 2) {
+            return;             // failure
+        }
+        return field[1];
     }
 } // TimeSeriesIdentifier
 
@@ -65,6 +89,16 @@ function jsonParseErrorMessage(response, message) {
         'While trying to parse a JSON response from ' +
             'AQUARIUS: ' + message
     );
+}
+
+/**
+   @description Create a valid HTTP query field/value pair substring.
+*/ 
+function bind(field, value) {
+    if (value === undefined) {
+        return '';
+    }
+    return '&' + field + '=' + value;
 }
 
 /**
@@ -106,21 +140,20 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
         });
     } // callback
 
-    // try to parse Parameter field value
-    var f = field.timeSeriesIdentifier.split('.');
-    if (f.length < 2) {
+    var timeSeriesIdentifier =
+        new TimeSeriesIdentifier(field.timeSeriesIdentifier);
+
+    var parameter = timeSeriesIdentifier.parameter();
+    if (parameter === undefined) {
         aq2rdbErrorMessage(
             aq2rdbResponse, 400, 
             'Could not parse \"Parameter\" field value from ' +
                 '\"timeSeriesIdentifier\" field value'
         );
-        return;
     }
-    var parameter = f[0];
 
-    // try to parse locationIdentifier field value
-    f = field.timeSeriesIdentifier.split('@');
-    if (f.length < 2) {
+    var locationIdentifier = timeSeriesIdentifier.locationIdentifier();
+    if (locationIdentifier === undefined) {
         aq2rdbErrorMessage(
             aq2rdbResponse, 400, 
             'Could not parse \"locationIdentifier\" field value from ' +
@@ -128,7 +161,6 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
         );
         return;
     }
-    var locationIdentifier = f[1];
 
     var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
         '&token=' + field.token + '&format=json' +
@@ -313,16 +345,6 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
 
     request.end();
 } // getTimeSeriesCorrectedData
-
-/**
-   @description Create a valid HTTP query field/value pair substring.
-*/ 
-function bind(field, value) {
-    if (value === undefined) {
-        return '';
-    }
-    return '&' + field + '=' + value;
-}
 
 /**
    @description Figure out what the aq2rdb request is, then call the
