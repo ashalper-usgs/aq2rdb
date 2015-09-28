@@ -165,7 +165,22 @@ function header(field) {
     // make TimeSeriesIdentifier object from HTTP query parameter text
     var timeSeriesIdentifier =
         new TimeSeriesIdentifier(field.timeSeriesIdentifier);
-    var agencyCode = 'USGS';
+    var agencyCode, siteNumber;
+
+    // if locationIdentifier was not provided
+    if (field.locationIdentifier === undefined) {
+        agencyCode = 'USGS';    // default agency code
+        // reference site number embedded in timeSeriesIdentifier
+        siteNumber = timeSeriesIdentifier.siteNumber();
+    }
+    else {
+        // parse (agency code, site number) embedded in
+        // locationIdentifier
+        var f = field.locationIdentifier.split('-')[0];
+
+        agencyCode = f[1];
+        siteNumber = f[0];
+    }
 
     var header =
     '# //UNITED STATES GEOLOGICAL SURVEY       ' +
@@ -175,7 +190,7 @@ function header(field) {
     '# //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS\n' +
     '# //RETRIEVED: ' + retrieved + '\n' +
     '# //STATION AGENCY=\"' + agencyCode + ' \" NUMBER=\"' +
-        timeSeriesIdentifier.siteNumber() + '\n' +
+        siteNumber + '\n' +
     '# //RANGE START=\"' + rfc3339(field.queryFrom) +
         '\" END=\"' + rfc3339(field.queryTo) + '\"\n';
 
