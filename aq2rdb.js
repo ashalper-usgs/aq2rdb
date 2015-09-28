@@ -59,6 +59,14 @@ function aq2rdbErrorMessage(response, statusCode, message) {
     response.end(statusMessage);
 }
 
+function jsonParseErrorMessage(response, message) {
+    aq2rdbErrorMessage(
+        response, 502, 
+        'While trying to parse a JSON response from ' +
+            'AQUARIUS: ' + message
+    );
+}
+
 /**
    @description Retreive time series data from AQUARIUS API.
 */
@@ -83,11 +91,7 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
                 timeSeriesDescriptionList = JSON.parse(messageBody);
             }
             catch (e) {
-                aq2rdbErrorMessage(
-                    aq2rdbResponse, 502, 
-                    'While trying to parse a JSON response from ' +
-                        'AQUARIUS: ' + e.message
-                );
+                jsonParseErrorMessage(aq2rdbResponse, e.message);
                 return;         // go no further
             }
 
@@ -221,14 +225,18 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
             });
 
         response.on('end', function () {
-            var timeSeriesCorrectedData = JSON.parse(messageBody);
-            // TODO: JSON parse error handling?
-            var statusMessage;
+            try {
+                var timeSeriesCorrectedData = JSON.parse(messageBody);
+            }
+            catch (e) {
+                jsonParseErrorMessage(aq2rdbResponse, e.message);
+                return;         // go no further
+            }
 
             if (200 < response.statusCode) {
                 // TODO: probably want to re-factor this into a
                 // function eventually
-                statusMessage =
+                var statusMessage =
                     '# ' + SERVICE_NAME +
                     ': AQUARIUS replied with an error. ' +
                     'The message was:\n' +
