@@ -52,32 +52,11 @@ function log(message) {
    @description Consolodated error message writer.
 */ 
 function aq2rdbErrorMessage(response, statusCode, message) {
-    var statusMessage = '# ' + message;
+    var statusMessage = '# ' + SERVICE_NAME + ': ' + message;
     response.writeHead(statusCode, statusMessage,
                        {'Content-Length': statusMessage.length,
                         'Content-Type': 'text/plain'});
     response.end(statusMessage);
-}
-
-// TODO: reconcile/merge this with aq2rdbErrorMessage() above at some
-// point
-function aquariusErrorMessage(response) {
-    var statusMessage = '';
-
-    // TODO: for some of these, AQUARIUS may return JSON with more
-    // information; need to check for that.
-    switch (response.statusCode) {
-    case 301:
-    case 400:
-    case 401:
-        statusMessage =
-            '# There was a problem forwarding the data ' +
-            'request to AQUARIUS. The message was:\n' +
-            '#\n' +
-            '#   ' + response.statusCode.toString() + ' ' +
-            response.statusMessage;
-        return statusMessage;
-    }
 }
 
 /**
@@ -100,8 +79,17 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
             });
 
         response.on('end', function () {
-            timeSeriesDescriptionList = JSON.parse(messageBody);
-            // TODO: JSON parsing error handling
+            try {
+                timeSeriesDescriptionList = JSON.parse(messageBody);
+            }
+            catch (e) {
+                aq2rdbErrorMessage(
+                    aq2rdbResponse, 502, 
+                    'While trying to parse a JSON response from ' +
+                        'AQUARIUS: ' + e.message
+                );
+                return;         // go no further
+            }
 
             var timeSeriesDescriptions =
                 timeSeriesDescriptionList.TimeSeriesDescriptions;
