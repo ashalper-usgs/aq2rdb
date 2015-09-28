@@ -33,6 +33,14 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 */
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 
+var TimeSeriesIdentifier = function(text) {
+    this.text = text;
+
+    this.siteNumber = function () {
+	return this.text.split('@')[1];
+    }
+} // TimeSeriesIdentifier
+
 /**
    @description Primitive logging function for debugging purposes.
 */
@@ -151,15 +159,13 @@ function rfc3339(isoString) {
 
 // TODO: figure out how much of this stuff gets retained (actually a
 // JIRA ticket now)
-function header(queryFrom, queryTo) {
-    var d = new Date();
-    var isoString = d.toISOString();
-    var retrieved = rfc3339(isoString);
-
-    // TODO: these are just place-holders; replace with passed-in
-    // parameters eventually
-    var agency_cd = 'USGS', site_no = '', tz_cd = '-7',
-    local_time_fg = 'N', station_nm = '', parm_cd = '', parm_nm = '';
+function header(field) {
+    // convoluted syntax for "now"
+    var retrieved = rfc3339((new Date()).toISOString());
+    // make TimeSeriesIdentifier object from HTTP query parameter text
+    var timeSeriesIdentifier =
+	new TimeSeriesIdentifier(field.timeSeriesIdentifier);
+    var agencyCode = 'USGS';
 
     var header =
     '# //UNITED STATES GEOLOGICAL SURVEY       ' +
@@ -168,19 +174,10 @@ function header(queryFrom, queryTo) {
         'http://water.usgs.gov/data.html\n' +
     '# //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS\n' +
     '# //RETRIEVED: ' + retrieved + '\n' +
-    '# //FILE TYPE=\"NWIS-I DAILY-VALUES\" EDITABLE=NO\n' +
-    '# //STATION AGENCY=\"' + agency_cd + ' \" NUMBER=\"' + site_no +
-        '       \" TIME_ZONE=\"' + tz_cd + '\" DST_FLAG=' +
-        local_time_fg + '\n' +
-    '# //STATION NAME=\"' + station_nm + '\"\n' +
-    '# //LOCATION NUMBER=-1 NAME=\"*** LOC NOT FOUND ***\"\n' +
-    '# //DD LABEL=\"*** NOT IN DD FILE ***\"\n' +
-    '# //PARAMETER CODE=\"' + parm_cd + '\" SNAME = \"\"\n' +
-    '# //PARAMETER LNAME=\"' + parm_nm + '\"\n' +
-    '# //STATISTIC CODE=\"     \" SNAME=\"*** INVALID STAT ***\"\n' +
-    '# //STATISTIC LNAME=\"\"\n' +
-    '# //TYPE NAME=\"FINAL\" DESC = \"EDITED AND COMPUTED DAILY VALUES\"\n' +
-    '# //RANGE START=\"' + queryFrom + '\" END=\"' + queryTo + '\"\n';
+    '# //STATION AGENCY=\"' + agencyCode + ' \" NUMBER=\"' +
+	timeSeriesIdentifier.siteNumber() + '\n' +
+    '# //RANGE START=\"' + rfc3339(field.queryFrom) +
+	'\" END=\"' + rfc3339(field.queryTo) + '\"\n';
 
     return header;
 }
@@ -229,7 +226,7 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
                 // make an RDB file
                 var points = timeSeriesCorrectedData.Points;
                 var n = points.length;
-                var rdb = header(field.queryFrom, field.queryTo);
+                var rdb = header(field);
 
                 for (var i = 0; i < n; i++) {
                     var d = new Date(points[i].Timestamp);
