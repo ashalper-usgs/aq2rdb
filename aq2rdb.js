@@ -37,7 +37,7 @@ var TimeSeriesIdentifier = function(text) {
     this.text = text;
 
     this.siteNumber = function () {
-	return this.text.split('@')[1];
+        return this.text.split('@')[1]; // return parsed site number
     }
 } // TimeSeriesIdentifier
 
@@ -164,7 +164,7 @@ function header(field) {
     var retrieved = rfc3339((new Date()).toISOString());
     // make TimeSeriesIdentifier object from HTTP query parameter text
     var timeSeriesIdentifier =
-	new TimeSeriesIdentifier(field.timeSeriesIdentifier);
+        new TimeSeriesIdentifier(field.timeSeriesIdentifier);
     var agencyCode = 'USGS';
 
     var header =
@@ -175,9 +175,9 @@ function header(field) {
     '# //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS\n' +
     '# //RETRIEVED: ' + retrieved + '\n' +
     '# //STATION AGENCY=\"' + agencyCode + ' \" NUMBER=\"' +
-	timeSeriesIdentifier.siteNumber() + '\n' +
+        timeSeriesIdentifier.siteNumber() + '\n' +
     '# //RANGE START=\"' + rfc3339(field.queryFrom) +
-	'\" END=\"' + rfc3339(field.queryTo) + '\"\n';
+        '\" END=\"' + rfc3339(field.queryTo) + '\"\n';
 
     return header;
 }
@@ -226,24 +226,37 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
                 // make an RDB file
                 var points = timeSeriesCorrectedData.Points;
                 var n = points.length;
+                // TODO: we'll probably need an "RDB" object prototype
+                // eventually
                 var rdb = header(field);
 
+                // TODO: the code that produces the RDB data type
+                // declaration is probably going to need to be much
+                // more robust than this.
+                rdb +=
+                    'DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n' +
+                    '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n';
                 for (var i = 0; i < n; i++) {
                     var d = new Date(points[i].Timestamp);
                     // TODO: Date parse error handling
 
                     // TODO: need to figure out something for time
-                    // display here
-                    rdb += timeSeriesCorrectedData.LocationIdentifier + '\t' +
-                        timeSeriesCorrectedData.Parameter + '\t' +
-                        timeSeriesCorrectedData.Label + '\t' +
+                    // column here
+                    rdb +=
                         sprintf(
                             "%d%02d%02d",
                             d.getFullYear(),
                             d.getMonth() + 1,
                             d.getDay() + 1
                         ) + '\t' +
-                        points[i].Value.Numeric.toString() + '\n';
+                        points[i].Value.Numeric.toString() + '\t' +
+                        // TODO: "Notes" looks like it's an array in the
+                        // JSON messageBody, so we might need further
+                        // processing here
+                        timeSeriesCorrectedData.Notes + '\t' +
+                        timeSeriesCorrectedData.LocationIdentifier + '\t' +
+                        timeSeriesCorrectedData.Parameter + '\t' +
+                        timeSeriesCorrectedData.Label + '\n';
                 }
                 aq2rdbResponse.end(rdb);
             }
