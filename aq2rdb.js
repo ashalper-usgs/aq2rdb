@@ -241,17 +241,25 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
                     // TODO: Date parse error handling
 
                     rdb +=
+                        // TODO: date-reformatting to re-factor eventually
                         points[i].Timestamp.split('T')[0].replace(/-/g, '') +
                         // TIME column always empty for daily values
                         '\t\t' +
                         points[i].Value.Numeric.toString() + '\t' +
+                        // TODO: PRECISION?
+                        '\t' +
                         // TODO: "Notes" looks like it's an array in the
                         // JSON messageBody, so we might need further
                         // processing here
                         timeSeriesCorrectedData.Notes + '\t' +
-                        timeSeriesCorrectedData.LocationIdentifier + '\t' +
-                        timeSeriesCorrectedData.Parameter + '\t' +
-                        timeSeriesCorrectedData.Label + '\n';
+                        // TODO: FLAGS?
+                        '\t' +
+                        // TODO: TYPE?
+                        '\t' +
+                        // TODO: FLAGS?
+                        '\t' +
+                        timeSeriesCorrectedData.Approvals[0].LevelDescription.charAt(0)
+                        + '\n';
                 }
                 aq2rdbResponse.end(rdb);
             }
