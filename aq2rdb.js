@@ -240,15 +240,10 @@ function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
                     var d = new Date(points[i].Timestamp);
                     // TODO: Date parse error handling
 
-                    // TODO: need to figure out something for time
-                    // column here
                     rdb +=
-                        sprintf(
-                            "%d%02d%02d",
-                            d.getFullYear(),
-                            d.getMonth() + 1,
-                            d.getDay() + 1
-                        ) + '\t' +
+                        points[i].Timestamp.split('T')[0].replace(/-/g, '') +
+                        // TIME column always empty for daily values
+                        '\t\t' +
                         points[i].Value.Numeric.toString() + '\t' +
                         // TODO: "Notes" looks like it's an array in the
                         // JSON messageBody, so we might need further
