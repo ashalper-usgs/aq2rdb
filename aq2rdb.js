@@ -66,6 +66,34 @@ var TimeSeriesIdentifier = function(text) {
 } // TimeSeriesIdentifier
 
 /**
+   @description Set of TimeSeriesDescriptions prototype.
+*/
+var TimeSeriesDescriptionSet = function (
+    field, timeSeriesDescriptions
+) {
+    // TODO: passing in the entire "field" object is probably
+    // overkill; need to declare private properties for only the stuff
+    // TimeSeriesDescriptionSet objects require to do their job
+    var field = field;
+    var timeSeriesDescriptions = timeSeriesDescriptions;
+
+    /**
+       @description Produce an RDB file response of daily values
+                    related to this TimeSeriesDescription set.
+    */
+    this.dvRespond = function (response) {
+        var n = timeSeriesDescriptions.length;
+
+        for (var i = 0; i < n; i++) {
+            field.timeSeriesUniqueId =
+                timeSeriesDescriptions[i].UniqueId;
+            // TODO: need to re-factor this call
+            getTimeSeriesCorrectedData(field, response);
+        }
+    }
+} // TimeSeriesDescriptionSet
+
+/**
    @description Primitive logging function for debugging purposes.
 */
 function log(message) {
@@ -131,12 +159,13 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
 
             var timeSeriesDescriptions =
                 timeSeriesDescriptionList.TimeSeriesDescriptions;
-            var n = timeSeriesDescriptions.length;
-            for (var i = 0; i < n; i++) {
-                field.timeSeriesUniqueId =
-                    timeSeriesDescriptions[i].UniqueId;
-                getTimeSeriesCorrectedData(field, aq2rdbResponse);
-            }
+            var timeSeriesDescriptionSet =
+                new TimeSeriesDescriptionSet(
+                    field,
+                    timeSeriesDescriptionList.TimeSeriesDescriptions
+                );
+            // get the DVs from AQUARIUS and respond with the RDB file
+            timeSeriesDescriptionSet.dvRespond(aq2rdbResponse);
         });
     } // callback
 
@@ -238,10 +267,8 @@ function header(field) {
     return header;
 }
 
-// TODO: this is going to need to be modified into something like
-// "aggregateTimeSeriesCorrectedData", accepting an array of
-// "UniqueId"s, calling GetTimeSeriesCorrectedData n times,
-// accumulating the result, and finally, writing to an RDB file.
+// TODO: probably should re-factor this with
+// TimeSeriesDescriptionSet.dvRespond(), from where it is called
 function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
     /**
        @description Handle response from GetTimeSeriesCorrectedData.
