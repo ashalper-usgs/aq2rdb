@@ -219,6 +219,7 @@ var TimeSeriesDescriptionSet = function (
                             // TIME column always empty for daily values
                             '\t\t' +
                             value + '\t' +
+
                             // On Tue, Sep 29, 2015 at 10:57 AM, Scott
                             // Bartholoma <sbarthol@usgs.gov> said:
                             //
@@ -231,6 +232,7 @@ var TimeSeriesDescriptionSet = function (
                             // would know how many digits to round it
                             // to for rounded display.
                             value.toString().replace('.', '').length + '\t' +
+
                             // On Tue, Sep 29, 2015 at 10:57 AM, Scott
                             // Bartholoma <sbarthol@usgs.gov> said:
                             //
@@ -243,6 +245,7 @@ var TimeSeriesDescriptionSet = function (
                             // JSON messageBody, so we might need further
                             // processing here
                             timeSeriesCorrectedData.Notes + '\t' +
+
                             // On Tue, Sep 29, 2015 at 10:57 AM, Scott
                             // Bartholoma <sbarthol@usgs.gov> said:
                             //
@@ -250,11 +253,16 @@ var TimeSeriesDescriptionSet = function (
                             // are now Qualifiers. Things like
                             // thereshold exceedances (high, very
                             // high, low, very low, rapid
-                            // increace/decreast, etc.). The users
-                            // might want you to put something in that
-                            // column for the Method and Grade
+                            // increace/decreast [sic], etc.). The
+                            // users might want you to put something
+                            // in that column for the Method and Grade
                             // sections of the response as well
                             '\t' +
+
+                            // TODO: need to ask Brad and/or users
+                            // about preserving the TYPE column (see
+                            // excerpt from Scott's mail below).
+
                             // On Tue, Sep 29, 2015 at 10:57 AM, Scott
                             // Bartholoma <sbarthol@usgs.gov> said:
                             //
@@ -276,7 +284,7 @@ var TimeSeriesDescriptionSet = function (
                 }
             });
         } // callback
-
+        
         var n = timeSeriesDescriptions.length;
         for (var i = 0; i < n; i++) {
             var request = http.request({
