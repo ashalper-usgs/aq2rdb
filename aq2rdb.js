@@ -210,12 +210,15 @@ var TimeSeriesDescriptionSet = function (
                         var d = new Date(points[i].Timestamp);
                         // TODO: Date parse error handling goes here?
 
+                        // the daily value
+                        var value = points[i].Value.Numeric.toString();
+
                         rdb +=
                         // TODO: date-reformatting to re-factor eventually
                         points[i].Timestamp.split('T')[0].replace(/-/g, '') +
                             // TIME column always empty for daily values
                             '\t\t' +
-                            points[i].Value.Numeric.toString() + '\t' +
+                            value + '\t' +
                             // On Tue, Sep 29, 2015 at 10:57 AM, Scott
                             // Bartholoma <sbarthol@usgs.gov> said:
                             //
@@ -227,7 +230,7 @@ var TimeSeriesDescriptionSet = function (
                             // "suppress rounding" option so the user
                             // would know how many digits to round it
                             // to for rounded display.
-                            '\t' +
+                            value.toString().replace('.', '').length + '\t' +
                             // On Tue, Sep 29, 2015 at 10:57 AM, Scott
                             // Bartholoma <sbarthol@usgs.gov> said:
                             //
