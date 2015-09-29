@@ -284,7 +284,7 @@ var TimeSeriesDescriptionSet = function (
                 }
             });
         } // callback
-        
+
         var n = timeSeriesDescriptions.length;
         for (var i = 0; i < n; i++) {
             var request = http.request({
@@ -320,7 +320,7 @@ function log(message) {
 /**
    @description Consolodated error message writer.
 */ 
-function aq2rdbErrorMessage(response, statusCode, message) {
+function rdbMessage(response, statusCode, message) {
     var statusMessage = '# ' + SERVICE_NAME + ': ' + message;
     response.writeHead(statusCode, statusMessage,
                        {'Content-Length': statusMessage.length,
@@ -329,7 +329,7 @@ function aq2rdbErrorMessage(response, statusCode, message) {
 }
 
 function jsonParseErrorMessage(response, message) {
-    aq2rdbErrorMessage(
+    rdbMessage(
         response, 502, 
         'While trying to parse a JSON response from ' +
             'AQUARIUS: ' + message
@@ -374,8 +374,18 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
                 return;         // go no further
             }
 
-            var timeSeriesDescriptions =
-                timeSeriesDescriptionList.TimeSeriesDescriptions;
+            // if the GetTimeSeriesDescriptionList query returned no
+            // time series descriptions
+            if (timeSeriesDescriptionList.TimeSeriesDescriptions.length === 0)
+            {
+                // there's nothing more we can do
+                rdbMessage(
+                    aq2rdbResponse, 200,
+                    'The query found no time series descriptions in AQUARIUS'
+                );
+                return;
+            }
+
             var timeSeriesDescriptionSet =
                 new TimeSeriesDescriptionSet(
                     field,
@@ -391,7 +401,7 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
 
     var parameter = timeSeriesIdentifier.parameter();
     if (parameter === undefined) {
-        aq2rdbErrorMessage(
+        rdbMessage(
             aq2rdbResponse, 400, 
             'Could not parse \"Parameter\" field value from ' +
                 '\"timeSeriesIdentifier\" field value'
@@ -400,7 +410,7 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
 
     var locationIdentifier = timeSeriesIdentifier.locationIdentifier();
     if (locationIdentifier === undefined) {
-        aq2rdbErrorMessage(
+        rdbMessage(
             aq2rdbResponse, 400, 
             'Could not parse \"locationIdentifier\" field value from ' +
                 '\"timeSeriesIdentifier\" field value'
@@ -565,7 +575,7 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
         // if (AQUARIUS) queryFrom (aq2rdb "b") field is not a valid
         // ISO date string
         if (isNaN(Date.parse(field.queryFrom))) {
-            aq2rdbErrorMessage(
+            rdbMessage(
                 aq2rdbResponse, 400,
                 SERVICE_NAME +
                     ': If \"b\" is specified, a valid 14-digit ISO ' +
@@ -587,7 +597,7 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
         (field.locationIdentifier === undefined ||
          ddID === undefined ||
          field.transportCode === undefined)) {
-        aq2rdbErrorMessage(
+        rdbMessage(
             aq2rdbResponse, 400,
             '\"n\" and \"d\" fields ' +
                 'must be present when \"t\" is \"MEAS\"'
@@ -636,7 +646,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     // GetAQToken to proceed to the next step
 
     if (arg.userName.length === 0) {
-        aq2rdbErrorMessage(
+        rdbMessage(
             aq2rdbResponse, 400,
             '# ' + SERVICE_NAME + ': Required parameter ' +
                 '\"userName\" not found'
@@ -646,7 +656,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     var userName = arg.userName;
 
     if (arg.password.length === 0) {
-        aq2rdbErrorMessage(
+        rdbMessage(
             aq2rdbResponse, 400,
             '# ' + SERVICE_NAME + ': Required parameter ' +
                 '\"password\" not found'
@@ -691,7 +701,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
     if (statusMessage !== undefined) {
         // there was an error
-        aq2rdbErrorMessage(aq2rdbResponse, 400, statusMessage);
+        rdbMessage(aq2rdbResponse, 400, statusMessage);
     }
 
     /**
