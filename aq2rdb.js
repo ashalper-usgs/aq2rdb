@@ -79,16 +79,113 @@ var TimeSeriesDescriptionSet = function (
 
     /**
        @description Produce an RDB file response of daily values
-                    related to this TimeSeriesDescription set.
+       related to this TimeSeriesDescription set.
     */
-    this.dvRespond = function (response) {
-        var n = timeSeriesDescriptions.length;
+    this.dvRespond = function (aq2rdbResponse) {
+        /**
+           @description Handle response from GetTimeSeriesCorrectedData.
+        */
+        function callback(aquariusResponse) {
+            var messageBody = '';
 
+            // accumulate response
+            aquariusResponse.on(
+                'data',
+                function (chunk) {
+                    messageBody += chunk;
+                });
+
+            aquariusResponse.on('end', function () {
+                try {
+                    var timeSeriesCorrectedData = JSON.parse(messageBody);
+                }
+                catch (e) {
+                    jsonParseErrorMessage(aq2rdbResponse, e.message);
+                    return;         // go no further
+                }
+
+                if (200 < aquariusResponse.statusCode) {
+                    // TODO: probably want to re-factor this into a
+                    // function eventually
+                    var statusMessage =
+                        '# ' + SERVICE_NAME +
+                        ': AQUARIUS replied with an error. ' +
+                        'The message was:\n' +
+                        '#\n' +
+                        '#   ' +
+                        timeSeriesCorrectedData.ResponseStatus.Message;
+                    aq2rdbResponse.writeHead(
+                        aquariusResponse.statusCode, statusMessage,
+                        {'Content-Length': statusMessage.length,
+                         'Content-Type': 'text/plain'}
+                    );
+                    aq2rdbResponse.end(statusMessage);
+                }
+                else {
+                    // make an RDB file
+                    var points = timeSeriesCorrectedData.Points;
+                    var n = points.length;
+                    // TODO: we'll probably need an "RDB" object prototype
+                    // eventually
+                    var rdb = header(field);
+
+                    // TODO: the code that produces the RDB data type
+                    // declaration is probably going to need to be much
+                    // more robust than this.
+                    rdb +=
+                    'DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n' +
+                        '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n';
+                    for (var i = 0; i < n; i++) {
+                        var d = new Date(points[i].Timestamp);
+                        // TODO: Date parse error handling
+
+                        rdb +=
+                        // TODO: date-reformatting to re-factor eventually
+                        points[i].Timestamp.split('T')[0].replace(/-/g, '') +
+                            // TIME column always empty for daily values
+                            '\t\t' +
+                            points[i].Value.Numeric.toString() + '\t' +
+                            // TODO: PRECISION?
+                            '\t' +
+                            // TODO: "Notes" looks like it's an array in the
+                            // JSON messageBody, so we might need further
+                            // processing here
+                            timeSeriesCorrectedData.Notes + '\t' +
+                            // TODO: FLAGS?
+                            '\t' +
+                            // TODO: TYPE?
+                            '\t' +
+                            // TODO: FLAGS?
+                            '\t' +
+                timeSeriesCorrectedData.Approvals[0].LevelDescription.charAt(0)
+                            + '\n';
+                    }
+                    aq2rdbResponse.end(rdb);
+                }
+            });
+        } // callback
+
+        var n = timeSeriesDescriptions.length;
         for (var i = 0; i < n; i++) {
-            field.timeSeriesUniqueId =
-                timeSeriesDescriptions[i].UniqueId;
-            // TODO: need to re-factor this call
-            getTimeSeriesCorrectedData(field, response);
+            var request = http.request({
+                host: AQUARIUS_HOSTNAME,
+                path: AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
+                    'token=' + field.token + '&format=json' +
+                    bind('timeSeriesUniqueId',
+                         timeSeriesDescriptions[i].UniqueId) +
+                    bind('queryFrom', field.queryFrom) +
+                    bind('queryTo', field.queryTo)
+            }, callback);
+
+            /**
+               @description Handle GetTimeSeriesCorrectedData service
+               invocation errors.
+            */
+            request.on('error', function (error) {
+                log('getTimeSeriesCorrectedData.request.on(\'error\')');
+            });
+
+            request.end();
         }
     }
 } // TimeSeriesDescriptionSet
@@ -228,7 +325,8 @@ function rfc3339(isoString) {
 }
 
 // TODO: figure out how much of this stuff gets retained (actually a
-// JIRA ticket now)
+// JIRA ticket now). nwts2rdb appears to include/omit fields in the
+// header depending on what it finds in the database.
 function header(field) {
     // convoluted syntax for "now"
     var retrieved = rfc3339((new Date()).toISOString());
@@ -266,112 +364,6 @@ function header(field) {
 
     return header;
 }
-
-// TODO: probably should re-factor this with
-// TimeSeriesDescriptionSet.dvRespond(), from where it is called
-function getTimeSeriesCorrectedData(field, aq2rdbResponse) {
-    /**
-       @description Handle response from GetTimeSeriesCorrectedData.
-    */
-    function callback(response) {
-        var messageBody = '';
-
-        // accumulate response
-        response.on(
-            'data',
-            function (chunk) {
-                messageBody += chunk;
-            });
-
-        response.on('end', function () {
-            try {
-                var timeSeriesCorrectedData = JSON.parse(messageBody);
-            }
-            catch (e) {
-                jsonParseErrorMessage(aq2rdbResponse, e.message);
-                return;         // go no further
-            }
-
-            if (200 < response.statusCode) {
-                // TODO: probably want to re-factor this into a
-                // function eventually
-                var statusMessage =
-                    '# ' + SERVICE_NAME +
-                    ': AQUARIUS replied with an error. ' +
-                    'The message was:\n' +
-                    '#\n' +
-                    '#   ' +
-                    timeSeriesCorrectedData.ResponseStatus.Message;
-                aq2rdbResponse.writeHead(
-                    response.statusCode, statusMessage,
-                    {'Content-Length': statusMessage.length,
-                     'Content-Type': 'text/plain'}
-                );
-                aq2rdbResponse.end(statusMessage);
-            }
-            else {
-                // make an RDB file
-                var points = timeSeriesCorrectedData.Points;
-                var n = points.length;
-                // TODO: we'll probably need an "RDB" object prototype
-                // eventually
-                var rdb = header(field);
-
-                // TODO: the code that produces the RDB data type
-                // declaration is probably going to need to be much
-                // more robust than this.
-                rdb +=
-                    'DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n' +
-                    '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n';
-                for (var i = 0; i < n; i++) {
-                    var d = new Date(points[i].Timestamp);
-                    // TODO: Date parse error handling
-
-                    rdb +=
-                        // TODO: date-reformatting to re-factor eventually
-                        points[i].Timestamp.split('T')[0].replace(/-/g, '') +
-                        // TIME column always empty for daily values
-                        '\t\t' +
-                        points[i].Value.Numeric.toString() + '\t' +
-                        // TODO: PRECISION?
-                        '\t' +
-                        // TODO: "Notes" looks like it's an array in the
-                        // JSON messageBody, so we might need further
-                        // processing here
-                        timeSeriesCorrectedData.Notes + '\t' +
-                        // TODO: FLAGS?
-                        '\t' +
-                        // TODO: TYPE?
-                        '\t' +
-                        // TODO: FLAGS?
-                        '\t' +
-                        timeSeriesCorrectedData.Approvals[0].LevelDescription.charAt(0)
-                        + '\n';
-                }
-                aq2rdbResponse.end(rdb);
-            }
-        });
-    } // callback
-
-    var request = http.request({
-        host: AQUARIUS_HOSTNAME,
-        path: AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
-            'token=' + field.token + '&format=json' +
-            bind('timeSeriesUniqueId', field.timeSeriesUniqueId) +
-            bind('queryFrom', field.queryFrom) +
-            bind('queryTo', field.queryTo)
-    }, callback);
-
-    /**
-       @description Handle GetTimeSeriesCorrectedData service
-                    invocation errors.
-    */
-    request.on('error', function (error) {
-        log('getTimeSeriesCorrectedData.request.on(\'error\')');
-    });
-
-    request.end();
-} // getTimeSeriesCorrectedData
 
 /**
    @description Figure out what the aq2rdb request is, then call the
