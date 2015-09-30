@@ -318,7 +318,8 @@ function log(message) {
 }
 
 /**
-   @description Consolodated error message writer.
+   @description Consolodated error message writer. Writes message in
+                a single-line, RDB comment.
 */ 
 function rdbMessage(response, statusCode, message) {
     var statusMessage = '# ' + SERVICE_NAME + ': ' + message;
@@ -328,6 +329,9 @@ function rdbMessage(response, statusCode, message) {
     response.end(statusMessage);
 }
 
+/**
+   @description Error messager for JSON parse errors.
+*/ 
 function jsonParseErrorMessage(response, message) {
     rdbMessage(
         response, 502, 
@@ -346,6 +350,18 @@ function bind(field, value) {
     return '&' + field + '=' + value;
 }
 
+/**
+   @description Convert an ISO 8601 date string to (a specific
+                instance of) an RFC3339 date (for our purposes, the
+                instance of which doesn't happen to have a specific
+                name).
+*/
+function rfc3339(isoString) {
+    return isoString.replace('T', ' ').replace(/\.\d*/, '');
+}
+
+// TODO: probably would be a Good Thing to translate this to an object
+// prototype.
 /**
    @description Retreive time series data from AQUARIUS API.
 */
@@ -443,16 +459,6 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
 
     request.end();
 } // getTimeSeriesDescriptionList
-
-/**
-   @description Convert an ISO 8601 date string to (a specific
-                instance of) an RFC3339 date (for our purposes, the
-                instance of which doesn't happen to have a specific
-                name).
-*/
-function rfc3339(isoString) {
-    return isoString.replace('T', ' ').replace(/\.\d*/, '');
-}
 
 // TODO: figure out how much of this stuff gets retained (actually a
 // JIRA ticket now). nwts2rdb appears to include/omit fields in the
