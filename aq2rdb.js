@@ -83,12 +83,12 @@ var TimeSeriesIdentifier = function(text) {
 /**
    @description Set of TimeSeriesDescriptions prototype.
 */
-var TimeSeriesDescriptionSet = function (
+var TimeSeriesCorrectedData = function (
     field, timeSeriesDescriptions
 ) {
     // TODO: passing in the entire "field" object is probably
     // overkill; need to declare private properties for only the stuff
-    // TimeSeriesDescriptionSet objects require to do their job
+    // TimeSeriesCorrectedData objects require to do their job
     var field = field;
     var timeSeriesDescriptions = timeSeriesDescriptions;
 
@@ -303,7 +303,7 @@ var TimeSeriesDescriptionSet = function (
             request.end();
         }
     }
-} // TimeSeriesDescriptionSet
+} // TimeSeriesCorrectedData
 
 /**
    @description Primitive logging function for debugging purposes.
@@ -397,13 +397,13 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
                 return;
             }
 
-            var timeSeriesDescriptionSet =
-                new TimeSeriesDescriptionSet(
+            var timeSeriesCorrectedData =
+                new TimeSeriesCorrectedData(
                     field,
                     timeSeriesDescriptionList.TimeSeriesDescriptions
                 );
             // get the DVs from AQUARIUS and respond with the RDB file
-            timeSeriesDescriptionSet.dvRespond(aq2rdbResponse);
+            timeSeriesCorrectedData.dvRespond(aq2rdbResponse);
         });
     } // callback
 
