@@ -120,21 +120,16 @@ var TimeSeriesDescriptionSet = function (
                 }
 
                 if (200 < aquariusResponse.statusCode) {
-                    // TODO: probably want to re-factor this into a
-                    // function eventually
-                    var statusMessage =
+                    rdbMessage(
+                        aq2rdbResponse,
+                        aquariusResponse.statusCode,
                         '# ' + SERVICE_NAME +
-                        ': AQUARIUS replied with an error. ' +
-                        'The message was:\n' +
-                        '#\n' +
-                        '#   ' +
-                        timeSeriesCorrectedData.ResponseStatus.Message;
-                    aq2rdbResponse.writeHead(
-                        aquariusResponse.statusCode, statusMessage,
-                        {'Content-Length': statusMessage.length,
-                         'Content-Type': 'text/plain'}
+                            ': AQUARIUS replied with an error. ' +
+                            'The message was:\n' +
+                            '#\n' +
+                            '#   ' +
+                            timeSeriesCorrectedData.ResponseStatus.Message
                     );
-                    aq2rdbResponse.end(statusMessage);
                 }
                 else {
                     // make an RDB file
@@ -392,7 +387,7 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
 
             // if the GetTimeSeriesDescriptionList query returned no
             // time series descriptions
-            if (timeSeriesDescriptionList.TimeSeriesDescriptions.length === 0)
+            if (timeSeriesDescriptionList.TimeSeriesDescriptions === undefined)
             {
                 // there's nothing more we can do
                 rdbMessage(
