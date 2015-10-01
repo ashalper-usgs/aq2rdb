@@ -95,12 +95,10 @@ var TimeSeriesIdentifier = function (text) {
 var TimeSeriesCorrectedData = function (
     parameters, timeSeriesDescriptions
 ) {
-    // TODO: passing in the entire "field" object is probably
-    // overkill; need to declare private properties for only the stuff
-    // TimeSeriesCorrectedData objects require to do their job
     var parameters = parameters;
     var timeSeriesDescriptions = timeSeriesDescriptions;
 
+    // TODO: would be nice to re-factor this
     /**
        @description Produce an RDB file response of daily values
        related to this TimeSeriesDescription set.
@@ -311,7 +309,7 @@ var TimeSeriesCorrectedData = function (
 
             request.end();
         }
-    }
+    } // dvRespond
 } // TimeSeriesCorrectedData
 
 /**
@@ -368,7 +366,7 @@ function rfc3339(isoString) {
    @description Retreive time series data from AQUARIUS API.
 */
 function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
-    var timeSeriesDescriptionList;
+    var timeSeriesDescriptionServiceRequest;
 
     /**
        @description Handle response from GetTimeSeriesDescriptionList.
@@ -385,7 +383,7 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
 
         response.on('end', function () {
             try {
-                timeSeriesDescriptionList = JSON.parse(messageBody);
+                timeSeriesDescriptionServiceRequest = JSON.parse(messageBody);
             }
             catch (e) {
                 jsonParseErrorMessage(aq2rdbResponse, e.message);
@@ -394,8 +392,8 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
 
             // if the GetTimeSeriesDescriptionList query returned no
             // time series descriptions
-            if (timeSeriesDescriptionList.TimeSeriesDescriptions === undefined)
-            {
+            if (timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
+                === undefined) {
                 // there's nothing more we can do
                 rdbMessage(
                     aq2rdbResponse, 200,
@@ -407,8 +405,16 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
             var timeSeriesCorrectedData =
                 new TimeSeriesCorrectedData(
                     parameters,
-                    timeSeriesDescriptionList.TimeSeriesDescriptions
+                    timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
                 );
+
+            // TODO: it would be nice to re-factor the call
+            // below into something like:
+            //
+            //   aq2rdbResponse.end(
+            //     timeSeriesDescriptions.getTimeSeriesCorrectedData().toRDB()
+            //   );
+
             // get the DVs from AQUARIUS and respond with the RDB file
             timeSeriesCorrectedData.dvRespond(aq2rdbResponse);
         });
