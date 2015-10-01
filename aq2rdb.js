@@ -8,7 +8,6 @@
  */
 
 'use strict';
-var sprintf = require("sprintf-js").sprintf;
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
 var querystring = require('querystring');
@@ -91,7 +90,7 @@ var TimeSeriesIdentifier = function (text) {
 } // TimeSeriesIdentifier
 
 /**
-   @description Set of TimeSeriesDescriptions prototype.
+   @description TimeSeriesCorrectedData prototype.
 */
 var TimeSeriesCorrectedData = function (
     parameters, timeSeriesDescriptions
@@ -365,8 +364,6 @@ function rfc3339(isoString) {
     return isoString.replace('T', ' ').replace(/\.\d*/, '');
 }
 
-// TODO: probably would be a Good Thing to translate this to an object
-// prototype.
 /**
    @description Retreive time series data from AQUARIUS API.
 */
