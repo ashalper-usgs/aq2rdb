@@ -33,6 +33,8 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 */
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 
+// TODO: might be able to generalize this a bit more into "Endpoint"
+// or "Node"
 /**
    @description Aq2rdb prototype.
 */
@@ -92,12 +94,12 @@ var TimeSeriesIdentifier = function (text) {
    @description Set of TimeSeriesDescriptions prototype.
 */
 var TimeSeriesCorrectedData = function (
-    field, timeSeriesDescriptions
+    parameters, timeSeriesDescriptions
 ) {
     // TODO: passing in the entire "field" object is probably
     // overkill; need to declare private properties for only the stuff
     // TimeSeriesCorrectedData objects require to do their job
-    var field = field;
+    var parameters = parameters;
     var timeSeriesDescriptions = timeSeriesDescriptions;
 
     /**
@@ -145,7 +147,7 @@ var TimeSeriesCorrectedData = function (
                     var n = points.length;
                     // TODO: we'll probably need an "RDB" object prototype
                     // eventually
-                    var rdb = header(field);
+                    var rdb = header(parameters);
 
                     // TODO: the code that produces the RDB data type
                     // declaration is probably going to need to be much
@@ -293,11 +295,11 @@ var TimeSeriesCorrectedData = function (
             var request = http.request({
                 host: AQUARIUS_HOSTNAME,
                 path: AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
-                    'token=' + field.token + '&format=json' +
+                    'token=' + parameters.token + '&format=json' +
                     bind('timeSeriesUniqueId',
                          timeSeriesDescriptions[i].UniqueId) +
-                    bind('queryFrom', field.queryFrom) +
-                    bind('queryTo', field.queryTo)
+                    bind('queryFrom', parameters.queryFrom) +
+                    bind('queryTo', parameters.queryTo)
             }, callback);
 
             /**
@@ -368,7 +370,7 @@ function rfc3339(isoString) {
 /**
    @description Retreive time series data from AQUARIUS API.
 */
-function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
+function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
     var timeSeriesDescriptionList;
 
     /**
@@ -407,7 +409,7 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
 
             var timeSeriesCorrectedData =
                 new TimeSeriesCorrectedData(
-                    field,
+                    parameters,
                     timeSeriesDescriptionList.TimeSeriesDescriptions
                 );
             // get the DVs from AQUARIUS and respond with the RDB file
@@ -416,7 +418,7 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
     } // callback
 
     var timeSeriesIdentifier =
-        new TimeSeriesIdentifier(field.timeSeriesIdentifier);
+        new TimeSeriesIdentifier(parameters.timeSeriesIdentifier);
 
     var parameter = timeSeriesIdentifier.parameter();
     if (parameter === undefined) {
@@ -438,7 +440,7 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
     }
 
     var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
-        '&token=' + field.token + '&format=json' +
+        '&token=' + parameters.token + '&format=json' +
         bind('Parameter', parameter) +
         '&ExtendedFilters=' +
         '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]' +
@@ -466,16 +468,16 @@ function getTimeSeriesDescriptionList(field, aq2rdbResponse) {
 // TODO: figure out how much of this stuff gets retained (actually a
 // JIRA ticket now). nwts2rdb appears to include/omit fields in the
 // header depending on what it finds in the database.
-function header(field) {
+function header(parameters) {
     // convoluted syntax for "now"
     var retrieved = rfc3339((new Date()).toISOString());
     // make TimeSeriesIdentifier object from HTTP query parameter text
     var timeSeriesIdentifier =
-        new TimeSeriesIdentifier(field.timeSeriesIdentifier);
+        new TimeSeriesIdentifier(parameters.timeSeriesIdentifier);
     var agencyCode, siteNumber;
 
     // if locationIdentifier was not provided
-    if (field.locationIdentifier === undefined) {
+    if (parameters.locationIdentifier === undefined) {
         agencyCode = 'USGS';    // default agency code
         // reference site number embedded in timeSeriesIdentifier
         siteNumber = timeSeriesIdentifier.siteNumber();
@@ -483,7 +485,7 @@ function header(field) {
     else {
         // parse (agency code, site number) embedded in
         // locationIdentifier
-        var f = field.locationIdentifier.split('-')[0];
+        var f = parameters.locationIdentifier.split('-')[0];
 
         agencyCode = f[1];
         siteNumber = f[0];
@@ -498,8 +500,8 @@ function header(field) {
     '# //RETRIEVED: ' + retrieved + '\n' +
     '# //STATION AGENCY=\"' + agencyCode + ' \" NUMBER=\"' +
         siteNumber + '\n' +
-    '# //RANGE START=\"' + rfc3339(field.queryFrom) +
-        '\" END=\"' + rfc3339(field.queryTo) + '\"\n';
+    '# //RANGE START=\"' + rfc3339(parameters.queryFrom) +
+        '\" END=\"' + rfc3339(parameters.queryTo) + '\"\n';
 
     return header;
 }
@@ -509,15 +511,11 @@ function header(field) {
                 necessary AQUARIUS API services to accomplish it.
 */
 function aquariusDispatch(token, arg, aq2rdbResponse) {
-    var field = {
-        // some defaults
+    var parameters = {
         token: token,
-        environment: 'production',
-        applyRounding: true,
-        computed: false,
-        timeOffset: 'LOC',
-        combineDateAndTime: true
+        environment: 'production'
     };
+
     var dataType, ddID;
 
     // get HTTP query arguments
@@ -529,25 +527,25 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
             // superseded by named time-series environments. The
             // default is 'production', and will work fine unless you
             // know otherwise.
-            field.environment = arg[opt];
+            parameters.environment = arg[opt];
             break;
         case 'a':
-            field.agencyCode = arg[opt];
+            parameters.agencyCode = arg[opt];
             break;
         case 'b':
-            field.queryFrom = arg[opt];
+            parameters.queryFrom = arg[opt];
             break;
         case 'n':
             // AQUARIUS seems to do ill-advised, implicit things with
             // site PK
-            field.locationIdentifier =
+            parameters.locationIdentifier =
                 arg.a === undefined ? arg[opt] : arg[opt] + '-' + arg.a;
             break;
         case 'u':
             // -u is a new option for specifying a time-series
             // identifier, and is preferred over -d whenever possible.
             // If used, -a, -n, -t, -s, -d, and -p are ignored.
-            field.timeSeriesIdentifier = arg[opt];
+            parameters.timeSeriesIdentifier = arg[opt];
             break;
         case 'd':
             // -d data descriptor number is supported but is
@@ -559,31 +557,31 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
             ddID = arg[opt];
             break;
         case 'r':
-            field.applyRounding = false;
+            parameters.applyRounding = false;
             break;
         case 'c':
             // For [data] type "dv", Output COMPUTED daily values
             // only. For other types except pseudo-UV retrievals,
             // combine date and time in a single column.
-            field.computed = true;
+            parameters.computed = true;
             break;
         case 't':
             dataType = arg[opt].toUpperCase();
             break;
         case 'l':
-            field.timeOffset = arg[opt];
+            parameters.timeOffset = arg[opt];
             break;
         case 'e':
-            field.queryTo = arg[opt];
+            parameters.queryTo = arg[opt];
             break;
         }
     }
 
     // begin date validation
-    if (field.queryFrom !== undefined) {
+    if (parameters.queryFrom !== undefined) {
         // if (AQUARIUS) queryFrom (aq2rdb "b") field is not a valid
         // ISO date string
-        if (isNaN(Date.parse(field.queryFrom))) {
+        if (isNaN(Date.parse(parameters.queryFrom))) {
             rdbMessage(
                 aq2rdbResponse, 400,
                 SERVICE_NAME +
@@ -603,9 +601,9 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
     // difficult for a pipeline. -z, and -a will default, and
     // -m is ignored.
     if (dataType === 'MEAS' &&
-        (field.locationIdentifier === undefined ||
+        (parameters.locationIdentifier === undefined ||
          ddID === undefined ||
-         field.transportCode === undefined)) {
+         parameters.transportCode === undefined)) {
         rdbMessage(
             aq2rdbResponse, 400,
             '\"n\" and \"d\" fields ' +
@@ -614,30 +612,19 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
         return;
     }
 
-    // set expand rating flag as a character
-    // TODO: "-e" was maybe an "overloaded" option in nwts2rdb? Need
-    // to find out if this is still relevant.
-    /*
-      if (eflag) {
-      strcpy (expandit,'Y');
-      }
-      else {
-      strcpy (expandit,'N');
-      }
-    */
-
     // if time-series identifier is not present, and location
     // identifier is present
-    if (field.timeSeriesIdentifier !== undefined) {
+    if (parameters.timeSeriesIdentifier !== undefined) {
+
         // Use GetTimeSeriesDescriptionList with the
         // LocationIdentifier and Parameter parameters in the URL and
         // then find the requested timeseries in the output to get tue
         // [sic] GUID
-        getTimeSeriesDescriptionList(field, aq2rdbResponse);
+        getTimeSeriesDescriptionList(parameters, aq2rdbResponse);
 
         // Use GetTimeSeriesRawDaa [sic] or getTimeSeriesCorrectedData
         // with the TimeSeriesUniqueId parameter to get the data.
-        // getTimeSeriesCorrectedData(field, aq2rdbResponse);
+        // getTimeSeriesCorrectedData(parameters, aq2rdbResponse);
     }
 } // aquariusDispatch
 
