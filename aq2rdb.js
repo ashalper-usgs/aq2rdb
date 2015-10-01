@@ -34,9 +34,17 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 
 /**
+   @description Aq2rdb prototype.
+*/
+var Aq2rdb = function (request, response) {
+    this.request = request;
+    this.response = response;
+} // Aq2rdb
+
+/**
    @description TimeSeriesIdentifier prototype.
 */
-var TimeSeriesIdentifier = function(text) {
+var TimeSeriesIdentifier = function (text) {
     // private; no reason to modify this once the object is created
     var text = text;
 
@@ -637,10 +645,11 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
    @description Service GET request handler.
 */ 
 httpdispatcher.onGet('/' + SERVICE_NAME, function (
-    aq2rdbRequest, aq2rdbResponse
+    request, response
 ) {
     // parse HTTP query parameters in GET request URL
-    var arg = querystring.parse(aq2rdbRequest.url);
+    var arg = querystring.parse(request.url);
+    var aq2rdb = new Aq2rdb(request, response);
     var statusMessage;
 
     // some pre-validation to see if it's worthwhile to call
@@ -648,7 +657,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
     if (arg.userName.length === 0) {
         rdbMessage(
-            aq2rdbResponse, 400,
+            aq2rdb.response, 400,
             '# ' + SERVICE_NAME + ': Required parameter ' +
                 '\"userName\" not found'
         );
@@ -658,7 +667,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
     if (arg.password.length === 0) {
         rdbMessage(
-            aq2rdbResponse, 400,
+            aq2rdb.response, 400,
             '# ' + SERVICE_NAME + ': Required parameter ' +
                 '\"password\" not found'
         );
@@ -702,7 +711,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
     if (statusMessage !== undefined) {
         // there was an error
-        rdbMessage(aq2rdbResponse, 400, statusMessage);
+        rdbMessage(aq2rdb.response, 400, statusMessage);
     }
 
     /**
@@ -718,7 +727,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
 
         // Response complete; token received.
         response.on('end', function () {
-            aquariusDispatch(messageBody, arg, aq2rdbResponse);
+            aquariusDispatch(messageBody, arg, aq2rdb.response);
         });
     } // getAQTokenCallback
 
@@ -744,15 +753,17 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
                 ': Could not connect to GetAQToken service for ' +
                 'AQUARIUS authentication token';
 
-            aq2rdbResponse.writeHead(504, statusMessage,
-                               {'Content-Length': statusMessage.length,
-                                'Content-Type': 'text/plain'});
+            aq2rdb.response.writeHead(
+                504, statusMessage,
+                {'Content-Length': statusMessage.length,
+                 'Content-Type': 'text/plain'}
+            );
         }
         else {
             log('error.message: ' + error.message);
         }
         log('statusMessage: ' + statusMessage);
-        aq2rdbResponse.end(statusMessage);
+        aq2rdb.response.end(statusMessage);
     });
 
     request.end();
