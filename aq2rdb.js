@@ -292,7 +292,7 @@ var TimeSeriesCorrectedData = function (
             var request = http.request({
                 host: AQUARIUS_HOSTNAME,
                 path: AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
-                    'token=' + parameters.token + '&format=json' +
+                    bind('token', parameters.token) + '&format=json' +
                     bind('timeSeriesUniqueId',
                          timeSeriesDescriptions[i].UniqueId) +
                     bind('queryFrom', parameters.queryFrom) +
@@ -443,7 +443,7 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
     }
 
     var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
-        '&token=' + parameters.token + '&format=json' +
+        bind('token', parameters.token) + '&format=json' +
         bind('Parameter', parameter) +
         '&ExtendedFilters=' +
         '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]' +
@@ -729,9 +729,11 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
         http.request({
             host: 'localhost',
             port: '8080',
-            path: '/services/GetAQToken?userName=' +
-                userName + '&password=' + password +
-                '&uriString=http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/'
+            path: '/services/GetAQToken?' +
+                bind('userName', userName) +
+                bind('password', password) +
+                bind('uriString',
+                     'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/')
         }, getAQTokenCallback);
 
     /**
