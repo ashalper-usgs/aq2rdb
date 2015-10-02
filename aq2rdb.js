@@ -11,6 +11,7 @@
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
 var querystring = require('querystring');
+var async = require('async');
 
 /**
    @description The aq2rdb Web service name.
@@ -139,6 +140,10 @@ var DVTable = function (
                     );
                 }
                 else {
+                    // TODO: check timeSeriesCorrectedData.Label here
+                    // to make sure it matches /\w+\.(\w+)@\w+/ part
+                    // of TimeSeriesIdentifier?
+
                     // make an RDB file
                     var points = timeSeriesCorrectedData.Points;
                     var n = points.length;
@@ -287,21 +292,26 @@ var DVTable = function (
             });
         } // callback
 
+        // TODO: we're likely only calling the first callback here?
+        // See
+        // http://stackoverflow.com/questions/5172244/idiomatic-way-to-wait-for-multiple-callbacks-in-node-js
+        // for possible solution.
         var n = timeSeriesDescriptions.length;
         for (var i = 0; i < n; i++) {
-            var request = http.request({
-                host: AQUARIUS_HOSTNAME,
-                path: AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
+            var path = AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
                     bind('token', parameters.token) + '&format=json' +
                     bind('timeSeriesUniqueId',
                          timeSeriesDescriptions[i].UniqueId) +
                     bind('queryFrom', parameters.queryFrom) +
-                    bind('queryTo', parameters.queryTo)
+                    bind('queryTo', parameters.queryTo);
+            var request = http.request({
+                host: AQUARIUS_HOSTNAME,
+                path: path
             }, callback);
 
             /**
                @description Handle GetTimeSeriesCorrectedData service
-               invocation errors.
+                            invocation errors.
             */
             request.on('error', function (error) {
                 log('getTimeSeriesCorrectedData.request.on(\'error\')');
@@ -309,7 +319,7 @@ var DVTable = function (
 
             request.end();
         }
-    } // respond
+    } // toRDB
 } // DVTable
 
 /**
