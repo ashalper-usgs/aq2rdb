@@ -90,9 +90,9 @@ var TimeSeriesIdentifier = function (text) {
 } // TimeSeriesIdentifier
 
 /**
-   @description TimeSeriesCorrectedData prototype.
+   @description DVTable prototype.
 */
-var TimeSeriesCorrectedData = function (
+var DVTable = function (
     parameters, timeSeriesDescriptions
 ) {
     var parameters = parameters;
@@ -103,7 +103,7 @@ var TimeSeriesCorrectedData = function (
        @description Produce an RDB file response of daily values
        related to this TimeSeriesDescription set.
     */
-    this.dvRespond = function (aq2rdbResponse) {
+    this.toRDB = function (aq2rdbResponse) {
         /**
            @description Handle response from GetTimeSeriesCorrectedData.
         */
@@ -309,8 +309,8 @@ var TimeSeriesCorrectedData = function (
 
             request.end();
         }
-    } // dvRespond
-} // TimeSeriesCorrectedData
+    } // respond
+} // DVTable
 
 /**
    @description Primitive logging function for debugging purposes.
@@ -402,21 +402,14 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
                 return;
             }
 
-            var timeSeriesCorrectedData =
-                new TimeSeriesCorrectedData(
+            var dvTable =
+                new DVTable(
                     parameters,
                     timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
                 );
 
-            // TODO: it would be nice to re-factor the call
-            // below into something like:
-            //
-            //   aq2rdbResponse.end(
-            //     timeSeriesDescriptions.getTimeSeriesCorrectedData().toRDB()
-            //   );
-
             // get the DVs from AQUARIUS and respond with the RDB file
-            timeSeriesCorrectedData.dvRespond(aq2rdbResponse);
+            dvTable.toRDB(aq2rdbResponse);
         });
     } // callback
 
