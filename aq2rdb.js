@@ -304,6 +304,7 @@ var DVTable = function (
                          timeSeriesDescriptions[i].UniqueId) +
                     bind('queryFrom', parameters.queryFrom) +
                     bind('queryTo', parameters.queryTo);
+
             var request = http.request({
                 host: AQUARIUS_HOSTNAME,
                 path: path
@@ -447,10 +448,12 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
 
     var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
         bind('token', parameters.token) + '&format=json' +
+        bind('LocationIdentifier', locationIdentifier) +
         bind('Parameter', parameter) +
+        bind('ComputationPeriodIdentifier',
+             parameters.computationPeriodIdentifier) + 
         '&ExtendedFilters=' +
-        '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]' +
-        bind('LocationIdentifier', locationIdentifier);
+        '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
 
     var request =
         http.request({
@@ -573,6 +576,13 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
             break;
         case 't':
             dataType = arg[opt].toUpperCase();
+            switch (dataType) {
+            case 'DV':
+                // map nwts2rdb "-t DV" to AQUARIUS
+                // ComputationPeriodIdentifier field value
+                parameters.computationPeriodIdentifier = 'Daily';
+                break;
+            }
             break;
         case 'l':
             parameters.timeOffset = arg[opt];
