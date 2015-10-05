@@ -11,7 +11,6 @@
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
 var querystring = require('querystring');
-var async = require('async');
 
 /**
    @description The aq2rdb Web service name.
@@ -42,6 +41,51 @@ var Aq2rdb = function (request, response) {
     this.request = request;
     this.response = response;
 } // Aq2rdb
+
+var DataType = function (text) {
+    // data type ("t") parameter domain validation
+    // TODO: need to throw errors instead of returning here?
+    switch (text) {
+    case 'MS':
+        throw 'Pseudo-time series (e.g., gage inspections) are not supported';
+        break;
+    case 'VT':
+        throw 'Sensor inspections and readings are not supported';
+        break;
+    case 'PK':
+        throw 'Peak-flow data are not supported';
+        break;
+    case 'DC':
+        throw 'Data corrections are not supported';
+        break;
+    case 'SV':
+        throw 'Quantitative site-visit data are not supported';
+        break;
+    case 'WL':
+        throw 'Discrete groundwater-levels data are not supported';
+        break;
+    case 'QW':
+        throw 'Discrete water quality data are not supported';
+        break;
+    // these are the only valid "t" parameter values right now
+    case 'DV':
+    case 'UV':
+        break;
+    default:
+        throw 'Unknown \"t\" (data type) parameter value: \"' + t + '\"';
+    }
+
+    var text = text;
+
+    this.toComputationPeriodIdentifier = function () {
+        switch(text) {
+        case 'DV':
+            return 'Daily';
+        default:
+            return undefined;
+        }
+    } // toComputationPeriodIdentifier
+} // DataType
 
 /**
    @description TimeSeriesIdentifier prototype.
@@ -140,10 +184,6 @@ var DVTable = function (
                     );
                 }
                 else {
-                    // TODO: check timeSeriesCorrectedData.Label here
-                    // to make sure it matches /\w+\.(\w+)@\w+/ part
-                    // of TimeSeriesIdentifier?
-
                     // make an RDB file
                     var points = timeSeriesCorrectedData.Points;
                     var n = points.length;
@@ -564,6 +604,16 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
             // time-series extended attribute). We prefer you use -u
             // whenever possible.
             ddID = arg[opt];
+            // TODO:
+            /*
+                {
+                    "Name": "ADAPS_DD",
+                    "Type": "Decimal",
+                    "Value": 1
+                },
+
+            parameters.extendedFilters = 
+            */
             break;
         case 'r':
             parameters.applyRounding = false;
@@ -575,14 +625,16 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
             parameters.computed = true;
             break;
         case 't':
-            dataType = arg[opt].toUpperCase();
-            switch (dataType) {
-            case 'DV':
-                // map nwts2rdb "-t DV" to AQUARIUS
-                // ComputationPeriodIdentifier field value
-                parameters.computationPeriodIdentifier = 'Daily';
-                break;
+            var dataType;
+            try {
+                dataType = new DataType(arg[opt].toUpperCase());
             }
+            catch (error) {
+                rdbMessage(aq2rdbResponse, 400, error);
+                return;
+            }
+            parameters.computationPeriodIdentifier =
+                dataType.toComputationPeriodIdentifier();
             break;
         case 'l':
             parameters.timeOffset = arg[opt];
@@ -602,7 +654,7 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
                 aq2rdbResponse, 400,
                 SERVICE_NAME +
                     ': If \"b\" is specified, a valid 14-digit ISO ' +
-                    'date must be provided.'
+                    'date must be provided'
             );
             return;
         }
@@ -631,29 +683,25 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
     // if time-series identifier is not present, and location
     // identifier is present
     if (parameters.timeSeriesIdentifier !== undefined) {
-
         // Use GetTimeSeriesDescriptionList with the
         // LocationIdentifier and Parameter parameters in the URL and
         // then find the requested timeseries in the output to get tue
         // [sic] GUID
         getTimeSeriesDescriptionList(parameters, aq2rdbResponse);
-
-        // Use GetTimeSeriesRawDaa [sic] or getTimeSeriesCorrectedData
-        // with the TimeSeriesUniqueId parameter to get the data.
-        // getTimeSeriesCorrectedData(parameters, aq2rdbResponse);
     }
 } // aquariusDispatch
 
+// TODO: it's starting look like this will get decomposed into more
+// than 1 endpoint eventually
 /**
    @description Service GET request handler.
-*/ 
+*/
 httpdispatcher.onGet('/' + SERVICE_NAME, function (
     request, response
 ) {
     // parse HTTP query parameters in GET request URL
     var arg = querystring.parse(request.url);
     var aq2rdb = new Aq2rdb(request, response);
-    var statusMessage;
 
     // some pre-validation to see if it's worthwhile to call
     // GetAQToken to proceed to the next step
@@ -678,43 +726,14 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     }
     var password = arg.password;
 
-    // data type ("t") parameter domain validation
-    switch (arg.t.toUpperCase()) {
-    case 'MS':
-        statusMessage =
-            'Pseudo-time series (e.g., gage inspections) are not supported';
-        break;
-    case 'VT':
-        statusMessage = 'Sensor inspections and readings are not supported';
-        break;
-    case 'PK':
-        statusMessage = 'Peak-flow data are not supported';
-        break;
-    case 'DC':
-        statusMessage = 'Data corrections are not supported';
-        break;
-    case 'SV':
-        statusMessage = 'Quantitative site-visit data are not supported';
-        break;
-    case 'WL':
-        statusMessage = 'Discrete groundwater-levels data are not supported';
-        break;
-    case 'QW':
-        statusMessage = 'Discrete water quality data are not supported';
-        break;
-    // these are the only valid "t" parameter values right now
-    case 'DV':
-    case 'UV':
-        break;
-    default:
-        statusMessage =
-            'Unknown \"t\" (data type) parameter value: \"' + t +
-            '\"';
-    }
-
-    if (statusMessage !== undefined) {
-        // there was an error
-        rdbMessage(aq2rdb.response, 400, statusMessage);
+    if (arg.u !== undefined &&
+        (arg.a !== undefined || arg.n !== undefined ||
+         arg.t !== undefined || arg.s !== undefined ||
+         arg.d !== undefined || arg.r !== undefined ||
+         arg.p !== undefined)) {
+        rdbMessage(aq2rdb.response, 400,
+                   'If \"u\" is specified, \"a\", \"n\", \"t\", \"s\", ' +
+                   '\"d\", \"r\", and \"p\" must be omitted');
     }
 
     /**
@@ -753,6 +772,8 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
        @description Handle GetAQToken service invocation errors.
     */
     request.on('error', function (error) {
+        var statusMessage;
+
         if (error.message === 'connect ECONNREFUSED') {
             statusMessage = '# ' + SERVICE_NAME +
                 ': Could not connect to GetAQToken service for ' +
