@@ -15,7 +15,7 @@ var querystring = require('querystring');
 /**
    @description The aq2rdb Web service name.
 */
-var SERVICE_NAME = 'aq2rdb';
+var PACKAGE_NAME = 'aq2rdb';
 
 /**
    @description The port the aq2rdb service listens on.
@@ -175,7 +175,7 @@ var DVTable = function (
                     rdbMessage(
                         aq2rdbResponse,
                         aquariusResponse.statusCode,
-                        '# ' + SERVICE_NAME +
+                        '# ' + PACKAGE_NAME +
                             ': AQUARIUS replied with an error. ' +
                             'The message was:\n' +
                             '#\n' +
@@ -367,7 +367,7 @@ var DVTable = function (
    @description Primitive logging function for debugging purposes.
 */
 function log(message) {
-    console.log(SERVICE_NAME + ': ' + message);
+    console.log(PACKAGE_NAME + ': ' + message);
 }
 
 /**
@@ -375,7 +375,7 @@ function log(message) {
                 a single-line, RDB comment.
 */ 
 function rdbMessage(response, statusCode, message) {
-    var statusMessage = '# ' + SERVICE_NAME + ': ' + message;
+    var statusMessage = '# ' + PACKAGE_NAME + ': ' + message;
     response.writeHead(statusCode, statusMessage,
                        {'Content-Length': statusMessage.length,
                         'Content-Type': 'text/plain'});
@@ -548,7 +548,7 @@ function header(parameters) {
     '# //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS\n' +
     '# //RETRIEVED: ' + retrieved + '\n' +
     '# //STATION AGENCY=\"' + agencyCode + ' \" NUMBER=\"' +
-        siteNumber + '\n' +
+        siteNumber + '       \"\n' +
     '# //RANGE START=\"' + rfc3339(parameters.queryFrom) +
         '\" END=\"' + rfc3339(parameters.queryTo) + '\"\n';
 
@@ -592,8 +592,7 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
             break;
         case 'u':
             // -u is a new option for specifying a time-series
-            // identifier, and is preferred over -d whenever possible.
-            // If used, -a, -n, -t, -s, -d, and -p are ignored.
+            // identifier, and is preferred over -d whenever possible
             parameters.timeSeriesIdentifier = arg[opt];
             break;
         case 'd':
@@ -652,7 +651,7 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
         if (isNaN(Date.parse(parameters.queryFrom))) {
             rdbMessage(
                 aq2rdbResponse, 400,
-                SERVICE_NAME +
+                PACKAGE_NAME +
                     ': If \"b\" is specified, a valid 14-digit ISO ' +
                     'date must be provided'
             );
@@ -691,12 +690,16 @@ function aquariusDispatch(token, arg, aq2rdbResponse) {
     }
 } // aquariusDispatch
 
-// TODO: it's starting look like this will get decomposed into more
-// than 1 endpoint eventually
+httpdispatcher.onGet(
+    '/' + PACKAGE_NAME + '/GetDVList',
+    function (request, response) {
+        // TODO?
+});
+
 /**
    @description Service GET request handler.
 */
-httpdispatcher.onGet('/' + SERVICE_NAME, function (
+httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     request, response
 ) {
     // parse HTTP query parameters in GET request URL
@@ -709,7 +712,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     if (arg.userName.length === 0) {
         rdbMessage(
             aq2rdb.response, 400,
-            '# ' + SERVICE_NAME + ': Required parameter ' +
+            '# ' + PACKAGE_NAME + ': Required parameter ' +
                 '\"userName\" not found'
         );
         return;
@@ -719,7 +722,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
     if (arg.password.length === 0) {
         rdbMessage(
             aq2rdb.response, 400,
-            '# ' + SERVICE_NAME + ': Required parameter ' +
+            '# ' + PACKAGE_NAME + ': Required parameter ' +
                 '\"password\" not found'
         );
         return;
@@ -775,7 +778,7 @@ httpdispatcher.onGet('/' + SERVICE_NAME, function (
         var statusMessage;
 
         if (error.message === 'connect ECONNREFUSED') {
-            statusMessage = '# ' + SERVICE_NAME +
+            statusMessage = '# ' + PACKAGE_NAME +
                 ': Could not connect to GetAQToken service for ' +
                 'AQUARIUS authentication token';
 
