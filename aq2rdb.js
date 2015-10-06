@@ -33,6 +33,57 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 
 /**
+   @description Consolodated error message writer. Writes message in
+                a single-line, RDB comment.
+*/ 
+function rdbMessage(response, statusCode, message) {
+    var statusMessage = '# ' + PACKAGE_NAME + ': ' + message;
+
+    response.writeHead(statusCode, statusMessage,
+                       {'Content-Length': statusMessage.length,
+                        'Content-Type': 'text/plain'});
+    response.end(statusMessage);
+}
+
+/**
+   @description Convert an ISO 8601 date string to (a specific
+                instance of) an RFC3339 date (for our purposes, the
+                instance of which doesn't happen to have a specific
+                name).
+*/
+function rfc3339(isoString) {
+    return isoString.replace('T', ' ').replace(/\.\d*/, '');
+}
+
+/**
+   @description Primitive logging function for debugging purposes.
+*/
+function log(message) {
+    console.log(PACKAGE_NAME + ': ' + message);
+}
+
+/**
+   @description Create a valid HTTP query field/value pair substring.
+*/ 
+function bind(field, value) {
+    if (value === undefined) {
+        return '';
+    }
+    return '&' + field + '=' + value;
+}
+
+/**
+   @description Error messager for JSON parse errors.
+*/ 
+function jsonParseErrorMessage(response, message) {
+    rdbMessage(
+        response, 502, 
+        'While trying to parse a JSON response from ' +
+            'AQUARIUS: ' + message
+    );
+}
+
+/**
    @description Query prototype.
 */
 var Query = function (aq2rdbRequest, aq2rdbResponse) {
@@ -260,7 +311,6 @@ var Query = function (aq2rdbRequest, aq2rdbResponse) {
 
 var DataType = function (text) {
     // data type ("t") parameter domain validation
-    // TODO: need to throw errors instead of returning here?
     switch (text) {
     case 'MS':
         throw 'Pseudo-time series (e.g., gage inspections) are not supported';
@@ -586,10 +636,6 @@ var DVTable = function (
             });
         } // callback
 
-        // TODO: we're likely only calling the first callback here?
-        // See
-        // http://stackoverflow.com/questions/5172244/idiomatic-way-to-wait-for-multiple-callbacks-in-node-js
-        // for possible solution.
         var n = timeSeriesDescriptions.length;
         for (var i = 0; i < n; i++) {
             var path = AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
@@ -599,6 +645,8 @@ var DVTable = function (
                     bind('queryFrom', parameters.queryFrom) +
                     bind('queryTo', parameters.queryTo);
 
+            // call GetTimeSeriesCorrectedData service to get daily
+            // values associated with time series descriptions
             var request = http.request({
                 host: AQUARIUS_HOSTNAME,
                 path: path
@@ -616,57 +664,6 @@ var DVTable = function (
         }
     } // toRDB
 } // DVTable
-
-/**
-   @description Primitive logging function for debugging purposes.
-*/
-function log(message) {
-    console.log(PACKAGE_NAME + ': ' + message);
-}
-
-/**
-   @description Consolodated error message writer. Writes message in
-                a single-line, RDB comment.
-*/ 
-function rdbMessage(response, statusCode, message) {
-    var statusMessage = '# ' + PACKAGE_NAME + ': ' + message;
-
-    response.writeHead(statusCode, statusMessage,
-                       {'Content-Length': statusMessage.length,
-                        'Content-Type': 'text/plain'});
-    response.end(statusMessage);
-}
-
-/**
-   @description Error messager for JSON parse errors.
-*/ 
-function jsonParseErrorMessage(response, message) {
-    rdbMessage(
-        response, 502, 
-        'While trying to parse a JSON response from ' +
-            'AQUARIUS: ' + message
-    );
-}
-
-/**
-   @description Create a valid HTTP query field/value pair substring.
-*/ 
-function bind(field, value) {
-    if (value === undefined) {
-        return '';
-    }
-    return '&' + field + '=' + value;
-}
-
-/**
-   @description Convert an ISO 8601 date string to (a specific
-                instance of) an RFC3339 date (for our purposes, the
-                instance of which doesn't happen to have a specific
-                name).
-*/
-function rfc3339(isoString) {
-    return isoString.replace('T', ' ').replace(/\.\d*/, '');
-}
 
 /**
    @description Retreive time series data from AQUARIUS API.
