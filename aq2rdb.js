@@ -726,6 +726,7 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
             'Could not parse \"Parameter\" field value from ' +
                 '\"timeSeriesIdentifier\" field value'
         );
+        return;
     }
 
     var locationIdentifier = timeSeriesIdentifier.locationIdentifier();
@@ -766,25 +767,30 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
     request.end();
 } // getTimeSeriesDescriptionList
 
-httpdispatcher.onGet(
-    '/' + PACKAGE_NAME + '/GetUVTable',
-    function (request, response) {
-        var arg = querystring.parse(request.url); // parse HTTP query
-        var query = new Query(request, response);
-});
-
+/**
+   @description GetDVTable service request handler.
+*/
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetDVTable',
     function (request, response) {
-        var arg = querystring.parse(request.url); // parse HTTP query
-        var query = new Query(request, response);
-
+        // TODO:
         log('GetDVTable called');
         response.end();
 });
 
 /**
-   @description Service GET request handler.
+   @description GetUVTable service request handler.
+*/
+httpdispatcher.onGet(
+    '/' + PACKAGE_NAME + '/GetUVTable',
+    function (request, response) {
+        // TODO:
+        log('GetUVTable service called');
+        response.end();
+});
+
+/**
+   @description Legacy, pseudo-nwts2rdb service request handler.
 */
 httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     request, response
