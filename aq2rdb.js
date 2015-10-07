@@ -84,7 +84,7 @@ function jsonParseErrorMessage(response, message) {
 }
 
 /**
-   @description Query prototype.
+   @description Query object prototype.
 */
 var Query = function (aq2rdbRequest, aq2rdbResponse) {
     var arg = querystring.parse(aq2rdbRequest.url); // parse HTTP query
@@ -102,7 +102,8 @@ var Query = function (aq2rdbRequest, aq2rdbResponse) {
         (arg.a !== undefined || arg.n !== undefined ||
          arg.t !== undefined || arg.s !== undefined ||
          arg.d !== undefined || arg.r !== undefined ||
-         arg.p !== undefined)) {
+         arg.p !== undefined)
+       ) {
         throw 'If \"u\" is specified, \"a\", \"n\", \"t\", \"s\", ' +
             '\"d\", \"r\", and \"p\" must be omitted';
     }
