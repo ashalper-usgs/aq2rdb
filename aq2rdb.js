@@ -768,14 +768,78 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
     request.end();
 } // getTimeSeriesDescriptionList
 
+// "Functional" inheritance pattern constructor; see *JavaScript: The
+// Good Parts*, Douglas Crockford, O'Reilly Media, Inc., 2008,
+// Sec. 5.4.
+var dvTableClass = function (spec, my) {
+    var that = {};
+    // private instance variables
+    var userName, password;
+    var timeSeriesIdentifier;
+
+    // get HTTP query arguments
+    for (var field in spec) {
+        switch (field) {
+        case 'userName':
+            userName = spec[field];
+            break;
+        case 'password':
+            password = spec[field];
+            break;
+        case 'timeSeriesIdentifier':
+            timeSeriesIdentifier = new TimeSeriesIdentifier(spec[field]);
+            break;
+        default:
+            throw 'Unknown field \"' + field + '\"';
+            return;
+        }
+    }
+
+    // required fields
+
+    if (userName === undefined)
+        throw 'Required field \"userName\" is missing';
+
+    if (password === undefined)
+        throw 'Required field \"password\" is missing';
+
+    if (timeSeriesIdentifier === undefined)
+        throw 'Required field \"timeSeriesIdentifier\" is missing';
+
+    // "The 'my' object is a container of secrets that are shared by
+    // the constructors in the inheritance chain. The use of the 'my'
+    // object is optional. If a 'my' object is not passed in, then a
+    // 'my' object is made."
+    my = my || {};
+
+    // add shared variables and functions to my
+
+    // add privileged methods to that
+    /*
+    that.getResource = function () {
+        return resource;
+    };
+    */
+
+    return that;
+} // dvTable
+
 /**
    @description GetDVTable service request handler.
 */
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetDVTable',
     function (request, response) {
-        // TODO:
-        log('GetDVTable called');
+        var spec = querystring.parse(request.url);
+        // not needed in spec., so delete it
+        delete spec['/' + PACKAGE_NAME + '/GetDVTable?'];
+        try {
+            var dvTable = dvTableClass(spec);
+        }
+        catch (error) {
+            rdbMessage(response, 400, error);
+            return;
+        }
         response.end();
 });
 
