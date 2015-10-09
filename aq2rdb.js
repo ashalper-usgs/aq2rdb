@@ -244,14 +244,69 @@ var Query = function (aq2rdbRequest, aq2rdbResponse) {
             return;
         }
 
+        /**
+           @description Handle response from GetTimeSeriesDescriptionList.
+        */
+        function callback(response) {
+            var messageBody = '';
+
+            // accumulate response
+            response.on(
+                'data',
+                function (chunk) {
+                    messageBody += chunk;
+                });
+
+            response.on('end', function () {
+                var timeSeriesDescriptionServiceRequest;
+
+                try {
+                    timeSeriesDescriptionServiceRequest =
+                        JSON.parse(messageBody);
+                }
+                catch (e) {
+                    jsonParseErrorMessage(aq2rdbResponse, e.message);
+                    return;         // go no further
+                }
+
+                // if the GetTimeSeriesDescriptionList query returned no
+                // time series descriptions
+                if (timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
+                    === undefined) {
+                    // there's nothing more we can do
+                    rdbMessage(
+                        aq2rdbResponse, 200,
+                        'The query found no time series ' +
+                            'descriptions in AQUARIUS'
+                    );
+                    return;
+                }
+
+                var dvTable =
+                    new DVTable(
+                     parameters,
+                     timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
+                    );
+
+                // get the DVs from AQUARIUS and respond with the RDB file
+                dvTable.toRDB(aq2rdbResponse);
+            });
+        } // callback
+
         // if time-series identifier is not present, and location
         // identifier is present
         if (parameters.timeSeriesIdentifier !== undefined) {
-            // Use GetTimeSeriesDescriptionList with the
-            // LocationIdentifier and Parameter parameters in the URL and
-            // then find the requested timeseries in the output to get tue
-            // [sic] GUID
-            getTimeSeriesDescriptionList(parameters, aq2rdbResponse);
+            // The object this constructor creates is presently not
+            // needed [with everything useful subsequently happening
+            // in the context of callback()], but that could change in
+            // the future, so the constructor's return value would
+            // need to be saved, and possibly declared at an outer
+            // scope.
+            timeSeriesDescriptionListClass({
+                token: aqToken.toString(),
+                timeSeriesIdentifier: parameters.timeSeriesIdentifier,
+                callback: callback
+            });
         }
     } // dispatch
 
@@ -622,59 +677,16 @@ var DVTable = function (
     } // toRDB
 } // DVTable
 
-/**
-   @description Retreive time series data from AQUARIUS API.
-*/
-function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
-    var timeSeriesDescriptionServiceRequest;
+// New-and-improved, "Functional" inheritance pattern constructors
+// start here; see *JavaScript: The Good Parts*, Douglas Crockford,
+// O'Reilly Media, Inc., 2008, Sec. 5.4.
 
-    /**
-       @description Handle response from GetTimeSeriesDescriptionList.
-    */
-    function callback(response) {
-        var messageBody = '';
-
-        // accumulate response
-        response.on(
-            'data',
-            function (chunk) {
-                messageBody += chunk;
-            });
-
-        response.on('end', function () {
-            try {
-                timeSeriesDescriptionServiceRequest = JSON.parse(messageBody);
-            }
-            catch (e) {
-                jsonParseErrorMessage(aq2rdbResponse, e.message);
-                return;         // go no further
-            }
-
-            // if the GetTimeSeriesDescriptionList query returned no
-            // time series descriptions
-            if (timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
-                === undefined) {
-                // there's nothing more we can do
-                rdbMessage(
-                    aq2rdbResponse, 200,
-                    'The query found no time series descriptions in AQUARIUS'
-                );
-                return;
-            }
-
-            var dvTable =
-                new DVTable(
-                    parameters,
-                    timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
-                );
-
-            // get the DVs from AQUARIUS and respond with the RDB file
-            dvTable.toRDB(aq2rdbResponse);
-        });
-    } // callback
-
+// Use GetTimeSeriesDescriptionList with the LocationIdentifier and
+// Parameter parameters in the URL and then find the requested
+// timeseries in the output to get tue [sic] GUID
+var timeSeriesDescriptionListClass = function (spec, my) {
     var timeSeriesIdentifier =
-        new TimeSeriesIdentifier(parameters.timeSeriesIdentifier);
+        new TimeSeriesIdentifier(spec.timeSeriesIdentifier);
 
     var parameter = timeSeriesIdentifier.parameter();
     if (parameter === undefined) {
@@ -697,18 +709,18 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
     }
 
     var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
-        bind('token', parameters.token) + '&format=json' +
+        bind('token', spec.token) + '&format=json' +
         bind('LocationIdentifier', locationIdentifier) +
         bind('Parameter', parameter) +
         bind('ComputationPeriodIdentifier',
-             parameters.computationPeriodIdentifier) + 
+             spec.computationPeriodIdentifier) + 
         '&ExtendedFilters=' +
         '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
     var request =
         http.request({
             host: AQUARIUS_HOSTNAME,
             path: path                
-        }, callback);
+        }, spec.callback);
 
     /**
        @description Handle GetTimeSeriesDescriptionList service
@@ -721,11 +733,7 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
     });
 
     request.end();
-} // getTimeSeriesDescriptionList
-
-// New-and-improved, "Functional" inheritance pattern constructors
-// start here; see *JavaScript: The Good Parts*, Douglas Crockford,
-// O'Reilly Media, Inc., 2008, Sec. 5.4.
+} // timeSeriesDescriptionListClass
 
 var aqTokenClass = function (spec, my) {
     var that = {};
@@ -894,11 +902,20 @@ var dvTableClass = function (spec, my) {
 
     // required fields
 
+    if (spec.userName === undefined) {
+        throw 'Required field \"userName\" is missing';
+    }
+
+    if (spec.password === undefined) {
+        throw 'Required field \"password\" is missing';
+    }
+
     // try to get AQUARIUS token from aquarius-token service
     try {
         aqToken = aqTokenClass({
             userName: spec.userName,
-            password: spec.password
+            password: spec.password,
+            callback: callback
         });
     }
     catch (error) {
@@ -907,6 +924,10 @@ var dvTableClass = function (spec, my) {
 
     if (timeSeriesIdentifier === undefined)
         throw 'Required field \"timeSeriesIdentifier\" is missing';
+
+    // TODO:
+    function callback() {
+    }
 
     // "The 'my' object is a container of secrets that are shared by
     // the constructors in the inheritance chain. The use of the 'my'
