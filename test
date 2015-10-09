@@ -1,11 +1,19 @@
 #! /bin/sh
 
 node aq2rdb.js &		# start service
+#sleep 1s
 
-#curl -g "http://localhost:8081/aq2rdb?&userName=apiuser&password=$password&z=prod&u=Discharge.ft^3/s.Mean@09380000&b=2015-01-01T00%3A00%3A00-07%3A00&e=2015-01-03T00%3A00%3A00-07%3A00"
+curl -g "http://localhost:8081/aq2rdb?&userName=apiuser&password=$password&z=prod&u=Discharge.ft^3/s.Mean@09380000&b=2015-01-01T00%3A00%3A00-07%3A00&e=2015-01-03T00%3A00%3A00-07%3A00"
 echo
 curl -g "http://localhost:8081/aq2rdb/GetDVTable?&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000"
 echo
 curl -g "http://localhost:8081/aq2rdb/GetDVTable?&shahDoobie=Discharge.ft^3/s.Mean@09380000"
+echo
+curl -g "http://localhost:8081/aq2rdb/GetDVTable?&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&computed=trued"
+echo
+curl -g "http://localhost:8081/aq2rdb/GetDVTable?&userName=apiuser&password=not4passwurd&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&computed=true"
+echo
+curl -g "http://localhost:8081/aq2rdb/GetDVTable?&userName=apiuser&password=$password&environment=prod&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&queryFrom=2015-01-01T00%3A00%3A00-07%3A00&queryTo=2015-01-03T00%3A00%3A00-07%3A00"
+echo
 
 kill $!
