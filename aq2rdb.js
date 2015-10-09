@@ -33,7 +33,7 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 
 /**
-   @description Consolodated error message writer. Writes message in
+   @description Consolidated error message writer. Writes message in
                 a single-line, RDB comment.
 */ 
 function rdbMessage(response, statusCode, message) {
@@ -272,15 +272,16 @@ var Query = function (aq2rdbRequest, aq2rdbResponse) {
        @description GetAQToken service request for AQUARIUS
                     authentication token needed for AQUARIUS API.
     */
+    var path = '/services/GetAQToken?' +
+                bind('userName', this.userName) +
+                bind('password', this.password) +
+                bind('uriString',
+                     'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
     var getAQTokenRequest =
         http.request({
             host: 'localhost',
             port: '8080',
-            path: '/services/GetAQToken?' +
-                bind('userName', this.userName) +
-                bind('password', this.password) +
-                bind('uriString',
-                     'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/')
+            path: path
         }, getAQTokenCallback);
 
     /**
@@ -645,7 +646,6 @@ var DVTable = function (
                          timeSeriesDescriptions[i].UniqueId) +
                     bind('queryFrom', parameters.queryFrom) +
                     bind('queryTo', parameters.queryTo);
-
             // call GetTimeSeriesCorrectedData service to get daily
             // values associated with time series descriptions
             var request = http.request({
@@ -748,7 +748,6 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
              parameters.computationPeriodIdentifier) + 
         '&ExtendedFilters=' +
         '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
-
     var request =
         http.request({
             host: AQUARIUS_HOSTNAME,
@@ -774,9 +773,30 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
 var dvTableClass = function (spec, my) {
     var that = {};
     // private instance variables
-    var userName, password;
+    var userName, password, token, environment; // IT clerical stuff
+    // science stuff
     var timeSeriesIdentifier;
+    var queryFrom, queryTo;
+    // TODO: GetTimeSeriesCorrectedData claims to receive this, but
+    // not sure if these are necessary for aq2rdb yet
+    // var getParts;
+    var unit, utcOffset;
+    var applyRounding, computed; // TODO: these might have defaults?
 
+    // might be useful to move out of this scope eventually
+    function toBoolean(literal) {
+        if (literal === 'true') {
+            computed = true;
+        }
+        else if (literal === 'false') {
+            computed = false;
+        }
+        else {
+            throw 'Could not parse value \"'  + literal +
+                '\" in \"computed\" field';
+        }
+    }
+    
     // get HTTP query arguments
     for (var field in spec) {
         switch (field) {
@@ -786,8 +806,44 @@ var dvTableClass = function (spec, my) {
         case 'password':
             password = spec[field];
             break;
+        case 'environment':
+            environment = spec[field];
+            break;
         case 'timeSeriesIdentifier':
             timeSeriesIdentifier = new TimeSeriesIdentifier(spec[field]);
+            break;
+        case 'queryFrom':
+            queryFrom = spec[field]; // TODO: needs domain validation
+            break;
+        case 'queryTo':
+            queryTo = spec[field]; // TODO: needs domain validation
+            break;
+        case 'unit':
+            unit = spec[field];
+            break;
+        case 'utcOffset':
+            utcOffset = spec[field];
+            break;
+        case 'applyRounding':
+            try {
+                applyRounding = toBoolean(spec[field]);
+            }
+            catch (error) {
+                throw error;
+            }
+            break;
+        case 'computed':
+            try {
+                computed = toBoolean(spec[field]);
+            }
+            catch (error) {
+                throw error;
+            }
+            break;
+        case 'timeOffset':
+            // TODO: this should be validated as an element of a time
+            // offset enumeration?
+            timeOffset = spec[field];
             break;
         default:
             throw 'Unknown field \"' + field + '\"';
@@ -830,8 +886,10 @@ var dvTableClass = function (spec, my) {
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetDVTable',
     function (request, response) {
+        // object spec. is derived from HTTP query field values
         var spec = querystring.parse(request.url);
-        // not needed in spec., so delete it
+        // this property would be just clutter in the object right now,
+        // so delete it
         delete spec['/' + PACKAGE_NAME + '/GetDVTable?'];
         try {
             var dvTable = dvTableClass(spec);
