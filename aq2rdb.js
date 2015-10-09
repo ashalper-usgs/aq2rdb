@@ -820,7 +820,7 @@ var dvTableClass = function (spec, my) {
     // science stuff
     var timeSeriesIdentifier;
     var queryFrom, queryTo;
-    // TODO: GetTimeSeriesCorrectedData claims to receive this, but
+    // TODO: GetTimeSeriesCorrectedData claims to accept this, but
     // not sure if these are necessary for aq2rdb yet:
     // var getParts;
     var unit, utcOffset;
@@ -845,6 +845,7 @@ var dvTableClass = function (spec, my) {
         switch (field) {
         case 'userName':
         case 'password':
+            // see aqTokenClass constructor call below
             break;
         case 'environment':
             environment = spec[field];
@@ -895,10 +896,10 @@ var dvTableClass = function (spec, my) {
 
     // try to get AQUARIUS token from aquarius-token service
     try {
-        aqToken = aqTokenClass(
-            {userName: spec.userName,
-             password: spec.password}
-        );
+        aqToken = aqTokenClass({
+            userName: spec.userName,
+            password: spec.password
+        });
     }
     catch (error) {
         throw error;
