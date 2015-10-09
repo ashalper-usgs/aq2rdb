@@ -87,7 +87,10 @@ function jsonParseErrorMessage(response, message) {
    @description Query object prototype.
 */
 var Query = function (aq2rdbRequest, aq2rdbResponse) {
-    var arg = querystring.parse(aq2rdbRequest.url); // parse HTTP query
+    // parse HTTP query
+    var arg = querystring.parse(aq2rdbRequest.url);
+    // aqToken object, created at bottom of function
+    var aqToken;
 
     if (arg.userName.length === 0) {
         throw 'Required parameter \"userName\" not found';
@@ -110,19 +113,20 @@ var Query = function (aq2rdbRequest, aq2rdbResponse) {
 
     this.request = aq2rdbRequest;
     this.response = aq2rdbResponse;
-    this.userName = arg.userName;
-    this.password = arg.password;
 
-    // TODO: this might have multiple entry points and need to be its
-    // own object eventually
+    // TODO: this might have multiple entry points and need to be
+    // declared in global scope eventually.
     /**
        @description Figure out what the aq2rdb request is, then call
                     the necessary AQUARIUS API services to accomplish
                     it.
     */
-    function dispatch(token) {
+    function dispatch() {
         var parameters = {
-            token: token,
+            // Please pardon our weirdness while we transition from
+            // "Pseudoclassical" constructors to "Functional"
+            // constructors.
+            token: aqToken.toString(),
             environment: 'production'
         };
 
@@ -251,57 +255,16 @@ var Query = function (aq2rdbRequest, aq2rdbResponse) {
         }
     } // dispatch
 
-    /**
-       @description GetAQToken service response callback.
-    */
-    function getAQTokenCallback(getAQTokenResponse) {
-        var messageBody = '';
-
-        // accumulate response
-        getAQTokenResponse.on('data', function (chunk) {
-            messageBody += chunk;
+    try {
+        aqToken = aqTokenClass({
+            userName: arg.userName,
+            password: arg.password,
+            callback: dispatch
         });
-
-        // Response complete; token received.
-        getAQTokenResponse.on('end', function () {
-            dispatch(messageBody);
-        });
-    } // getAQTokenCallback
-
-    /**
-       @description GetAQToken service request for AQUARIUS
-                    authentication token needed for AQUARIUS API.
-    */
-    var path = '/services/GetAQToken?' +
-                bind('userName', this.userName) +
-                bind('password', this.password) +
-                bind('uriString',
-                     'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
-    var getAQTokenRequest =
-        http.request({
-            host: 'localhost',
-            port: '8080',
-            path: path
-        }, getAQTokenCallback);
-
-    /**
-       @description Handle GetAQToken service invocation errors.
-    */
-    getAQTokenRequest.on('error', function (error) {
-        var statusMessage;
-
-        if (error.message === 'connect ECONNREFUSED') {
-            throw 'Could not connect to GetAQToken service for ' +
-                'AQUARIUS authentication token';
-        }
-        else {
-            log(error.message);
-        }
-        log('statusMessage: ' + statusMessage);
-        this.response.end(statusMessage);
-    });
-
-    getAQTokenRequest.end();
+    }
+    catch (error) {
+        throw error;
+    }
 } // Query
 
 var DataType = function (text) {
@@ -766,9 +729,6 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
 
 var aqTokenClass = function (spec, my) {
     var that = {};
-    var text;
-
-    // required properties
 
     if (spec.userName === undefined)
         throw 'Required field \"userName\" is missing';
@@ -778,6 +738,60 @@ var aqTokenClass = function (spec, my) {
 
     my = my || {};
 
+    /**
+       @description GetAQToken service response callback.
+    */
+    function callback(response) {
+        var messageBody = '';
+
+        // accumulate response
+        response.on('data', function (chunk) {
+            messageBody += chunk;
+        });
+
+        // Response complete; token received.
+        response.on('end', function () {
+            // visibility of token string is "protected"
+            my.text = messageBody;
+            // if a callback function is defined
+            if (spec.callback !== undefined)
+                spec.callback(); // call it
+        });
+    } // callback
+
+    /**
+       @description GetAQToken service request for AQUARIUS
+                    authentication token needed for AQUARIUS API.
+    */
+    var path = '/services/GetAQToken?' +
+                bind('userName', spec.userName) +
+                bind('password', spec.password) +
+                bind('uriString',
+                     'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
+    var getAQTokenRequest =
+        http.request({
+            host: 'localhost',
+            port: '8080',
+            path: path
+        }, callback);
+
+    /**
+       @description Handle GetAQToken service invocation errors.
+    */
+    getAQTokenRequest.on('error', function (error) {
+        var statusMessage;
+
+        if (error.message === 'connect ECONNREFUSED') {
+            throw 'Could not connect to GetAQToken service for ' +
+                'AQUARIUS authentication token';
+        }
+        else {
+            throw error;
+        }
+    });
+
+    getAQTokenRequest.end();
+
     // add shared variables and functions to my
 
     // add privileged methods to that
@@ -786,6 +800,13 @@ var aqTokenClass = function (spec, my) {
         return resource;
     };
     */
+
+    /**
+       @description AQUARIUS token, as string.
+    */
+    that.toString = function () {
+        return my.text;
+    }
 
     return that;
 } // aqTokenClass
@@ -819,10 +840,6 @@ var dvTableClass = function (spec, my) {
         }
     }
 
-    // TODO: these are used only for parsing the tuple, and really
-    // shouldn't even be private properties of objects using this
-    // constructor; try to factor out
-    var userName, password;
     // get HTTP query arguments
     for (var field in spec) {
         switch (field) {
