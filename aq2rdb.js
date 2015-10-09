@@ -291,15 +291,8 @@ var Query = function (aq2rdbRequest, aq2rdbResponse) {
         var statusMessage;
 
         if (error.message === 'connect ECONNREFUSED') {
-            statusMessage = '# ' + PACKAGE_NAME +
-                ': Could not connect to GetAQToken service for ' +
+            throw 'Could not connect to GetAQToken service for ' +
                 'AQUARIUS authentication token';
-
-            this.response.writeHead(
-                504, statusMessage,
-                {'Content-Length': statusMessage.length,
-                 'Content-Type': 'text/plain'}
-            );
         }
         else {
             log(error.message);
@@ -767,18 +760,33 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
     request.end();
 } // getTimeSeriesDescriptionList
 
-// "Functional" inheritance pattern constructor; see *JavaScript: The
-// Good Parts*, Douglas Crockford, O'Reilly Media, Inc., 2008,
-// Sec. 5.4.
+// New-and-improved, "Functional" inheritance pattern constructors
+// start here; see *JavaScript: The Good Parts*, Douglas Crockford,
+// O'Reilly Media, Inc., 2008, Sec. 5.4.
+
+var aqTokenClass = function (spec, my) {
+    var text;
+
+    // required properties
+
+    if (spec.userName === undefined)
+        throw 'Required field \"userName\" is missing';
+
+    if (spec.password === undefined)
+        throw 'Required field \"password\" is missing';
+} // aqTokenClass
+
 var dvTableClass = function (spec, my) {
     var that = {};
     // private instance variables
-    var userName, password, token, environment; // IT clerical stuff
+    // AQUARIUS clerical stuff
+    var aqToken;
+    var environment;
     // science stuff
     var timeSeriesIdentifier;
     var queryFrom, queryTo;
     // TODO: GetTimeSeriesCorrectedData claims to receive this, but
-    // not sure if these are necessary for aq2rdb yet
+    // not sure if these are necessary for aq2rdb yet:
     // var getParts;
     var unit, utcOffset;
     var applyRounding, computed; // TODO: these might have defaults?
@@ -853,11 +861,13 @@ var dvTableClass = function (spec, my) {
 
     // required fields
 
-    if (userName === undefined)
-        throw 'Required field \"userName\" is missing';
-
-    if (password === undefined)
-        throw 'Required field \"password\" is missing';
+    // try to get AQUARIUS token from aquarius-token service
+    try {
+	aqToken = aqTokenClass({userName: userName, password: password});
+    }
+    catch (error) {
+	throw error;
+    }
 
     if (timeSeriesIdentifier === undefined)
         throw 'Required field \"timeSeriesIdentifier\" is missing';
