@@ -765,6 +765,7 @@ function getTimeSeriesDescriptionList(parameters, aq2rdbResponse) {
 // O'Reilly Media, Inc., 2008, Sec. 5.4.
 
 var aqTokenClass = function (spec, my) {
+    var that = {};
     var text;
 
     // required properties
@@ -774,6 +775,19 @@ var aqTokenClass = function (spec, my) {
 
     if (spec.password === undefined)
         throw 'Required field \"password\" is missing';
+
+    my = my || {};
+
+    // add shared variables and functions to my
+
+    // add privileged methods to that
+    /*
+    that.getResource = function () {
+        return resource;
+    };
+    */
+
+    return that;
 } // aqTokenClass
 
 var dvTableClass = function (spec, my) {
@@ -804,15 +818,16 @@ var dvTableClass = function (spec, my) {
                 '\" in \"computed\" field';
         }
     }
-    
+
+    // TODO: these are used only for parsing the tuple, and really
+    // shouldn't even be private properties of objects using this
+    // constructor; try to factor out
+    var userName, password;
     // get HTTP query arguments
     for (var field in spec) {
         switch (field) {
         case 'userName':
-            userName = spec[field];
-            break;
         case 'password':
-            password = spec[field];
             break;
         case 'environment':
             environment = spec[field];
@@ -863,10 +878,13 @@ var dvTableClass = function (spec, my) {
 
     // try to get AQUARIUS token from aquarius-token service
     try {
-	aqToken = aqTokenClass({userName: userName, password: password});
+        aqToken = aqTokenClass(
+            {userName: spec.userName,
+             password: spec.password}
+        );
     }
     catch (error) {
-	throw error;
+        throw error;
     }
 
     if (timeSeriesIdentifier === undefined)
