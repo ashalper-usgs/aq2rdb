@@ -302,9 +302,19 @@ var Query = function (aq2rdbRequest, aq2rdbResponse) {
             // the future, so the constructor's return value would
             // need to be saved, and possibly declared at an outer
             // scope.
+            var timeSeriesIdentifier;
+            try {
+                // looks weird; timeSeriesIdentifier is Object,
+                // parameters.timeSeriesIdentifier is String
+                timeSeriesIdentifier =
+                    new TimeSeriesIdentifier(parameters.timeSeriesIdentifier);
+            }
+            catch (error) {
+                throw error;
+            }
             timeSeriesDescriptionListClass({
                 token: aqToken.toString(),
-                timeSeriesIdentifier: parameters.timeSeriesIdentifier,
+                timeSeriesIdentifier: timeSeriesIdentifier,
                 callback: callback
             });
         }
@@ -681,12 +691,11 @@ var DVTable = function (
 // start here; see *JavaScript: The Good Parts*, Douglas Crockford,
 // O'Reilly Media, Inc., 2008, Sec. 5.4.
 
-// Use GetTimeSeriesDescriptionList with the LocationIdentifier and
-// Parameter parameters in the URL and then find the requested
-// timeseries in the output to get tue [sic] GUID
+/**
+   @description Time series description list, object prototype.
+*/
 var timeSeriesDescriptionListClass = function (spec, my) {
-    var timeSeriesIdentifier =
-        new TimeSeriesIdentifier(spec.timeSeriesIdentifier);
+    var timeSeriesIdentifier = spec.timeSeriesIdentifier;
 
     var parameter = timeSeriesIdentifier.parameter();
     if (parameter === undefined) {
@@ -735,6 +744,9 @@ var timeSeriesDescriptionListClass = function (spec, my) {
     request.end();
 } // timeSeriesDescriptionListClass
 
+/**
+   @description AQUARIUS token string, object prototype.
+*/
 var aqTokenClass = function (spec, my) {
     var that = {};
 
@@ -776,17 +788,16 @@ var aqTokenClass = function (spec, my) {
                 bind('password', spec.password) +
                 bind('uriString',
                      'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
-    var getAQTokenRequest =
-        http.request({
-            host: 'localhost',
-            port: '8080',
-            path: path
-        }, callback);
+    var request = http.request({
+        host: 'localhost',
+        port: '8080',
+        path: path
+    }, callback);
 
     /**
        @description Handle GetAQToken service invocation errors.
     */
-    getAQTokenRequest.on('error', function (error) {
+    request.on('error', function (error) {
         var statusMessage;
 
         if (error.message === 'connect ECONNREFUSED') {
@@ -798,7 +809,7 @@ var aqTokenClass = function (spec, my) {
         }
     });
 
-    getAQTokenRequest.end();
+    request.end();
 
     // add shared variables and functions to my
 
@@ -915,7 +926,7 @@ var dvTableClass = function (spec, my) {
         aqToken = aqTokenClass({
             userName: spec.userName,
             password: spec.password,
-            callback: callback
+            callback: aqTokenCallback
         });
     }
     catch (error) {
@@ -925,9 +936,19 @@ var dvTableClass = function (spec, my) {
     if (timeSeriesIdentifier === undefined)
         throw 'Required field \"timeSeriesIdentifier\" is missing';
 
-    // TODO:
-    function callback() {
-    }
+    function timeSeriesDescriptionListCallback() {
+        // TODO:
+        log('timeSeriesDescriptionListCallback() called');
+    } // timeSeriesDescriptionListCallback
+
+    function aqTokenCallback() {
+        var timeSeriesDescriptionList =
+            timeSeriesDescriptionListClass({
+                token: aqToken.toString(),
+                timeSeriesIdentifier: timeSeriesIdentifier,
+                callback: timeSeriesDescriptionListCallback
+            });
+    } // aqTokenCallback
 
     // "The 'my' object is a container of secrets that are shared by
     // the constructors in the inheritance chain. The use of the 'my'
