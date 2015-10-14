@@ -174,181 +174,6 @@ var TimeSeriesIdentifier = function (text) {
     }
 } // TimeSeriesIdentifier
 
-/**
-   @description RDBTable prototype.
-*/
-var RDBTable = function (parameters, timeSeriesCorrectedData) {
-    // TODO: figure out how much of this stuff gets retained (actually a
-    // JIRA ticket now). nwts2rdb appears to include/omit fields in the
-    // header depending on what it finds in the database.
-
-    // convoluted syntax for "now"
-    var retrieved = rfc3339((new Date()).toISOString());
-    // make TimeSeriesIdentifier object from HTTP query parameter text
-    var timeSeriesIdentifier =
-        new TimeSeriesIdentifier(parameters.timeSeriesIdentifier);
-    var agencyCode, siteNumber;
-
-    // if locationIdentifier was not provided
-    if (parameters.locationIdentifier === undefined) {
-        agencyCode = 'USGS';    // default agency code
-        // reference site number embedded in timeSeriesIdentifier
-        siteNumber = timeSeriesIdentifier.siteNumber();
-    }
-    else {
-        // parse (agency code, site number) embedded in
-        // locationIdentifier
-        var f = parameters.locationIdentifier.split('-')[0];
-
-        agencyCode = f[1];
-        siteNumber = f[0];
-    }
-
-    var header =
-        '# //UNITED STATES GEOLOGICAL SURVEY       ' +
-        'http://water.usgs.gov/\n' +
-        '# //NATIONAL WATER INFORMATION SYSTEM     ' +
-        'http://water.usgs.gov/data.html\n' +
-        '# //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE ' +
-        'UNTIL PUBLISHED BY USGS\n' +
-        '# //RETRIEVED: ' + retrieved + '\n' +
-        '# //STATION AGENCY=\"' + agencyCode + ' \" NUMBER=\"' +
-        siteNumber + '       \"\n' +
-        '# //RANGE START=\"' + rfc3339(parameters.queryFrom) +
-        '\" END=\"' + rfc3339(parameters.queryTo) + '\"\n';
-
-    // TODO: the code that produces the RDB, column data type
-    // declarations below is probably going to need to be much more
-    // robust.
-
-    // Note: a "header" is a very different thing from a "heading".
-    var heading =
-    'DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n' +
-        '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n';
-    var n = timeSeriesCorrectedData.Points.length;
-    var body = '';
-    // TODO: for tables with a large number of rows, we'll probably
-    // need to convert this loop to an event-driven mechanism (driven
-    // by AQUARIUS response?), instead of accumulating all RDB table
-    // rows, and possibly using tons of memory.
-    for (var i = 0; i < n; i++) {
-        // shorten some object references below
-        var point = timeSeriesCorrectedData.Points[i];
-
-        // TODO: For DVs at least (and perhaps other types), legacy
-        // dates might need to be re-offset on output:
-
-        // On Mon, Sep 28, 2015 at 3:05 PM, Scott Bartholoma
-        // <sbarthol@usgs.gov> said:
-        //
-        // The migration exported all the data in the standard time
-        // UTC offset for the site in the SITEFILE and as far as I
-        // know AQUARIUS imported it that way. There was no timestamp
-        // on the Daily Values exported from Adaps, so AQUARIUS had to
-        // "make one up".  I'm pretty sure they used end-of-day
-        // midnight, which means that for Migrated data the dates in
-        // the timeseries have to be decremented.
-        // "2015-01-01T00:00:00.0000000-07:00" is the value for
-        // 09/30/2015.
-        //
-        // However, to do this properly so it will work correctly for
-        // ALL data, including future setups that don't match how we
-        // migrated, you have to pay attention to the interpolation
-        // type from the timeseries description. We are using
-        // "Preceeding Constant" where the value represents the
-        // statistic for the preceeding period.  However, there is
-        // also "Succeeding Constant". And to further complicate this,
-        // you can select to have the value be at the beginning of the
-        // day or at the end of the day (see image below).
-        //
-        // As I write this, I created a timeseries and then got it's
-        // description. I don't see anything in the timeseries
-        // description to tell us what the interpolation type is not
-        // which setting was chosen in the image below was
-        // chosen. Here is the json output from the
-        // getTimeseriesDescriptionList call. I must be missing
-        // something.
-
-        // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-        // <sbarthol@usgs.gov> said:
-        //
-        // I see Interpolation Type is part of the timeseries data
-        // response, not part of the timeseries description. As i
-        // recall, it can be changed over time, but I wouldn't use
-        // that "feature". If I wanted to change interpolation type I
-        // would start a new timeseries.In any case, you might be able
-        // to use it to decide if you need to decrement the date or
-        // not when doing DV data.
-
-        var d = new Date(point.Timestamp);
-        // TODO: Date parse error handling goes here?
-
-        // the daily value
-        var value = point.Value.Numeric.toString();
-
-        // TODO: ugly, ISO 8601 to RFC3339 subtype, date-reformatting
-        // to re-factor eventually
-        body += point.Timestamp.split('T')[0].replace(/-/g, '') +
-            // TIME column always empty for daily values
-            '\t\t' + value + '\t' +
-
-        // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-        // <sbarthol@usgs.gov> said:
-        //
-        // Precision isn't stored in the database so it would have to
-        // be derived from the numeric string returned in the json
-        // output. I don't know how useful it is anymore. It was
-        // mainly there for the "suppress rounding" option so the user
-        // would know how many digits to round it to for rounded
-        // display.
-        value.toString().replace('.', '').length + '\t' +
-
-        // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-        // <sbarthol@usgs.gov> said:
-        //
-        // Remark will have to be derived from the Qualifier section
-        // of the response. It will have begin and end dates for
-        // various qualification periods.
-
-        // TODO: "Notes" looks like it's an array in the JSON
-        // messageBody, so we might need further processing here
-        timeSeriesCorrectedData.Notes + '\t' +
-
-        // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-        // <sbarthol@usgs.gov> said:
-        //
-        // I think some of what used to be flags are now
-        // Qualifiers. Things like thereshold exceedances (high, very
-        // high, low, very low, rapid increace/decreast [sic],
-        // etc.). The users might want you to put something in that
-        // column for the Method and Grade sections of the response as
-        // well
-        '\t' +
-
-        // TODO: need to ask Brad and/or users about preserving the
-        // TYPE column (see excerpt from Scott's mail below).
-
-        // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-        // <sbarthol@usgs.gov> said:
-        //
-        // Type I would put in something like "R" for raw and "C" for
-        // corrected depending on which get method was used. That is
-        // similar to what C (computed) and E (Edited) meant for DV
-        // data in Adaps.  We don't explicitly have the Meas, Edit,
-        // and Comp UV types anymore, they are separate timeseries in
-        // AQUARIUS.
-        '\t' +
-            // TODO: FLAGS?
-            '\t' +
-            timeSeriesCorrectedData.Approvals[0].LevelDescription.charAt(0)
-            + '\n';
-    }
-
-    this.toString = function () {
-        return header + heading + body;
-    } // toString
-} // RDBTable
-
 // New-and-improved, "Functional" inheritance pattern constructors
 // start here; see *JavaScript: The Good Parts*, Douglas Crockford,
 // O'Reilly Media, Inc., 2008, Sec. 5.4.
@@ -382,151 +207,133 @@ var aq2rdbClass = function (spec, my) {
             '\"d\", \"r\", and \"p\" must be omitted';
     }
 
+    // "protected" visibility (I think, if I understand the pattern
+    // conventions) property storage
     my = my || {};
+    my.environment = 'production';
+    my.response = spec.response;
+
+    // get HTTP query arguments
+    for (var opt in arg) {
+        switch (opt) {
+        case 'z':
+            // -z now indicates environment, not database number. In
+            // AQUARIUS Era, logical database numbers have been
+            // superseded by named time-series environments. The
+            // default is 'production', and will work fine unless you
+            // know otherwise.
+            my.environment = arg[opt];
+            break;
+        case 'a':
+            my.agencyCode = arg[opt];
+            break;
+        case 'b':
+            my.queryFrom = arg[opt];
+            break;
+        case 'n':
+            // AQUARIUS seems to do ill-advised, implicit things with
+            // site PK
+            my.locationIdentifier =
+                arg.a === undefined ? arg[opt] : arg[opt] + '-' + arg.a;
+            break;
+        case 'u':
+            // -u is a new option for specifying a time-series
+            // identifier, and is preferred over -d whenever possible
+            try {
+                my.timeSeriesIdentifier =
+                    new TimeSeriesIdentifier(arg[opt]);
+            }
+            catch (error) {
+                throw error;
+            }
+            break;
+        case 'd':
+            // -d data descriptor number is supported but is
+            // deprecated. This option will work for time series that
+            // were migrated from ADAPS. This will *not work for new
+            // time series* created in AQUARIUS (relies on ADAPS_DD
+            // time-series extended attribute). We prefer you use -u
+            // whenever possible.
+            my.ddID = arg[opt];
+            // TODO:
+            /*
+              {
+              "Name": "ADAPS_DD",
+              "Type": "Decimal",
+              "Value": 1
+              },
+
+              my.extendedFilters = 
+            */
+            break;
+        case 'r':
+            my.applyRounding = false;
+            break;
+        case 'c':
+            // For [data] type "dv", Output COMPUTED daily values
+            // only. For other types except pseudo-UV retrievals,
+            // combine date and time in a single column.
+            my.computed = true;
+            break;
+        case 't':
+            try {
+                my.dataType = new DataType(arg[opt].toUpperCase());
+            }
+            catch (error) {
+                rdbMessage(my.response, 400, error);
+                return;
+            }
+            my.computationPeriodIdentifier =
+                dataType.toComputationPeriodIdentifier();
+            break;
+        case 'l':
+            my.timeOffset = arg[opt];
+            break;
+        case 'e':
+            my.queryTo = arg[opt];
+            break;
+        }
+    }
+
+    // begin date validation
+    if (my.queryFrom !== undefined) {
+        // TODO: need to modify to accept RFC3339 dates instead,
+        // for nwts2rdb backwards-compatibility purposes.
+
+        // if (AQUARIUS) queryFrom (aq2rdb "b") field is not a valid
+        // ISO date string
+        if (isNaN(Date.parse(my.queryFrom))) {
+            rdbMessage(
+                my.response, 400,
+                PACKAGE_NAME +
+                    ': If \"b\" is specified, a valid 14-digit ISO ' +
+                    'date must be provided'
+            );
+            return;
+        }
+    }           
 
     // add shared variables and functions to my
 
     // add privileged methods to that
     /*
-    that.getResource = function () {
-        return resource;
-    };
+      that.getResource = function () {
+      return resource;
+      };
     */
 
     // TODO: this might have multiple entry points and need to be
     // declared in global scope eventually.
     /**
        @description Figure out what the aq2rdb request is, then call
-                    the necessary AQUARIUS API services to accomplish
-                    it.
+       the necessary AQUARIUS API services to accomplish
+       it.
     */
     function dispatch() {
-        var parameters = {
-            // Please pardon our weirdness while we transition from
-            // "Pseudoclassical" constructors to "Functional"
-            // constructors.
-            token: aqToken.toString(),
-            environment: 'production'
-        };
-
-        var dataType, ddID;
-
-        // get HTTP query arguments
-        for (var opt in arg) {
-            switch (opt) {
-            case 'z':
-                // -z now indicates environment, not database number. In
-                // AQUARIUS Era, logical database numbers have been
-                // superseded by named time-series environments. The
-                // default is 'production', and will work fine unless you
-                // know otherwise.
-                parameters.environment = arg[opt];
-                break;
-            case 'a':
-                parameters.agencyCode = arg[opt];
-                break;
-            case 'b':
-                parameters.queryFrom = arg[opt];
-                break;
-            case 'n':
-                // AQUARIUS seems to do ill-advised, implicit things with
-                // site PK
-                parameters.locationIdentifier =
-                    arg.a === undefined ? arg[opt] : arg[opt] + '-' + arg.a;
-                break;
-            case 'u':
-                // -u is a new option for specifying a time-series
-                // identifier, and is preferred over -d whenever possible
-                parameters.timeSeriesIdentifier = arg[opt];
-                break;
-            case 'd':
-                // -d data descriptor number is supported but is
-                // deprecated. This option will work for time series that
-                // were migrated from ADAPS. This will *not work for new
-                // time series* created in AQUARIUS (relies on ADAPS_DD
-                // time-series extended attribute). We prefer you use -u
-                // whenever possible.
-                ddID = arg[opt];
-                // TODO:
-                /*
-                  {
-                  "Name": "ADAPS_DD",
-                  "Type": "Decimal",
-                  "Value": 1
-                  },
-
-                  parameters.extendedFilters = 
-                */
-                break;
-            case 'r':
-                parameters.applyRounding = false;
-                break;
-            case 'c':
-                // For [data] type "dv", Output COMPUTED daily values
-                // only. For other types except pseudo-UV retrievals,
-                // combine date and time in a single column.
-                parameters.computed = true;
-                break;
-            case 't':
-                var dataType;
-                try {
-                    dataType = new DataType(arg[opt].toUpperCase());
-                }
-                catch (error) {
-                    rdbMessage(spec.response, 400, error);
-                    return;
-                }
-                parameters.computationPeriodIdentifier =
-                    dataType.toComputationPeriodIdentifier();
-                break;
-            case 'l':
-                parameters.timeOffset = arg[opt];
-                break;
-            case 'e':
-                parameters.queryTo = arg[opt];
-                break;
-            }
-        }
-
-        // begin date validation
-        if (parameters.queryFrom !== undefined) {
-            // if (AQUARIUS) queryFrom (aq2rdb "b") field is not a valid
-            // ISO date string
-            if (isNaN(Date.parse(parameters.queryFrom))) {
-                rdbMessage(
-                    spec.response, 400,
-                    PACKAGE_NAME +
-                        ': If \"b\" is specified, a valid 14-digit ISO ' +
-                        'date must be provided'
-                );
-                return;
-            }
-        }           
-
-        // Arguments -n, -d, -t, -i, and -y if -t is "MEAS" must
-        // be present as the prompting for missing arguments uses
-        // ADAPS subroutines that write the prompts to stdout
-        // (they're ports form Prime, remember?  so the RDB output
-        // has to go to a file, otherwise the prompts would be
-        // mixed in with the RDB output which would make things
-        // difficult for a pipeline. -z, and -a will default, and
-        // -m is ignored.
-        if (dataType === 'MEAS' &&
-            (parameters.locationIdentifier === undefined ||
-             ddID === undefined ||
-             parameters.transportCode === undefined)) {
-            rdbMessage(
-                spec.response, 400,
-                '\"n\" and \"d\" fields ' +
-                    'must be present when \"t\" is \"MEAS\"'
-            );
-            return;
-        }
-
         /**
            @description Handle response from GetTimeSeriesDescriptionList.
         */
-        function callback(response) {
+        function timeSeriesDescriptionListCallback(response) {
             var messageBody = '';
 
             // accumulate response
@@ -543,8 +350,8 @@ var aq2rdbClass = function (spec, my) {
                     timeSeriesDescriptionServiceRequest =
                         JSON.parse(messageBody);
                 }
-                catch (e) {
-                    jsonParseErrorMessage(spec.response, e.message);
+                catch (error) {
+                    jsonParseErrorMessage(my.response, error.message);
                     return;         // go no further
                 }
 
@@ -554,7 +361,7 @@ var aq2rdbClass = function (spec, my) {
                     === undefined) {
                     // there's nothing more we can do
                     rdbMessage(
-                        spec.response, 200,
+                        my.response, 200,
                         'The query found no time series ' +
                             'descriptions in AQUARIUS'
                     );
@@ -566,10 +373,11 @@ var aq2rdbClass = function (spec, my) {
 
                 /**
                    @description Handle response from
-                                GetTimeSeriesCorrectedData.
+                   GetTimeSeriesCorrectedData.
                 */
-                function callback(aquariusResponse) {
+                function getTimeSeriesCorrectedDataCallback(aquariusResponse) {
                     var messageBody = '';
+                    var timeSeriesCorrectedData;
 
                     // accumulate response
                     aquariusResponse.on(
@@ -580,63 +388,257 @@ var aq2rdbClass = function (spec, my) {
 
                     aquariusResponse.on('end', function () {
                         try {
-                            var timeSeriesCorrectedData =
+                            timeSeriesCorrectedData =
                                 JSON.parse(messageBody);
                         }
-                        catch (e) {
-                            jsonParseErrorMessage(aq2rdbResponse, e.message);
+                        catch (error) {
+                            jsonParseErrorMessage(my.response, error.message);
                             return;         // go no further
                         }
 
                         if (200 < aquariusResponse.statusCode) {
                             rdbMessage(
-                                aq2rdbResponse,
+                                my.response,
                                 aquariusResponse.statusCode,
                                 '# ' + PACKAGE_NAME +
                                     ': AQUARIUS replied with an error. ' +
                                     'The message was:\n' +
                                     '#\n' +
                                     '#   ' +
-                                timeSeriesCorrectedData.ResponseStatus.Message
+                                 timeSeriesCorrectedData.ResponseStatus.Message
                             );
+                            return;
+                        }
+
+                        // some convoluted syntax for "now"
+                        var retrieved = rfc3339((new Date()).toISOString());
+                        // make TimeSeriesIdentifier object from HTTP
+                        // query parameter text
+                        var timeSeriesIdentifier =
+                            new TimeSeriesIdentifier(my.timeSeriesIdentifier);
+                        var agencyCode, siteNumber;
+
+                        // if locationIdentifier was not provided
+                        if (my.locationIdentifier === undefined) {
+                            agencyCode = 'USGS';    // default agency code
+                            // reference site number embedded in
+                            // timeSeriesIdentifier
+                            siteNumber = my.timeSeriesIdentifier.siteNumber();
                         }
                         else {
-                            // TODO: this is some cruft that is fairly
-                            // kludgey, and should probably be
-                            // re-factored.
+                            // parse (agency code, site number) embedded in
+                            // locationIdentifier
+                            var f = my.locationIdentifier.split('-')[0];
 
-                            // make an RDB file
-                            var rdbTable =
-                                new RDBTable(
-                                    parameters,
-                                    timeSeriesCorrectedData
-                                );
-                            spec.response.end(rdbTable.toString());
+                            agencyCode = f[1];
+                            siteNumber = f[0];
                         }
+                        
+                        my.response.write(
+                            '# //UNITED STATES GEOLOGICAL SURVEY       ' +
+                                'http://water.usgs.gov/\n' +
+                                '# //NATIONAL WATER INFORMATION SYSTEM     ' +
+                                'http://water.usgs.gov/data.html\n' +
+                                '# //DATA ARE PROVISIONAL AND ' +
+                                'SUBJECT TO CHANGE UNTIL PUBLISHED ' +
+                                'BY USGS\n' +
+                                '# //RETRIEVED: ' + retrieved + '\n' +
+                                '# //STATION AGENCY=\"' + agencyCode +
+                                ' \" NUMBER=\"' + siteNumber +
+                                '       \"\n' +
+                                '# //RANGE START=\"' +
+                                rfc3339(my.queryFrom) +
+                                '\" END=\"' + rfc3339(my.queryTo) +
+                                '\"\n'
+                        );
+
+                        // TODO: the code that produces the RDB,
+                        // column data type declarations below is
+                        // probably going to need to be much more
+                        // robust.
+
+                        // Note: a "header" is a very different thing
+                        // from a "heading".
+                        my.response.write(
+                            'DATE\tTIME\tVALUE\tPRECISION\tREMARK\t' +
+                                'FLAGS\tTYPE\tQA\n' +
+                                '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n'
+                        );
+                        var n = timeSeriesCorrectedData.Points.length;
+                        var body = '';
+                        // TODO: for tables with a large number of
+                        // rows, we'll probably need to convert this
+                        // loop to an event-driven mechanism (driven
+                        // by AQUARIUS response?), instead of
+                        // accumulating all RDB table
+                        // rows, and possibly using tons of memory.
+                        for (var i = 0; i < n; i++) {
+                            // shorten some object references below
+                            var point = timeSeriesCorrectedData.Points[i];
+
+                            // TODO: For DVs at least (and perhaps
+                            // other types), legacy dates might need
+                            // to be re-offset on output:
+
+                            // On Mon, Sep 28, 2015 at 3:05 PM, Scott
+                            // Bartholoma <sbarthol@usgs.gov> said:
+                            //
+                            // The migration exported all the data in
+                            // the standard time UTC offset for the
+                            // site in the SITEFILE and as far as I
+                            // know AQUARIUS imported it that
+                            // way. There was no timestamp on the
+                            // Daily Values exported from Adaps, so
+                            // AQUARIUS had to "make one up".  I'm
+                            // pretty sure they used end-of-day
+                            // midnight, which means that for Migrated
+                            // data the dates in the timeseries have
+                            // to be decremented.
+                            // "2015-01-01T00:00:00.0000000-07:00" is
+                            // the value for 09/30/2015.
+                            //
+                            // However, to do this properly so it will
+                            // work correctly for ALL data, including
+                            // future setups that don't match how we
+                            // migrated, you have to pay attention to
+                            // the interpolation type from the
+                            // timeseries description. We are using
+                            // "Preceeding Constant" where the value
+                            // represents the statistic for the
+                            // preceeding period.  However, there is
+                            // also "Succeeding Constant". And to
+                            // further complicate this, you can select
+                            // to have the value be at the beginning
+                            // of the day or at the end of the day
+                            // (see image below).
+                            //
+                            // As I write this, I created a timeseries
+                            // and then got it's description. I don't
+                            // see anything in the timeseries
+                            // description to tell us what the
+                            // interpolation type is not which setting
+                            // was chosen in the image below was
+                            // chosen. Here is the json output from
+                            // the getTimeseriesDescriptionList
+                            // call. I must be missing something.
+
+                            // On Tue, Sep 29, 2015 at 10:57 AM, Scott
+                            // Bartholoma <sbarthol@usgs.gov> said:
+                            //
+                            // I see Interpolation Type is part of the
+                            // timeseries data response, not part of
+                            // the timeseries description. As i
+                            // recall, it can be changed over time,
+                            // but I wouldn't use that "feature". If I
+                            // wanted to change interpolation type I
+                            // would start a new timeseries.In any
+                            // case, you might be able to use it to
+                            // decide if you need to decrement the
+                            // date or not when doing DV data.
+
+                            var d = new Date(point.Timestamp);
+                            // TODO: Date parse error handling goes here?
+
+                            // the daily value
+                            var value = point.Value.Numeric.toString();
+
+                            // TODO: ugly, ISO 8601 to RFC3339
+                            // subtype, date-reformatting to re-factor
+                            // eventually
+                            my.response.write(
+                                point.Timestamp.split('T')[0].replace(/-/g, '')
+                                    +
+                                    // TIME column always empty for
+                                    // daily values
+                                    '\t\t' + value + '\t' +
+
+                                // On Tue, Sep 29, 2015 at 10:57 AM, Scott
+                                // Bartholoma <sbarthol@usgs.gov> said:
+                                //
+                                // Precision isn't stored in the database
+                                // so it would have to be derived from the
+                                // numeric string returned in the json
+                                // output. I don't know how useful it is
+                                // anymore. It was mainly there for the
+                                // "suppress rounding" option so the user
+                                // would know how many digits to round it
+                                // to for rounded display.
+                                value.toString().replace('.', '').length +
+                                    '\t' +
+
+                                // On Tue, Sep 29, 2015 at 10:57 AM, Scott
+                                // Bartholoma <sbarthol@usgs.gov> said:
+                                //
+                                // Remark will have to be derived from the
+                                // Qualifier section of the response. It
+                                // will have begin and end dates for
+                                // various qualification periods.
+
+                                // TODO: "Notes" looks like it's an array
+                                // in the JSON messageBody, so we might
+                                // need further processing here
+                                timeSeriesCorrectedData.Notes + '\t' +
+
+                                // On Tue, Sep 29, 2015 at 10:57 AM, Scott
+                                // Bartholoma <sbarthol@usgs.gov> said:
+                                //
+                                // I think some of what used to be flags
+                                // are now Qualifiers. Things like
+                                // thereshold exceedances (high, very
+                                // high, low, very low, rapid
+                                // increace/decreast [sic], etc.). The
+                                // users might want you to put something
+                                // in that column for the Method and Grade
+                                // sections of the response as well
+                                '\t' +
+
+                                // TODO: need to ask Brad and/or users
+                                // about preserving the TYPE column (see
+                                // excerpt from Scott's mail below).
+
+                                // On Tue, Sep 29, 2015 at 10:57 AM, Scott
+                                // Bartholoma <sbarthol@usgs.gov> said:
+                                //
+                                // Type I would put in something like "R"
+                                // for raw and "C" for corrected depending
+                                // on which get method was used. That is
+                                // similar to what C (computed) and E
+                                // (Edited) meant for DV data in Adaps.
+                                // We don't explicitly have the Meas,
+                                // Edit, and Comp UV types anymore, they
+                                // are separate timeseries in AQUARIUS.
+                                '\t' +
+                                    // TODO: FLAGS?
+                                    '\t' +
+                timeSeriesCorrectedData.Approvals[0].LevelDescription.charAt(0)
+                                    + '\n'
+                            );
+                        }
+                        my.response.end();
                     });
-                } // callback
+                } // getTimeSeriesCorrectedDataCallback
 
                 var n = timeSeriesDescriptions.length;
                 for (var i = 0; i < n; i++) {
                     var path = AQUARIUS_PREFIX +
                         'GetTimeSeriesCorrectedData?' +
-                        bind('token', parameters.token) +
+                        bind('token', my.aqToken.toString()) +
                         bind('format', 'json') +
                         bind('timeSeriesUniqueId',
                              timeSeriesDescriptions[i].UniqueId) +
-                        bind('queryFrom', parameters.queryFrom) +
-                        bind('queryTo', parameters.queryTo);
+                        bind('queryFrom', my.queryFrom) +
+                        bind('queryTo', my.queryTo);
                     // call GetTimeSeriesCorrectedData service to get
                     // daily values associated with time series
                     // descriptions
                     var request = http.request({
                         host: AQUARIUS_HOSTNAME,
                         path: path
-                    }, callback);
+                    }, getTimeSeriesCorrectedDataCallback);
 
                     /**
                        @description Handle GetTimeSeriesCorrectedData
-                                    service invocation errors.
+                       service invocation errors.
                     */
                     request.on('error', function (error) {
                         throw error;
@@ -645,37 +647,27 @@ var aq2rdbClass = function (spec, my) {
                     request.end();
                 }
             });
-        } // callback
+        } // timeSeriesDescriptionListCallback
 
         // if time-series identifier is not present, and location
         // identifier is present
-        if (parameters.timeSeriesIdentifier !== undefined) {
+        if (my.timeSeriesIdentifier !== undefined) {
             // The object this constructor creates is presently not
             // needed [with everything useful subsequently happening
-            // in the context of callback()], but that could change in
-            // the future, so the constructor's return value would
-            // need to be saved, and possibly declared at an outer
-            // scope.
-            var timeSeriesIdentifier;
-            try {
-                // looks weird; timeSeriesIdentifier is Object,
-                // parameters.timeSeriesIdentifier is String
-                timeSeriesIdentifier =
-                    new TimeSeriesIdentifier(parameters.timeSeriesIdentifier);
-            }
-            catch (error) {
-                throw error;
-            }
+            // in the context of timeSeriesDescriptionListCallback()],
+            // but that could change in the future, so the
+            // constructor's return value would need to be saved, and
+            // possibly declared at an outer scope.
             timeSeriesDescriptionListClass({
-                token: aqToken.toString(),
-                timeSeriesIdentifier: timeSeriesIdentifier,
-                callback: callback
+                token: my.aqToken.toString(),
+                timeSeriesIdentifier: my.timeSeriesIdentifier,
+                callback: timeSeriesDescriptionListCallback
             });
         }
     } // dispatch
 
     try {
-        aqToken = aqTokenClass({
+        my.aqToken = aqTokenClass({
             userName: arg.userName,
             password: arg.password,
             callback: dispatch
@@ -1023,7 +1015,7 @@ function handleRequest(request, response) {
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
-       log(error.message);
+        throw error;
     }
 }
 
