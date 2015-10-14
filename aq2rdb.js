@@ -229,8 +229,8 @@ var RDBTable = function (parameters, timeSeriesCorrectedData) {
     var body = '';
     // TODO: for tables with a large number of rows, we'll probably
     // need to convert this loop to an event-driven mechanism (driven
-    // by AQUARIUS response?), instead of accumulating all rows in
-    // DVTable.body, and using tons of memory.
+    // by AQUARIUS response?), instead of accumulating all RDB table
+    // rows, and possibly using tons of memory.
     for (var i = 0; i < n; i++) {
         // shorten some object references below
         var point = timeSeriesCorrectedData.Points[i];
@@ -348,96 +348,6 @@ var RDBTable = function (parameters, timeSeriesCorrectedData) {
         return header + heading + body;
     } // toString
 } // RDBTable
-
-/**
-   @description DVTable prototype.
-*/
-var DVTable = function (
-    parameters, timeSeriesDescriptions
-) {
-    var parameters = parameters;
-    var timeSeriesDescriptions = timeSeriesDescriptions;
-
-    // TODO: would be nice to re-factor this
-    /**
-       @description Produce an RDB file response of daily values
-       related to this TimeSeriesDescription set.
-    */
-    this.toRDB = function (aq2rdbResponse) {
-        /**
-           @description Handle response from GetTimeSeriesCorrectedData.
-        */
-        function callback(aquariusResponse) {
-            var messageBody = '';
-
-            // accumulate response
-            aquariusResponse.on(
-                'data',
-                function (chunk) {
-                    messageBody += chunk;
-                });
-
-            aquariusResponse.on('end', function () {
-                try {
-                    var timeSeriesCorrectedData = JSON.parse(messageBody);
-                }
-                catch (e) {
-                    jsonParseErrorMessage(aq2rdbResponse, e.message);
-                    return;         // go no further
-                }
-
-                if (200 < aquariusResponse.statusCode) {
-                    rdbMessage(
-                        aq2rdbResponse,
-                        aquariusResponse.statusCode,
-                        '# ' + PACKAGE_NAME +
-                            ': AQUARIUS replied with an error. ' +
-                            'The message was:\n' +
-                            '#\n' +
-                            '#   ' +
-                            timeSeriesCorrectedData.ResponseStatus.Message
-                    );
-                }
-                else {
-                    // make an RDB file
-                    var rdbTable =
-                        new RDBTable(
-                            parameters,
-                            timeSeriesCorrectedData
-                        );
-                    aq2rdbResponse.end(rdbTable.toString());
-                }
-            });
-        } // callback
-
-        var n = timeSeriesDescriptions.length;
-        for (var i = 0; i < n; i++) {
-            var path = AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
-                bind('token', parameters.token) +
-                bind('format', 'json') +
-                bind('timeSeriesUniqueId',
-                     timeSeriesDescriptions[i].UniqueId) +
-                bind('queryFrom', parameters.queryFrom) +
-                bind('queryTo', parameters.queryTo);
-            // call GetTimeSeriesCorrectedData service to get daily
-            // values associated with time series descriptions
-            var request = http.request({
-                host: AQUARIUS_HOSTNAME,
-                path: path
-            }, callback);
-
-            /**
-               @description Handle GetTimeSeriesCorrectedData service
-                            invocation errors.
-            */
-            request.on('error', function (error) {
-                log('getTimeSeriesCorrectedData.request.on(\'error\')');
-            });
-
-            request.end();
-        }
-    } // toRDB
-} // DVTable
 
 // New-and-improved, "Functional" inheritance pattern constructors
 // start here; see *JavaScript: The Good Parts*, Douglas Crockford,
@@ -651,14 +561,89 @@ var aq2rdbClass = function (spec, my) {
                     return;
                 }
 
-                var dvTable =
-                    new DVTable(
-                     parameters,
-                     timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
-                    );
+                var timeSeriesDescriptions =
+                    timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions;
 
-                // get the DVs from AQUARIUS and respond with the RDB file
-                dvTable.toRDB(spec.response);
+                /**
+                   @description Handle response from
+                                GetTimeSeriesCorrectedData.
+                */
+                function callback(aquariusResponse) {
+                    var messageBody = '';
+
+                    // accumulate response
+                    aquariusResponse.on(
+                        'data',
+                        function (chunk) {
+                            messageBody += chunk;
+                        });
+
+                    aquariusResponse.on('end', function () {
+                        try {
+                            var timeSeriesCorrectedData =
+                                JSON.parse(messageBody);
+                        }
+                        catch (e) {
+                            jsonParseErrorMessage(aq2rdbResponse, e.message);
+                            return;         // go no further
+                        }
+
+                        if (200 < aquariusResponse.statusCode) {
+                            rdbMessage(
+                                aq2rdbResponse,
+                                aquariusResponse.statusCode,
+                                '# ' + PACKAGE_NAME +
+                                    ': AQUARIUS replied with an error. ' +
+                                    'The message was:\n' +
+                                    '#\n' +
+                                    '#   ' +
+                                timeSeriesCorrectedData.ResponseStatus.Message
+                            );
+                        }
+                        else {
+                            // TODO: this is some cruft that is fairly
+                            // kludgey, and should probably be
+                            // re-factored.
+
+                            // make an RDB file
+                            var rdbTable =
+                                new RDBTable(
+                                    parameters,
+                                    timeSeriesCorrectedData
+                                );
+                            spec.response.end(rdbTable.toString());
+                        }
+                    });
+                } // callback
+
+                var n = timeSeriesDescriptions.length;
+                for (var i = 0; i < n; i++) {
+                    var path = AQUARIUS_PREFIX +
+                        'GetTimeSeriesCorrectedData?' +
+                        bind('token', parameters.token) +
+                        bind('format', 'json') +
+                        bind('timeSeriesUniqueId',
+                             timeSeriesDescriptions[i].UniqueId) +
+                        bind('queryFrom', parameters.queryFrom) +
+                        bind('queryTo', parameters.queryTo);
+                    // call GetTimeSeriesCorrectedData service to get
+                    // daily values associated with time series
+                    // descriptions
+                    var request = http.request({
+                        host: AQUARIUS_HOSTNAME,
+                        path: path
+                    }, callback);
+
+                    /**
+                       @description Handle GetTimeSeriesCorrectedData
+                                    service invocation errors.
+                    */
+                    request.on('error', function (error) {
+                        throw error;
+                    });
+
+                    request.end();
+                }
             });
         } // callback
 
