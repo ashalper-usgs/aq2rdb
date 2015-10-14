@@ -83,255 +83,6 @@ function jsonParseErrorMessage(response, message) {
     );
 }
 
-/**
-   @description Query object prototype.
-*/
-var Query = function (aq2rdbRequest, aq2rdbResponse) {
-    // parse HTTP query
-    var arg = querystring.parse(aq2rdbRequest.url);
-    // aqToken object, created at bottom of function
-    var aqToken;
-
-    if (arg.userName.length === 0) {
-        throw 'Required parameter \"userName\" not found';
-    }
-
-    if (arg.password.length === 0) {
-        throw 'Required parameter \"password\" not found';
-    }
-
-    // TODO: this might need to be factored-out eventually
-    if (arg.u !== undefined &&
-        (arg.a !== undefined || arg.n !== undefined ||
-         arg.t !== undefined || arg.s !== undefined ||
-         arg.d !== undefined || arg.r !== undefined ||
-         arg.p !== undefined)
-       ) {
-        throw 'If \"u\" is specified, \"a\", \"n\", \"t\", \"s\", ' +
-            '\"d\", \"r\", and \"p\" must be omitted';
-    }
-
-    this.request = aq2rdbRequest;
-    this.response = aq2rdbResponse;
-
-    // TODO: this might have multiple entry points and need to be
-    // declared in global scope eventually.
-    /**
-       @description Figure out what the aq2rdb request is, then call
-                    the necessary AQUARIUS API services to accomplish
-                    it.
-    */
-    function dispatch() {
-        var parameters = {
-            // Please pardon our weirdness while we transition from
-            // "Pseudoclassical" constructors to "Functional"
-            // constructors.
-            token: aqToken.toString(),
-            environment: 'production'
-        };
-
-        var dataType, ddID;
-
-        // get HTTP query arguments
-        for (var opt in arg) {
-            switch (opt) {
-            case 'z':
-                // -z now indicates environment, not database number. In
-                // AQUARIUS Era, logical database numbers have been
-                // superseded by named time-series environments. The
-                // default is 'production', and will work fine unless you
-                // know otherwise.
-                parameters.environment = arg[opt];
-                break;
-            case 'a':
-                parameters.agencyCode = arg[opt];
-                break;
-            case 'b':
-                parameters.queryFrom = arg[opt];
-                break;
-            case 'n':
-                // AQUARIUS seems to do ill-advised, implicit things with
-                // site PK
-                parameters.locationIdentifier =
-                    arg.a === undefined ? arg[opt] : arg[opt] + '-' + arg.a;
-                break;
-            case 'u':
-                // -u is a new option for specifying a time-series
-                // identifier, and is preferred over -d whenever possible
-                parameters.timeSeriesIdentifier = arg[opt];
-                break;
-            case 'd':
-                // -d data descriptor number is supported but is
-                // deprecated. This option will work for time series that
-                // were migrated from ADAPS. This will *not work for new
-                // time series* created in AQUARIUS (relies on ADAPS_DD
-                // time-series extended attribute). We prefer you use -u
-                // whenever possible.
-                ddID = arg[opt];
-                // TODO:
-                /*
-                  {
-                  "Name": "ADAPS_DD",
-                  "Type": "Decimal",
-                  "Value": 1
-                  },
-
-                  parameters.extendedFilters = 
-                */
-                break;
-            case 'r':
-                parameters.applyRounding = false;
-                break;
-            case 'c':
-                // For [data] type "dv", Output COMPUTED daily values
-                // only. For other types except pseudo-UV retrievals,
-                // combine date and time in a single column.
-                parameters.computed = true;
-                break;
-            case 't':
-                var dataType;
-                try {
-                    dataType = new DataType(arg[opt].toUpperCase());
-                }
-                catch (error) {
-                    rdbMessage(this.response, 400, error);
-                    return;
-                }
-                parameters.computationPeriodIdentifier =
-                    dataType.toComputationPeriodIdentifier();
-                break;
-            case 'l':
-                parameters.timeOffset = arg[opt];
-                break;
-            case 'e':
-                parameters.queryTo = arg[opt];
-                break;
-            }
-        }
-
-        // begin date validation
-        if (parameters.queryFrom !== undefined) {
-            // if (AQUARIUS) queryFrom (aq2rdb "b") field is not a valid
-            // ISO date string
-            if (isNaN(Date.parse(parameters.queryFrom))) {
-                rdbMessage(
-                    this.response, 400,
-                    PACKAGE_NAME +
-                        ': If \"b\" is specified, a valid 14-digit ISO ' +
-                        'date must be provided'
-                );
-                return;
-            }
-        }           
-
-        // Arguments -n, -d, -t, -i, and -y if -t is "MEAS" must
-        // be present as the prompting for missing arguments uses
-        // ADAPS subroutines that write the prompts to stdout
-        // (they're ports form Prime, remember?  so the RDB output
-        // has to go to a file, otherwise the prompts would be
-        // mixed in with the RDB output which would make things
-        // difficult for a pipeline. -z, and -a will default, and
-        // -m is ignored.
-        if (dataType === 'MEAS' &&
-            (parameters.locationIdentifier === undefined ||
-             ddID === undefined ||
-             parameters.transportCode === undefined)) {
-            rdbMessage(
-                this.response, 400,
-                '\"n\" and \"d\" fields ' +
-                    'must be present when \"t\" is \"MEAS\"'
-            );
-            return;
-        }
-
-        /**
-           @description Handle response from GetTimeSeriesDescriptionList.
-        */
-        function callback(response) {
-            var messageBody = '';
-
-            // accumulate response
-            response.on(
-                'data',
-                function (chunk) {
-                    messageBody += chunk;
-                });
-
-            response.on('end', function () {
-                var timeSeriesDescriptionServiceRequest;
-
-                try {
-                    timeSeriesDescriptionServiceRequest =
-                        JSON.parse(messageBody);
-                }
-                catch (e) {
-                    jsonParseErrorMessage(aq2rdbResponse, e.message);
-                    return;         // go no further
-                }
-
-                // if the GetTimeSeriesDescriptionList query returned no
-                // time series descriptions
-                if (timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
-                    === undefined) {
-                    // there's nothing more we can do
-                    rdbMessage(
-                        aq2rdbResponse, 200,
-                        'The query found no time series ' +
-                            'descriptions in AQUARIUS'
-                    );
-                    return;
-                }
-
-                var dvTable =
-                    new DVTable(
-                     parameters,
-                     timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
-                    );
-
-                // get the DVs from AQUARIUS and respond with the RDB file
-                dvTable.toRDB(aq2rdbResponse);
-            });
-        } // callback
-
-        // if time-series identifier is not present, and location
-        // identifier is present
-        if (parameters.timeSeriesIdentifier !== undefined) {
-            // The object this constructor creates is presently not
-            // needed [with everything useful subsequently happening
-            // in the context of callback()], but that could change in
-            // the future, so the constructor's return value would
-            // need to be saved, and possibly declared at an outer
-            // scope.
-            var timeSeriesIdentifier;
-            try {
-                // looks weird; timeSeriesIdentifier is Object,
-                // parameters.timeSeriesIdentifier is String
-                timeSeriesIdentifier =
-                    new TimeSeriesIdentifier(parameters.timeSeriesIdentifier);
-            }
-            catch (error) {
-                throw error;
-            }
-            timeSeriesDescriptionListClass({
-                token: aqToken.toString(),
-                timeSeriesIdentifier: timeSeriesIdentifier,
-                callback: callback
-            });
-        }
-    } // dispatch
-
-    try {
-        aqToken = aqTokenClass({
-            userName: arg.userName,
-            password: arg.password,
-            callback: dispatch
-        });
-    }
-    catch (error) {
-        throw error;
-    }
-} // Query
-
 var DataType = function (text) {
     // data type ("t") parameter domain validation
     switch (text) {
@@ -662,11 +413,12 @@ var DVTable = function (
         var n = timeSeriesDescriptions.length;
         for (var i = 0; i < n; i++) {
             var path = AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
-                    bind('token', parameters.token) + '&format=json' +
-                    bind('timeSeriesUniqueId',
-                         timeSeriesDescriptions[i].UniqueId) +
-                    bind('queryFrom', parameters.queryFrom) +
-                    bind('queryTo', parameters.queryTo);
+                bind('token', parameters.token) +
+                bind('format', 'json') +
+                bind('timeSeriesUniqueId',
+                     timeSeriesDescriptions[i].UniqueId) +
+                bind('queryFrom', parameters.queryFrom) +
+                bind('queryTo', parameters.queryTo);
             // call GetTimeSeriesCorrectedData service to get daily
             // values associated with time series descriptions
             var request = http.request({
@@ -690,6 +442,266 @@ var DVTable = function (
 // New-and-improved, "Functional" inheritance pattern constructors
 // start here; see *JavaScript: The Good Parts*, Douglas Crockford,
 // O'Reilly Media, Inc., 2008, Sec. 5.4.
+
+/**
+   @description aq2rdbClass object prototype.
+*/
+var aq2rdbClass = function (spec, my) {
+    var that = {};
+    // parse HTTP query
+    var arg = querystring.parse(spec.url);
+    // aqToken object, created at bottom of function
+    var aqToken;
+
+    if (arg.userName.length === 0) {
+        throw 'Required parameter \"userName\" not found';
+    }
+
+    if (arg.password.length === 0) {
+        throw 'Required parameter \"password\" not found';
+    }
+
+    // TODO: this might need to be factored-out eventually
+    if (arg.u !== undefined &&
+        (arg.a !== undefined || arg.n !== undefined ||
+         arg.t !== undefined || arg.s !== undefined ||
+         arg.d !== undefined || arg.r !== undefined ||
+         arg.p !== undefined)
+       ) {
+        throw 'If \"u\" is specified, \"a\", \"n\", \"t\", \"s\", ' +
+            '\"d\", \"r\", and \"p\" must be omitted';
+    }
+
+    my = my || {};
+
+    // add shared variables and functions to my
+
+    // add privileged methods to that
+    /*
+    that.getResource = function () {
+        return resource;
+    };
+    */
+
+    // TODO: this might have multiple entry points and need to be
+    // declared in global scope eventually.
+    /**
+       @description Figure out what the aq2rdb request is, then call
+                    the necessary AQUARIUS API services to accomplish
+                    it.
+    */
+    function dispatch() {
+        var parameters = {
+            // Please pardon our weirdness while we transition from
+            // "Pseudoclassical" constructors to "Functional"
+            // constructors.
+            token: aqToken.toString(),
+            environment: 'production'
+        };
+
+        var dataType, ddID;
+
+        // get HTTP query arguments
+        for (var opt in arg) {
+            switch (opt) {
+            case 'z':
+                // -z now indicates environment, not database number. In
+                // AQUARIUS Era, logical database numbers have been
+                // superseded by named time-series environments. The
+                // default is 'production', and will work fine unless you
+                // know otherwise.
+                parameters.environment = arg[opt];
+                break;
+            case 'a':
+                parameters.agencyCode = arg[opt];
+                break;
+            case 'b':
+                parameters.queryFrom = arg[opt];
+                break;
+            case 'n':
+                // AQUARIUS seems to do ill-advised, implicit things with
+                // site PK
+                parameters.locationIdentifier =
+                    arg.a === undefined ? arg[opt] : arg[opt] + '-' + arg.a;
+                break;
+            case 'u':
+                // -u is a new option for specifying a time-series
+                // identifier, and is preferred over -d whenever possible
+                parameters.timeSeriesIdentifier = arg[opt];
+                break;
+            case 'd':
+                // -d data descriptor number is supported but is
+                // deprecated. This option will work for time series that
+                // were migrated from ADAPS. This will *not work for new
+                // time series* created in AQUARIUS (relies on ADAPS_DD
+                // time-series extended attribute). We prefer you use -u
+                // whenever possible.
+                ddID = arg[opt];
+                // TODO:
+                /*
+                  {
+                  "Name": "ADAPS_DD",
+                  "Type": "Decimal",
+                  "Value": 1
+                  },
+
+                  parameters.extendedFilters = 
+                */
+                break;
+            case 'r':
+                parameters.applyRounding = false;
+                break;
+            case 'c':
+                // For [data] type "dv", Output COMPUTED daily values
+                // only. For other types except pseudo-UV retrievals,
+                // combine date and time in a single column.
+                parameters.computed = true;
+                break;
+            case 't':
+                var dataType;
+                try {
+                    dataType = new DataType(arg[opt].toUpperCase());
+                }
+                catch (error) {
+                    rdbMessage(spec.response, 400, error);
+                    return;
+                }
+                parameters.computationPeriodIdentifier =
+                    dataType.toComputationPeriodIdentifier();
+                break;
+            case 'l':
+                parameters.timeOffset = arg[opt];
+                break;
+            case 'e':
+                parameters.queryTo = arg[opt];
+                break;
+            }
+        }
+
+        // begin date validation
+        if (parameters.queryFrom !== undefined) {
+            // if (AQUARIUS) queryFrom (aq2rdb "b") field is not a valid
+            // ISO date string
+            if (isNaN(Date.parse(parameters.queryFrom))) {
+                rdbMessage(
+                    spec.response, 400,
+                    PACKAGE_NAME +
+                        ': If \"b\" is specified, a valid 14-digit ISO ' +
+                        'date must be provided'
+                );
+                return;
+            }
+        }           
+
+        // Arguments -n, -d, -t, -i, and -y if -t is "MEAS" must
+        // be present as the prompting for missing arguments uses
+        // ADAPS subroutines that write the prompts to stdout
+        // (they're ports form Prime, remember?  so the RDB output
+        // has to go to a file, otherwise the prompts would be
+        // mixed in with the RDB output which would make things
+        // difficult for a pipeline. -z, and -a will default, and
+        // -m is ignored.
+        if (dataType === 'MEAS' &&
+            (parameters.locationIdentifier === undefined ||
+             ddID === undefined ||
+             parameters.transportCode === undefined)) {
+            rdbMessage(
+                spec.response, 400,
+                '\"n\" and \"d\" fields ' +
+                    'must be present when \"t\" is \"MEAS\"'
+            );
+            return;
+        }
+
+        /**
+           @description Handle response from GetTimeSeriesDescriptionList.
+        */
+        function callback(response) {
+            var messageBody = '';
+
+            // accumulate response
+            response.on(
+                'data',
+                function (chunk) {
+                    messageBody += chunk;
+                });
+
+            response.on('end', function () {
+                var timeSeriesDescriptionServiceRequest;
+
+                try {
+                    timeSeriesDescriptionServiceRequest =
+                        JSON.parse(messageBody);
+                }
+                catch (e) {
+                    jsonParseErrorMessage(spec.response, e.message);
+                    return;         // go no further
+                }
+
+                // if the GetTimeSeriesDescriptionList query returned no
+                // time series descriptions
+                if (timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
+                    === undefined) {
+                    // there's nothing more we can do
+                    rdbMessage(
+                        spec.response, 200,
+                        'The query found no time series ' +
+                            'descriptions in AQUARIUS'
+                    );
+                    return;
+                }
+
+                var dvTable =
+                    new DVTable(
+                     parameters,
+                     timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
+                    );
+
+                // get the DVs from AQUARIUS and respond with the RDB file
+                dvTable.toRDB(spec.response);
+            });
+        } // callback
+
+        // if time-series identifier is not present, and location
+        // identifier is present
+        if (parameters.timeSeriesIdentifier !== undefined) {
+            // The object this constructor creates is presently not
+            // needed [with everything useful subsequently happening
+            // in the context of callback()], but that could change in
+            // the future, so the constructor's return value would
+            // need to be saved, and possibly declared at an outer
+            // scope.
+            var timeSeriesIdentifier;
+            try {
+                // looks weird; timeSeriesIdentifier is Object,
+                // parameters.timeSeriesIdentifier is String
+                timeSeriesIdentifier =
+                    new TimeSeriesIdentifier(parameters.timeSeriesIdentifier);
+            }
+            catch (error) {
+                throw error;
+            }
+            timeSeriesDescriptionListClass({
+                token: aqToken.toString(),
+                timeSeriesIdentifier: timeSeriesIdentifier,
+                callback: callback
+            });
+        }
+    } // dispatch
+
+    try {
+        aqToken = aqTokenClass({
+            userName: arg.userName,
+            password: arg.password,
+            callback: dispatch
+        });
+    }
+    catch (error) {
+        throw error;
+    }
+
+    return that;
+} // aq2rdbClass
 
 /**
    @description Time series description list, object prototype.
@@ -718,13 +730,14 @@ var timeSeriesDescriptionListClass = function (spec, my) {
     }
 
     var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
-        bind('token', spec.token) + '&format=json' +
+        bind('token', spec.token) +
+        bind('format', 'json') +
         bind('LocationIdentifier', locationIdentifier) +
         bind('Parameter', parameter) +
         bind('ComputationPeriodIdentifier',
-             spec.computationPeriodIdentifier) + 
-        '&ExtendedFilters=' +
-        '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
+             spec.computationPeriodIdentifier) +
+        bind('ExtendedFilters',
+             '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]');
     var request =
         http.request({
             host: AQUARIUS_HOSTNAME,
@@ -1006,10 +1019,10 @@ httpdispatcher.onGet(
 httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     request, response
 ) {
-    var query;
+    var aq2rdb;
 
     try {
-        query = new Query(request, response);
+        aq2rdb = aq2rdbClass({url: request.url, response: response});
     }
     catch (error) {
         rdbMessage(response, 400, error);
