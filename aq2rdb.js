@@ -284,7 +284,7 @@ var aq2rdbClass = function (spec, my) {
                 return;
             }
             my.computationPeriodIdentifier =
-                dataType.toComputationPeriodIdentifier();
+                my.dataType.toComputationPeriodIdentifier();
             break;
         case 'l':
             my.timeOffset = arg[opt];
@@ -322,16 +322,15 @@ var aq2rdbClass = function (spec, my) {
       };
     */
 
-    // TODO: this might have multiple entry points and need to be
-    // declared in global scope eventually.
     /**
-       @description Figure out what the aq2rdb request is, then call
-       the necessary AQUARIUS API services to accomplish
-       it.
+       @description Use HTTP query fields to decipher the desired
+                    aq2rdb request, then call the necessary AQUARIUS
+                    API services to accomplish it.
     */
     function dispatch() {
         /**
-           @description Handle response from GetTimeSeriesDescriptionList.
+           @description Handle response from
+                        GetTimeSeriesDescriptionList.
         */
         function timeSeriesDescriptionListCallback(response) {
             var messageBody = '';
@@ -457,8 +456,8 @@ var aq2rdbClass = function (spec, my) {
                         // probably going to need to be much more
                         // robust.
 
-                        // Note: a "header" is a very different thing
-                        // from a "heading".
+                        // RDB table heading (which is different than
+                        // a header).
                         my.response.write(
                             'DATE\tTIME\tVALUE\tPRECISION\tREMARK\t' +
                                 'FLAGS\tTYPE\tQA\n' +
@@ -466,14 +465,15 @@ var aq2rdbClass = function (spec, my) {
                         );
                         var n = timeSeriesCorrectedData.Points.length;
                         var body = '';
-                        // TODO: for tables with a large number of
-                        // rows, we'll probably need to convert this
-                        // loop to an event-driven mechanism (driven
-                        // by AQUARIUS response?), instead of
-                        // accumulating all RDB table
-                        // rows, and possibly using tons of memory.
+                        // TODO: for tables with a very large number
+                        // of rows, we'll probably need to convert
+                        // this loop to an event-driven mechanism
+                        // (driven by AQUARIUS response?), instead of
+                        // accumulating all RDB table rows, and
+                        // possibly using tons of memory.
                         for (var i = 0; i < n; i++) {
-                            // shorten some object references below
+                            // shorten some object identifier
+                            // references below
                             var point = timeSeriesCorrectedData.Points[i];
 
                             // TODO: For DVs at least (and perhaps
