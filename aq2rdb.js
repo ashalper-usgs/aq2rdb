@@ -179,6 +179,56 @@ var TimeSeriesIdentifier = function (text) {
 // O'Reilly Media, Inc., 2008, Sec. 5.4.
 
 /**
+   @description ISO 8601 "basic format" date prototype.
+   @see https://en.wikipedia.org/wiki/ISO_8601#General_principles
+*/
+var basicFormatClass = function (spec, my) {
+    var that = {};
+
+    // private instance variables go here
+
+    /**
+       @description Convert basic format date to extended format date.
+    */
+    function basicToExtended(text) {
+        return text.substr(0, 4) + '-' + text.substr(4, 2) + '-' +
+            text.substr(6, 2);
+    }
+
+    my = my || {};
+
+    // re-format as ISO "extended format" for Date.parse() purposes
+    var datestring = basicToExtended(spec.text);
+
+    if (isNaN(Date.parse(datestring))) {
+        throw 'Could not parse \"' + spec.text + '\"';
+    }
+
+    my.text = spec.text;
+
+    // that = a new object;    
+    // add privileged methods to that
+
+    /**
+       @description Convert ISO basic format to combined extended
+                    format, referenced to a specified point type.
+    */
+    that.toCombinedExtendedFormat = function (pointType) {
+        switch (pointType) {
+        case 'S':
+            // second
+            return basicToExtended(my.text) + 'T00:00:00';
+        }
+    } // toCombinedExtendedFormat
+
+    that.toString = function () {
+        return my.text;
+    } // toString
+
+    return that;
+} // basicFormatClass
+
+/**
    @description aq2rdbClass object prototype.
 */
 var aq2rdbClass = function (spec, my) {
@@ -228,7 +278,15 @@ var aq2rdbClass = function (spec, my) {
             my.agencyCode = arg[opt];
             break;
         case 'b':
-            my.queryFrom = arg[opt];
+            // TODO: need to worry about the (nwts2rdb-defaulted) time
+            // offset at some point
+            try {
+                my.b = basicFormatClass({text: arg[opt]});
+            }
+            catch (error) {
+                throw 'If \"b\" is specified, a valid ISO ' +
+                    'basic format date must be provided';
+            }
             break;
         case 'n':
             // AQUARIUS seems to do ill-advised, implicit things with
@@ -290,28 +348,18 @@ var aq2rdbClass = function (spec, my) {
             my.timeOffset = arg[opt];
             break;
         case 'e':
-            my.queryTo = arg[opt];
+            // TODO: need to worry about the (nwts2rdb-defaulted) time
+            // offset at some point
+            try {
+                my.e = basicFormatClass({text: arg[opt]});
+            }
+            catch (error) {
+                throw 'If \"e\" is specified, a valid ISO ' +
+                    'basic format date must be provided';
+            }
             break;
         }
     }
-
-    // begin date validation
-    if (my.queryFrom !== undefined) {
-        // TODO: need to modify to accept RFC3339 dates instead,
-        // for nwts2rdb backwards-compatibility purposes.
-
-        // if (AQUARIUS) queryFrom (aq2rdb "b") field is not a valid
-        // ISO date string
-        if (isNaN(Date.parse(my.queryFrom))) {
-            rdbMessage(
-                my.response, 400,
-                PACKAGE_NAME +
-                    ': If \"b\" is specified, a valid 14-digit ISO ' +
-                    'date must be provided'
-            );
-            return;
-        }
-    }           
 
     // add shared variables and functions to my
 
@@ -372,7 +420,7 @@ var aq2rdbClass = function (spec, my) {
 
                 /**
                    @description Handle response from
-                   GetTimeSeriesCorrectedData.
+                                GetTimeSeriesCorrectedData.
                 */
                 function getTimeSeriesCorrectedDataCallback(aquariusResponse) {
                     var messageBody = '';
@@ -411,10 +459,6 @@ var aq2rdbClass = function (spec, my) {
 
                         // some convoluted syntax for "now"
                         var retrieved = rfc3339((new Date()).toISOString());
-                        // make TimeSeriesIdentifier object from HTTP
-                        // query parameter text
-                        var timeSeriesIdentifier =
-                            new TimeSeriesIdentifier(my.timeSeriesIdentifier);
                         var agencyCode, siteNumber;
 
                         // if locationIdentifier was not provided
@@ -445,10 +489,8 @@ var aq2rdbClass = function (spec, my) {
                                 '# //STATION AGENCY=\"' + agencyCode +
                                 ' \" NUMBER=\"' + siteNumber +
                                 '       \"\n' +
-                                '# //RANGE START=\"' +
-                                rfc3339(my.queryFrom) +
-                                '\" END=\"' + rfc3339(my.queryTo) +
-                                '\"\n'
+                                '# //RANGE START=\"' + my.b.toString() +
+                                '\" END=\"' + my.e.toString() + '\"\n'
                         );
 
                         // TODO: the code that produces the RDB,
@@ -626,8 +668,8 @@ var aq2rdbClass = function (spec, my) {
                         bind('format', 'json') +
                         bind('timeSeriesUniqueId',
                              timeSeriesDescriptions[i].UniqueId) +
-                        bind('queryFrom', my.queryFrom) +
-                        bind('queryTo', my.queryTo);
+                        bind('queryFrom', my.b.toCombinedExtendedFormat('S')) +
+                        bind('queryTo', my.e.toCombinedExtendedFormat('S'));
                     // call GetTimeSeriesCorrectedData service to get
                     // daily values associated with time series
                     // descriptions
@@ -649,9 +691,14 @@ var aq2rdbClass = function (spec, my) {
             });
         } // timeSeriesDescriptionListCallback
 
-        // if time-series identifier is not present, and location
-        // identifier is present
-        if (my.timeSeriesIdentifier !== undefined) {
+        if (my.timeSeriesIdentifier === undefined) {
+            // TODO: figure out how to retrieve given only:
+            //
+            // &a=USGS&n=06087000&t=dv&s=00011&b=19111001&e=19121001
+        }
+        else {
+            // time-series identifier is not present
+
             // The object this constructor creates is presently not
             // needed [with everything useful subsequently happening
             // in the context of timeSeriesDescriptionListCallback()],
@@ -726,7 +773,6 @@ var timeSeriesDescriptionListClass = function (spec, my) {
                     invocation errors.
     */
     request.on('error', function (error) {
-        log('error: ' + error);
         handleService('GetTimeSeriesDescriptionList',
                       aq2rdbResponse, error);
     });
