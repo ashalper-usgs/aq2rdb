@@ -174,7 +174,7 @@ var TimeSeriesIdentifier = function (text) {
     }
 } // TimeSeriesIdentifier
 
-// New-and-improved, "Functional" inheritance pattern constructors
+// New-and-improved, "functional" inheritance pattern constructors
 // start here; see *JavaScript: The Good Parts*, Douglas Crockford,
 // O'Reilly Media, Inc., 2008, Sec. 5.4.
 
@@ -257,8 +257,8 @@ var aq2rdbClass = function (spec, my) {
             '\"d\", \"r\", and \"p\" must be omitted';
     }
 
-    // "protected" visibility (I think, if I understand the pattern
-    // conventions) property storage
+    // "protected" visibility (I think, if I understand the functional
+    // inheritance pattern conventions) property storage
     my = my || {};
     my.environment = 'production';
     my.response = spec.response;
@@ -289,10 +289,7 @@ var aq2rdbClass = function (spec, my) {
             }
             break;
         case 'n':
-            // AQUARIUS seems to do ill-advised, implicit things with
-            // site PK
-            my.locationIdentifier =
-                arg.a === undefined ? arg[opt] : arg[opt] + '-' + arg.a;
+            my.n = arg[opt];
             break;
         case 'u':
             // -u is a new option for specifying a time-series
@@ -312,17 +309,12 @@ var aq2rdbClass = function (spec, my) {
             // time series* created in AQUARIUS (relies on ADAPS_DD
             // time-series extended attribute). We prefer you use -u
             // whenever possible.
-            my.ddID = arg[opt];
-            // TODO:
-            /*
-              {
-              "Name": "ADAPS_DD",
-              "Type": "Decimal",
-              "Value": 1
-              },
-
-              my.extendedFilters = 
-            */
+            var d = parseInt(arg[opt]);
+            if (isNaN(d))
+                throw 'Data descriptor (\"d\") field must be ' +
+                'an integer';
+            else
+                my.d = d;
             break;
         case 'r':
             my.applyRounding = false;
@@ -680,7 +672,7 @@ var aq2rdbClass = function (spec, my) {
 
                     /**
                        @description Handle GetTimeSeriesCorrectedData
-                       service invocation errors.
+                                    service invocation errors.
                     */
                     request.on('error', function (error) {
                         throw error;
@@ -695,6 +687,16 @@ var aq2rdbClass = function (spec, my) {
             // TODO: figure out how to retrieve given only:
             //
             // &a=USGS&n=06087000&t=dv&s=00011&b=19111001&e=19121001
+            timeSeriesDescriptionListClass({
+                token: my.aqToken.toString(),
+                locationIdentifier: eval(
+                    my.a === undefined ? my.n : my.n + '-' + my.a
+                ),
+                // data descriptor number defaults to 1 if omitted
+                extendedFilters: '[{FilterName:ADAPS_DD,FilterValue:' +
+                    eval(my.d === undefined ? '1' : my.d) + '}]',
+                callback: timeSeriesDescriptionListCallback
+            });
         }
         else {
             // time-series identifier is not present
@@ -703,11 +705,13 @@ var aq2rdbClass = function (spec, my) {
             // needed [with everything useful subsequently happening
             // in the context of timeSeriesDescriptionListCallback()],
             // but that could change in the future, so the
-            // constructor's return value would need to be saved, and
-            // possibly declared at an outer scope.
+            // constructor's return value would need to be saved here
+            // (in e.g., "timeSeriesDescriptionList"), and declared at
+            // an outer scope.
             timeSeriesDescriptionListClass({
                 token: my.aqToken.toString(),
                 timeSeriesIdentifier: my.timeSeriesIdentifier,
+                extendedFilters: '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]',
                 callback: timeSeriesDescriptionListCallback
             });
         }
@@ -731,28 +735,34 @@ var aq2rdbClass = function (spec, my) {
    @description Time series description list, object prototype.
 */
 var timeSeriesDescriptionListClass = function (spec, my) {
-    var timeSeriesIdentifier = spec.timeSeriesIdentifier;
+    var locationIdentifier;
+    var parameter;
 
-    var parameter = timeSeriesIdentifier.parameter();
-    if (parameter === undefined) {
-        rdbMessage(
-            aq2rdbResponse, 400, 
-            'Could not parse \"Parameter\" field value from ' +
-                '\"timeSeriesIdentifier\" field value'
-        );
-        return;
+    if (spec.locationIdentifier !== undefined &&
+        spec.timeSeriesIdentifier === undefined) {
+        locationIdentifier = spec.locationIdentifier;
+    }
+    else if (spec.locationIdentifier === undefined &&
+             spec.timeSeriesIdentifier !== undefined) {
+        locationIdentifier =
+            spec.timeSeriesIdentifier.locationIdentifier();
+        if (locationIdentifier === undefined) {
+            throw 'Could not parse \"locationIdentifier\" field ' +
+                'value from \"timeSeriesIdentifier\" field value';
+        }
+
+        parameter = spec.timeSeriesIdentifier.parameter();
+        if (parameter === undefined) {
+            throw 'Could not parse \"Parameter\" field value from ' +
+                    '\"timeSeriesIdentifier\" field value';
+        }
+    }
+    else {
+        throw 'locationIdentifier and timeSeriesIdentifier ' +
+            'properties are mutually-exclusive';
     }
 
-    var locationIdentifier = timeSeriesIdentifier.locationIdentifier();
-    if (locationIdentifier === undefined) {
-        rdbMessage(
-            aq2rdbResponse, 400, 
-            'Could not parse \"locationIdentifier\" field value from ' +
-                '\"timeSeriesIdentifier\" field value'
-        );
-        return;
-    }
-
+    // the path part of GetTimeSeriesDescriptionList URL
     var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
         bind('token', spec.token) +
         bind('format', 'json') +
@@ -760,8 +770,8 @@ var timeSeriesDescriptionListClass = function (spec, my) {
         bind('Parameter', parameter) +
         bind('ComputationPeriodIdentifier',
              spec.computationPeriodIdentifier) +
-        bind('ExtendedFilters',
-             '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]');
+        bind('ExtendedFilters', spec.extendedFilters);
+
     var request =
         http.request({
             host: AQUARIUS_HOSTNAME,
