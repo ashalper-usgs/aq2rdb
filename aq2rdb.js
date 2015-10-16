@@ -307,59 +307,57 @@ var RDBBody = function(timeSeriesCorrectedData) {
     } // write
 } // RDBBody
 
-// New-and-improved, "functional" inheritance pattern constructors
-// start here; see *JavaScript: The Good Parts*, Douglas Crockford,
-// O'Reilly Media, Inc., 2008, Sec. 5.4.
-
-var rdbHeaderClass = function (spec, my) {
-    var that = {};
-    // other private instance variables;
-
+/**
+   @description RDBHeader object prototype.
+*/
+var RDBHeader = function (locationIdentifier, timeSeriesIdentifier,
+                          b, e) {
     // some convoluted syntax for "now"
     var retrieved = toBasicFormat((new Date()).toISOString());
     var agencyCode, siteNumber;
 
     // if locationIdentifier was not provided
-    if (spec.locationIdentifier === undefined) {
+    if (locationIdentifier === undefined) {
+        // TODO: move defaulting logic to timeSeriesIdentifier
+        // prototype?
         agencyCode = 'USGS';    // default agency code
-        // reference site number embedded in
-        // timeSeriesIdentifier
-        siteNumber = spec.timeSeriesIdentifier.siteNumber();
+        // reference site number embedded in timeSeriesIdentifier
+        siteNumber = timeSeriesIdentifier.siteNumber();
     }
     else {
         // parse (agency code, site number) embedded in
         // locationIdentifier
-        var f = spec.locationIdentifier.split('-')[0];
+        var field = locationIdentifier.split('-')[0];
 
-        agencyCode = f[1];
-        siteNumber = f[0];
+        agencyCode = field[1];
+        siteNumber = field[0];
     }
 
-    my = my || {};
+    this.write = function (response) {
+        response.write(
+            '# //UNITED STATES GEOLOGICAL SURVEY       ' +
+                'http://water.usgs.gov/\n' +
+                '# //NATIONAL WATER INFORMATION SYSTEM     ' +
+                'http://water.usgs.gov/data.html\n' +
+                '# //DATA ARE PROVISIONAL AND ' +
+                'SUBJECT TO CHANGE UNTIL PUBLISHED ' +
+                'BY USGS\n' +
+                '# //RETRIEVED: ' + retrieved + '\n' +
+                '# //FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=NO\n' +
+                '# //STATION AGENCY="' + agencyCode +
+                ' " NUMBER="' + siteNumber +
+                '       "\n' +
+                '# //STATION NAME="' + 'TODO' + '"\n' +
+                '# //RANGE START="' + b.toString() +
+                '" END="' + e.toString() + '"\n'
+        );
+    } // write
 
-    my.text = '# //UNITED STATES GEOLOGICAL SURVEY       ' +
-        'http://water.usgs.gov/\n' +
-        '# //NATIONAL WATER INFORMATION SYSTEM     ' +
-        'http://water.usgs.gov/data.html\n' +
-        '# //DATA ARE PROVISIONAL AND ' +
-        'SUBJECT TO CHANGE UNTIL PUBLISHED ' +
-        'BY USGS\n' +
-        '# //RETRIEVED: ' + retrieved + '\n' +
-        '# //FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=NO\n' +
-        '# //STATION AGENCY="' + agencyCode + ' " NUMBER="' + siteNumber +
-        '       "\n' +
-        '# //STATION NAME="' + 'TODO' + '"\n' +
-        '# //RANGE START="' + spec.b.toString() +
-        '" END="' + spec.e.toString() + '"\n';
+} // RDBHeader
 
-    // shared variables and functions
-
-    that.toString = function () {
-        return my.text;
-    } // toString()
-
-    return that;
-} // rdbHeaderClass
+// "Functional" inheritance pattern constructors start here; see
+// *JavaScript: The Good Parts*, Douglas Crockford, O'Reilly Media,
+// Inc., 2008, Sec. 5.4.
 
 /**
    @description ISO 8601 "basic format" date prototype.
@@ -633,14 +631,12 @@ var aq2rdbClass = function (spec, my) {
                             return;
                         }
 
-                        var rdbHeader = rdbHeaderClass({
-                            locationIdentifier: my.locationIdentifier,
-                            timeSeriesIdentifier: my.timeSeriesIdentifier,
-                            b: my.b,
-                            e: my.e
-                        });
-
-                        my.response.write(rdbHeader.toString());
+                        var rdbHeader = new RDBHeader(
+                            my.locationIdentifier,
+                            my.timeSeriesIdentifier,
+                            my.b, my.e
+                        );
+                        rdbHeader.write(my.response);
 
                         // TODO: the code that produces the RDB,
                         // column data type declarations below is
@@ -655,8 +651,7 @@ var aq2rdbClass = function (spec, my) {
                                 '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n'
                         );
 
-                        var rdbBody =
-                            new RDBBody(timeSeriesCorrectedData);
+                        var rdbBody = new RDBBody(timeSeriesCorrectedData);
                         rdbBody.write(my.response);
                         my.response.end();
                     });
