@@ -46,13 +46,11 @@ function rdbMessage(response, statusCode, message) {
 }
 
 /**
-   @description Convert an ISO 8601 date string to (a specific
-                instance of) an RFC3339 date (for our purposes, the
-                instance of which doesn't happen to have a specific
-                name).
+   @description Convert an ISO 8601 extended format, date string to
+                basic format.
 */
-function rfc3339(isoString) {
-    return isoString.replace('T', ' ').replace(/\.\d*/, '');
+function toBasicFormat(s) {
+    return s.replace('T', ' ').replace(/\.\d*/, '');
 }
 
 /**
@@ -107,7 +105,7 @@ var DataType = function (text) {
     case 'QW':
         throw 'Discrete water quality data are not supported';
         break;
-	// these are the only valid "t" parameter values right now
+    // these are the only valid "t" parameter values right now
     case 'DV':
     case 'UV':
         break;
@@ -128,7 +126,7 @@ var DataType = function (text) {
 } // DataType
 
 /**
-   @description TimeSeriesIdentifier prototype.
+   @description TimeSeriesIdentifier object prototype.
 */
 var TimeSeriesIdentifier = function (text) {
     // private; no reason to modify this once the object is created
@@ -174,20 +172,22 @@ var TimeSeriesIdentifier = function (text) {
     }
 } // TimeSeriesIdentifier
 
+/**
+   @description RDBBody object prototype.
+*/
 var RDBBody = function(timeSeriesCorrectedData) {
     var timeSeriesCorrectedData = timeSeriesCorrectedData;
 
     this.write = function (response) {
-	var n = timeSeriesCorrectedData.Points.length;
-	var body = '';
-	// TODO: for tables with a very large number of rows, we'll
-	// probably need to convert this loop to an event-driven
-	// mechanism (driven by AQUARIUS response?), instead of
-	// accumulating all RDB table rows, and possibly using tons of
-	// memory.
-	for (var i = 0; i < n; i++) {
-            // shorten some object identifier
-            // references below
+        var n = timeSeriesCorrectedData.Points.length;
+        var body = '';
+        // TODO: for tables with a very large number of rows, we'll
+        // probably need to convert this loop to an event-driven
+        // mechanism (driven by AQUARIUS response?), instead of
+        // accumulating all RDB table rows, and possibly using tons of
+        // memory.
+        for (var i = 0; i < n; i++) {
+            // shorten some object identifier references below
             var point = timeSeriesCorrectedData.Points[i];
 
             // TODO: For DVs at least (and perhaps other types),
@@ -245,67 +245,65 @@ var RDBBody = function(timeSeriesCorrectedData) {
             // TODO: ugly, ISO 8601 to RFC3339 subtype,
             // date-reformatting to re-factor eventually
             response.write(
-		point.Timestamp.split('T')[0].replace(/-/g, '')
-                    +
-                    // TIME column always empty for
-                    // daily values
+                point.Timestamp.split('T')[0].replace(/-/g, '') +
+                    // TIME column will always be empty for daily
+                    // values
                     '\t\t' + value + '\t' +
 
-		// On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-		// <sbarthol@usgs.gov> said:
-		//
-		// Precision isn't stored in the database so it would
-		// have to be derived from the numeric string returned
-		// in the json output. I don't know how useful it is
-		// anymore. It was mainly there for the "suppress
-		// rounding" option so the user would know how many
-		// digits to round it to for rounded display.
-		value.toString().replace('.', '').length +
-                    '\t' +
+                // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
+                // <sbarthol@usgs.gov> said:
+                //
+                // Precision isn't stored in the database so it would
+                // have to be derived from the numeric string returned
+                // in the json output. I don't know how useful it is
+                // anymore. It was mainly there for the "suppress
+                // rounding" option so the user would know how many
+                // digits to round it to for rounded display.
+                value.toString().replace('.', '').length + '\t' +
 
-		// On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-		// <sbarthol@usgs.gov> said:
-		//
-		// Remark will have to be derived from the Qualifier
-		// section of the response. It will have begin and end
-		// dates for various qualification periods.
+                // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
+                // <sbarthol@usgs.gov> said:
+                //
+                // Remark will have to be derived from the Qualifier
+                // section of the response. It will have begin and end
+                // dates for various qualification periods.
 
-		// TODO: "Notes" looks like it's an array in the JSON
-		// messageBody, so we might need further processing
-		// here
-		timeSeriesCorrectedData.Notes + '\t' +
+                // TODO: "Notes" looks like it's an array in the JSON
+                // messageBody, so we might need further processing
+                // here
+                timeSeriesCorrectedData.Notes + '\t' +
 
-		// On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-		// <sbarthol@usgs.gov> said:
-		//
-		// I think some of what used to be flags are now
-		// Qualifiers. Things like thereshold exceedances
-		// (high, very high, low, very low, rapid
-		// increace/decreast [sic], etc.). The users might
-		// want you to put something in that column for the
-		// Method and Grade sections of the response as well
-		'\t' +
+                // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
+                // <sbarthol@usgs.gov> said:
+                //
+                // I think some of what used to be flags are now
+                // Qualifiers. Things like thereshold exceedances
+                // (high, very high, low, very low, rapid
+                // increace/decreast [sic], etc.). The users might
+                // want you to put something in that column for the
+                // Method and Grade sections of the response as well
+                '\t' +
 
-		// TODO: need to ask Brad and/or users about
-		// preserving the TYPE column (see excerpt from
-		// Scott's mail below).
+                // TODO: need to ask Brad and/or users about
+                // preserving the TYPE column (see excerpt from
+                // Scott's mail below).
 
-		// On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-		// <sbarthol@usgs.gov> said:
-		//
-		// Type I would put in something like "R" for raw and
-		// "C" for corrected depending on which get method was
-		// used. That is similar to what C (computed) and E
-		// (Edited) meant for DV data in Adaps.  We don't
-		// explicitly have the Meas, Edit, and Comp UV types
-		// anymore, they are separate timeseries in AQUARIUS.
-		'\t' +
+                // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
+                // <sbarthol@usgs.gov> said:
+                //
+                // Type I would put in something like "R" for raw and
+                // "C" for corrected depending on which get method was
+                // used. That is similar to what C (computed) and E
+                // (Edited) meant for DV data in Adaps.  We don't
+                // explicitly have the Meas, Edit, and Comp UV types
+                // anymore, they are separate timeseries in AQUARIUS.
+                '\t' +
                     // TODO: FLAGS?
                     '\t' +
-                    timeSeriesCorrectedData.Approvals[0].LevelDescription.charAt(0)
+                timeSeriesCorrectedData.Approvals[0].LevelDescription.charAt(0)
                     + '\n'
             );
-	}
+        }
     } // write
 } // RDBBody
 
@@ -318,7 +316,7 @@ var rdbHeaderClass = function (spec, my) {
     // other private instance variables;
 
     // some convoluted syntax for "now"
-    var retrieved = rfc3339((new Date()).toISOString());
+    var retrieved = toBasicFormat((new Date()).toISOString());
     var agencyCode, siteNumber;
 
     // if locationIdentifier was not provided
@@ -657,9 +655,9 @@ var aq2rdbClass = function (spec, my) {
                                 '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n'
                         );
 
-			var rdbBody =
-			    new	RDBBody(timeSeriesCorrectedData);
-			rdbBody.write(my.response);
+                        var rdbBody =
+                            new RDBBody(timeSeriesCorrectedData);
+                        rdbBody.write(my.response);
                         my.response.end();
                     });
                 } // getTimeSeriesCorrectedDataCallback
