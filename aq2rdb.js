@@ -363,10 +363,8 @@ var RDBHeader = function (locationIdentifier, timeSeriesIdentifier,
    @description ISO 8601 "basic format" date prototype.
    @see https://en.wikipedia.org/wiki/ISO_8601#General_principles
 */
-var basicFormatClass = function (spec, my) {
-    var that = {};
-
-    // private instance variables go here
+var BasicFormat = function (text) {
+    var text = text;
 
     /**
        @description Convert basic format date to extended format date.
@@ -376,38 +374,30 @@ var basicFormatClass = function (spec, my) {
             text.substr(6, 2);
     }
 
-    my = my || {};
-
     // re-format as ISO "extended format" for Date.parse() purposes
-    var datestring = basicToExtended(spec.text);
+    var datestring = basicToExtended(text);
 
     if (isNaN(Date.parse(datestring))) {
-        throw 'Could not parse \"' + spec.text + '\"';
+        throw 'Could not parse \"' + text + '\"';
     }
-
-    my.text = spec.text;
-
-    // that = a new object;    
-    // add privileged methods to that
 
     /**
        @description Convert ISO basic format to combined extended
                     format, referenced to a specified point type.
     */
-    that.toCombinedExtendedFormat = function (pointType) {
+    this.toCombinedExtendedFormat = function (pointType) {
         switch (pointType) {
         case 'S':
             // second
-            return basicToExtended(my.text) + 'T00:00:00';
+            return basicToExtended(text) + 'T00:00:00';
         }
     } // toCombinedExtendedFormat
 
-    that.toString = function () {
-        return my.text;
+    this.toString = function () {
+        return text;
     } // toString
 
-    return that;
-} // basicFormatClass
+} // BasicFormat
 
 /**
    @description aq2rdbClass object prototype.
@@ -462,7 +452,7 @@ var aq2rdbClass = function (spec, my) {
             // TODO: need to worry about the (nwts2rdb-defaulted) time
             // offset at some point
             try {
-                my.b = basicFormatClass({text: arg[opt]});
+                my.b = new BasicFormat(arg[opt]);
             }
             catch (error) {
                 throw 'If \"b\" is specified, a valid ISO ' +
@@ -525,7 +515,7 @@ var aq2rdbClass = function (spec, my) {
             // TODO: need to worry about the (nwts2rdb-defaulted) time
             // offset at some point
             try {
-                my.e = basicFormatClass({text: arg[opt]});
+                my.e = new BasicFormat(arg[opt]);
             }
             catch (error) {
                 throw 'If \"e\" is specified, a valid ISO ' +
