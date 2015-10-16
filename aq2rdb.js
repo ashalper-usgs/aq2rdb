@@ -178,6 +178,56 @@ var TimeSeriesIdentifier = function (text) {
 // start here; see *JavaScript: The Good Parts*, Douglas Crockford,
 // O'Reilly Media, Inc., 2008, Sec. 5.4.
 
+var rdbHeaderClass = function (spec, my) {
+    var that = {};
+    // other private instance variables;
+
+    // some convoluted syntax for "now"
+    var retrieved = rfc3339((new Date()).toISOString());
+    var agencyCode, siteNumber;
+
+    // if locationIdentifier was not provided
+    if (spec.locationIdentifier === undefined) {
+        agencyCode = 'USGS';    // default agency code
+        // reference site number embedded in
+        // timeSeriesIdentifier
+        siteNumber = spec.timeSeriesIdentifier.siteNumber();
+    }
+    else {
+        // parse (agency code, site number) embedded in
+        // locationIdentifier
+        var f = spec.locationIdentifier.split('-')[0];
+
+        agencyCode = f[1];
+        siteNumber = f[0];
+    }
+
+    my = my || {};
+
+    my.text = '# //UNITED STATES GEOLOGICAL SURVEY       ' +
+        'http://water.usgs.gov/\n' +
+        '# //NATIONAL WATER INFORMATION SYSTEM     ' +
+        'http://water.usgs.gov/data.html\n' +
+        '# //DATA ARE PROVISIONAL AND ' +
+        'SUBJECT TO CHANGE UNTIL PUBLISHED ' +
+        'BY USGS\n' +
+        '# //RETRIEVED: ' + retrieved + '\n' +
+        '# //FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=NO\n' +
+        '# //STATION AGENCY="' + agencyCode + ' " NUMBER="' + siteNumber +
+        '       "\n' +
+        '# //STATION NAME="' + 'TODO' + '"\n' +
+        '# //RANGE START="' + spec.b.toString() +
+        '" END="' + spec.e.toString() + '"\n';
+
+    // shared variables and functions
+
+    that.toString = function () {
+        return my.text;
+    } // toString()
+
+    return that;
+} // rdbHeaderClass
+
 /**
    @description ISO 8601 "basic format" date prototype.
    @see https://en.wikipedia.org/wiki/ISO_8601#General_principles
@@ -235,8 +285,8 @@ var aq2rdbClass = function (spec, my) {
     var that = {};
     // parse HTTP query
     var arg = querystring.parse(spec.url);
-    // aqToken object, created at bottom of function
-    var aqToken;
+    // aquariusToken object, created at bottom of function
+    var aquariusToken;
 
     if (arg.userName.length === 0) {
         throw 'Required parameter \"userName\" not found';
@@ -315,6 +365,7 @@ var aq2rdbClass = function (spec, my) {
                 'an integer';
             else
                 my.d = d;
+
             break;
         case 'r':
             my.applyRounding = false;
@@ -367,7 +418,7 @@ var aq2rdbClass = function (spec, my) {
                     aq2rdb request, then call the necessary AQUARIUS
                     API services to accomplish it.
     */
-    function dispatch() {
+    function aquariusTokenCallback() {
         /**
            @description Handle response from
                         GetTimeSeriesDescriptionList.
@@ -449,41 +500,14 @@ var aq2rdbClass = function (spec, my) {
                             return;
                         }
 
-                        // some convoluted syntax for "now"
-                        var retrieved = rfc3339((new Date()).toISOString());
-                        var agencyCode, siteNumber;
+                        var rdbHeader = rdbHeaderClass({
+                            locationIdentifier: my.locationIdentifier,
+                            timeSeriesIdentifier: my.timeSeriesIdentifier,
+                            b: my.b,
+                            e: my.e
+                        });
 
-                        // if locationIdentifier was not provided
-                        if (my.locationIdentifier === undefined) {
-                            agencyCode = 'USGS';    // default agency code
-                            // reference site number embedded in
-                            // timeSeriesIdentifier
-                            siteNumber = my.timeSeriesIdentifier.siteNumber();
-                        }
-                        else {
-                            // parse (agency code, site number) embedded in
-                            // locationIdentifier
-                            var f = my.locationIdentifier.split('-')[0];
-
-                            agencyCode = f[1];
-                            siteNumber = f[0];
-                        }
-                        
-                        my.response.write(
-                            '# //UNITED STATES GEOLOGICAL SURVEY       ' +
-                                'http://water.usgs.gov/\n' +
-                                '# //NATIONAL WATER INFORMATION SYSTEM     ' +
-                                'http://water.usgs.gov/data.html\n' +
-                                '# //DATA ARE PROVISIONAL AND ' +
-                                'SUBJECT TO CHANGE UNTIL PUBLISHED ' +
-                                'BY USGS\n' +
-                                '# //RETRIEVED: ' + retrieved + '\n' +
-                                '# //STATION AGENCY=\"' + agencyCode +
-                                ' \" NUMBER=\"' + siteNumber +
-                                '       \"\n' +
-                                '# //RANGE START=\"' + my.b.toString() +
-                                '\" END=\"' + my.e.toString() + '\"\n'
-                        );
+                        my.response.write(rdbHeader.toString());
 
                         // TODO: the code that produces the RDB,
                         // column data type declarations below is
@@ -497,6 +521,7 @@ var aq2rdbClass = function (spec, my) {
                                 'FLAGS\tTYPE\tQA\n' +
                                 '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n'
                         );
+
                         var n = timeSeriesCorrectedData.Points.length;
                         var body = '';
                         // TODO: for tables with a very large number
@@ -656,7 +681,7 @@ var aq2rdbClass = function (spec, my) {
                 for (var i = 0; i < n; i++) {
                     var path = AQUARIUS_PREFIX +
                         'GetTimeSeriesCorrectedData?' +
-                        bind('token', my.aqToken.toString()) +
+                        bind('token', my.aquariusToken.toString()) +
                         bind('format', 'json') +
                         bind('timeSeriesUniqueId',
                              timeSeriesDescriptions[i].UniqueId) +
@@ -683,12 +708,20 @@ var aq2rdbClass = function (spec, my) {
             });
         } // timeSeriesDescriptionListCallback
 
+        // The object returned by the timeSeriesDescriptionListClass
+        // constructor below is presently not needed [with everything
+        // useful subsequently happening in the context of
+        // timeSeriesDescriptionListCallback()], but that could change
+        // in the future, so the constructor's return value would need
+        // to be saved (e.g. in "timeSeriesDescriptionList"), and
+        // declared at an outer scope.
+
         if (my.timeSeriesIdentifier === undefined) {
             // TODO: figure out how to retrieve given only:
             //
             // &a=USGS&n=06087000&t=dv&s=00011&b=19111001&e=19121001
             timeSeriesDescriptionListClass({
-                token: my.aqToken.toString(),
+                token: my.aquariusToken.toString(),
                 locationIdentifier: eval(
                     my.a === undefined ? my.n : my.n + '-' + my.a
                 ),
@@ -700,28 +733,20 @@ var aq2rdbClass = function (spec, my) {
         }
         else {
             // time-series identifier is not present
-
-            // The object this constructor creates is presently not
-            // needed [with everything useful subsequently happening
-            // in the context of timeSeriesDescriptionListCallback()],
-            // but that could change in the future, so the
-            // constructor's return value would need to be saved here
-            // (in e.g., "timeSeriesDescriptionList"), and declared at
-            // an outer scope.
             timeSeriesDescriptionListClass({
-                token: my.aqToken.toString(),
+                token: my.aquariusToken.toString(),
                 timeSeriesIdentifier: my.timeSeriesIdentifier,
                 extendedFilters: '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]',
                 callback: timeSeriesDescriptionListCallback
             });
         }
-    } // dispatch
+    } // aquariusTokenCallback
 
     try {
-        my.aqToken = aqTokenClass({
+        my.aquariusToken = aquariusTokenClass({
             userName: arg.userName,
             password: arg.password,
-            callback: dispatch
+            callback: aquariusTokenCallback
         });
     }
     catch (error) {
@@ -793,7 +818,7 @@ var timeSeriesDescriptionListClass = function (spec, my) {
 /**
    @description AQUARIUS token string, object prototype.
 */
-var aqTokenClass = function (spec, my) {
+var aquariusTokenClass = function (spec, my) {
     var that = {};
 
     if (spec.userName === undefined)
@@ -874,13 +899,13 @@ var aqTokenClass = function (spec, my) {
     }
 
     return that;
-} // aqTokenClass
+} // aquariusTokenClass
 
 var dvTableClass = function (spec, my) {
     var that = {};
     // private instance variables
     // AQUARIUS clerical stuff
-    var aqToken;
+    var aquariusToken;
     var environment;
     // science stuff
     var timeSeriesIdentifier;
@@ -910,7 +935,7 @@ var dvTableClass = function (spec, my) {
         switch (field) {
         case 'userName':
         case 'password':
-            // see aqTokenClass constructor call below
+            // see aquariusTokenClass constructor call below
             break;
         case 'environment':
             environment = spec[field];
@@ -969,10 +994,10 @@ var dvTableClass = function (spec, my) {
 
     // try to get AQUARIUS token from aquarius-token service
     try {
-        aqToken = aqTokenClass({
+        aquariusToken = aquariusTokenClass({
             userName: spec.userName,
             password: spec.password,
-            callback: aqTokenCallback
+            callback: aquariusTokenCallback
         });
     }
     catch (error) {
@@ -987,14 +1012,14 @@ var dvTableClass = function (spec, my) {
         log('timeSeriesDescriptionListCallback() called');
     } // timeSeriesDescriptionListCallback
 
-    function aqTokenCallback() {
+    function aquariusTokenCallback() {
         var timeSeriesDescriptionList =
             timeSeriesDescriptionListClass({
-                token: aqToken.toString(),
+                token: aquariusToken.toString(),
                 timeSeriesIdentifier: timeSeriesIdentifier,
                 callback: timeSeriesDescriptionListCallback
             });
-    } // aqTokenCallback
+    } // aquariusTokenCallback
 
     // "The 'my' object is a container of secrets that are shared by
     // the constructors in the inheritance chain. The use of the 'my'
