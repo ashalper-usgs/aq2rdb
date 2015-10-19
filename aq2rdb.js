@@ -355,10 +355,6 @@ var RDBHeader = function (locationIdentifier, timeSeriesIdentifier,
 
 } // RDBHeader
 
-// "Functional" inheritance pattern constructors start here; see
-// *JavaScript: The Good Parts*, Douglas Crockford, O'Reilly Media,
-// Inc., 2008, Sec. 5.4.
-
 /**
    @description ISO 8601 "basic format" date prototype.
    @see https://en.wikipedia.org/wiki/ISO_8601#General_principles
@@ -400,22 +396,24 @@ var BasicFormat = function (text) {
 } // BasicFormat
 
 /**
-   @description aq2rdbClass object prototype.
+   @description Aq2rdb object prototype.
 */
-var aq2rdbClass = function (spec, my) {
-    var that = {};
+var Aq2rdb = function (url, response) {
     // parse HTTP query
-    var arg = querystring.parse(spec.url);
+    var arg = querystring.parse(url);
+    var userName, password;
     // aquariusToken object, created at bottom of function
     var aquariusToken;
 
     if (arg.userName.length === 0) {
         throw 'Required parameter \"userName\" not found';
     }
+    userName = arg.userName;
 
     if (arg.password.length === 0) {
         throw 'Required parameter \"password\" not found';
     }
+    password = arg.password;
 
     // TODO: this might need to be factored-out eventually
     if (arg.u !== undefined &&
@@ -428,11 +426,10 @@ var aq2rdbClass = function (spec, my) {
             '\"d\", \"r\", and \"p\" must be omitted';
     }
 
-    // "protected" visibility (I think, if I understand the functional
-    // inheritance pattern conventions) property storage
-    my = my || {};
-    my.environment = 'production';
-    my.response = spec.response;
+    var environment = 'production';
+    var response = response;
+    var timeSeriesIdentifier;
+    var a, n, t, d, b, e, c, r, l;
 
     // get HTTP query arguments
     for (var opt in arg) {
@@ -443,16 +440,16 @@ var aq2rdbClass = function (spec, my) {
             // superseded by named time-series environments. The
             // default is 'production', and will work fine unless you
             // know otherwise.
-            my.environment = arg[opt];
+            environment = arg[opt];
             break;
         case 'a':
-            my.agencyCode = arg[opt];
+            a = arg[opt];
             break;
         case 'b':
             // TODO: need to worry about the (nwts2rdb-defaulted) time
             // offset at some point
             try {
-                my.b = new BasicFormat(arg[opt]);
+                b = new BasicFormat(arg[opt]);
             }
             catch (error) {
                 throw 'If \"b\" is specified, a valid ISO ' +
@@ -460,14 +457,13 @@ var aq2rdbClass = function (spec, my) {
             }
             break;
         case 'n':
-            my.n = arg[opt];
+            n = arg[opt];
             break;
         case 'u':
             // -u is a new option for specifying a time-series
             // identifier, and is preferred over -d whenever possible
             try {
-                my.timeSeriesIdentifier =
-                    new TimeSeriesIdentifier(arg[opt]);
+                timeSeriesIdentifier = new TimeSeriesIdentifier(arg[opt]);
             }
             catch (error) {
                 throw error;
@@ -480,42 +476,37 @@ var aq2rdbClass = function (spec, my) {
             // time series* created in AQUARIUS (relies on ADAPS_DD
             // time-series extended attribute). We prefer you use -u
             // whenever possible.
-            var d = parseInt(arg[opt]);
+            d = parseInt(arg[opt]);
             if (isNaN(d))
                 throw 'Data descriptor (\"d\") field must be ' +
                 'an integer';
-            else
-                my.d = d;
-
             break;
         case 'r':
-            my.applyRounding = false;
+            r = false;
             break;
         case 'c':
             // For [data] type "dv", Output COMPUTED daily values
             // only. For other types except pseudo-UV retrievals,
             // combine date and time in a single column.
-            my.computed = true;
+            c = true;
             break;
         case 't':
             try {
-                my.dataType = new DataType(arg[opt].toUpperCase());
+                t = new DataType(arg[opt].toUpperCase());
             }
             catch (error) {
-                rdbMessage(my.response, 400, error);
+                rdbMessage(response, 400, error);
                 return;
             }
-            my.computationPeriodIdentifier =
-                my.dataType.toComputationPeriodIdentifier();
             break;
         case 'l':
-            my.timeOffset = arg[opt];
+            l = arg[opt];
             break;
         case 'e':
             // TODO: need to worry about the (nwts2rdb-defaulted) time
             // offset at some point
             try {
-                my.e = new BasicFormat(arg[opt]);
+                e = new BasicFormat(arg[opt]);
             }
             catch (error) {
                 throw 'If \"e\" is specified, a valid ISO ' +
@@ -525,14 +516,7 @@ var aq2rdbClass = function (spec, my) {
         }
     }
 
-    // add shared variables and functions to my
-
-    // add privileged methods to that
-    /*
-      that.getResource = function () {
-      return resource;
-      };
-    */
+    var locationIdentifier = a === undefined ? n : n + '-' + a;
 
     /**
        @description Use HTTP query fields to decipher the desired
@@ -544,17 +528,17 @@ var aq2rdbClass = function (spec, my) {
            @description Handle response from
                         GetTimeSeriesDescriptionList.
         */
-        function timeSeriesDescriptionListCallback(response) {
+        function timeSeriesDescriptionListCallback(aquariusResponse) {
             var messageBody = '';
 
             // accumulate response
-            response.on(
+            aquariusResponse.on(
                 'data',
                 function (chunk) {
                     messageBody += chunk;
                 });
 
-            response.on('end', function () {
+            aquariusResponse.on('end', function () {
                 var timeSeriesDescriptionServiceRequest;
 
                 try {
@@ -562,7 +546,7 @@ var aq2rdbClass = function (spec, my) {
                         JSON.parse(messageBody);
                 }
                 catch (error) {
-                    jsonParseErrorMessage(my.response, error.message);
+                    jsonParseErrorMessage(response, error.message);
                     return;         // go no further
                 }
 
@@ -572,7 +556,7 @@ var aq2rdbClass = function (spec, my) {
                     === undefined) {
                     // there's nothing more we can do
                     rdbMessage(
-                        my.response, 200,
+                        response, 200,
                         'The query found no time series ' +
                             'descriptions in AQUARIUS'
                     );
@@ -603,13 +587,13 @@ var aq2rdbClass = function (spec, my) {
                                 JSON.parse(messageBody);
                         }
                         catch (error) {
-                            jsonParseErrorMessage(my.response, error.message);
+                            jsonParseErrorMessage(response, error.message);
                             return;         // go no further
                         }
 
                         if (200 < aquariusResponse.statusCode) {
                             rdbMessage(
-                                my.response,
+                                response,
                                 aquariusResponse.statusCode,
                                 '# ' + PACKAGE_NAME +
                                     ': AQUARIUS replied with an error. ' +
@@ -622,11 +606,11 @@ var aq2rdbClass = function (spec, my) {
                         }
 
                         var rdbHeader = new RDBHeader(
-                            my.locationIdentifier,
-                            my.timeSeriesIdentifier,
-                            my.b, my.e
+                            locationIdentifier,
+                            timeSeriesIdentifier,
+                            b, e
                         );
-                        rdbHeader.write(my.response);
+                        rdbHeader.write(response);
 
                         // TODO: the code that produces the RDB,
                         // column data type declarations below is
@@ -635,15 +619,15 @@ var aq2rdbClass = function (spec, my) {
 
                         // RDB table heading (which is different than
                         // a header).
-                        my.response.write(
+                        response.write(
                             'DATE\tTIME\tVALUE\tPRECISION\tREMARK\t' +
                                 'FLAGS\tTYPE\tQA\n' +
                                 '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n'
                         );
 
                         var rdbBody = new RDBBody(timeSeriesCorrectedData);
-                        rdbBody.write(my.response);
-                        my.response.end();
+                        rdbBody.write(response);
+                        response.end();
                     });
                 } // getTimeSeriesCorrectedDataCallback
 
@@ -651,12 +635,12 @@ var aq2rdbClass = function (spec, my) {
                 for (var i = 0; i < n; i++) {
                     var path = AQUARIUS_PREFIX +
                         'GetTimeSeriesCorrectedData?' +
-                        bind('token', my.aquariusToken.toString()) +
+                        bind('token', aquariusToken.toString()) +
                         bind('format', 'json') +
                         bind('timeSeriesUniqueId',
                              timeSeriesDescriptions[i].UniqueId) +
-                        bind('queryFrom', my.b.toCombinedExtendedFormat('S')) +
-                        bind('queryTo', my.e.toCombinedExtendedFormat('S'));
+                        bind('queryFrom', b.toCombinedExtendedFormat('S')) +
+                        bind('queryTo', e.toCombinedExtendedFormat('S'));
                     // call GetTimeSeriesCorrectedData service to get
                     // daily values associated with time series
                     // descriptions
@@ -678,7 +662,7 @@ var aq2rdbClass = function (spec, my) {
             });
         } // timeSeriesDescriptionListCallback
 
-        // The object returned by the timeSeriesDescriptionListClass
+        // The object returned by the timeSeriesDescriptionList
         // constructor below is presently not needed [with everything
         // useful subsequently happening in the context of
         // timeSeriesDescriptionListCallback()], but that could change
@@ -686,92 +670,80 @@ var aq2rdbClass = function (spec, my) {
         // to be saved (e.g. in "timeSeriesDescriptionList"), and
         // declared at an outer scope.
 
-        if (my.timeSeriesIdentifier === undefined) {
+        var timeSeriesDescriptionList;
+        if (timeSeriesIdentifier === undefined) {
             // TODO: figure out how to retrieve given only:
             //
             // &a=USGS&n=06087000&t=dv&s=00011&b=19111001&e=19121001
-            timeSeriesDescriptionListClass({
-                token: my.aquariusToken.toString(),
-                locationIdentifier: eval(
-                    my.a === undefined ? my.n : my.n + '-' + my.a
-                ),
-                // data descriptor number defaults to 1 if omitted
-                extendedFilters: '[{FilterName:ADAPS_DD,FilterValue:' +
-                    eval(my.d === undefined ? '1' : my.d) + '}]',
-                callback: timeSeriesDescriptionListCallback
-            });
+            timeSeriesDescriptionList =
+                new TimeSeriesDescriptionList(
+                    aquariusToken.toString(),
+                    locationIdentifier,
+                    '[{FilterName:ADAPS_DD,FilterValue:' +
+                        eval(d === undefined ? '1' : d) + '}]',
+                    timeSeriesDescriptionListCallback
+                );
         }
         else {
             // time-series identifier is not present
-            timeSeriesDescriptionListClass({
-                token: my.aquariusToken.toString(),
-                timeSeriesIdentifier: my.timeSeriesIdentifier,
-                extendedFilters: '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]',
-                callback: timeSeriesDescriptionListCallback
-            });
+            timeSeriesDescriptionList =
+                new TimeSeriesDescriptionList(
+                    aquariusToken.toString(),
+                    timeSeriesIdentifier,
+                    '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]',
+                    timeSeriesDescriptionListCallback
+                );
         }
     } // aquariusTokenCallback
 
     try {
-        my.aquariusToken = aquariusTokenClass({
-            userName: arg.userName,
-            password: arg.password,
-            callback: aquariusTokenCallback
-        });
+        var aquariusToken = new AquariusToken(
+            userName,
+            password,
+            aquariusTokenCallback
+        );
     }
     catch (error) {
         throw error;
     }
 
-    return that;
-} // aq2rdbClass
+} // Aq2rdb
 
 /**
    @description Time series description list, object prototype.
 */
-var timeSeriesDescriptionListClass = function (spec, my) {
+var TimeSeriesDescriptionList = function (
+    token, timeSeriesIdentifier, extendedFilters,
+    timeSeriesDescriptionListCallback
+) {
     var locationIdentifier;
     var parameter;
 
-    if (spec.locationIdentifier !== undefined &&
-        spec.timeSeriesIdentifier === undefined) {
-        locationIdentifier = spec.locationIdentifier;
+    locationIdentifier =
+        timeSeriesIdentifier.locationIdentifier();
+    if (locationIdentifier === undefined) {
+        throw 'Could not parse \"locationIdentifier\" field ' +
+            'value from \"timeSeriesIdentifier\" field value';
     }
-    else if (spec.locationIdentifier === undefined &&
-             spec.timeSeriesIdentifier !== undefined) {
-        locationIdentifier =
-            spec.timeSeriesIdentifier.locationIdentifier();
-        if (locationIdentifier === undefined) {
-            throw 'Could not parse \"locationIdentifier\" field ' +
-                'value from \"timeSeriesIdentifier\" field value';
-        }
 
-        parameter = spec.timeSeriesIdentifier.parameter();
-        if (parameter === undefined) {
-            throw 'Could not parse \"Parameter\" field value from ' +
-                    '\"timeSeriesIdentifier\" field value';
-        }
-    }
-    else {
-        throw 'locationIdentifier and timeSeriesIdentifier ' +
-            'properties are mutually-exclusive';
+    parameter = timeSeriesIdentifier.parameter();
+    if (parameter === undefined) {
+        throw 'Could not parse \"Parameter\" field value from ' +
+            '\"timeSeriesIdentifier\" field value';
     }
 
     // the path part of GetTimeSeriesDescriptionList URL
     var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
-        bind('token', spec.token) +
+        bind('token', token) +
         bind('format', 'json') +
         bind('LocationIdentifier', locationIdentifier) +
         bind('Parameter', parameter) +
-        bind('ComputationPeriodIdentifier',
-             spec.computationPeriodIdentifier) +
-        bind('ExtendedFilters', spec.extendedFilters);
+        bind('ExtendedFilters', extendedFilters);
 
-    var request =
-        http.request({
-            host: AQUARIUS_HOSTNAME,
-            path: path                
-        }, spec.callback);
+    var request = http.request({
+        host: AQUARIUS_HOSTNAME,
+        path: path                
+    }, timeSeriesDescriptionListCallback);
 
     /**
        @description Handle GetTimeSeriesDescriptionList service
@@ -783,21 +755,21 @@ var timeSeriesDescriptionListClass = function (spec, my) {
     });
 
     request.end();
-} // timeSeriesDescriptionListClass
+} // TimeSeriesDescriptionList
 
 /**
    @description AQUARIUS token string, object prototype.
 */
-var aquariusTokenClass = function (spec, my) {
-    var that = {};
+var AquariusToken = function (
+    userName, password, aquariusTokenCallback
+) {
+    var text;
 
-    if (spec.userName === undefined)
+    if (userName === undefined)
         throw 'Required field \"userName\" is missing';
 
-    if (spec.password === undefined)
+    if (password === undefined)
         throw 'Required field \"password\" is missing';
-
-    my = my || {};
 
     /**
        @description GetAQToken service response callback.
@@ -813,10 +785,10 @@ var aquariusTokenClass = function (spec, my) {
         // Response complete; token received.
         response.on('end', function () {
             // visibility of token string is "protected"
-            my.text = messageBody;
+            text = messageBody;
             // if a callback function is defined
-            if (spec.callback !== undefined)
-                spec.callback(); // call it
+            if (aquariusTokenCallback !== undefined)
+                aquariusTokenCallback(); // call it
         });
     } // callback
 
@@ -825,8 +797,8 @@ var aquariusTokenClass = function (spec, my) {
                     authentication token needed for AQUARIUS API.
     */
     var path = '/services/GetAQToken?' +
-        bind('userName', spec.userName) +
-        bind('password', spec.password) +
+        bind('userName', userName) +
+        bind('password', password) +
         bind('uriString',
              'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
     var request = http.request({
@@ -852,40 +824,20 @@ var aquariusTokenClass = function (spec, my) {
 
     request.end();
 
-    // add shared variables and functions to my
-
-    // add privileged methods to that
-    /*
-    that.getResource = function () {
-        return resource;
-    };
-    */
-
     /**
        @description AQUARIUS token, as string.
     */
-    that.toString = function () {
-        return my.text;
+    this.toString = function () {
+        return text;
     }
 
-    return that;
-} // aquariusTokenClass
+} // AquariusToken
 
-var dvTableClass = function (spec, my) {
-    var that = {};
-    // private instance variables
-    // AQUARIUS clerical stuff
-    var aquariusToken;
-    var environment;
-    // science stuff
-    var timeSeriesIdentifier;
-    var queryFrom, queryTo;
-    // TODO: GetTimeSeriesCorrectedData claims to accept this, but
-    // not sure if these are necessary for aq2rdb yet:
-    // var getParts;
-    var unit, utcOffset;
-    var applyRounding, computed; // TODO: these might have defaults?
-
+var DVTable = function (
+    token, locationIdentifier, parameter, publish,
+    computationIdentifier, computationPeriodIdentifier,
+    extendedFilters
+) {
     // might be useful to move out of this scope eventually
     function toBoolean(literal) {
         if (literal === 'true') {
@@ -905,7 +857,7 @@ var dvTableClass = function (spec, my) {
         switch (field) {
         case 'userName':
         case 'password':
-            // see aquariusTokenClass constructor call below
+            // see AquariusToken constructor call below
             break;
         case 'environment':
             environment = spec[field];
@@ -954,21 +906,22 @@ var dvTableClass = function (spec, my) {
 
     // required fields
 
-    if (spec.userName === undefined) {
+    if (userName === undefined) {
         throw 'Required field \"userName\" is missing';
     }
 
-    if (spec.password === undefined) {
+    if (password === undefined) {
         throw 'Required field \"password\" is missing';
     }
 
     // try to get AQUARIUS token from aquarius-token service
     try {
-        aquariusToken = aquariusTokenClass({
-            userName: spec.userName,
-            password: spec.password,
-            callback: aquariusTokenCallback
-        });
+        var aquariusToken =
+            new AquariusToken(
+                userName,
+                password,
+                aquariusTokenCallback
+            );
     }
     catch (error) {
         throw error;
@@ -984,30 +937,14 @@ var dvTableClass = function (spec, my) {
 
     function aquariusTokenCallback() {
         var timeSeriesDescriptionList =
-            timeSeriesDescriptionListClass({
+            new TimeSeriesDescriptionList({
                 token: aquariusToken.toString(),
                 timeSeriesIdentifier: timeSeriesIdentifier,
                 callback: timeSeriesDescriptionListCallback
             });
     } // aquariusTokenCallback
 
-    // "The 'my' object is a container of secrets that are shared by
-    // the constructors in the inheritance chain. The use of the 'my'
-    // object is optional. If a 'my' object is not passed in, then a
-    // 'my' object is made."
-    my = my || {};
-
-    // add shared variables and functions to my
-
-    // add privileged methods to that
-    /*
-    that.getResource = function () {
-        return resource;
-    };
-    */
-
-    return that;
-} // dvTable
+} // DVTable
 
 /**
    @description GetDVTable service request handler.
@@ -1021,7 +958,8 @@ httpdispatcher.onGet(
         // so delete it
         delete spec['/' + PACKAGE_NAME + '/GetDVTable?'];
         try {
-            var dvTable = dvTableClass(spec);
+            // TODO:
+            // var dvTable = new DVTable(...);
         }
         catch (error) {
             rdbMessage(response, 400, error);
@@ -1050,7 +988,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     var aq2rdb;
 
     try {
-        aq2rdb = aq2rdbClass({url: request.url, response: response});
+        aq2rdb = new Aq2rdb(request.url, response);
     }
     catch (error) {
         rdbMessage(response, 400, error);
