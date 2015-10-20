@@ -396,11 +396,283 @@ var BasicFormat = function (text) {
 } // BasicFormat
 
 /**
-   @description Aq2rdb object prototype.
+   @description Time series description list, object prototype.
 */
-var Aq2rdb = function (url, response) {
+var TimeSeriesDescriptionList = function (
+    token, timeSeriesIdentifier, extendedFilters,
+    timeSeriesDescriptionListCallback
+) {
+    var locationIdentifier;
+    var parameter;
+
+    locationIdentifier =
+        timeSeriesIdentifier.locationIdentifier();
+    if (locationIdentifier === undefined) {
+        throw 'Could not parse \"locationIdentifier\" field ' +
+            'value from \"timeSeriesIdentifier\" field value';
+    }
+
+    parameter = timeSeriesIdentifier.parameter();
+    if (parameter === undefined) {
+        throw 'Could not parse \"Parameter\" field value from ' +
+            '\"timeSeriesIdentifier\" field value';
+    }
+
+    // the path part of GetTimeSeriesDescriptionList URL
+    var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
+        bind('token', token) +
+        bind('format', 'json') +
+        bind('LocationIdentifier', locationIdentifier) +
+        bind('Parameter', parameter) +
+        bind('ExtendedFilters', extendedFilters);
+
+    var request = http.request({
+        host: AQUARIUS_HOSTNAME,
+        path: path                
+    }, timeSeriesDescriptionListCallback);
+
+    /**
+       @description Handle GetTimeSeriesDescriptionList service
+                    invocation errors.
+    */
+    request.on('error', function (error) {
+        handleService('GetTimeSeriesDescriptionList',
+                      aq2rdbResponse, error);
+    });
+
+    request.end();
+} // TimeSeriesDescriptionList
+
+/**
+   @description AQUARIUS token string, object prototype.
+*/
+var AquariusToken = function (
+    userName, password, aquariusTokenCallback
+) {
+    var text;
+
+    if (userName === undefined)
+        throw 'Required field \"userName\" is missing';
+
+    if (password === undefined)
+        throw 'Required field \"password\" is missing';
+
+    /**
+       @description GetAQToken service response callback.
+    */
+    function callback(response) {
+        var messageBody = '';
+
+        // accumulate response
+        response.on('data', function (chunk) {
+            messageBody += chunk;
+        });
+
+        // Response complete; token received.
+        response.on('end', function () {
+            // visibility of token string is "protected"
+            text = messageBody;
+            // if a callback function is defined
+            if (aquariusTokenCallback !== undefined)
+                aquariusTokenCallback(); // call it
+        });
+    } // callback
+
+    /**
+       @description GetAQToken service request for AQUARIUS
+                    authentication token needed for AQUARIUS API.
+    */
+    var path = '/services/GetAQToken?' +
+        bind('userName', userName) +
+        bind('password', password) +
+        bind('uriString',
+             'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
+    var request = http.request({
+        host: 'localhost',
+        port: '8080',
+        path: path
+    }, callback);
+
+    /**
+       @description Handle GetAQToken service invocation errors.
+    */
+    request.on('error', function (error) {
+        var statusMessage;
+
+        if (error.message === 'connect ECONNREFUSED') {
+            throw 'Could not connect to GetAQToken service for ' +
+                'AQUARIUS authentication token';
+        }
+        else {
+            throw error;
+        }
+    });
+
+    request.end();
+
+    /**
+       @description AQUARIUS token, as string.
+    */
+    this.toString = function () {
+        return text;
+    }
+
+} // AquariusToken
+
+var DVTable = function (
+    token, locationIdentifier, parameter, publish,
+    computationIdentifier, computationPeriodIdentifier,
+    extendedFilters
+) {
+    // might be useful to move out of this scope eventually
+    function toBoolean(literal) {
+        if (literal === 'true') {
+            computed = true;
+        }
+        else if (literal === 'false') {
+            computed = false;
+        }
+        else {
+            throw 'Could not parse value \"'  + literal +
+                '\" in \"computed\" field';
+        }
+    }
+
+    // get HTTP query arguments
+    for (var field in spec) {
+        switch (field) {
+        case 'userName':
+        case 'password':
+            // see AquariusToken constructor call below
+            break;
+        case 'environment':
+            environment = spec[field];
+            break;
+        case 'timeSeriesIdentifier':
+            timeSeriesIdentifier = new TimeSeriesIdentifier(spec[field]);
+            break;
+        case 'queryFrom':
+            queryFrom = spec[field]; // TODO: needs domain validation
+            break;
+        case 'queryTo':
+            queryTo = spec[field]; // TODO: needs domain validation
+            break;
+        case 'unit':
+            unit = spec[field];
+            break;
+        case 'utcOffset':
+            utcOffset = spec[field];
+            break;
+        case 'applyRounding':
+            try {
+                applyRounding = toBoolean(spec[field]);
+            }
+            catch (error) {
+                throw error;
+            }
+            break;
+        case 'computed':
+            try {
+                computed = toBoolean(spec[field]);
+            }
+            catch (error) {
+                throw error;
+            }
+            break;
+        case 'timeOffset':
+            // TODO: this should be validated as an element of a time
+            // offset enumeration?
+            timeOffset = spec[field];
+            break;
+        default:
+            throw 'Unknown field \"' + field + '\"';
+            return;
+        }
+    }
+
+    // required fields
+
+    if (userName === undefined) {
+        throw 'Required field \"userName\" is missing';
+    }
+
+    if (password === undefined) {
+        throw 'Required field \"password\" is missing';
+    }
+
+    // try to get AQUARIUS token from aquarius-token service
+    try {
+        var aquariusToken =
+            new AquariusToken(
+                userName,
+                password,
+                aquariusTokenCallback
+            );
+    }
+    catch (error) {
+        throw error;
+    }
+
+    if (timeSeriesIdentifier === undefined)
+        throw 'Required field \"timeSeriesIdentifier\" is missing';
+
+    function timeSeriesDescriptionListCallback() {
+        // TODO:
+        log('timeSeriesDescriptionListCallback() called');
+    } // timeSeriesDescriptionListCallback
+
+    function aquariusTokenCallback() {
+        var timeSeriesDescriptionList =
+            new TimeSeriesDescriptionList({
+                token: aquariusToken.toString(),
+                timeSeriesIdentifier: timeSeriesIdentifier,
+                callback: timeSeriesDescriptionListCallback
+            });
+    } // aquariusTokenCallback
+
+} // DVTable
+
+/**
+   @description GetDVTable service request handler.
+*/
+httpdispatcher.onGet(
+    '/' + PACKAGE_NAME + '/GetDVTable',
+    function (request, response) {
+        // object spec. is derived from HTTP query field values
+        var spec = querystring.parse(request.url);
+        // this property would be just clutter in the object right now,
+        // so delete it
+        delete spec['/' + PACKAGE_NAME + '/GetDVTable?'];
+        try {
+            // TODO:
+            // var dvTable = new DVTable(...);
+        }
+        catch (error) {
+            rdbMessage(response, 400, error);
+            return;
+        }
+        response.end();
+});
+
+/**
+   @description GetUVTable service request handler.
+*/
+httpdispatcher.onGet(
+    '/' + PACKAGE_NAME + '/GetUVTable',
+    function (request, response) {
+        // TODO:
+        log('GetUVTable service called');
+        response.end();
+});
+
+/**
+   @description Legacy, pseudo-nwts2rdb service request handler.
+*/
+httpdispatcher.onGet('/' + PACKAGE_NAME, function (
+    request, response
+) {
     // parse HTTP query
-    var arg = querystring.parse(url);
+    var arg = querystring.parse(request.url);
     var userName, password;
     // aquariusToken object, created at bottom of function
     var aquariusToken;
@@ -707,293 +979,6 @@ var Aq2rdb = function (url, response) {
         throw error;
     }
 
-} // Aq2rdb
-
-/**
-   @description Time series description list, object prototype.
-*/
-var TimeSeriesDescriptionList = function (
-    token, timeSeriesIdentifier, extendedFilters,
-    timeSeriesDescriptionListCallback
-) {
-    var locationIdentifier;
-    var parameter;
-
-    locationIdentifier =
-        timeSeriesIdentifier.locationIdentifier();
-    if (locationIdentifier === undefined) {
-        throw 'Could not parse \"locationIdentifier\" field ' +
-            'value from \"timeSeriesIdentifier\" field value';
-    }
-
-    parameter = timeSeriesIdentifier.parameter();
-    if (parameter === undefined) {
-        throw 'Could not parse \"Parameter\" field value from ' +
-            '\"timeSeriesIdentifier\" field value';
-    }
-
-    // the path part of GetTimeSeriesDescriptionList URL
-    var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
-        bind('token', token) +
-        bind('format', 'json') +
-        bind('LocationIdentifier', locationIdentifier) +
-        bind('Parameter', parameter) +
-        bind('ExtendedFilters', extendedFilters);
-
-    var request = http.request({
-        host: AQUARIUS_HOSTNAME,
-        path: path                
-    }, timeSeriesDescriptionListCallback);
-
-    /**
-       @description Handle GetTimeSeriesDescriptionList service
-                    invocation errors.
-    */
-    request.on('error', function (error) {
-        handleService('GetTimeSeriesDescriptionList',
-                      aq2rdbResponse, error);
-    });
-
-    request.end();
-} // TimeSeriesDescriptionList
-
-/**
-   @description AQUARIUS token string, object prototype.
-*/
-var AquariusToken = function (
-    userName, password, aquariusTokenCallback
-) {
-    var text;
-
-    if (userName === undefined)
-        throw 'Required field \"userName\" is missing';
-
-    if (password === undefined)
-        throw 'Required field \"password\" is missing';
-
-    /**
-       @description GetAQToken service response callback.
-    */
-    function callback(response) {
-        var messageBody = '';
-
-        // accumulate response
-        response.on('data', function (chunk) {
-            messageBody += chunk;
-        });
-
-        // Response complete; token received.
-        response.on('end', function () {
-            // visibility of token string is "protected"
-            text = messageBody;
-            // if a callback function is defined
-            if (aquariusTokenCallback !== undefined)
-                aquariusTokenCallback(); // call it
-        });
-    } // callback
-
-    /**
-       @description GetAQToken service request for AQUARIUS
-                    authentication token needed for AQUARIUS API.
-    */
-    var path = '/services/GetAQToken?' +
-        bind('userName', userName) +
-        bind('password', password) +
-        bind('uriString',
-             'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
-    var request = http.request({
-        host: 'localhost',
-        port: '8080',
-        path: path
-    }, callback);
-
-    /**
-       @description Handle GetAQToken service invocation errors.
-    */
-    request.on('error', function (error) {
-        var statusMessage;
-
-        if (error.message === 'connect ECONNREFUSED') {
-            throw 'Could not connect to GetAQToken service for ' +
-                'AQUARIUS authentication token';
-        }
-        else {
-            throw error;
-        }
-    });
-
-    request.end();
-
-    /**
-       @description AQUARIUS token, as string.
-    */
-    this.toString = function () {
-        return text;
-    }
-
-} // AquariusToken
-
-var DVTable = function (
-    token, locationIdentifier, parameter, publish,
-    computationIdentifier, computationPeriodIdentifier,
-    extendedFilters
-) {
-    // might be useful to move out of this scope eventually
-    function toBoolean(literal) {
-        if (literal === 'true') {
-            computed = true;
-        }
-        else if (literal === 'false') {
-            computed = false;
-        }
-        else {
-            throw 'Could not parse value \"'  + literal +
-                '\" in \"computed\" field';
-        }
-    }
-
-    // get HTTP query arguments
-    for (var field in spec) {
-        switch (field) {
-        case 'userName':
-        case 'password':
-            // see AquariusToken constructor call below
-            break;
-        case 'environment':
-            environment = spec[field];
-            break;
-        case 'timeSeriesIdentifier':
-            timeSeriesIdentifier = new TimeSeriesIdentifier(spec[field]);
-            break;
-        case 'queryFrom':
-            queryFrom = spec[field]; // TODO: needs domain validation
-            break;
-        case 'queryTo':
-            queryTo = spec[field]; // TODO: needs domain validation
-            break;
-        case 'unit':
-            unit = spec[field];
-            break;
-        case 'utcOffset':
-            utcOffset = spec[field];
-            break;
-        case 'applyRounding':
-            try {
-                applyRounding = toBoolean(spec[field]);
-            }
-            catch (error) {
-                throw error;
-            }
-            break;
-        case 'computed':
-            try {
-                computed = toBoolean(spec[field]);
-            }
-            catch (error) {
-                throw error;
-            }
-            break;
-        case 'timeOffset':
-            // TODO: this should be validated as an element of a time
-            // offset enumeration?
-            timeOffset = spec[field];
-            break;
-        default:
-            throw 'Unknown field \"' + field + '\"';
-            return;
-        }
-    }
-
-    // required fields
-
-    if (userName === undefined) {
-        throw 'Required field \"userName\" is missing';
-    }
-
-    if (password === undefined) {
-        throw 'Required field \"password\" is missing';
-    }
-
-    // try to get AQUARIUS token from aquarius-token service
-    try {
-        var aquariusToken =
-            new AquariusToken(
-                userName,
-                password,
-                aquariusTokenCallback
-            );
-    }
-    catch (error) {
-        throw error;
-    }
-
-    if (timeSeriesIdentifier === undefined)
-        throw 'Required field \"timeSeriesIdentifier\" is missing';
-
-    function timeSeriesDescriptionListCallback() {
-        // TODO:
-        log('timeSeriesDescriptionListCallback() called');
-    } // timeSeriesDescriptionListCallback
-
-    function aquariusTokenCallback() {
-        var timeSeriesDescriptionList =
-            new TimeSeriesDescriptionList({
-                token: aquariusToken.toString(),
-                timeSeriesIdentifier: timeSeriesIdentifier,
-                callback: timeSeriesDescriptionListCallback
-            });
-    } // aquariusTokenCallback
-
-} // DVTable
-
-/**
-   @description GetDVTable service request handler.
-*/
-httpdispatcher.onGet(
-    '/' + PACKAGE_NAME + '/GetDVTable',
-    function (request, response) {
-        // object spec. is derived from HTTP query field values
-        var spec = querystring.parse(request.url);
-        // this property would be just clutter in the object right now,
-        // so delete it
-        delete spec['/' + PACKAGE_NAME + '/GetDVTable?'];
-        try {
-            // TODO:
-            // var dvTable = new DVTable(...);
-        }
-        catch (error) {
-            rdbMessage(response, 400, error);
-            return;
-        }
-        response.end();
-});
-
-/**
-   @description GetUVTable service request handler.
-*/
-httpdispatcher.onGet(
-    '/' + PACKAGE_NAME + '/GetUVTable',
-    function (request, response) {
-        // TODO:
-        log('GetUVTable service called');
-        response.end();
-});
-
-/**
-   @description Legacy, pseudo-nwts2rdb service request handler.
-*/
-httpdispatcher.onGet('/' + PACKAGE_NAME, function (
-    request, response
-) {
-    var aq2rdb;
-
-    try {
-        aq2rdb = new Aq2rdb(request.url, response);
-    }
-    catch (error) {
-        rdbMessage(response, 400, error);
-        return;
-    }
 }); // httpdispatcher.onGet()
 
 /**
