@@ -216,118 +216,82 @@ var BasicFormat = function (text) {
 
 } // BasicFormat
 
-var DVTable = function (
-    token, locationIdentifier, parameter, publish,
-    computationIdentifier, computationPeriodIdentifier,
-    extendedFilters
+function getTimeSeriesDescriptionList(
+    timeSeriesDescriptionServiceRequest, callback
 ) {
-    // might be useful to move out of this scope eventually
-    function toBoolean(literal) {
-        if (literal === 'true') {
-            computed = true;
-        }
-        else if (literal === 'false') {
-            computed = false;
-        }
-        else {
-            throw 'Could not parse value \"'  + literal +
-                '\" in \"computed\" field';
-        }
-    }
+    /**
+       @description Callback to handle response from
+       GetTimeSeriesDescriptionList service.
+    */
+    function getTimeSeriesDescriptionListCallback(response) {
+        var messageBody = '';
 
-    // get HTTP query arguments
-    for (var field in spec) {
-        switch (field) {
-        case 'userName':
-        case 'password':
-            // see AquariusToken constructor call below
-            break;
-        case 'environment':
-            environment = spec[field];
-            break;
-        case 'timeSeriesIdentifier':
-            timeSeriesIdentifier = new TimeSeriesIdentifier(spec[field]);
-            break;
-        case 'queryFrom':
-            queryFrom = spec[field]; // TODO: needs domain validation
-            break;
-        case 'queryTo':
-            queryTo = spec[field]; // TODO: needs domain validation
-            break;
-        case 'unit':
-            unit = spec[field];
-            break;
-        case 'utcOffset':
-            utcOffset = spec[field];
-            break;
-        case 'applyRounding':
-            try {
-                applyRounding = toBoolean(spec[field]);
-            }
-            catch (error) {
-                throw error;
-            }
-            break;
-        case 'computed':
-            try {
-                computed = toBoolean(spec[field]);
-            }
-            catch (error) {
-                throw error;
-            }
-            break;
-        case 'timeOffset':
-            // TODO: this should be validated as an element of a time
-            // offset enumeration?
-            timeOffset = spec[field];
-            break;
-        default:
-            throw 'Unknown field \"' + field + '\"';
-            return;
-        }
-    }
-
-    // required fields
-
-    if (userName === undefined) {
-        throw 'Required field \"userName\" is missing';
-    }
-
-    if (password === undefined) {
-        throw 'Required field \"password\" is missing';
-    }
-
-    // try to get AQUARIUS token from aquarius-token service
-    try {
-        var aquariusToken =
-            new AquariusToken(
-                userName,
-                password,
-                aquariusTokenCallback
-            );
-    }
-    catch (error) {
-        throw error;
-    }
-
-    if (timeSeriesIdentifier === undefined)
-        throw 'Required field \"timeSeriesIdentifier\" is missing';
-
-    function timeSeriesDescriptionListCallback() {
-        // TODO:
-        log('timeSeriesDescriptionListCallback() called');
-    } // timeSeriesDescriptionListCallback
-
-    function aquariusTokenCallback() {
-        var timeSeriesDescriptionList =
-            new TimeSeriesDescriptionList({
-                token: aquariusToken.toString(),
-                timeSeriesIdentifier: timeSeriesIdentifier,
-                callback: timeSeriesDescriptionListCallback
+        // accumulate response
+        response.on(
+            'data',
+            function (chunk) {
+                messageBody += chunk;
             });
-    } // aquariusTokenCallback
 
-} // DVTable
+        response.on('end', function () {
+            var timeSeriesDescriptionListServiceResponse;
+
+            try {
+                timeSeriesDescriptionServiceResponse =
+                    JSON.parse(messageBody);
+            }
+            catch (error) {
+                throw error;
+            }
+
+            // if the GetTimeSeriesDescriptionList query returned no
+            // time series descriptions
+            if (timeSeriesDescriptionServiceResponse.TimeSeriesDescriptions ===
+                undefined
+            ) {
+                // there's nothing more we can do
+                rdbMessage(
+                    response, 200,
+                    'The query found no time series ' +
+                        'descriptions in AQUARIUS'
+                );
+                return;
+            }
+
+            callback(
+                null,
+                timeSeriesDescriptionServiceRequest.token,
+                timeSeriesDescriptionServiceResponse.TimeSeriesDescriptions
+            );
+        });
+    } // getTimeSeriesDescriptionListCallback
+
+    // the path part of GetTimeSeriesDescriptionList URL
+    var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
+        bind('token', timeSeriesDescriptionServiceRequest.token) +
+        bind('format', 'json') +
+        bind('LocationIdentifier',
+             timeSeriesDescriptionServiceRequest.locationIdentifier) +
+        bind('Parameter',
+             timeSeriesDescriptionServiceRequest.parameter) +
+        bind('ExtendedFilters',
+             timeSeriesDescriptionServiceRequest.extendedFilters);
+    log('path: ' + path);
+    var request = http.request({
+        host: AQUARIUS_HOSTNAME,
+        path: path                
+    }, getTimeSeriesDescriptionListCallback);
+
+    /**
+       @description Handle GetTimeSeriesDescriptionList service
+                    invocation errors.
+    */
+    request.on('error', function (error) {
+        throw error;
+    });
+
+    request.end();
+} // getTimeSeriesDescriptionList
 
 /**
    @description Get AQUARIUS authentication token from GetAQToken
@@ -393,10 +357,28 @@ httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
     request, response
 ) {
     // parse HTTP query
-    var getDVTable = querystring.parse(request.url);
+    var field = querystring.parse(request.url);
+    delete field['/' + PACKAGE_NAME + '/GetDVTable?']; // not used
+    var getDVTable = new Array();
 
-    // TODO: check for unspecified parameters here and throw error if
-    // any found?
+    for (var name in field) {
+        // GetAQToken service fields
+        if (name.match(/userName|password|environment/)) {
+            getDVTable[name] = field[name];
+        }
+        // AQUARIUS service fields
+        else if (name.match(/LocationIdentifier|Parameter|Publish|ComputationIdentifier|ComputationPeriodIdentifier|QueryFrom|QueryTo/)) {
+            // Convert captilized AQUARIUS field names to
+            // uncapitalized, JavaScript property names; annoying, but
+            // we're trying to be consistent with the JavaScript
+            // style.
+            getDVTable[name.charAt(0).toLowerCase() + name.substr(1)] =
+                field[name];
+        }
+        else {
+            throw 'Unknown field "' + name + '"';
+        }
+    }
 
     if (getDVTable.userName.length === 0) {
         throw 'Required parameter \"userName\" not found';
@@ -426,6 +408,18 @@ httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
         },
         function (token, callback) {
             log('token: ' + token);
+
+            getTimeSeriesDescriptionList(
+                {token: token,
+                 locationIdentifier: getDVTable.locationIdentifier,
+                 parameter: getDVTable.parameter,
+                 extendedFilters: '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
+                callback
+            );
+        },
+        function (token, timeSeriesDescriptions, callback) {
+            log('timeSeriesDescriptions: ' +
+                JSON.stringify(timeSeriesDescriptions));
         }
     ]);
     response.end();
@@ -593,98 +587,29 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 '[{FilterName:ADAPS_DD,FilterValue:' +
                 eval(d === undefined ? '1' : d) + '}]';
 
-            /**
-               @description Callback to handle response from
-                            GetTimeSeriesDescriptionList service.
-            */
-            function getTimeSeriesDescriptionListCallback(aquariusResponse) {
-                var messageBody = '';
-
-                // accumulate response
-                aquariusResponse.on(
-                    'data',
-                    function (chunk) {
-                        messageBody += chunk;
-                    });
-
-                aquariusResponse.on('end', function () {
-                    var timeSeriesDescriptionServiceRequest;
-
-                    try {
-                        timeSeriesDescriptionServiceRequest =
-                            JSON.parse(messageBody);
-                    }
-                    catch (error) {
-                        jsonParseErrorMessage(response, error.message);
-                        return;         // go no further
-                    }
-
-                    // if the GetTimeSeriesDescriptionList query returned no
-                    // time series descriptions
-                    if (
-                timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions ===
-                            undefined
-                    ) {
-                        // there's nothing more we can do
-                        rdbMessage(
-                            response, 200,
-                            'The query found no time series ' +
-                                'descriptions in AQUARIUS'
-                        );
-                        return;
-                    }
-
-                    callback(
-                      null,
-                      {token: token},
-                      timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
-                    );
-
-                });
-            } // getTimeSeriesDescriptionListCallback
-
-            // the path part of GetTimeSeriesDescriptionList URL
-            var path = AQUARIUS_PREFIX +
-                'GetTimeSeriesDescriptionList?' +
-                bind('token', token) +
-                bind('format', 'json') +
-                bind('LocationIdentifier', locationIdentifier) +
-                // TODO: "parameter" value here doesn't match
-                // up with what AQUARIUS is expecting; will likely
-                // need mapping from PARM.parm_cd.
-                // 
-                // On Wed, Oct 21, 2015 at 11:30 AM, Scott Bartholoma
-                // said:
-                // 
-                // It is not yet available, and will not be available
-                // from the AQUARIUS API.  This quarterly reference
-                // list update we are adding rows to the PARM_ALIAS
-                // table to handle the mapping.   For each timeseries
-                // NWIS parameter there will be AQPARM, AQUNIT,
-                // AQNAME, and AQDESC rows.  Once this is released the
-                // plan it so stand up a USGS web service that uses
-                // that table to answer the questions "Given this NWIS
-                // parm what is the AQ parm and unit?" and "Given this
-                // AQ parm and unit, what is the NWIS parm?" but this
-                // is not yet available.  I don't know what the
-                // proposed deployment date is for this.
-                bind('Parameter', parameter) +
-                bind('ExtendedFilters', extendedFilters);
-
-            var request = http.request({
-                host: AQUARIUS_HOSTNAME,
-                path: path                
-            }, getTimeSeriesDescriptionListCallback);
-
-            /**
-               @description Handle GetTimeSeriesDescriptionList service
-                            invocation errors.
-            */
-            request.on('error', function (error) {
-                throw error;
-            });
-
-            request.end();
+            // TODO: "parameter" value here doesn't match
+            // up with what AQUARIUS is expecting; will need mapping
+            // from PARM.parm_cd.
+            // 
+            // On Wed, Oct 21, 2015 at 11:30 AM, Scott Bartholoma
+            // said:
+            // 
+            // It is not yet available, and will not be available
+            // from the AQUARIUS API.  This quarterly reference
+            // list update we are adding rows to the PARM_ALIAS
+            // table to handle the mapping.   For each timeseries
+            // NWIS parameter there will be AQPARM, AQUNIT,
+            // AQNAME, and AQDESC rows.  Once this is released the
+            // plan it so stand up a USGS web service that uses
+            // that table to answer the questions "Given this NWIS
+            // parm what is the AQ parm and unit?" and "Given this
+            // AQ parm and unit, what is the NWIS parm?" but this
+            // is not yet available.  I don't know what the
+            // proposed deployment date is for this.
+            getTimeSeriesDescriptionList(
+                token, locationIdentifier, parameter, extendedFilters,
+                callback
+            );
         },
         /**
            @description node-async waterfall function to query
