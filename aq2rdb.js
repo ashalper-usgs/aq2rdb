@@ -493,6 +493,10 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
        @see https://github.com/caolan/async
     */
     async.waterfall([
+        /**
+           @description node-async waterfall function to get AQUARIUS
+                        authentication token from GetAQToken service.
+        */
         function (callback) {
             if (userName === undefined)
                 throw 'Required field \"userName\" is missing';
@@ -521,7 +525,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
             /**
                @description GetAQToken service request for AQUARIUS
-               authentication token needed for AQUARIUS API.
+                            authentication token needed for AQUARIUS
+                            API.
             */
             var path = '/services/GetAQToken?' +
                 bind('userName', userName) +
@@ -551,6 +556,10 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
             request.end();
         },
+        /**
+           @description node-async waterfall function to query
+                        GetTimeSeriesDescriptionList service.
+        */
         function (callback) {
             var extendedFilters;
 
@@ -575,7 +584,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             }
 
             /**
-               @description Handle response from GetTimeSeriesDescriptionList.
+               @description Callback to handle response from
+                            GetTimeSeriesDescriptionList service.
             */
             function getTimeSeriesDescriptionListCallback(aquariusResponse) {
                 var messageBody = '';
@@ -639,7 +649,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
             /**
                @description Handle GetTimeSeriesDescriptionList service
-               invocation errors.
+                            invocation errors.
             */
             request.on('error', function (error) {
                 throw error;
@@ -647,13 +657,17 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
             request.end();
         },
+        /**
+           @description node-async waterfall function to query
+                        GetTimeSeriesCorrectedData service.
+        */
         function (
             timeSeriesDataCorrectedServiceRequest,
             timeSeriesDescriptions, callback
         ) {
             /**
-               @description Handle response from
-                            GetTimeSeriesCorrectedData.
+               @description Callback to handle response from
+                            GetTimeSeriesCorrectedData service.
             */
             function getTimeSeriesCorrectedDataCallback(aquariusResponse) {
                 var messageBody = '';
@@ -689,24 +703,85 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                         return;
                     }
 
-                    // TODO: might need to be async.sequence()?
+                    // TODO: might need to be in an async.sequence()?
                     callback(null, timeSeriesCorrectedData);
                 });
             } // getTimeSeriesCorrectedDataCallback
 
+            // waterfall within a waterfall
             async.waterfall([
+                /**
+                   @description node-async waterfall function to query
+                                GetLocationData service.
+                */
                 function (callback) {
-                    // TODO: call GetLocation service to get
-                    // LocationName (a.k.a. STATION NAME)
-                    callback(null);
+                    /**
+                       @description Callback to handle response from
+                                    GetLocationData service.
+                    */
+                    function getLocationDataCallback(response) {
+                        var messageBody = '';
+
+                        // accumulate response
+                        response.on('data', function (chunk) {
+                            messageBody += chunk;
+                        });
+
+                        // response complete
+                        response.on('end', function () {
+                            /**
+                               @description Response from
+                                            LocationDataService (a
+                                            JSON string).
+                            */
+                            var locationDataServiceResponse;
+
+                            try {
+                                // parse response
+                                locationDataServiceResponse =
+                                    JSON.parse(messageBody);
+                            }
+                            catch (error) {
+                                throw error;
+                            }
+
+                            // pass location name to header production
+                            // waterfall below
+                            callback(
+                                null,
+                                locationDataServiceResponse.LocationName
+                            );
+                        });
+                    } // getLocationDataCallback
+
+                    var path = AQUARIUS_PREFIX +
+                        'GetLocationData?' +
+                        bind('token', token) +
+                        bind('format', 'json') +
+                        bind('LocationIdentifier', locationIdentifier);
+
+                    var request = http.request({
+                        host: AQUARIUS_HOSTNAME,
+                        path: path                
+                    }, getLocationDataCallback);
+
+                    /**
+                       @description Handle GetLocationData service errors.
+                    */
+                    request.on('error', function (error) {
+                        throw error;
+                    });
+
+                    request.end();
                 },
-                function (callback) {
+                function (locationName, callback) {
                     // some convoluted syntax for "now"
                     var retrieved = toBasicFormat((new Date()).toISOString());
                     var agencyCode, siteNumber;
 
-                    // TODO: reconcile with locationIdentifier, declaration
-                    // initializer code above.
+                    // TODO: reconcile this conditional with
+                    // locationIdentifier, declaration initializer
+                    // code above.
 
                     // if locationIdentifier was not provided
                     if (locationIdentifier === undefined) {
@@ -741,7 +816,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                             '# //STATION AGENCY="' + agencyCode +
                             ' " NUMBER="' + siteNumber +
                             '       "\n' +
-                            '# //STATION NAME="' + 'TODO' + '"\n' +
+                            '# //STATION NAME="' + locationName + '"\n' +
                             '# //RANGE START="' + b.toString() +
                             '" END="' + e.toString() + '"\n'
                     );
@@ -785,6 +860,10 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 request.end();
             }
         },
+        /**
+           @description node-async waterfall function to write RDB
+                        table rows.
+        */
         function (timeSeriesCorrectedData, callback) {
             var n = timeSeriesCorrectedData.Points.length;
             // TODO: for tables with a very large number of rows, we'll
