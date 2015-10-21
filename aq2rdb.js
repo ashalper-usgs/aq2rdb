@@ -330,36 +330,116 @@ var DVTable = function (
 } // DVTable
 
 /**
+   @description Get AQUARIUS authentication token from GetAQToken
+                service.
+*/
+function getAQToken(userName, password, callback) {
+    /**
+       @description GetAQToken service response callback.
+    */
+    function getAQTokenCallback(response) {
+        var messageBody = '';
+
+        // accumulate response
+        response.on('data', function (chunk) {
+            messageBody += chunk;
+        });
+
+        // Response complete; token received.
+        response.on('end', function () {
+            // pass token to next async.waterfall function
+            callback(null, messageBody);
+        });
+    } // getAQTokenCallback
+
+    /**
+       @description GetAQToken service request for AQUARIUS
+                    authentication token needed for AQUARIUS API.
+    */
+    var path = '/services/GetAQToken?' +
+        bind('userName', userName) +
+        bind('password', password) +
+        bind('uriString',
+             'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
+
+    var request = http.request({
+        host: 'localhost',
+        port: '8080',
+        path: path
+    }, getAQTokenCallback);
+
+    /**
+       @description Handle GetAQToken service invocation errors.
+    */
+    request.on('error', function (error) {
+        var statusMessage;
+
+        if (error.message === 'connect ECONNREFUSED') {
+            throw 'Could not connect to GetAQToken service for ' +
+                'AQUARIUS authentication token';
+        }
+        else {
+            throw error;
+        }
+    });
+
+    request.end();
+} // getAQToken
+
+/**
    @description GetDVTable service request handler.
 */
-httpdispatcher.onGet(
-    '/' + PACKAGE_NAME + '/GetDVTable',
-    function (request, response) {
-        // object spec. is derived from HTTP query field values
-        var spec = querystring.parse(request.url);
-        // this property would be just clutter in the object right now,
-        // so delete it
-        delete spec['/' + PACKAGE_NAME + '/GetDVTable?'];
-        try {
-            // TODO:
-            // var dvTable = new DVTable(...);
+httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
+    request, response
+) {
+    // parse HTTP query
+    var getDVTable = querystring.parse(request.url);
+
+    // TODO: check for unspecified parameters here and throw error if
+    // any found?
+
+    if (getDVTable.userName.length === 0) {
+        throw 'Required parameter \"userName\" not found';
+    }
+
+    if (getDVTable.password.length === 0) {
+        throw 'Required parameter \"password\" not found';
+    }
+
+    /**
+       @see https://github.com/caolan/async
+    */
+    async.waterfall([
+        /**
+           @description node-async waterfall function to get AQUARIUS
+                        authentication token from GetAQToken service.
+        */
+        function (callback) {
+            try {
+                getAQToken(
+                    getDVTable.userName, getDVTable.password, callback
+                );
+            }
+            catch (error) {
+                throw error;
+            }
+        },
+        function (token, callback) {
+            log('token: ' + token);
         }
-        catch (error) {
-            rdbMessage(response, 400, error);
-            return;
-        }
-        response.end();
+    ]);
+    response.end();
 });
 
 /**
    @description GetUVTable service request handler.
 */
-httpdispatcher.onGet(
-    '/' + PACKAGE_NAME + '/GetUVTable',
-    function (request, response) {
-        // TODO:
-        log('GetUVTable service called');
-        response.end();
+httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetUVTable', function (
+    request, response
+) {
+    // TODO:
+    log('GetUVTable service called');
+    response.end();
 });
 
 /**
@@ -374,7 +454,6 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     // parse HTTP query
     var arg = querystring.parse(request.url);
     var userName, password;
-    var token;                  // AQUARIUS authentication token
 
     if (arg.userName.length === 0) {
         throw 'Required parameter \"userName\" not found';
@@ -398,8 +477,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     }
 
     var environment = 'production';
-    var timeSeriesIdentifier;
-    var a, n, t, d, b, e, c, r, l;
+    var agencyCode, siteNumber, locationIdentifier, parameter;
+    var t, d, b, e, c, r, l;
 
     // get HTTP query arguments
     for (var opt in arg) {
@@ -413,7 +492,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             environment = arg[opt];
             break;
         case 'a':
-            a = arg[opt];
+            agencyCode = arg[opt];
             break;
         case 'b':
             // TODO: need to worry about the (nwts2rdb-defaulted) time
@@ -427,17 +506,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             }
             break;
         case 'n':
-            n = arg[opt];
-            break;
-        case 'u':
-            // -u is a new option for specifying a time-series
-            // identifier, and is preferred over -d whenever possible
-            try {
-                timeSeriesIdentifier = new TimeSeriesIdentifier(arg[opt]);
-            }
-            catch (error) {
-                throw error;
-            }
+            locationIdentifier = siteNumber = arg[opt];
             break;
         case 'd':
             // -d data descriptor number is supported but is
@@ -450,6 +519,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             if (isNaN(d))
                 throw 'Data descriptor (\"d\") field must be ' +
                 'an integer';
+            break;
+        case 'p':
+            parameter = arg[opt]; // parameter code
             break;
         case 'r':
             r = false;
@@ -486,8 +558,15 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
         }
     }
 
-    // TODO: this probably work when a === 'USGS'
-    var locationIdentifier = a === undefined ? n : n + '-' + a;
+    // if locationIdentifier was not provided
+    if (locationIdentifier === undefined)
+        locationIdentifier = siteNumber; // it's the site number
+
+    // AQUARIUS appears to have some wacky implicit logic for its
+    // LocationIdentifier; seems to only append "-<agency_cd>" to
+    // LocationIdentifier WHERE agency_cd <> 'USGS'
+    if (agencyCode !== undefined && agencyCode !== 'USGS')
+        locationIdentifier += '-' + agencyCode;
 
     /**
        @see https://github.com/caolan/async
@@ -498,90 +577,21 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                         authentication token from GetAQToken service.
         */
         function (callback) {
-            if (userName === undefined)
-                throw 'Required field \"userName\" is missing';
-
-            if (password === undefined)
-                throw 'Required field \"password\" is missing';
-            
-            /**
-               @description GetAQToken service response callback.
-            */
-            function getAQTokenCallback(response) {
-                var messageBody = '';
-
-                // accumulate response
-                response.on('data', function (chunk) {
-                    messageBody += chunk;
-                });
-
-                // Response complete; token received.
-                response.on('end', function () {
-                    token = messageBody;
-                    // continue to next waterfall below
-                    callback(null);
-                });
-            } // getAQTokenCallback
-
-            /**
-               @description GetAQToken service request for AQUARIUS
-                            authentication token needed for AQUARIUS
-                            API.
-            */
-            var path = '/services/GetAQToken?' +
-                bind('userName', userName) +
-                bind('password', password) +
-                bind('uriString',
-                     'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
-            var request = http.request({
-                host: 'localhost',
-                port: '8080',
-                path: path
-            }, getAQTokenCallback);
-
-            /**
-               @description Handle GetAQToken service invocation errors.
-            */
-            request.on('error', function (error) {
-                var statusMessage;
-
-                if (error.message === 'connect ECONNREFUSED') {
-                    throw 'Could not connect to GetAQToken service for ' +
-                        'AQUARIUS authentication token';
-                }
-                else {
-                    throw error;
-                }
-            });
-
-            request.end();
+            try {
+                getAQToken(userName, password, callback);
+            }
+            catch (error) {
+                throw error;
+            }
         },
         /**
            @description node-async waterfall function to query
                         GetTimeSeriesDescriptionList service.
         */
-        function (callback) {
-            var extendedFilters;
-
-            if (timeSeriesIdentifier === undefined) {
-                // time-series identifier is not present
-                extendedFilters =
-                    '[{FilterName:ADAPS_DD,FilterValue:' +
-                    eval(d === undefined ? '1' : d) + '}]'
-            }
-            else {
-                // time-series identifier is present
-                locationIdentifier =
-                    timeSeriesIdentifier.locationIdentifier();
-                extendedFilters =
-                    '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
-            }
-
-            var parameter = timeSeriesIdentifier.parameter();
-            if (parameter === undefined) {
-                throw 'Could not parse \"Parameter\" field value from ' +
-                    '\"timeSeriesIdentifier\" field value';
-            }
+        function (token, callback) {
+            var extendedFilters =
+                '[{FilterName:ADAPS_DD,FilterValue:' +
+                eval(d === undefined ? '1' : d) + '}]';
 
             /**
                @description Callback to handle response from
@@ -639,6 +649,25 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 bind('token', token) +
                 bind('format', 'json') +
                 bind('LocationIdentifier', locationIdentifier) +
+                // TODO: "parameter" value here doesn't match
+                // up with what AQUARIUS is expecting; will likely
+                // need mapping from PARM.parm_cd.
+                // 
+                // On Wed, Oct 21, 2015 at 11:30 AM, Scott Bartholoma
+                // said:
+                // 
+                // It is not yet available, and will not be available
+                // from the AQUARIUS API.  This quarterly reference
+                // list update we are adding rows to the PARM_ALIAS
+                // table to handle the mapping.   For each timeseries
+                // NWIS parameter there will be AQPARM, AQUNIT,
+                // AQNAME, and AQDESC rows.  Once this is released the
+                // plan it so stand up a USGS web service that uses
+                // that table to answer the questions "Given this NWIS
+                // parm what is the AQ parm and unit?" and "Given this
+                // AQ parm and unit, what is the NWIS parm?" but this
+                // is not yet available.  I don't know what the
+                // proposed deployment date is for this.
                 bind('Parameter', parameter) +
                 bind('ExtendedFilters', extendedFilters);
 
@@ -661,10 +690,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
            @description node-async waterfall function to query
                         GetTimeSeriesCorrectedData service.
         */
-        function (
-            timeSeriesDataCorrectedServiceRequest,
-            timeSeriesDescriptions, callback
-        ) {
+        function (token, timeSeriesDescriptions, callback) {
             /**
                @description Callback to handle response from
                             GetTimeSeriesCorrectedData service.
@@ -708,7 +734,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 });
             } // getTimeSeriesCorrectedDataCallback
 
-            // waterfall within a waterfall
+            // waterfall within a waterfall; a nested waterfall
             async.waterfall([
                 /**
                    @description node-async waterfall function to query
@@ -759,7 +785,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                         bind('token', token) +
                         bind('format', 'json') +
                         bind('LocationIdentifier', locationIdentifier);
-
+                    log('path: ' + path);
                     var request = http.request({
                         host: AQUARIUS_HOSTNAME,
                         path: path                
@@ -777,30 +803,6 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 function (locationName, callback) {
                     // some convoluted syntax for "now"
                     var retrieved = toBasicFormat((new Date()).toISOString());
-                    var agencyCode, siteNumber;
-
-                    // TODO: reconcile this conditional with
-                    // locationIdentifier, declaration initializer
-                    // code above.
-
-                    // if locationIdentifier was not provided
-                    if (locationIdentifier === undefined) {
-                        // TODO: move defaulting logic to
-                        // timeSeriesIdentifier prototype?
-                        agencyCode = 'USGS';    // default agency code
-                        // reference site number embedded in
-                        // timeSeriesIdentifier
-                        siteNumber = timeSeriesIdentifier.siteNumber();
-                        locationIdentifier = siteNumber;
-                    }
-                    else {
-                        // parse (agency code, site number) embedded
-                        // in locationIdentifier
-                        var field = locationIdentifier.split('-')[0];
-
-                        agencyCode = field[1];
-                        siteNumber = field[0];
-                    }
 
                     response.write(
                         '# //UNITED STATES GEOLOGICAL SURVEY       ' +
