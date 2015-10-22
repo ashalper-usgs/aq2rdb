@@ -221,7 +221,7 @@ function getTimeSeriesDescriptionList(
 ) {
     /**
        @description Callback to handle response from
-       GetTimeSeriesDescriptionList service.
+                    GetTimeSeriesDescriptionList service.
     */
     function getTimeSeriesDescriptionListCallback(response) {
         var messageBody = '';
@@ -244,11 +244,14 @@ function getTimeSeriesDescriptionList(
                 throw error;
             }
 
+	    // TODO:
+	    // {"ResponseStatus":{"ErrorCode":"ModelNotFoundException","Message":"Discharge.ft^3/s.Mean is not a valid parameter","Errors":[]}}
+	    log(timeSeriesDescriptionServiceResponse.ResponseStatus.ErrorCode);
+
             // if the GetTimeSeriesDescriptionList query returned no
             // time series descriptions
             if (timeSeriesDescriptionServiceResponse.TimeSeriesDescriptions ===
-                undefined
-            ) {
+                undefined) {
                 // there's nothing more we can do
                 rdbMessage(
                     response, 200,
@@ -368,7 +371,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
         }
         // AQUARIUS service fields
         else if (name.match(/LocationIdentifier|Parameter|Publish|ComputationIdentifier|ComputationPeriodIdentifier|QueryFrom|QueryTo/)) {
-            // Convert captilized AQUARIUS field names to
+            // Convert capitalized AQUARIUS field names to
             // uncapitalized, JavaScript property names; annoying, but
             // we're trying to be consistent with the JavaScript
             // style.
@@ -397,6 +400,10 @@ httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
                         authentication token from GetAQToken service.
         */
         function (callback) {
+	    // TODO: for reasons unknown, this appears to be silently
+	    // failing on the first try, then succeeding on the second
+	    // and subsequent attempts. Problem could be on the
+	    // GetAQToken side as well; need to investigate.
             try {
                 getAQToken(
                     getDVTable.userName, getDVTable.password, callback
@@ -406,6 +413,10 @@ httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
                 throw error;
             }
         },
+        /**
+           @description node-async waterfall function to
+	                GetTimeSeriesDescriptionList.
+        */
         function (token, callback) {
             log('token: ' + token);
 
