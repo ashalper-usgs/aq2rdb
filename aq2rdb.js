@@ -262,8 +262,6 @@ function getTimeSeriesDescriptionList(
             }
 
             callback(
-                null,
-                timeSeriesDescriptionServiceRequest.token,
                 timeSeriesDescriptionServiceResponse.TimeSeriesDescriptions
             );
         });
@@ -314,8 +312,7 @@ function getAQToken(userName, password, callback) {
 
         // Response complete; token received.
         response.on('end', function () {
-            // pass token to next async.waterfall function
-            callback(null, messageBody);
+            callback(messageBody); // send token
         });
     } // getAQTokenCallback
 
@@ -391,48 +388,33 @@ httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
         throw 'Required parameter \"password\" not found';
     }
 
-    /**
-       @see https://github.com/caolan/async
-    */
-    async.waterfall([
-        /**
-           @description node-async waterfall function to get AQUARIUS
-                        authentication token from GetAQToken service.
-        */
-        function (callback) {
-	    // TODO: for reasons unknown, this appears to be silently
-	    // failing on the first try, then succeeding on the second
-	    // and subsequent attempts. Problem could be on the
-	    // GetAQToken side as well; need to investigate.
-            try {
-                getAQToken(
-                    getDVTable.userName, getDVTable.password, callback
-                );
-            }
-            catch (error) {
-                throw error;
-            }
-        },
-        /**
-           @description node-async waterfall function to
-	                GetTimeSeriesDescriptionList.
-        */
-        function (token, callback) {
-            log('token: ' + token);
+    function receiveTimeSeriesDescriptions(timeSeriesDescriptions) {
+	log(JSON.stringify(timeSeriesDescriptions));
+    } // receiveTimeSeriesDescriptions
 
-            getTimeSeriesDescriptionList(
-                {token: token,
-                 locationIdentifier: getDVTable.locationIdentifier,
-                 parameter: getDVTable.parameter,
-                 extendedFilters: '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
-                callback
-            );
-        },
-        function (token, timeSeriesDescriptions, callback) {
-            log('timeSeriesDescriptions: ' +
-                JSON.stringify(timeSeriesDescriptions));
-        }
-    ]);
+    function receiveAQToken(token) {
+        log('token: ' + token);
+	getDVTable.token = token;
+
+        getTimeSeriesDescriptionList(
+            {token: getDVTable.token,
+             locationIdentifier: getDVTable.locationIdentifier,
+             parameter: getDVTable.parameter,
+             extendedFilters:
+                 '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
+	    receiveTimeSeriesDescriptions
+        );
+    } // receiveAQToken
+
+    try {
+        getAQToken(
+            getDVTable.userName, getDVTable.password, receiveAQToken
+        );
+    }
+    catch (error) {
+        throw error;
+    }
+
     response.end();
 });
 
