@@ -10,12 +10,15 @@ GetDVTable () {
     echo
 }
 
-node aq2rdb.js &		# start service
+node stub.js &
+stub=$!
 
-# sometimes necessary on systems where the HTTP server doesn't start
-# fast enough:
+node ../aq2rdb.js &
+aq2rdb=$!
 
-# sleep 1s
+# Sometimes necessary on systems where the Node.js scripts above don't
+# start fast enough:
+sleep 1s
 
 aq2rdb "&userName=apiuser&password=$password&z=prod&u=Discharge.ft^3/s.Mean@09380000&b=20150101&e=20150103"
 
@@ -29,4 +32,4 @@ aq2rdb "&userName=apiuser&password=$password&z=prod&u=Discharge.ft^3/s.Mean@0938
 
 #GetDVTable "&userName=apiuser&password=$password&environment=prod&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&queryFrom=2015-01-01T00%3A00%3A00-07%3A00&queryTo=2015-01-03T00%3A00%3A00-07%3A00"
 
-kill $!
+kill $stub $aq2rdb
