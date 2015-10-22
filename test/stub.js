@@ -7,18 +7,24 @@
 
 'use strict';
 var http = require('http');
+var httpdispatcher = require('httpdispatcher');
 
 /**
    @description The port for impersonating GetAQToken.
 */
 var GETAQTOKEN_PORT = 8080;
 
+httpdispatcher.onGet('/services/GetAQToken', function (request, response) {
+    console.log('request.url: ' + request.url);
+    response.end();
+});
+
 /**
    @description Service dispatcher.
 */ 
 function handleRequest(request, response) {
     try {
-        console.log('request: ' + JSON.stringify(request));
+        httpdispatcher.dispatch(request, response);
     }
     catch (error) {
         throw error;
