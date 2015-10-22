@@ -10,17 +10,23 @@ GetDVTable () {
     echo
 }
 
-node stub.js &
-stub=$!
+# if "stub" option
+if [ "$1" = -s ]; then
+    # start stub server
+    node stub.js &
+    stub=$!
+fi
 
 node ../aq2rdb.js &
 aq2rdb=$!
 
-# Sometimes necessary on systems where the Node.js scripts above don't
-# start fast enough:
-sleep 1s
+if [ `hostname` = hemi ]; then
+    # Sometimes necessary on systems where the Node.js scripts above
+    # don't start fast enough:
+    sleep 1s
+fi
 
-aq2rdb "&userName=apiuser&password=$password&z=prod&u=Discharge.ft^3/s.Mean@09380000&b=20150101&e=20150103"
+#aq2rdb "&userName=apiuser&password=$password&z=prod&u=Discharge.ft^3/s.Mean@09380000&b=20150101&e=20150103"
 
 #GetDVTable "&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000"
 
@@ -30,6 +36,10 @@ aq2rdb "&userName=apiuser&password=$password&z=prod&u=Discharge.ft^3/s.Mean@0938
 
 #GetDVTable "&userName=apiuser&password=not4passwurd&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&computed=true"
 
-#GetDVTable "&userName=apiuser&password=$password&environment=prod&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&queryFrom=2015-01-01T00%3A00%3A00-07%3A00&queryTo=2015-01-03T00%3A00%3A00-07%3A00"
+#GetDVTable "&userName=apiuser&password=$password&environment=prod&timeSeriesIdentifier=Discharge&queryFrom=2015-01-01T00%3A00%3A00-07%3A00&queryTo=2015-01-03T00%3A00%3A00-07%3A00"
 
-kill $stub $aq2rdb
+kill $aq2rdb
+
+if [ "$1" = -s ]; then
+    kill $stub
+fi
