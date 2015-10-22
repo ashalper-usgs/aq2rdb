@@ -15,8 +15,8 @@ var httpdispatcher = require('httpdispatcher');
 var GETAQTOKEN_PORT = 8080;
 
 httpdispatcher.onGet('/services/GetAQToken', function (request, response) {
-    console.log('request.url: ' + request.url);
-    response.end();
+    // serve a bogus AQUARIUS token
+    response.end('ABogusAQUARIUSToken');
 });
 
 /**
