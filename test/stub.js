@@ -40,6 +40,6 @@ var server = http.createServer(handleRequest);
    @description Start listening for requests.
 */
 server.listen(GETAQTOKEN_PORT, function () {
-    console.log('Server listening on: http://localhost:' +
+    console.log('stub: Server listening on: http://localhost:' +
 		GETAQTOKEN_PORT.toString());
 });
