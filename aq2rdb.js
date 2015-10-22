@@ -37,10 +37,10 @@ var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
    @description Consolidated error message writer. Writes message in
                 a single-line, RDB comment.
 */ 
-function rdbMessage(response, statusCode, message) {
-    var statusMessage = '# ' + PACKAGE_NAME + ': ' + message;
+function rdbMessage(response, error) {
+    var statusMessage = '# ' + PACKAGE_NAME + ': ' + error.message;
 
-    response.writeHead(statusCode, statusMessage,
+    response.writeHead(error.statusCode, statusMessage,
                        {'Content-Length': statusMessage.length,
                         'Content-Type': 'text/plain'});
     response.end(statusMessage);
@@ -76,9 +76,10 @@ function bind(field, value) {
 */ 
 function jsonParseErrorMessage(response, message) {
     rdbMessage(
-        response, 502, 
-        'While trying to parse a JSON response from ' +
-            'AQUARIUS: ' + message
+        response,
+	{statusCode: 502, 
+         message: 'While trying to parse a JSON response from ' +
+         'AQUARIUS: ' + message}
     );
 }
 
@@ -114,7 +115,9 @@ var DataType = function (text) {
     case 'UV':
         break;
     default:
-        throw 'Unknown \"t\" (data type) parameter value: \"' + t + '\"';
+        throw {statusCode: 400,
+	       message: 'Unknown \"t\" (data type) parameter ' +
+	                'value: \"' + t + '\"'};
     }
 
     var text = text;
@@ -254,9 +257,10 @@ function getTimeSeriesDescriptionList(
                 undefined) {
                 // there's nothing more we can do
                 rdbMessage(
-                    response, 200,
-                    'The query found no time series ' +
-                        'descriptions in AQUARIUS'
+                    response,
+		    {statusCode: 200,
+                     message: 'The query found no time series ' +
+                     'descriptions in AQUARIUS'}
                 );
                 return;
             }
@@ -356,9 +360,11 @@ function getAQToken(userName, password, callback) {
 httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
     request, response
 ) {
+    log(request.url);
     // parse HTTP query
     var field = querystring.parse(request.url);
-    delete field['/' + PACKAGE_NAME + '/GetDVTable?']; // not used
+    // this field is not used
+    delete field['/' + PACKAGE_NAME + '/GetDVTable?'];
     var getDVTable = new Array();
 
     for (var name in field) {
@@ -376,7 +382,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
                 field[name];
         }
         else {
-            throw 'Unknown field "' + name + '"';
+            throw {statusCode: 400, message: 'Unknown field "' + name + '"'};
         }
     }
 
@@ -524,7 +530,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 t = new DataType(arg[opt].toUpperCase());
             }
             catch (error) {
-                rdbMessage(response, 400, error);
+                rdbMessage(response, error);
                 return;
             }
             break;
@@ -636,13 +642,12 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                     if (200 < aquariusResponse.statusCode) {
                         rdbMessage(
                             response,
-                            aquariusResponse.statusCode,
-                            '# ' + PACKAGE_NAME +
-                                ': AQUARIUS replied with an error. ' +
-                                'The message was:\n' +
-                                '#\n' +
-                                '#   ' +
-                                timeSeriesCorrectedData.ResponseStatus.Message
+                            {statusCode: aquariusResponse.statusCode,
+			     message: 'AQUARIUS replied with an error. ' +
+                                      'The message was:\n' +
+                                      '#\n' +
+                                      '#   ' +
+                             timeSeriesCorrectedData.ResponseStatus.Message}
                         );
                         return;
                     }
@@ -922,8 +927,9 @@ function handleRequest(request, response) {
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
-        throw error;
+	rdbMessage(response, error);
     }
+    response.end();
 }
 
 /**
