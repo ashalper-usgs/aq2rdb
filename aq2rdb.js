@@ -37,10 +37,10 @@ var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
    @description Consolidated error message writer. Writes message in
                 a single-line, RDB comment.
 */ 
-function rdbMessage(response, statusCode, message) {
-    var statusMessage = '# ' + PACKAGE_NAME + ': ' + message;
+function rdbMessage(response, error) {
+    var statusMessage = '# ' + PACKAGE_NAME + ': ' + error.message;
 
-    response.writeHead(statusCode, statusMessage,
+    response.writeHead(error.statusCode, statusMessage,
                        {'Content-Length': statusMessage.length,
                         'Content-Type': 'text/plain'});
     response.end(statusMessage);
@@ -76,9 +76,10 @@ function bind(field, value) {
 */ 
 function jsonParseErrorMessage(response, message) {
     rdbMessage(
-        response, 502, 
-        'While trying to parse a JSON response from ' +
-            'AQUARIUS: ' + message
+        response,
+        {statusCode: 502, 
+         message: 'While trying to parse a JSON response from ' +
+                  'AQUARIUS: ' + message}
     );
 }
 
@@ -89,32 +90,42 @@ var DataType = function (text) {
     // data type ("t") parameter domain validation
     switch (text) {
     case 'MS':
-        throw 'Pseudo-time series (e.g., gage inspections) are not supported';
+        throw {statusCode: 400,
+               message:
+               'Pseudo-time series (e.g., gage inspections) are not supported'};
         break;
     case 'VT':
-        throw 'Sensor inspections and readings are not supported';
+        throw {statusCode: 400,
+               message: 'Sensor inspections and readings are not supported'};
         break;
     case 'PK':
-        throw 'Peak-flow data are not supported';
+        throw {statusCode: 400,
+               message: 'Peak-flow data are not supported'};
         break;
     case 'DC':
-        throw 'Data corrections are not supported';
+        throw {statusCode: 400,
+               message: 'Data corrections are not supported'};
         break;
     case 'SV':
-        throw 'Quantitative site-visit data are not supported';
+        throw {statusCode: 400,
+               message: 'Quantitative site-visit data are not supported'};
         break;
     case 'WL':
-        throw 'Discrete groundwater-levels data are not supported';
+        throw {statusCode: 400,
+               message: 'Discrete groundwater-levels data are not supported'};
         break;
     case 'QW':
-        throw 'Discrete water quality data are not supported';
+        throw {statusCode: 400,
+               message: 'Discrete water quality data are not supported'};
         break;
     // these are the only valid "t" parameter values right now
     case 'DV':
     case 'UV':
         break;
     default:
-        throw 'Unknown \"t\" (data type) parameter value: \"' + t + '\"';
+        throw {statusCode: 400,
+               message: 'Unknown \"t\" (data type) parameter ' +
+                        'value: \"' + t + '\"'};
     }
 
     var text = text;
@@ -195,7 +206,8 @@ var BasicFormat = function (text) {
     var datestring = basicToExtended(text);
 
     if (isNaN(Date.parse(datestring))) {
-        throw 'Could not parse \"' + text + '\"';
+        throw {statusCode: 400,
+               message: 'Could not parse date string \"' + text + '\"'};
     }
 
     /**
@@ -217,23 +229,23 @@ var BasicFormat = function (text) {
 } // BasicFormat
 
 function getTimeSeriesDescriptionList(
-    timeSeriesDescriptionServiceRequest, callback
+    aq2rdbResponse, timeSeriesDescriptionServiceRequest, callback
 ) {
     /**
        @description Callback to handle response from
                     GetTimeSeriesDescriptionList service.
     */
-    function getTimeSeriesDescriptionListCallback(response) {
+    function getTimeSeriesDescriptionListCallback(aquariusResponse) {
         var messageBody = '';
 
         // accumulate response
-        response.on(
+        aquariusResponse.on(
             'data',
             function (chunk) {
                 messageBody += chunk;
             });
 
-        response.on('end', function () {
+        aquariusResponse.on('end', function () {
             var timeSeriesDescriptionListServiceResponse;
 
             try {
@@ -241,12 +253,8 @@ function getTimeSeriesDescriptionList(
                     JSON.parse(messageBody);
             }
             catch (error) {
-                throw error;
+		throw error;
             }
-
-	    // TODO:
-	    // {"ResponseStatus":{"ErrorCode":"ModelNotFoundException","Message":"Discharge.ft^3/s.Mean is not a valid parameter","Errors":[]}}
-	    log(timeSeriesDescriptionServiceResponse.ResponseStatus.ErrorCode);
 
             // if the GetTimeSeriesDescriptionList query returned no
             // time series descriptions
@@ -254,9 +262,10 @@ function getTimeSeriesDescriptionList(
                 undefined) {
                 // there's nothing more we can do
                 rdbMessage(
-                    response, 200,
-                    'The query found no time series ' +
-                        'descriptions in AQUARIUS'
+                    aq2rdbResponse,
+                    {statusCode: 200,
+                     message: 'The query found no time series ' +
+                     'descriptions in AQUARIUS'}
                 );
                 return;
             }
@@ -288,7 +297,7 @@ function getTimeSeriesDescriptionList(
                     invocation errors.
     */
     request.on('error', function (error) {
-        throw error;
+        throw {statusCode: 502, message: error};
     });
 
     request.end();
@@ -339,11 +348,12 @@ function getAQToken(userName, password, callback) {
         var statusMessage;
 
         if (error.message === 'connect ECONNREFUSED') {
-            throw 'Could not connect to GetAQToken service for ' +
-                'AQUARIUS authentication token';
+            throw {statusCode: 502,
+                   message: 'Could not connect to GetAQToken service for ' +
+                   'AQUARIUS authentication token'};
         }
         else {
-            throw error;
+            throw {statusCode: 502, message: error};
         }
     });
 
@@ -356,9 +366,17 @@ function getAQToken(userName, password, callback) {
 httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
     request, response
 ) {
+    var field;
     // parse HTTP query
-    var field = querystring.parse(request.url);
-    delete field['/' + PACKAGE_NAME + '/GetDVTable?']; // not used
+    try {
+        field = querystring.parse(request.url);
+    }
+    catch (error) {
+        throw {statusCode: 400, message: error};
+    }
+    
+    // this field is not used
+    delete field['/' + PACKAGE_NAME + '/GetDVTable?'];
     var getDVTable = new Array();
 
     for (var name in field) {
@@ -376,33 +394,36 @@ httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
                 field[name];
         }
         else {
-            throw 'Unknown field "' + name + '"';
+            throw {statusCode: 400, message: 'Unknown field "' + name + '"'};
         }
     }
 
     if (getDVTable.userName.length === 0) {
-        throw 'Required parameter \"userName\" not found';
+        throw {statusCode: 400,
+               message: 'Required parameter \"userName\" not found'};
     }
 
     if (getDVTable.password.length === 0) {
-        throw 'Required parameter \"password\" not found';
+        throw {statusCode: 400,
+               message: 'Required parameter \"password\" not found'};
     }
 
     function receiveTimeSeriesDescriptions(timeSeriesDescriptions) {
-	log(JSON.stringify(timeSeriesDescriptions));
+        log(JSON.stringify(timeSeriesDescriptions));
     } // receiveTimeSeriesDescriptions
 
     function receiveAQToken(token) {
         log('token: ' + token);
-	getDVTable.token = token;
+        getDVTable.token = token;
 
         getTimeSeriesDescriptionList(
+	    response,
             {token: getDVTable.token,
              locationIdentifier: getDVTable.locationIdentifier,
              parameter: getDVTable.parameter,
              extendedFilters:
                  '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
-	    receiveTimeSeriesDescriptions
+            receiveTimeSeriesDescriptions
         );
     } // receiveAQToken
 
@@ -443,12 +464,14 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     var userName, password;
 
     if (arg.userName.length === 0) {
-        throw 'Required parameter \"userName\" not found';
+        throw {statusCode: 400,
+               message: 'Required parameter "userName" not found'};
     }
     userName = arg.userName;
 
     if (arg.password.length === 0) {
-        throw 'Required parameter \"password\" not found';
+        throw {statusCode: 400,
+               message: 'Required parameter "password" not found'};
     }
     password = arg.password;
 
@@ -459,8 +482,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
          arg.d !== undefined || arg.r !== undefined ||
          arg.p !== undefined)
        ) {
-        throw 'If \"u\" is specified, \"a\", \"n\", \"t\", \"s\", ' +
-            '\"d\", \"r\", and \"p\" must be omitted';
+        throw {statusCode: 400,
+               message: 'If "u" is specified, "a", "n", "t", "s", ' +
+               '"d", "r", and "p" must be omitted'};
     }
 
     var environment = 'production';
@@ -488,8 +512,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 b = new BasicFormat(arg[opt]);
             }
             catch (error) {
-                throw 'If \"b\" is specified, a valid ISO ' +
-                    'basic format date must be provided';
+                throw {statusCode: 400,
+                       message: 'If "b" is specified, a valid ISO ' +
+                                'basic format date must be provided'};
             }
             break;
         case 'n':
@@ -504,8 +529,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             // whenever possible.
             d = parseInt(arg[opt]);
             if (isNaN(d))
-                throw 'Data descriptor (\"d\") field must be ' +
-                'an integer';
+                throw {statusCode: 400,
+                       message: 'Data descriptor ("d") field must be ' +
+                                'an integer'};
             break;
         case 'p':
             parameter = arg[opt]; // parameter code
@@ -524,7 +550,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 t = new DataType(arg[opt].toUpperCase());
             }
             catch (error) {
-                rdbMessage(response, 400, error);
+                rdbMessage(response, error);
                 return;
             }
             break;
@@ -538,8 +564,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 e = new BasicFormat(arg[opt]);
             }
             catch (error) {
-                throw 'If \"e\" is specified, a valid ISO ' +
-                    'basic format date must be provided';
+                throw {statusCode: 400,
+                       message: 'If "e" is specified, a valid ISO ' +
+                                'basic format date must be provided'};
             }
             break;
         }
@@ -636,13 +663,12 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                     if (200 < aquariusResponse.statusCode) {
                         rdbMessage(
                             response,
-                            aquariusResponse.statusCode,
-                            '# ' + PACKAGE_NAME +
-                                ': AQUARIUS replied with an error. ' +
-                                'The message was:\n' +
-                                '#\n' +
-                                '#   ' +
-                                timeSeriesCorrectedData.ResponseStatus.Message
+                            {statusCode: aquariusResponse.statusCode,
+                             message: 'AQUARIUS replied with an error. ' +
+                                      'The message was:\n' +
+                                      '#\n' +
+                                      '#   ' +
+                             timeSeriesCorrectedData.ResponseStatus.Message}
                         );
                         return;
                     }
@@ -922,8 +948,14 @@ function handleRequest(request, response) {
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
-        throw error;
+        if (error.statusCode !== undefined && error.message !== undefined) {
+            rdbMessage(response, error);
+        }
+        else {
+            throw error;
+        }
     }
+    response.end();
 }
 
 /**

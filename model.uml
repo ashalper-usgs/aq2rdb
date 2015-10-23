@@ -327,4 +327,7 @@
     <ownedAttribute xmi:type="uml:Property" xmi:id="_CgslgG3hEeWWXI905mrYGQ" name="name" type="_hhmHkGbXEeW2ybKigGMHUA"/>
     <ownedAttribute xmi:type="uml:Property" xmi:id="_Sj_qAG3hEeWWXI905mrYGQ" name="uri" type="_hhmHkGbXEeW2ybKigGMHUA"/>
   </packagedElement>
+  <packagedElement xmi:type="uml:Activity" xmi:id="_kJmOQHjjEeWSJsf5P-lLZw" name="GetDVTable" node="_4wSlcHjjEeWSJsf5P-lLZw">
+    <node xmi:type="uml:InitialNode" xmi:id="_4wSlcHjjEeWSJsf5P-lLZw" name=""/>
+  </packagedElement>
 </uml:Model>
