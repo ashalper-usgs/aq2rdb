@@ -229,23 +229,23 @@ var BasicFormat = function (text) {
 } // BasicFormat
 
 function getTimeSeriesDescriptionList(
-    timeSeriesDescriptionServiceRequest, callback
+    aq2rdbResponse, timeSeriesDescriptionServiceRequest, callback
 ) {
     /**
        @description Callback to handle response from
                     GetTimeSeriesDescriptionList service.
     */
-    function getTimeSeriesDescriptionListCallback(response) {
+    function getTimeSeriesDescriptionListCallback(aquariusResponse) {
         var messageBody = '';
 
         // accumulate response
-        response.on(
+        aquariusResponse.on(
             'data',
             function (chunk) {
                 messageBody += chunk;
             });
 
-        response.on('end', function () {
+        aquariusResponse.on('end', function () {
             var timeSeriesDescriptionListServiceResponse;
 
             try {
@@ -253,12 +253,8 @@ function getTimeSeriesDescriptionList(
                     JSON.parse(messageBody);
             }
             catch (error) {
-                throw {statusCode: 502, message: error};
+		throw error;
             }
-
-            // TODO:
-            // {"ResponseStatus":{"ErrorCode":"ModelNotFoundException","Message":"Discharge.ft^3/s.Mean is not a valid parameter","Errors":[]}}
-            log(timeSeriesDescriptionServiceResponse.ResponseStatus.ErrorCode);
 
             // if the GetTimeSeriesDescriptionList query returned no
             // time series descriptions
@@ -266,7 +262,7 @@ function getTimeSeriesDescriptionList(
                 undefined) {
                 // there's nothing more we can do
                 rdbMessage(
-                    response,
+                    aq2rdbResponse,
                     {statusCode: 200,
                      message: 'The query found no time series ' +
                      'descriptions in AQUARIUS'}
@@ -370,7 +366,6 @@ function getAQToken(userName, password, callback) {
 httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
     request, response
 ) {
-    log(request.url);
     var field;
     // parse HTTP query
     try {
@@ -422,6 +417,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
         getDVTable.token = token;
 
         getTimeSeriesDescriptionList(
+	    response,
             {token: getDVTable.token,
              locationIdentifier: getDVTable.locationIdentifier,
              parameter: getDVTable.parameter,
