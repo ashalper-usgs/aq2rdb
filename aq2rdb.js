@@ -330,6 +330,68 @@ var DVTable = function (
 } // DVTable
 
 /**
+   @description Call GetAQToken service to get AQUARIUS authentication
+                token.
+*/
+function getAQToken(userName, password, callback) {
+    if (userName === undefined)
+        throw 'Required field "userName" is missing';
+
+    if (password === undefined)
+        throw 'Required field "password" is missing';
+    
+    /**
+       @description GetAQToken service response callback.
+    */
+    function getAQTokenCallback(response) {
+        var messageBody = '';
+
+        // accumulate response
+        response.on('data', function (chunk) {
+            messageBody += chunk;
+        });
+
+        // Response complete; token received.
+        response.on('end', function () {
+            callback(null, messageBody);
+        });
+    } // getAQTokenCallback
+
+    /**
+       @description GetAQToken service request for AQUARIUS
+       authentication token needed for AQUARIUS
+       API.
+    */
+    var path = '/services/GetAQToken?' +
+        bind('userName', userName) +
+        bind('password', password) +
+        bind('uriString',
+             'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
+    var request = http.request({
+        host: 'localhost',
+        port: '8080',
+        path: path
+    }, getAQTokenCallback);
+
+    /**
+       @description Handle GetAQToken service invocation errors.
+    */
+    request.on('error', function (error) {
+        var statusMessage;
+
+        if (error.message === 'connect ECONNREFUSED') {
+            throw 'Could not connect to GetAQToken service for ' +
+                'AQUARIUS authentication token';
+        }
+        else {
+            throw error;
+        }
+    });
+
+    request.end();
+} // getAQToken
+
+/**
    @description GetDVTable service request handler.
 */
 httpdispatcher.onGet(
@@ -373,7 +435,6 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     // parse HTTP query
     var arg = querystring.parse(request.url);
     var userName, password;
-    var token;                  // AQUARIUS authentication token
 
     if (arg.userName.length === 0) {
         throw 'Required parameter "userName" not found';
@@ -514,65 +575,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     */
     async.waterfall([
         function (callback) {
-            if (userName === undefined)
-                throw 'Required field "userName" is missing';
-
-            if (password === undefined)
-                throw 'Required field "password" is missing';
-            
-            /**
-               @description GetAQToken service response callback.
-            */
-            function getAQTokenCallback(response) {
-                var messageBody = '';
-
-                // accumulate response
-                response.on('data', function (chunk) {
-                    messageBody += chunk;
-                });
-
-                // Response complete; token received.
-                response.on('end', function () {
-                    token = messageBody;
-                    // continue to next waterfall below
-                    callback(null);
-                });
-            } // getAQTokenCallback
-
-            /**
-               @description GetAQToken service request for AQUARIUS
-                            authentication token needed for AQUARIUS
-                            API.
-            */
-            var path = '/services/GetAQToken?' +
-                bind('userName', userName) +
-                bind('password', password) +
-                bind('uriString',
-                     'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
-            var request = http.request({
-                host: 'localhost',
-                port: '8080',
-                path: path
-            }, getAQTokenCallback);
-
-            /**
-               @description Handle GetAQToken service invocation errors.
-            */
-            request.on('error', function (error) {
-                var statusMessage;
-
-                if (error.message === 'connect ECONNREFUSED') {
-                    throw 'Could not connect to GetAQToken service for ' +
-                        'AQUARIUS authentication token';
-                }
-                else {
-                    throw error;
-                }
-            });
-
-            request.end();
+            getAQToken(userName, password, callback);
         },
-        function (callback) {
+        function (token, callback) {
             /**
                @description Handle response from GetTimeSeriesDescriptionList.
             */
@@ -615,7 +620,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
                     callback(
                       null,
-                      {token: token},
+                      token,
                       timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
                     );
 
@@ -646,10 +651,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
             request.end();
         },
-        function (
-            timeSeriesDataCorrectedServiceRequest,
-            timeSeriesDescriptions, callback
-        ) {
+        function (token, timeSeriesDescriptions, callback) {
             /**
                @description Handle response from
                             GetTimeSeriesCorrectedData.
@@ -768,8 +770,6 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                         siteNumber = field[0];
                     }
 
-                    console.log('agencyCode: ' + agencyCode);
-
                     response.writeHead(200, {"Content-Type": "text/html"});
                     response.write(
                         '# //UNITED STATES GEOLOGICAL SURVEY       ' +
@@ -806,6 +806,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
             var n = timeSeriesDescriptions.length;
             for (var i = 0; i < n; i++) {
+                // call GetTimeSeriesCorrectedData service to get
+                // daily values associated with time series
+                // descriptions
                 var path = AQUARIUS_PREFIX +
                     'GetTimeSeriesCorrectedData?' +
                     bind('token', token) +
@@ -814,9 +817,6 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                          timeSeriesDescriptions[i].UniqueId) +
                     bind('queryFrom', b.toCombinedExtendedFormat('S')) +
                     bind('queryTo', e.toCombinedExtendedFormat('S'));
-                // call GetTimeSeriesCorrectedData service to get
-                // daily values associated with time series
-                // descriptions
                 var request = http.request({
                     host: AQUARIUS_HOSTNAME,
                     path: path
