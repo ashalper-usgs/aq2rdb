@@ -419,7 +419,17 @@ httpdispatcher.onGet(
             }
         }
 
-        response.end('# TODO:', 'ascii');
+        /**
+           @see https://github.com/caolan/async
+        */
+        async.waterfall([
+            function (callback) {
+                getAQToken(field.userName, field.password, callback);
+            },
+            function (token, callback) {
+                response.end('# token: ' + token, 'ascii');
+            }
+        ]);
     }
 );
 
