@@ -37,10 +37,10 @@ var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
    @description Consolidated error message writer. Writes message in
                 a single-line, RDB comment.
 */ 
-function rdbMessage(response, error) {
-    var statusMessage = '# ' + PACKAGE_NAME + ': ' + error.message;
+function rdbMessage(response, statusCode, message) {
+    var statusMessage = '# ' + PACKAGE_NAME + ': ' + message;
 
-    response.writeHead(error.statusCode, statusMessage,
+    response.writeHead(statusCode, statusMessage,
                        {'Content-Length': statusMessage.length,
                         'Content-Type': 'text/plain'});
     response.end(statusMessage);
@@ -76,10 +76,9 @@ function bind(field, value) {
 */ 
 function jsonParseErrorMessage(response, message) {
     rdbMessage(
-        response,
-        {statusCode: 502, 
-         message: 'While trying to parse a JSON response from ' +
-                  'AQUARIUS: ' + message}
+        response, 502, 
+        'While trying to parse a JSON response from ' +
+            'AQUARIUS: ' + message
     );
 }
 
@@ -90,42 +89,32 @@ var DataType = function (text) {
     // data type ("t") parameter domain validation
     switch (text) {
     case 'MS':
-        throw {statusCode: 400,
-               message:
-               'Pseudo-time series (e.g., gage inspections) are not supported'};
+        throw 'Pseudo-time series (e.g., gage inspections) are not supported';
         break;
     case 'VT':
-        throw {statusCode: 400,
-               message: 'Sensor inspections and readings are not supported'};
+        throw 'Sensor inspections and readings are not supported';
         break;
     case 'PK':
-        throw {statusCode: 400,
-               message: 'Peak-flow data are not supported'};
+        throw 'Peak-flow data are not supported';
         break;
     case 'DC':
-        throw {statusCode: 400,
-               message: 'Data corrections are not supported'};
+        throw 'Data corrections are not supported';
         break;
     case 'SV':
-        throw {statusCode: 400,
-               message: 'Quantitative site-visit data are not supported'};
+        throw 'Quantitative site-visit data are not supported';
         break;
     case 'WL':
-        throw {statusCode: 400,
-               message: 'Discrete groundwater-levels data are not supported'};
+        throw 'Discrete groundwater-levels data are not supported';
         break;
     case 'QW':
-        throw {statusCode: 400,
-               message: 'Discrete water quality data are not supported'};
+        throw 'Discrete water quality data are not supported';
         break;
     // these are the only valid "t" parameter values right now
     case 'DV':
     case 'UV':
         break;
     default:
-        throw {statusCode: 400,
-               message: 'Unknown \"t\" (data type) parameter ' +
-                        'value: \"' + t + '\"'};
+        throw 'Unknown \"t\" (data type) parameter value: \"' + t + '\"';
     }
 
     var text = text;
@@ -206,8 +195,7 @@ var BasicFormat = function (text) {
     var datestring = basicToExtended(text);
 
     if (isNaN(Date.parse(datestring))) {
-        throw {statusCode: 400,
-               message: 'Could not parse date string \"' + text + '\"'};
+        throw 'Could not parse \"' + text + '\"';
     }
 
     /**
@@ -228,226 +216,150 @@ var BasicFormat = function (text) {
 
 } // BasicFormat
 
-function getTimeSeriesDescriptionList(
-    aq2rdbResponse, timeSeriesDescriptionServiceRequest, callback
+var DVTable = function (
+    token, locationIdentifier, parameter, publish,
+    computationIdentifier, computationPeriodIdentifier,
+    extendedFilters
 ) {
-    /**
-       @description Callback to handle response from
-                    GetTimeSeriesDescriptionList service.
-    */
-    function getTimeSeriesDescriptionListCallback(aquariusResponse) {
-        var messageBody = '';
+    // might be useful to move out of this scope eventually
+    function toBoolean(literal) {
+        if (literal === 'true') {
+            computed = true;
+        }
+        else if (literal === 'false') {
+            computed = false;
+        }
+        else {
+            throw 'Could not parse value \"'  + literal +
+                '\" in \"computed\" field';
+        }
+    }
 
-        // accumulate response
-        aquariusResponse.on(
-            'data',
-            function (chunk) {
-                messageBody += chunk;
-            });
-
-        aquariusResponse.on('end', function () {
-            var timeSeriesDescriptionListServiceResponse;
-
+    // get HTTP query arguments
+    for (var field in spec) {
+        switch (field) {
+        case 'userName':
+        case 'password':
+            // see AquariusToken constructor call below
+            break;
+        case 'environment':
+            environment = spec[field];
+            break;
+        case 'timeSeriesIdentifier':
+            timeSeriesIdentifier = new TimeSeriesIdentifier(spec[field]);
+            break;
+        case 'queryFrom':
+            queryFrom = spec[field]; // TODO: needs domain validation
+            break;
+        case 'queryTo':
+            queryTo = spec[field]; // TODO: needs domain validation
+            break;
+        case 'unit':
+            unit = spec[field];
+            break;
+        case 'utcOffset':
+            utcOffset = spec[field];
+            break;
+        case 'applyRounding':
             try {
-                timeSeriesDescriptionServiceResponse =
-                    JSON.parse(messageBody);
+                applyRounding = toBoolean(spec[field]);
             }
             catch (error) {
-		throw error;
+                throw error;
             }
-
-            // if the GetTimeSeriesDescriptionList query returned no
-            // time series descriptions
-            if (timeSeriesDescriptionServiceResponse.TimeSeriesDescriptions ===
-                undefined) {
-                // there's nothing more we can do
-                rdbMessage(
-                    aq2rdbResponse,
-                    {statusCode: 200,
-                     message: 'The query found no time series ' +
-                     'descriptions in AQUARIUS'}
-                );
-                return;
+            break;
+        case 'computed':
+            try {
+                computed = toBoolean(spec[field]);
             }
+            catch (error) {
+                throw error;
+            }
+            break;
+        case 'timeOffset':
+            // TODO: this should be validated as an element of a time
+            // offset enumeration?
+            timeOffset = spec[field];
+            break;
+        default:
+            throw 'Unknown field \"' + field + '\"';
+            return;
+        }
+    }
 
-            callback(
-                timeSeriesDescriptionServiceResponse.TimeSeriesDescriptions
+    // required fields
+
+    if (userName === undefined) {
+        throw 'Required field \"userName\" is missing';
+    }
+
+    if (password === undefined) {
+        throw 'Required field \"password\" is missing';
+    }
+
+    // try to get AQUARIUS token from aquarius-token service
+    try {
+        var aquariusToken =
+            new AquariusToken(
+                userName,
+                password,
+                aquariusTokenCallback
             );
-        });
-    } // getTimeSeriesDescriptionListCallback
-
-    // the path part of GetTimeSeriesDescriptionList URL
-    var path = AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList?' +
-        bind('token', timeSeriesDescriptionServiceRequest.token) +
-        bind('format', 'json') +
-        bind('LocationIdentifier',
-             timeSeriesDescriptionServiceRequest.locationIdentifier) +
-        bind('Parameter',
-             timeSeriesDescriptionServiceRequest.parameter) +
-        bind('ExtendedFilters',
-             timeSeriesDescriptionServiceRequest.extendedFilters);
-    log('path: ' + path);
-    var request = http.request({
-        host: AQUARIUS_HOSTNAME,
-        path: path                
-    }, getTimeSeriesDescriptionListCallback);
-
-    /**
-       @description Handle GetTimeSeriesDescriptionList service
-                    invocation errors.
-    */
-    request.on('error', function (error) {
-        throw {statusCode: 502, message: error};
-    });
-
-    request.end();
-} // getTimeSeriesDescriptionList
-
-/**
-   @description Get AQUARIUS authentication token from GetAQToken
-                service.
-*/
-function getAQToken(userName, password, callback) {
-    /**
-       @description GetAQToken service response callback.
-    */
-    function getAQTokenCallback(response) {
-        var messageBody = '';
-
-        // accumulate response
-        response.on('data', function (chunk) {
-            messageBody += chunk;
-        });
-
-        // Response complete; token received.
-        response.on('end', function () {
-            callback(messageBody); // send token
-        });
-    } // getAQTokenCallback
-
-    /**
-       @description GetAQToken service request for AQUARIUS
-                    authentication token needed for AQUARIUS API.
-    */
-    var path = '/services/GetAQToken?' +
-        bind('userName', userName) +
-        bind('password', password) +
-        bind('uriString',
-             'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
-
-    var request = http.request({
-        host: 'localhost',
-        port: '8080',
-        path: path
-    }, getAQTokenCallback);
-
-    /**
-       @description Handle GetAQToken service invocation errors.
-    */
-    request.on('error', function (error) {
-        var statusMessage;
-
-        if (error.message === 'connect ECONNREFUSED') {
-            throw {statusCode: 502,
-                   message: 'Could not connect to GetAQToken service for ' +
-                   'AQUARIUS authentication token'};
-        }
-        else {
-            throw {statusCode: 502, message: error};
-        }
-    });
-
-    request.end();
-} // getAQToken
-
-/**
-   @description GetDVTable service request handler.
-*/
-httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetDVTable', function (
-    request, response
-) {
-    var field;
-    // parse HTTP query
-    try {
-        field = querystring.parse(request.url);
-    }
-    catch (error) {
-        throw {statusCode: 400, message: error};
-    }
-    
-    // this field is not used
-    delete field['/' + PACKAGE_NAME + '/GetDVTable?'];
-    var getDVTable = new Array();
-
-    for (var name in field) {
-        // GetAQToken service fields
-        if (name.match(/userName|password|environment/)) {
-            getDVTable[name] = field[name];
-        }
-        // AQUARIUS service fields
-        else if (name.match(/LocationIdentifier|Parameter|Publish|ComputationIdentifier|ComputationPeriodIdentifier|QueryFrom|QueryTo/)) {
-            // Convert capitalized AQUARIUS field names to
-            // uncapitalized, JavaScript property names; annoying, but
-            // we're trying to be consistent with the JavaScript
-            // style.
-            getDVTable[name.charAt(0).toLowerCase() + name.substr(1)] =
-                field[name];
-        }
-        else {
-            throw {statusCode: 400, message: 'Unknown field "' + name + '"'};
-        }
-    }
-
-    if (getDVTable.userName.length === 0) {
-        throw {statusCode: 400,
-               message: 'Required parameter \"userName\" not found'};
-    }
-
-    if (getDVTable.password.length === 0) {
-        throw {statusCode: 400,
-               message: 'Required parameter \"password\" not found'};
-    }
-
-    function receiveTimeSeriesDescriptions(timeSeriesDescriptions) {
-        log(JSON.stringify(timeSeriesDescriptions));
-    } // receiveTimeSeriesDescriptions
-
-    function receiveAQToken(token) {
-        log('token: ' + token);
-        getDVTable.token = token;
-
-        getTimeSeriesDescriptionList(
-	    response,
-            {token: getDVTable.token,
-             locationIdentifier: getDVTable.locationIdentifier,
-             parameter: getDVTable.parameter,
-             extendedFilters:
-                 '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
-            receiveTimeSeriesDescriptions
-        );
-    } // receiveAQToken
-
-    try {
-        getAQToken(
-            getDVTable.userName, getDVTable.password, receiveAQToken
-        );
     }
     catch (error) {
         throw error;
     }
 
-    response.end();
+    if (timeSeriesIdentifier === undefined)
+        throw 'Required field \"timeSeriesIdentifier\" is missing';
+
+    function timeSeriesDescriptionListCallback() {
+        // TODO:
+        log('timeSeriesDescriptionListCallback() called');
+    } // timeSeriesDescriptionListCallback
+
+    function aquariusTokenCallback() {
+        var timeSeriesDescriptionList =
+            new TimeSeriesDescriptionList({
+                token: aquariusToken.toString(),
+                timeSeriesIdentifier: timeSeriesIdentifier,
+                callback: timeSeriesDescriptionListCallback
+            });
+    } // aquariusTokenCallback
+
+} // DVTable
+
+/**
+   @description GetDVTable service request handler.
+*/
+httpdispatcher.onGet(
+    '/' + PACKAGE_NAME + '/GetDVTable',
+    function (request, response) {
+        // object spec. is derived from HTTP query field values
+        var spec = querystring.parse(request.url);
+        // this property would be just clutter in the object right now,
+        // so delete it
+        delete spec['/' + PACKAGE_NAME + '/GetDVTable?'];
+        try {
+            // TODO:
+            // var dvTable = new DVTable(...);
+        }
+        catch (error) {
+            rdbMessage(response, 400, error);
+            return;
+        }
+        response.end();
 });
 
 /**
    @description GetUVTable service request handler.
 */
-httpdispatcher.onGet('/' + PACKAGE_NAME + '/GetUVTable', function (
-    request, response
-) {
-    // TODO:
-    log('GetUVTable service called');
-    response.end();
+httpdispatcher.onGet(
+    '/' + PACKAGE_NAME + '/GetUVTable',
+    function (request, response) {
+        // TODO:
+        log('GetUVTable service called');
+        response.end();
 });
 
 /**
@@ -462,16 +374,15 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     // parse HTTP query
     var arg = querystring.parse(request.url);
     var userName, password;
+    var token;                  // AQUARIUS authentication token
 
     if (arg.userName.length === 0) {
-        throw {statusCode: 400,
-               message: 'Required parameter "userName" not found'};
+        throw 'Required parameter \"userName\" not found';
     }
     userName = arg.userName;
 
     if (arg.password.length === 0) {
-        throw {statusCode: 400,
-               message: 'Required parameter "password" not found'};
+        throw 'Required parameter \"password\" not found';
     }
     password = arg.password;
 
@@ -482,14 +393,13 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
          arg.d !== undefined || arg.r !== undefined ||
          arg.p !== undefined)
        ) {
-        throw {statusCode: 400,
-               message: 'If "u" is specified, "a", "n", "t", "s", ' +
-               '"d", "r", and "p" must be omitted'};
+        throw 'If \"u\" is specified, \"a\", \"n\", \"t\", \"s\", ' +
+            '\"d\", \"r\", and \"p\" must be omitted';
     }
 
     var environment = 'production';
-    var agencyCode, siteNumber, locationIdentifier, parameter;
-    var t, d, b, e, c, r, l;
+    var timeSeriesIdentifier;
+    var a, n, t, d, b, e, c, r, l;
 
     // get HTTP query arguments
     for (var opt in arg) {
@@ -503,7 +413,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             environment = arg[opt];
             break;
         case 'a':
-            agencyCode = arg[opt];
+            a = arg[opt];
             break;
         case 'b':
             // TODO: need to worry about the (nwts2rdb-defaulted) time
@@ -512,13 +422,22 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 b = new BasicFormat(arg[opt]);
             }
             catch (error) {
-                throw {statusCode: 400,
-                       message: 'If "b" is specified, a valid ISO ' +
-                                'basic format date must be provided'};
+                throw 'If \"b\" is specified, a valid ISO ' +
+                    'basic format date must be provided';
             }
             break;
         case 'n':
-            locationIdentifier = siteNumber = arg[opt];
+            n = arg[opt];
+            break;
+        case 'u':
+            // -u is a new option for specifying a time-series
+            // identifier, and is preferred over -d whenever possible
+            try {
+                timeSeriesIdentifier = new TimeSeriesIdentifier(arg[opt]);
+            }
+            catch (error) {
+                throw error;
+            }
             break;
         case 'd':
             // -d data descriptor number is supported but is
@@ -529,12 +448,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             // whenever possible.
             d = parseInt(arg[opt]);
             if (isNaN(d))
-                throw {statusCode: 400,
-                       message: 'Data descriptor ("d") field must be ' +
-                                'an integer'};
-            break;
-        case 'p':
-            parameter = arg[opt]; // parameter code
+                throw 'Data descriptor (\"d\") field must be ' +
+                'an integer';
             break;
         case 'r':
             r = false;
@@ -550,7 +465,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 t = new DataType(arg[opt].toUpperCase());
             }
             catch (error) {
-                rdbMessage(response, error);
+                rdbMessage(response, 400, error);
                 return;
             }
             break;
@@ -564,81 +479,181 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 e = new BasicFormat(arg[opt]);
             }
             catch (error) {
-                throw {statusCode: 400,
-                       message: 'If "e" is specified, a valid ISO ' +
-                                'basic format date must be provided'};
+                throw 'If \"e\" is specified, a valid ISO ' +
+                    'basic format date must be provided';
             }
             break;
         }
     }
 
-    // if locationIdentifier was not provided
-    if (locationIdentifier === undefined)
-        locationIdentifier = siteNumber; // it's the site number
-
-    // AQUARIUS appears to have some wacky implicit logic for its
-    // LocationIdentifier; seems to only append "-<agency_cd>" to
-    // LocationIdentifier WHERE agency_cd <> 'USGS'
-    if (agencyCode !== undefined && agencyCode !== 'USGS')
-        locationIdentifier += '-' + agencyCode;
+    // TODO: this probably work when a === 'USGS'
+    var locationIdentifier = a === undefined ? n : n + '-' + a;
 
     /**
        @see https://github.com/caolan/async
     */
     async.waterfall([
-        /**
-           @description node-async waterfall function to get AQUARIUS
-                        authentication token from GetAQToken service.
-        */
         function (callback) {
-            try {
-                getAQToken(userName, password, callback);
-            }
-            catch (error) {
-                throw error;
-            }
-        },
-        /**
-           @description node-async waterfall function to query
-                        GetTimeSeriesDescriptionList service.
-        */
-        function (token, callback) {
-            var extendedFilters =
-                '[{FilterName:ADAPS_DD,FilterValue:' +
-                eval(d === undefined ? '1' : d) + '}]';
+            if (userName === undefined)
+                throw 'Required field \"userName\" is missing';
 
-            // TODO: "parameter" value here doesn't match
-            // up with what AQUARIUS is expecting; will need mapping
-            // from PARM.parm_cd.
-            // 
-            // On Wed, Oct 21, 2015 at 11:30 AM, Scott Bartholoma
-            // said:
-            // 
-            // It is not yet available, and will not be available
-            // from the AQUARIUS API.  This quarterly reference
-            // list update we are adding rows to the PARM_ALIAS
-            // table to handle the mapping.   For each timeseries
-            // NWIS parameter there will be AQPARM, AQUNIT,
-            // AQNAME, and AQDESC rows.  Once this is released the
-            // plan it so stand up a USGS web service that uses
-            // that table to answer the questions "Given this NWIS
-            // parm what is the AQ parm and unit?" and "Given this
-            // AQ parm and unit, what is the NWIS parm?" but this
-            // is not yet available.  I don't know what the
-            // proposed deployment date is for this.
-            getTimeSeriesDescriptionList(
-                token, locationIdentifier, parameter, extendedFilters,
-                callback
-            );
-        },
-        /**
-           @description node-async waterfall function to query
-                        GetTimeSeriesCorrectedData service.
-        */
-        function (token, timeSeriesDescriptions, callback) {
+            if (password === undefined)
+                throw 'Required field \"password\" is missing';
+            
             /**
-               @description Callback to handle response from
-                            GetTimeSeriesCorrectedData service.
+               @description GetAQToken service response callback.
+            */
+            function getAQTokenCallback(response) {
+                var messageBody = '';
+
+                // accumulate response
+                response.on('data', function (chunk) {
+                    messageBody += chunk;
+                });
+
+                // Response complete; token received.
+                response.on('end', function () {
+                    token = messageBody;
+                    // continue to next waterfall below
+                    callback(null);
+                });
+            } // getAQTokenCallback
+
+            /**
+               @description GetAQToken service request for AQUARIUS
+               authentication token needed for AQUARIUS API.
+            */
+            var path = '/services/GetAQToken?' +
+                bind('userName', userName) +
+                bind('password', password) +
+                bind('uriString',
+                     'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
+            var request = http.request({
+                host: 'localhost',
+                port: '8080',
+                path: path
+            }, getAQTokenCallback);
+
+            /**
+               @description Handle GetAQToken service invocation errors.
+            */
+            request.on('error', function (error) {
+                var statusMessage;
+
+                if (error.message === 'connect ECONNREFUSED') {
+                    throw 'Could not connect to GetAQToken service for ' +
+                        'AQUARIUS authentication token';
+                }
+                else {
+                    throw error;
+                }
+            });
+
+            request.end();
+        },
+        function (callback) {
+            var extendedFilters;
+
+            if (timeSeriesIdentifier === undefined) {
+                // time-series identifier is not present
+                extendedFilters =
+                    '[{FilterName:ADAPS_DD,FilterValue:' +
+                    eval(d === undefined ? '1' : d) + '}]'
+            }
+            else {
+                // time-series identifier is present
+                locationIdentifier =
+                    timeSeriesIdentifier.locationIdentifier();
+                extendedFilters =
+                    '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
+            }
+
+            var parameter = timeSeriesIdentifier.parameter();
+            if (parameter === undefined) {
+                throw 'Could not parse \"Parameter\" field value from ' +
+                    '\"timeSeriesIdentifier\" field value';
+            }
+
+            /**
+               @description Handle response from GetTimeSeriesDescriptionList.
+            */
+            function getTimeSeriesDescriptionListCallback(aquariusResponse) {
+                var messageBody = '';
+
+                // accumulate response
+                aquariusResponse.on(
+                    'data',
+                    function (chunk) {
+                        messageBody += chunk;
+                    });
+
+                aquariusResponse.on('end', function () {
+                    var timeSeriesDescriptionServiceRequest;
+
+                    try {
+                        timeSeriesDescriptionServiceRequest =
+                            JSON.parse(messageBody);
+                    }
+                    catch (error) {
+                        jsonParseErrorMessage(response, error.message);
+                        return;         // go no further
+                    }
+
+                    // if the GetTimeSeriesDescriptionList query returned no
+                    // time series descriptions
+                    if (
+                timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions ===
+                            undefined
+                    ) {
+                        // there's nothing more we can do
+                        rdbMessage(
+                            response, 200,
+                            'The query found no time series ' +
+                                'descriptions in AQUARIUS'
+                        );
+                        return;
+                    }
+
+                    callback(
+                      null,
+                      {token: token},
+                      timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
+                    );
+
+                });
+            } // getTimeSeriesDescriptionListCallback
+
+            // the path part of GetTimeSeriesDescriptionList URL
+            var path = AQUARIUS_PREFIX +
+                'GetTimeSeriesDescriptionList?' +
+                bind('token', token) +
+                bind('format', 'json') +
+                bind('LocationIdentifier', locationIdentifier) +
+                bind('Parameter', parameter) +
+                bind('ExtendedFilters', extendedFilters);
+
+            var request = http.request({
+                host: AQUARIUS_HOSTNAME,
+                path: path                
+            }, getTimeSeriesDescriptionListCallback);
+
+            /**
+               @description Handle GetTimeSeriesDescriptionList service
+               invocation errors.
+            */
+            request.on('error', function (error) {
+                throw error;
+            });
+
+            request.end();
+        },
+        function (
+            timeSeriesDataCorrectedServiceRequest,
+            timeSeriesDescriptions, callback
+        ) {
+            /**
+               @description Handle response from
+                            GetTimeSeriesCorrectedData.
             */
             function getTimeSeriesCorrectedDataCallback(aquariusResponse) {
                 var messageBody = '';
@@ -663,90 +678,54 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                     if (200 < aquariusResponse.statusCode) {
                         rdbMessage(
                             response,
-                            {statusCode: aquariusResponse.statusCode,
-                             message: 'AQUARIUS replied with an error. ' +
-                                      'The message was:\n' +
-                                      '#\n' +
-                                      '#   ' +
-                             timeSeriesCorrectedData.ResponseStatus.Message}
+                            aquariusResponse.statusCode,
+                            '# ' + PACKAGE_NAME +
+                                ': AQUARIUS replied with an error. ' +
+                                'The message was:\n' +
+                                '#\n' +
+                                '#   ' +
+                                timeSeriesCorrectedData.ResponseStatus.Message
                         );
                         return;
                     }
 
-                    // TODO: might need to be in an async.sequence()?
+                    // TODO: might need to be async.sequence()?
                     callback(null, timeSeriesCorrectedData);
                 });
             } // getTimeSeriesCorrectedDataCallback
 
-            // waterfall within a waterfall; a nested waterfall
             async.waterfall([
-                /**
-                   @description node-async waterfall function to query
-                                GetLocationData service.
-                */
                 function (callback) {
-                    /**
-                       @description Callback to handle response from
-                                    GetLocationData service.
-                    */
-                    function getLocationDataCallback(response) {
-                        var messageBody = '';
-
-                        // accumulate response
-                        response.on('data', function (chunk) {
-                            messageBody += chunk;
-                        });
-
-                        // response complete
-                        response.on('end', function () {
-                            /**
-                               @description Response from
-                                            LocationDataService (a
-                                            JSON string).
-                            */
-                            var locationDataServiceResponse;
-
-                            try {
-                                // parse response
-                                locationDataServiceResponse =
-                                    JSON.parse(messageBody);
-                            }
-                            catch (error) {
-                                throw error;
-                            }
-
-                            // pass location name to header production
-                            // waterfall below
-                            callback(
-                                null,
-                                locationDataServiceResponse.LocationName
-                            );
-                        });
-                    } // getLocationDataCallback
-
-                    var path = AQUARIUS_PREFIX +
-                        'GetLocationData?' +
-                        bind('token', token) +
-                        bind('format', 'json') +
-                        bind('LocationIdentifier', locationIdentifier);
-                    log('path: ' + path);
-                    var request = http.request({
-                        host: AQUARIUS_HOSTNAME,
-                        path: path                
-                    }, getLocationDataCallback);
-
-                    /**
-                       @description Handle GetLocationData service errors.
-                    */
-                    request.on('error', function (error) {
-                        throw error;
-                    });
-
-                    request.end();
+                    // TODO: call GetLocation service to get
+                    // LocationName (a.k.a. STATION NAME)
+                    callback(null);
                 },
-                function (locationName, callback) {
+                function (callback) {
                     // some convoluted syntax for "now"
                     var retrieved = toBasicFormat((new Date()).toISOString());
+                    var agencyCode, siteNumber;
+
+                    // TODO: reconcile with locationIdentifier, declaration
+                    // initializer code above.
+
+                    // if locationIdentifier was not provided
+                    if (locationIdentifier === undefined) {
+                        // TODO: move defaulting logic to
+                        // timeSeriesIdentifier prototype?
+                        agencyCode = 'USGS';    // default agency code
+                        // reference site number embedded in
+                        // timeSeriesIdentifier
+                        siteNumber = timeSeriesIdentifier.siteNumber();
+                        locationIdentifier = siteNumber;
+                    }
+                    else {
+                        // parse (agency code, site number) embedded
+                        // in locationIdentifier
+                        var field = locationIdentifier.split('-')[0];
+
+                        agencyCode = field[1];
+                        siteNumber = field[0];
+                    }
 
                     response.write(
                         '# //UNITED STATES GEOLOGICAL SURVEY       ' +
@@ -762,7 +741,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                             '# //STATION AGENCY="' + agencyCode +
                             ' " NUMBER="' + siteNumber +
                             '       "\n' +
-                            '# //STATION NAME="' + locationName + '"\n' +
+                            '# //STATION NAME="' + 'TODO' + '"\n' +
                             '# //RANGE START="' + b.toString() +
                             '" END="' + e.toString() + '"\n'
                     );
@@ -806,10 +785,6 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 request.end();
             }
         },
-        /**
-           @description node-async waterfall function to write RDB
-                        table rows.
-        */
         function (timeSeriesCorrectedData, callback) {
             var n = timeSeriesCorrectedData.Points.length;
             // TODO: for tables with a very large number of rows, we'll
@@ -948,14 +923,8 @@ function handleRequest(request, response) {
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
-        if (error.statusCode !== undefined && error.message !== undefined) {
-            rdbMessage(response, error);
-        }
-        else {
-            throw error;
-        }
+        throw error;
     }
-    response.end();
 }
 
 /**
