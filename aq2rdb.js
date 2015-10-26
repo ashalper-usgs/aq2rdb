@@ -114,7 +114,7 @@ var DataType = function (text) {
     case 'UV':
         break;
     default:
-        throw 'Unknown \"t\" (data type) parameter value: \"' + t + '\"';
+        throw 'Unknown "t" (data type) parameter value: "' + t + '"';
     }
 
     var text = text;
@@ -195,7 +195,7 @@ var BasicFormat = function (text) {
     var datestring = basicToExtended(text);
 
     if (isNaN(Date.parse(datestring))) {
-        throw 'Could not parse \"' + text + '\"';
+        throw 'Could not parse "' + text + '"';
     }
 
     /**
@@ -230,8 +230,8 @@ var DVTable = function (
             computed = false;
         }
         else {
-            throw 'Could not parse value \"'  + literal +
-                '\" in \"computed\" field';
+            throw 'Could not parse value "'  + literal +
+                '" in "computed" field';
         }
     }
 
@@ -282,7 +282,7 @@ var DVTable = function (
             timeOffset = spec[field];
             break;
         default:
-            throw 'Unknown field \"' + field + '\"';
+            throw 'Unknown field "' + field + '"';
             return;
         }
     }
@@ -290,11 +290,11 @@ var DVTable = function (
     // required fields
 
     if (userName === undefined) {
-        throw 'Required field \"userName\" is missing';
+        throw 'Required field "userName" is missing';
     }
 
     if (password === undefined) {
-        throw 'Required field \"password\" is missing';
+        throw 'Required field "password" is missing';
     }
 
     // try to get AQUARIUS token from aquarius-token service
@@ -311,7 +311,7 @@ var DVTable = function (
     }
 
     if (timeSeriesIdentifier === undefined)
-        throw 'Required field \"timeSeriesIdentifier\" is missing';
+        throw 'Required field "timeSeriesIdentifier" is missing';
 
     function timeSeriesDescriptionListCallback() {
         // TODO:
@@ -377,12 +377,12 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     var token;                  // AQUARIUS authentication token
 
     if (arg.userName.length === 0) {
-        throw 'Required parameter \"userName\" not found';
+        throw 'Required parameter "userName" not found';
     }
     userName = arg.userName;
 
     if (arg.password.length === 0) {
-        throw 'Required parameter \"password\" not found';
+        throw 'Required parameter "password" not found';
     }
     password = arg.password;
 
@@ -393,8 +393,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
          arg.d !== undefined || arg.r !== undefined ||
          arg.p !== undefined)
        ) {
-        throw 'If \"u\" is specified, \"a\", \"n\", \"t\", \"s\", ' +
-            '\"d\", \"r\", and \"p\" must be omitted';
+        throw 'If "u" is specified, "a", "n", "t", "s", ' +
+            '"d", "r", and "p" must be omitted';
     }
 
     var environment = 'production';
@@ -422,7 +422,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 b = new BasicFormat(arg[opt]);
             }
             catch (error) {
-                throw 'If \"b\" is specified, a valid ISO ' +
+                throw 'If "b" is specified, a valid ISO ' +
                     'basic format date must be provided';
             }
             break;
@@ -448,7 +448,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             // whenever possible.
             d = parseInt(arg[opt]);
             if (isNaN(d))
-                throw 'Data descriptor (\"d\") field must be ' +
+                throw 'Data descriptor ("d") field must be ' +
                 'an integer';
             break;
         case 'r':
@@ -479,14 +479,14 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 e = new BasicFormat(arg[opt]);
             }
             catch (error) {
-                throw 'If \"e\" is specified, a valid ISO ' +
+                throw 'If "e" is specified, a valid ISO ' +
                     'basic format date must be provided';
             }
             break;
         }
     }
 
-    // TODO: this probably work when a === 'USGS'
+    // TODO: this probably won't work when a === 'USGS'
     var locationIdentifier = a === undefined ? n : n + '-' + a;
 
     /**
@@ -495,10 +495,10 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     async.waterfall([
         function (callback) {
             if (userName === undefined)
-                throw 'Required field \"userName\" is missing';
+                throw 'Required field "userName" is missing';
 
             if (password === undefined)
-                throw 'Required field \"password\" is missing';
+                throw 'Required field "password" is missing';
             
             /**
                @description GetAQToken service response callback.
@@ -521,7 +521,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
             /**
                @description GetAQToken service request for AQUARIUS
-               authentication token needed for AQUARIUS API.
+                            authentication token needed for AQUARIUS
+                            API.
             */
             var path = '/services/GetAQToken?' +
                 bind('userName', userName) +
@@ -570,8 +571,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
             var parameter = timeSeriesIdentifier.parameter();
             if (parameter === undefined) {
-                throw 'Could not parse \"Parameter\" field value from ' +
-                    '\"timeSeriesIdentifier\" field value';
+                throw 'Could not parse "Parameter" field value from ' +
+                    '"timeSeriesIdentifier" field value';
             }
 
             /**
@@ -694,13 +695,58 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 });
             } // getTimeSeriesCorrectedDataCallback
 
+            // waterfall within a waterfall
             async.waterfall([
                 function (callback) {
-                    // TODO: call GetLocation service to get
-                    // LocationName (a.k.a. STATION NAME)
-                    callback(null);
+                    /**
+                       @description Handle response from GetLocationData.
+                    */
+                    function getLocationDataCallback(aquariusResponse) {
+                        var messageBody = '';
+                        var locationDataServiceResponse;
+
+                        // accumulate response
+                        aquariusResponse.on(
+                            'data',
+                            function (chunk) {
+                                messageBody += chunk;
+                            });
+
+                        aquariusResponse.on('end', function () {
+                            try {
+                                locationDataServiceResponse =
+                                    JSON.parse(messageBody);
+                            }
+                            catch (error) {
+                                throw error;
+                            }
+                            callback(null, locationDataServiceResponse);
+                        });
+                    }
+                    
+                    var path = AQUARIUS_PREFIX +
+                        'GetLocationData?' +
+                        bind('token', token) +
+                        bind('format', 'json') +
+                        bind('LocationIdentifier', locationIdentifier);
+
+                    var request = http.request({
+                        host: AQUARIUS_HOSTNAME,
+                        path: path                
+                    }, getLocationDataCallback);
+
+                    /**
+                       @description Handle
+                                    GetTimeSeriesDescriptionList
+                                    service invocation errors.
+                    */
+                    request.on('error', function (error) {
+                        throw error;
+                    });
+
+                    request.end();
                 },
-                function (callback) {
+                function (locationDataServiceResponse, callback) {
                     // some convoluted syntax for "now"
                     var retrieved = toBasicFormat((new Date()).toISOString());
                     var agencyCode, siteNumber;
@@ -741,7 +787,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                             '# //STATION AGENCY="' + agencyCode +
                             ' " NUMBER="' + siteNumber +
                             '       "\n' +
-                            '# //STATION NAME="' + 'TODO' + '"\n' +
+                            '# //STATION NAME="' +
+                            locationDataServiceResponse.LocationName
+                            + '"\n' +
                             '# //RANGE START="' + b.toString() +
                             '" END="' + e.toString() + '"\n'
                     );
