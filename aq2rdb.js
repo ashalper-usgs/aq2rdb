@@ -418,6 +418,55 @@ function getTimeSeriesCorrectedData(
     request.end();
 } // getTimeSeriesCorrectedData
 
+function getLocationData(token, locationIdentifier, callback) {
+    /**
+       @description Handle response from GetLocationData.
+    */
+    function getLocationDataCallback(aquariusResponse) {
+        var messageBody = '';
+        var locationDataServiceResponse;
+
+        // accumulate response
+        aquariusResponse.on(
+            'data',
+            function (chunk) {
+                messageBody += chunk;
+            });
+
+        aquariusResponse.on('end', function () {
+            try {
+                locationDataServiceResponse = JSON.parse(messageBody);
+            }
+            catch (error) {
+                throw error;
+            }
+            callback(null, locationDataServiceResponse);
+        });
+    }
+    
+    var path = AQUARIUS_PREFIX +
+        'GetLocationData?' +
+        bind('token', token) +
+        bind('format', 'json') +
+        bind('LocationIdentifier', locationIdentifier);
+
+    var request = http.request({
+        host: AQUARIUS_HOSTNAME,
+        path: path                
+    }, getLocationDataCallback);
+
+    /**
+       @description Handle
+       GetTimeSeriesDescriptionList
+       service invocation errors.
+    */
+    request.on('error', function (error) {
+        throw error;
+    });
+
+    request.end();
+} // getLocationData
+
 /**
    @description GetDVTable service request handler.
 */
@@ -596,20 +645,11 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
     // TODO: this probably won't work when a === 'USGS'
     var locationIdentifier = a === undefined ? n : n + '-' + a;
-    var extendedFilters;
 
-    if (timeSeriesIdentifier === undefined) {
-        // time-series identifier is not present; default data
-        // descriptor number
-        extendedFilters = '[{FilterName:ADAPS_DD,FilterValue:' +
-            eval(d === undefined ? '1' : d) + '}]'
-    }
-    else {
+    if (timeSeriesIdentifier !== undefined) {
         // time-series identifier is present
         locationIdentifier =
             timeSeriesIdentifier.locationIdentifier();
-        extendedFilters =
-            '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
     }
 
     var parameter = timeSeriesIdentifier.parameter();
@@ -626,6 +666,20 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             getAQToken(userName, password, callback);
         },
         function (token, callback) {
+            var extendedFilters;
+
+            if (timeSeriesIdentifier === undefined) {
+                // time-series identifier is not present; default data
+                // descriptor number
+                extendedFilters = '[{FilterName:ADAPS_DD,FilterValue:' +
+                    eval(d === undefined ? '1' : d) + '}]'
+            }
+            else {
+                // time-series identifier is present
+                extendedFilters =
+                    '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
+            }
+
             getTimeSeriesDescriptionList(
                 token, locationIdentifier, parameter, extendedFilters,
                 callback
@@ -635,53 +689,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             // waterfall within a waterfall
             async.waterfall([
                 function (callback) {
-                    /**
-                       @description Handle response from GetLocationData.
-                    */
-                    function getLocationDataCallback(aquariusResponse) {
-                        var messageBody = '';
-                        var locationDataServiceResponse;
-
-                        // accumulate response
-                        aquariusResponse.on(
-                            'data',
-                            function (chunk) {
-                                messageBody += chunk;
-                            });
-
-                        aquariusResponse.on('end', function () {
-                            try {
-                                locationDataServiceResponse =
-                                    JSON.parse(messageBody);
-                            }
-                            catch (error) {
-                                throw error;
-                            }
-                            callback(null, locationDataServiceResponse);
-                        });
-                    }
-                    
-                    var path = AQUARIUS_PREFIX +
-                        'GetLocationData?' +
-                        bind('token', token) +
-                        bind('format', 'json') +
-                        bind('LocationIdentifier', locationIdentifier);
-
-                    var request = http.request({
-                        host: AQUARIUS_HOSTNAME,
-                        path: path                
-                    }, getLocationDataCallback);
-
-                    /**
-                       @description Handle
-                                    GetTimeSeriesDescriptionList
-                                    service invocation errors.
-                    */
-                    request.on('error', function (error) {
-                        throw error;
-                    });
-
-                    request.end();
+                    getLocationData(token, locationIdentifier, callback);
                 },
                 function (locationDataServiceResponse, callback) {
                     // some convoluted syntax for "now"
