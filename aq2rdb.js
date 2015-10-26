@@ -391,6 +391,70 @@ function getAQToken(userName, password, callback) {
     request.end();
 } // getAQToken
 
+function getTimeSeriesCorrectedData(
+    token, timeSeriesUniqueId, queryFrom, queryTo, callback
+) {
+    /**
+       @description Handle response from GetTimeSeriesCorrectedData.
+    */
+    function getTimeSeriesCorrectedDataCallback(aquariusResponse) {
+        var messageBody = '';
+        var timeSeriesCorrectedData;
+
+        // accumulate response
+        aquariusResponse.on(
+            'data',
+            function (chunk) {
+                messageBody += chunk;
+            });
+
+        aquariusResponse.on('end', function () {
+            try {
+                timeSeriesCorrectedData = JSON.parse(messageBody);
+            }
+            catch (error) {
+                throw error;
+            }
+
+            if (200 < aquariusResponse.statusCode) {
+                rdbMessage(
+                    response,
+                    aquariusResponse.statusCode,
+                    '# ' + PACKAGE_NAME +
+                        ': AQUARIUS replied with an error. ' +
+                        'The message was:\n' +
+                        '#\n' +
+                        '#   ' +
+                        timeSeriesCorrectedData.ResponseStatus.Message
+                );
+                return;
+            }
+
+            callback(null, timeSeriesCorrectedData);
+        });
+    } // getTimeSeriesCorrectedDataCallback
+
+    var path = AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
+        bind('token', token) + bind('format', 'json') +
+        bind('TimeSeriesUniqueId', timeSeriesUniqueId) +
+        bind('QueryFrom', queryFrom) + bind('QueryTo', queryTo);
+
+    var request = http.request({
+        host: AQUARIUS_HOSTNAME,
+        path: path
+    }, getTimeSeriesCorrectedDataCallback);
+
+    /**
+       @description Handle GetTimeSeriesCorrectedData
+       service invocation errors.
+    */
+    request.on('error', function (error) {
+        throw error;
+    });
+
+    request.end();
+} // getTimeSeriesCorrectedData
+
 /**
    @description GetDVTable service request handler.
 */
@@ -427,7 +491,7 @@ httpdispatcher.onGet(
                 getAQToken(field.userName, field.password, callback);
             },
             function (token, callback) {
-                response.end('# token: ' + token, 'ascii');
+                response.end('# token: ' + token);
             }
         ]);
     }
@@ -662,49 +726,6 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             request.end();
         },
         function (token, timeSeriesDescriptions, callback) {
-            /**
-               @description Handle response from
-                            GetTimeSeriesCorrectedData.
-            */
-            function getTimeSeriesCorrectedDataCallback(aquariusResponse) {
-                var messageBody = '';
-                var timeSeriesCorrectedData;
-
-                // accumulate response
-                aquariusResponse.on(
-                    'data',
-                    function (chunk) {
-                        messageBody += chunk;
-                    });
-
-                aquariusResponse.on('end', function () {
-                    try {
-                        timeSeriesCorrectedData =
-                            JSON.parse(messageBody);
-                    }
-                    catch (error) {
-                        throw error;
-                    }
-
-                    if (200 < aquariusResponse.statusCode) {
-                        rdbMessage(
-                            response,
-                            aquariusResponse.statusCode,
-                            '# ' + PACKAGE_NAME +
-                                ': AQUARIUS replied with an error. ' +
-                                'The message was:\n' +
-                                '#\n' +
-                                '#   ' +
-                                timeSeriesCorrectedData.ResponseStatus.Message
-                        );
-                        return;
-                    }
-
-                    // TODO: might need to be async.sequence()?
-                    callback(null, timeSeriesCorrectedData);
-                });
-            } // getTimeSeriesCorrectedDataCallback
-
             // waterfall within a waterfall
             async.waterfall([
                 function (callback) {
@@ -816,31 +837,13 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
             var n = timeSeriesDescriptions.length;
             for (var i = 0; i < n; i++) {
-                // call GetTimeSeriesCorrectedData service to get
-                // daily values associated with time series
-                // descriptions
-                var path = AQUARIUS_PREFIX +
-                    'GetTimeSeriesCorrectedData?' +
-                    bind('token', token) +
-                    bind('format', 'json') +
-                    bind('timeSeriesUniqueId',
-                         timeSeriesDescriptions[i].UniqueId) +
-                    bind('queryFrom', b.toCombinedExtendedFormat('S')) +
-                    bind('queryTo', e.toCombinedExtendedFormat('S'));
-                var request = http.request({
-                    host: AQUARIUS_HOSTNAME,
-                    path: path
-                }, getTimeSeriesCorrectedDataCallback);
-
-                /**
-                   @description Handle GetTimeSeriesCorrectedData
-                                service invocation errors.
-                */
-                request.on('error', function (error) {
-                    throw error;
-                });
-
-                request.end();
+                getTimeSeriesCorrectedData(
+                    token,
+                    timeSeriesDescriptions[i].UniqueId,
+                    b.toCombinedExtendedFormat('S'),
+                    e.toCombinedExtendedFormat('S'),
+                    callback
+                );
             }
         },
         function (timeSeriesCorrectedData, callback) {
