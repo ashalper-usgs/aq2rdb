@@ -335,21 +335,31 @@ var DVTable = function (
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetDVTable',
     function (request, response) {
-        // object spec. is derived from HTTP query field values
-        var spec = querystring.parse(request.url);
-        // this property would be just clutter in the object right now,
-        // so delete it
-        delete spec['/' + PACKAGE_NAME + '/GetDVTable?'];
         try {
-            // TODO:
-            // var dvTable = new DVTable(...);
+            var field = querystring.parse(request.url);
+            delete field['/' + PACKAGE_NAME + '/GetDVTable?']; // not used
         }
-        catch (error) {
-            rdbMessage(response, 400, error);
-            return;
+        catch(error) {
+            throw error;
         }
-        response.end();
-});
+
+        for (var name in field) {
+            if (name.match(/^(userName|password)$/)) {
+                // GetAQToken fields
+            }
+            else if (
+                name.match(/^(LocationIdentifier|Parameter|QueryFrom|QueryTo)$/)
+            ) {
+                // AQUARIUS fields
+            }
+            else {
+                throw 'Unknown field "' + name + '"';a
+            }
+        }
+
+        response.end('# TODO:', 'ascii');
+    }
+);
 
 /**
    @description Legacy, pseudo-nwts2rdb service request handler. Use
