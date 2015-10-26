@@ -26,7 +26,7 @@ if [ `hostname` = hemi ]; then
     sleep 1s
 fi
 
-#aq2rdb "&userName=apiuser&password=$password&z=prod&u=Discharge.ft^3/s.Mean@09380000&b=20150101&e=20150103"
+aq2rdb "&userName=apiuser&password=$password&z=prod&u=Discharge.ft^3/s.Mean@09380000&b=20150101&e=20150103"
 
 #GetDVTable "&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000"
 
@@ -36,7 +36,7 @@ fi
 
 #GetDVTable "&userName=apiuser&password=not4passwurd&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&computed=true"
 
-GetDVTable "&userName=apiuser&password=$password&environment=prod&LocationIdentifier=09380000&Parameter=Discharge&QueryFrom=2015-01-01T00%3A00%3A00-07%3A00&QueryTo=2015-01-03T00%3A00%3A00-07%3A00"
+#GetDVTable "&userName=apiuser&password=$password&environment=prod&LocationIdentifier=09380000&Parameter=Discharge&QueryFrom=2015-01-01T00%3A00%3A00-07%3A00&QueryTo=2015-01-03T00%3A00%3A00-07%3A00"
 
 kill $aq2rdb
 
