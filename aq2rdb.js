@@ -352,17 +352,6 @@ httpdispatcher.onGet(
 });
 
 /**
-   @description GetUVTable service request handler.
-*/
-httpdispatcher.onGet(
-    '/' + PACKAGE_NAME + '/GetUVTable',
-    function (request, response) {
-        // TODO:
-        log('GetUVTable service called');
-        response.end();
-});
-
-/**
    @description Legacy, pseudo-nwts2rdb service request handler. Use
                 HTTP query fields to decipher the desired aq2rdb
                 request, then call the necessary AQUARIUS API services
@@ -488,6 +477,27 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
     // TODO: this probably won't work when a === 'USGS'
     var locationIdentifier = a === undefined ? n : n + '-' + a;
+    var extendedFilters;
+
+    if (timeSeriesIdentifier === undefined) {
+        // time-series identifier is not present; default data
+        // descripter number
+        extendedFilters = '[{FilterName:ADAPS_DD,FilterValue:' +
+            eval(d === undefined ? '1' : d) + '}]'
+    }
+    else {
+        // time-series identifier is present
+        locationIdentifier =
+            timeSeriesIdentifier.locationIdentifier();
+        extendedFilters =
+            '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
+    }
+
+    var parameter = timeSeriesIdentifier.parameter();
+    if (parameter === undefined) {
+        throw 'Could not parse "Parameter" field value from ' +
+            '"timeSeriesIdentifier" field value';
+    }
 
     /**
        @see https://github.com/caolan/async
@@ -553,28 +563,6 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             request.end();
         },
         function (callback) {
-            var extendedFilters;
-
-            if (timeSeriesIdentifier === undefined) {
-                // time-series identifier is not present
-                extendedFilters =
-                    '[{FilterName:ADAPS_DD,FilterValue:' +
-                    eval(d === undefined ? '1' : d) + '}]'
-            }
-            else {
-                // time-series identifier is present
-                locationIdentifier =
-                    timeSeriesIdentifier.locationIdentifier();
-                extendedFilters =
-                    '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
-            }
-
-            var parameter = timeSeriesIdentifier.parameter();
-            if (parameter === undefined) {
-                throw 'Could not parse "Parameter" field value from ' +
-                    '"timeSeriesIdentifier" field value';
-            }
-
             /**
                @description Handle response from GetTimeSeriesDescriptionList.
             */
@@ -748,31 +736,31 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 },
                 function (locationDataServiceResponse, callback) {
                     // some convoluted syntax for "now"
-                    var retrieved = toBasicFormat((new Date()).toISOString());
+                    var retrieved =
+                        toBasicFormat((new Date()).toISOString());
                     var agencyCode, siteNumber;
 
-                    // TODO: reconcile with locationIdentifier, declaration
-                    // initializer code above.
-
-                    // if locationIdentifier was not provided
-                    if (locationIdentifier === undefined) {
+                    // if agency code delimiter is present in location
+                    // identifier
+                    if (locationIdentifier.search('-') === -1) {
                         // TODO: move defaulting logic to
                         // timeSeriesIdentifier prototype?
                         agencyCode = 'USGS';    // default agency code
                         // reference site number embedded in
                         // timeSeriesIdentifier
                         siteNumber = timeSeriesIdentifier.siteNumber();
-                        locationIdentifier = siteNumber;
                     }
                     else {
                         // parse (agency code, site number) embedded
                         // in locationIdentifier
-                        var field = locationIdentifier.split('-')[0];
-
+                        var field = locationIdentifier.split('-');
                         agencyCode = field[1];
                         siteNumber = field[0];
                     }
 
+                    console.log('agencyCode: ' + agencyCode);
+
+                    response.writeHead(200, {"Content-Type": "text/html"});
                     response.write(
                         '# //UNITED STATES GEOLOGICAL SURVEY       ' +
                             'http://water.usgs.gov/\n' +
@@ -791,7 +779,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                             locationDataServiceResponse.LocationName
                             + '"\n' +
                             '# //RANGE START="' + b.toString() +
-                            '" END="' + e.toString() + '"\n'
+                            '" END="' + e.toString() + '"\n',
+                        'ascii'
                     );
 
                     // RDB table heading (which is different than a
@@ -799,7 +788,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                     response.write(
                         'DATE\tTIME\tVALUE\tPRECISION\tREMARK\t' +
                             'FLAGS\tTYPE\tQA\n' +
-                            '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n'
+                            '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n',
+                        'ascii'
                     );
                 }
             ]);
@@ -955,7 +945,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                         // TODO: FLAGS?
                         '\t' +
                 timeSeriesCorrectedData.Approvals[0].LevelDescription.charAt(0)
-                        + '\n'
+                        + '\n',
+                    'ascii'
                 );
             }
             response.end();
