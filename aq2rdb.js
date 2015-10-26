@@ -391,6 +391,82 @@ function getAQToken(userName, password, callback) {
     request.end();
 } // getAQToken
 
+function getTimeSeriesDescriptionList(
+    token, locationIdentifier, parameter, extendedFilters, callback
+) {
+    /**
+       @description Handle response from GetTimeSeriesDescriptionList.
+    */
+    function getTimeSeriesDescriptionListCallback(aquariusResponse) {
+        var messageBody = '';
+
+        // accumulate response
+        aquariusResponse.on(
+            'data',
+            function (chunk) {
+                messageBody += chunk;
+            });
+
+        aquariusResponse.on('end', function () {
+            var timeSeriesDescriptionServiceRequest;
+
+            try {
+                timeSeriesDescriptionServiceRequest =
+                    JSON.parse(messageBody);
+            }
+            catch (error) {
+                jsonParseErrorMessage(response, error.message);
+                return;         // go no further
+            }
+
+            // if the GetTimeSeriesDescriptionList query returned no
+            // time series descriptions
+            if (
+                timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions ===
+                    undefined
+            ) {
+                // there's nothing more we can do
+                rdbMessage(
+                    response, 200,
+                    'The query found no time series descriptions ' +
+                        'in AQUARIUS'
+                );
+                return;
+            }
+
+            callback(
+                null,
+                token,
+                timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
+            );
+        });
+    } // getTimeSeriesDescriptionListCallback
+
+    // the path part of GetTimeSeriesDescriptionList URL
+    var path = AQUARIUS_PREFIX +
+        'GetTimeSeriesDescriptionList?' +
+        bind('token', token) +
+        bind('format', 'json') +
+        bind('LocationIdentifier', locationIdentifier) +
+        bind('Parameter', parameter) +
+        bind('ExtendedFilters', extendedFilters);
+
+    var request = http.request({
+        host: AQUARIUS_HOSTNAME,
+        path: path                
+    }, getTimeSeriesDescriptionListCallback);
+
+    /**
+       @description Handle GetTimeSeriesDescriptionList service
+       invocation errors.
+    */
+    request.on('error', function (error) {
+        throw error;
+    });
+
+    request.end();
+} // getTimeSeriesDescriptionList
+
 function getTimeSeriesCorrectedData(
     token, timeSeriesUniqueId, queryFrom, queryTo, callback
 ) {
@@ -491,7 +567,18 @@ httpdispatcher.onGet(
                 getAQToken(field.userName, field.password, callback);
             },
             function (token, callback) {
-                response.end('# token: ' + token);
+                var extendedFilters =
+                    '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
+
+                getTimeSeriesDescriptionList(
+                    token, field.LocationIdentifier, field.Parameter,
+                    extendedFilters,
+                    callback
+                );
+            },
+            function (token, timeSeriesDescriptions, callback) {
+                response.end('timeSeriesDescriptions.length: ' +
+                             timeSeriesDescriptions.length);
             }
         ]);
     }
@@ -626,7 +713,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
     if (timeSeriesIdentifier === undefined) {
         // time-series identifier is not present; default data
-        // descripter number
+        // descriptor number
         extendedFilters = '[{FilterName:ADAPS_DD,FilterValue:' +
             eval(d === undefined ? '1' : d) + '}]'
     }
@@ -652,78 +739,10 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             getAQToken(userName, password, callback);
         },
         function (token, callback) {
-            /**
-               @description Handle response from GetTimeSeriesDescriptionList.
-            */
-            function getTimeSeriesDescriptionListCallback(aquariusResponse) {
-                var messageBody = '';
-
-                // accumulate response
-                aquariusResponse.on(
-                    'data',
-                    function (chunk) {
-                        messageBody += chunk;
-                    });
-
-                aquariusResponse.on('end', function () {
-                    var timeSeriesDescriptionServiceRequest;
-
-                    try {
-                        timeSeriesDescriptionServiceRequest =
-                            JSON.parse(messageBody);
-                    }
-                    catch (error) {
-                        jsonParseErrorMessage(response, error.message);
-                        return;         // go no further
-                    }
-
-                    // if the GetTimeSeriesDescriptionList query returned no
-                    // time series descriptions
-                    if (
-                timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions ===
-                            undefined
-                    ) {
-                        // there's nothing more we can do
-                        rdbMessage(
-                            response, 200,
-                            'The query found no time series ' +
-                                'descriptions in AQUARIUS'
-                        );
-                        return;
-                    }
-
-                    callback(
-                      null,
-                      token,
-                      timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
-                    );
-
-                });
-            } // getTimeSeriesDescriptionListCallback
-
-            // the path part of GetTimeSeriesDescriptionList URL
-            var path = AQUARIUS_PREFIX +
-                'GetTimeSeriesDescriptionList?' +
-                bind('token', token) +
-                bind('format', 'json') +
-                bind('LocationIdentifier', locationIdentifier) +
-                bind('Parameter', parameter) +
-                bind('ExtendedFilters', extendedFilters);
-
-            var request = http.request({
-                host: AQUARIUS_HOSTNAME,
-                path: path                
-            }, getTimeSeriesDescriptionListCallback);
-
-            /**
-               @description Handle GetTimeSeriesDescriptionList service
-               invocation errors.
-            */
-            request.on('error', function (error) {
-                throw error;
-            });
-
-            request.end();
+            getTimeSeriesDescriptionList(
+                token, locationIdentifier, parameter, extendedFilters,
+                callback
+            );
         },
         function (token, timeSeriesDescriptions, callback) {
             // waterfall within a waterfall
