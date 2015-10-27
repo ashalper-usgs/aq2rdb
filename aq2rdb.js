@@ -324,7 +324,16 @@ function getTimeSeriesDescriptionList(
                     JSON.parse(messageBody);
             }
             catch (error) {
-                throw error;
+                if (error == 'SyntaxError: Unexpected token <') {
+                    callback(
+                        'It looks like ' +
+                            'GetTimeSeriesDescriptionList could be ' +
+                            'serving some form of SGML'
+                    );
+                }
+                else {
+                    callback(error);
+                }
                 return;         // go no further
             }
 
@@ -943,6 +952,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             callback(null);
         }
     ], function (error) {
+        if (error) {
+            response.write('# ' + error);
+        }
         response.end();
     });
 }); // httpdispatcher.onGet()
