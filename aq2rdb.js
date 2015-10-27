@@ -470,7 +470,24 @@ function getLocationData(token, locationIdentifier, callback) {
 /**
    @description Create RDB header block.
 */
-function rdbHeader(retrieved, station, range) {
+function rdbHeader(locationIdentifier, stationName, range) {
+    // some convoluted syntax for "now"
+    var retrieved = toBasicFormat((new Date()).toISOString());
+    var agencyCode, siteNumber;
+
+    // if agency code delimiter is present in location identifier
+    if (locationIdentifier.search('-') === -1) {
+        agencyCode = 'USGS';    // default agency code
+        siteNumber = locationIdentifier;
+    }
+    else {
+        // parse (agency code, site number) embedded in
+        // locationIdentifier
+        var field = locationIdentifier.split('-');
+        agencyCode = field[1];
+        siteNumber = field[0];
+    }
+
     return '# //UNITED STATES GEOLOGICAL SURVEY       ' +
         'http://water.usgs.gov/\n' +
         '# //NATIONAL WATER INFORMATION SYSTEM     ' +
@@ -480,9 +497,9 @@ function rdbHeader(retrieved, station, range) {
         '# //RETRIEVED: ' + retrieved + '\n' +
         '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
         'EDITABLE=NO\n' +
-        '# //STATION AGENCY="' + station.agency +
-        '" NUMBER="' + station.number + '       "\n' +
-        '# //STATION NAME="' + station.name + '"\n' +
+        '# //STATION AGENCY="' + agencyCode +
+        '" NUMBER="' + siteNumber + '       "\n' +
+        '# //STATION NAME="' + stationName + '"\n' +
         '# //RANGE START="' + range.start + '" END="' + range.end + '"\n';
 } // rdbHeader
 
@@ -719,35 +736,11 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                     getLocationData(token, locationIdentifier, callback);
                 },
                 function (locationDataServiceResponse, callback) {
-                    // some convoluted syntax for "now"
-                    var retrieved =
-                        toBasicFormat((new Date()).toISOString());
-                    var agencyCode, siteNumber;
-
-                    // if agency code delimiter is present in location
-                    // identifier
-                    if (locationIdentifier.search('-') === -1) {
-                        // TODO: move defaulting logic to
-                        // timeSeriesIdentifier prototype?
-                        agencyCode = 'USGS';    // default agency code
-                        // reference site number embedded in
-                        // timeSeriesIdentifier
-                        siteNumber = timeSeriesIdentifier.siteNumber();
-                    }
-                    else {
-                        // parse (agency code, site number) embedded
-                        // in locationIdentifier
-                        var field = locationIdentifier.split('-');
-                        agencyCode = field[1];
-                        siteNumber = field[0];
-                    }
-
                     response.writeHead(200, {"Content-Type": "text/plain"});
                     response.write(
                         rdbHeader(
-                            retrieved,
-                            {agency: agencyCode, number: siteNumber,
-                             name: locationDataServiceResponse.LocationName},
+                            locationIdentifier,
+                            locationDataServiceResponse.LocationName,
                             {start: b.toString(), end: e.toString()}
                         ),
                         'ascii'
