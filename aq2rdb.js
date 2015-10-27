@@ -468,6 +468,25 @@ function getLocationData(token, locationIdentifier, callback) {
 } // getLocationData
 
 /**
+   @description Create RDB header block.
+*/
+function rdbHeader(retrieved, station, range) {
+    return '# //UNITED STATES GEOLOGICAL SURVEY       ' +
+        'http://water.usgs.gov/\n' +
+        '# //NATIONAL WATER INFORMATION SYSTEM     ' +
+        'http://water.usgs.gov/data.html\n' +
+        '# //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL ' +
+        'PUBLISHED BY USGS\n' +
+        '# //RETRIEVED: ' + retrieved + '\n' +
+        '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
+        'EDITABLE=NO\n' +
+        '# //STATION AGENCY="' + station.agency +
+        '" NUMBER="' + station.number + '       "\n' +
+        '# //STATION NAME="' + station.name + '"\n' +
+        '# //RANGE START="' + range.start + '" END="' + range.end + '"\n';
+} // rdbHeader
+
+/**
    @description GetDVTable service request handler.
 */
 httpdispatcher.onGet(
@@ -725,24 +744,12 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 
                     response.writeHead(200, {"Content-Type": "text/plain"});
                     response.write(
-                        '# //UNITED STATES GEOLOGICAL SURVEY       ' +
-                            'http://water.usgs.gov/\n' +
-                            '# //NATIONAL WATER INFORMATION SYSTEM     ' +
-                            'http://water.usgs.gov/data.html\n' +
-                            '# //DATA ARE PROVISIONAL AND ' +
-                            'SUBJECT TO CHANGE UNTIL PUBLISHED ' +
-                            'BY USGS\n' +
-                            '# //RETRIEVED: ' + retrieved + '\n' +
-                            '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
-                            'EDITABLE=NO\n' +
-                            '# //STATION AGENCY="' + agencyCode +
-                            ' " NUMBER="' + siteNumber +
-                            '       "\n' +
-                            '# //STATION NAME="' +
-                            locationDataServiceResponse.LocationName
-                            + '"\n' +
-                            '# //RANGE START="' + b.toString() +
-                            '" END="' + e.toString() + '"\n',
+                        rdbHeader(
+                            retrieved,
+                            {agency: agencyCode, number: siteNumber,
+                             name: locationDataServiceResponse.LocationName},
+                            {start: b.toString(), end: e.toString()}
+                        ),
                         'ascii'
                     );
 
