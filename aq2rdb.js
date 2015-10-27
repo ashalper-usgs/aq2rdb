@@ -503,6 +503,7 @@ httpdispatcher.onGet(
                 getAQToken(field.userName, field.password, callback);
             },
             function (token, callback) {
+                // TODO: this might need to be adjusted
                 var extendedFilters =
                     '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
 
@@ -513,8 +514,15 @@ httpdispatcher.onGet(
                 );
             },
             function (token, timeSeriesDescriptions, callback) {
-                response.end('timeSeriesDescriptions.length: ' +
-                             timeSeriesDescriptions.length);
+                getLocationData(
+                    token, field.LocationIdentifier, callback
+                );
+            },
+            function (locationDataServiceResponse, callback) {
+                response.end(
+                    '# locationDataServiceResponse.LocationName: ' +
+                        locationDataServiceResponse.LocationName
+                );
             }
         ]);
     }
@@ -715,7 +723,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                         siteNumber = field[0];
                     }
 
-                    response.writeHead(200, {"Content-Type": "text/html"});
+                    response.writeHead(200, {"Content-Type": "text/plain"});
                     response.write(
                         '# //UNITED STATES GEOLOGICAL SURVEY       ' +
                             'http://water.usgs.gov/\n' +
@@ -749,6 +757,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 }
             ]);
 
+            // TODO: this loop is going to need to be sequenced: one
+            // function per UniqueId value
             var n = timeSeriesDescriptions.length;
             for (var i = 0; i < n; i++) {
                 getTimeSeriesCorrectedData(
