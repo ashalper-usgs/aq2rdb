@@ -55,6 +55,23 @@ function toBasicFormat(s) {
 }
 
 /**
+   @description Convert AQUARIUS TimeSeriesPoint.Timestamp data type
+                to common NWIS date type.
+*/
+function toNWISFormat(timestamp) {
+    var date;
+
+    try {
+        date = new Date(timestamp);
+    }
+    catch (error) {
+        throw error;
+    }
+
+    return timestamp.split('T')[0].replace(/-/g, '');
+} // toNWISFormat
+
+/**
    @description Primitive logging function for debugging purposes.
 */
 function log(message) {
@@ -555,10 +572,19 @@ httpdispatcher.onGet(
                 );
             },
             function (locationDataServiceResponse, callback) {
-                response.end(
-                    '# locationDataServiceResponse.LocationName: ' +
-                        locationDataServiceResponse.LocationName
+                response.writeHead(200, {"Content-Type": "text/plain"});
+                response.write(
+                    rdbHeader(
+                        field.LocationIdentifier,
+                        locationDataServiceResponse.LocationName,
+                        {start: toNWISFormat(field.QueryFrom),
+                         end: toNWISFormat(field.QueryTo)}
+                    ),
+                    'ascii'
                 );
+                // TODO: this should probably go in the (final)
+                // async.waterfall callback function.
+                response.end();
             }
         ]);
     }
@@ -781,6 +807,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 // shorten some object identifier references below
                 var point = timeSeriesCorrectedData.Points[i];
 
+                // the daily value
+                var value = point.Value.Numeric.toString();
+
                 // TODO: For DVs at least (and perhaps other types),
                 // legacy dates might need to be re-offset on output:
 
@@ -827,16 +856,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 // might be able to use it to decide if you need to
                 // decrement the date or not when doing DV data.
 
-                var d = new Date(point.Timestamp);
-                // TODO: Date parse error handling goes here?
-
-                // the daily value
-                var value = point.Value.Numeric.toString();
-
-                // TODO: ugly, ISO 8601 to RFC3339 subtype,
-                // date-reformatting to re-factor eventually
                 response.write(
-                    point.Timestamp.split('T')[0].replace(/-/g, '') +
+                    toNWISFormat(point.Timestamp) +
                         // TIME column will always be empty for daily
                         // values
                         '\t\t' + value + '\t' +
