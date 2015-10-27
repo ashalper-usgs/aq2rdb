@@ -526,6 +526,15 @@ function rdbHeader(locationIdentifier, stationName, range) {
 } // rdbHeader
 
 /**
+   @description Create RDB table heading (which is different than a
+                header).
+*/
+function rdbHeading() {
+    return 'DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n' +
+        '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n';
+} // rdbHeading
+
+/**
    @description GetDVTable service request handler.
 */
 httpdispatcher.onGet(
@@ -587,6 +596,7 @@ httpdispatcher.onGet(
                     ),
                     'ascii'
                 );
+                response.write(rdbHeading(), 'ascii');
                 callback(null);
             }
         ], function (error) {
@@ -776,20 +786,12 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                         ),
                         'ascii'
                     );
-
-                    // RDB table heading (which is different than a
-                    // header).
-                    response.write(
-                        'DATE\tTIME\tVALUE\tPRECISION\tREMARK\t' +
-                            'FLAGS\tTYPE\tQA\n' +
-                            '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n',
-                        'ascii'
-                    );
+                    response.write(rdbHeading(), 'ascii');
                 }
             ]);
 
-            // TODO: this loop is going to need to be sequenced: one
-            // function per UniqueId value
+            // TODO: this loop is going to need to be async.sequenced:
+            // one sequenced function per UniqueId value
             var n = timeSeriesDescriptions.length;
             for (var i = 0; i < n; i++) {
                 getTimeSeriesCorrectedData(
