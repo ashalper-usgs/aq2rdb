@@ -587,11 +587,11 @@ httpdispatcher.onGet(
                     ),
                     'ascii'
                 );
-                // TODO: this should probably go in the (final)
-                // async.waterfall callback function.
-                response.end();
+                callback(null);
             }
-        ]);
+        ], function (error) {
+            response.end();
+        });
     }
 );
 
@@ -922,9 +922,11 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                     'ascii'
                 );
             }
-            response.end();
+            callback(null);
         }
-    ]);
+    ], function (error) {
+        response.end();
+    });
 }); // httpdispatcher.onGet()
 
 /**
