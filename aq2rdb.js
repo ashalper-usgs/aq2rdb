@@ -258,6 +258,7 @@ function getAQToken(userName, password, callback) {
         // Response complete; token received.
         response.on('end', function () {
             callback(null, messageBody);
+            return;
         });
     } // getAQTokenCallback
 
@@ -295,6 +296,10 @@ function getAQToken(userName, password, callback) {
     request.end();
 } // getAQToken
 
+/**
+   @description Call AQUARIUS GetTimeSeriesDescriptionList Web
+                service.
+*/
 function getTimeSeriesDescriptionList(
     token, locationIdentifier, parameter, extendedFilters, callback
 ) {
@@ -343,6 +348,7 @@ function getTimeSeriesDescriptionList(
                 token,
                 timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
             );
+            return;
         });
     } // getTimeSeriesDescriptionListCallback
 
@@ -371,6 +377,9 @@ function getTimeSeriesDescriptionList(
     request.end();
 } // getTimeSeriesDescriptionList
 
+/**
+   @description Call AQUARIUS GetTimeSeriesCorrectedData Web service.
+*/
 function getTimeSeriesCorrectedData(
     token, timeSeriesUniqueId, queryFrom, queryTo, callback
 ) {
@@ -411,6 +420,7 @@ function getTimeSeriesCorrectedData(
             }
 
             callback(null, timeSeriesCorrectedData);
+            return;
         });
     } // getTimeSeriesCorrectedDataCallback
 
@@ -425,8 +435,8 @@ function getTimeSeriesCorrectedData(
     }, getTimeSeriesCorrectedDataCallback);
 
     /**
-       @description Handle GetTimeSeriesCorrectedData
-       service invocation errors.
+       @description Handle GetTimeSeriesCorrectedData service
+                    invocation errors.
     */
     request.on('error', function (error) {
         throw error;
@@ -435,6 +445,9 @@ function getTimeSeriesCorrectedData(
     request.end();
 } // getTimeSeriesCorrectedData
 
+/**
+   @description Call AQUARIUS GetLocationData Web service.
+*/
 function getLocationData(token, locationIdentifier, callback) {
     /**
        @description Handle response from GetLocationData.
@@ -458,6 +471,7 @@ function getLocationData(token, locationIdentifier, callback) {
                 throw error;
             }
             callback(null, locationDataServiceResponse);
+            return;
         });
     }
     
@@ -473,9 +487,8 @@ function getLocationData(token, locationIdentifier, callback) {
     }, getLocationDataCallback);
 
     /**
-       @description Handle
-       GetTimeSeriesDescriptionList
-       service invocation errors.
+       @description Handle GetTimeSeriesDescriptionList service
+                    invocation errors.
     */
     request.on('error', function (error) {
         throw error;
