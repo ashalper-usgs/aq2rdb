@@ -306,17 +306,17 @@ function getTimeSeriesDescriptionList(
     /**
        @description Handle response from GetTimeSeriesDescriptionList.
     */
-    function getTimeSeriesDescriptionListCallback(aquariusResponse) {
+    function getTimeSeriesDescriptionListCallback(response) {
         var messageBody = '';
 
         // accumulate response
-        aquariusResponse.on(
+        response.on(
             'data',
             function (chunk) {
                 messageBody += chunk;
             });
 
-        aquariusResponse.on('end', function () {
+        response.on('end', function () {
             var timeSeriesDescriptionServiceRequest;
 
             try {
@@ -324,7 +324,7 @@ function getTimeSeriesDescriptionList(
                     JSON.parse(messageBody);
             }
             catch (error) {
-                jsonParseErrorMessage(response, error.message);
+                throw error;
                 return;         // go no further
             }
 
@@ -335,11 +335,8 @@ function getTimeSeriesDescriptionList(
                     undefined
             ) {
                 // there's nothing more we can do
-                rdbMessage(
-                    response, 200,
-                    'The query found no time series descriptions ' +
-                        'in AQUARIUS'
-                );
+                throw 'The query found no time series descriptions ' +
+                    'in AQUARIUS';
                 return;
             }
 
@@ -386,18 +383,18 @@ function getTimeSeriesCorrectedData(
     /**
        @description Handle response from GetTimeSeriesCorrectedData.
     */
-    function getTimeSeriesCorrectedDataCallback(aquariusResponse) {
+    function getTimeSeriesCorrectedDataCallback(response) {
         var messageBody = '';
         var timeSeriesCorrectedData;
 
         // accumulate response
-        aquariusResponse.on(
+        response.on(
             'data',
             function (chunk) {
                 messageBody += chunk;
             });
 
-        aquariusResponse.on('end', function () {
+        response.on('end', function () {
             try {
                 timeSeriesCorrectedData = JSON.parse(messageBody);
             }
@@ -405,17 +402,12 @@ function getTimeSeriesCorrectedData(
                 throw error;
             }
 
-            if (200 < aquariusResponse.statusCode) {
-                rdbMessage(
-                    response,
-                    aquariusResponse.statusCode,
-                    '# ' + PACKAGE_NAME +
-                        ': AQUARIUS replied with an error. ' +
-                        'The message was:\n' +
-                        '#\n' +
-                        '#   ' +
-                        timeSeriesCorrectedData.ResponseStatus.Message
-                );
+            if (200 < response.statusCode) {
+                throw 'AQUARIUS replied with an error. ' +
+                    'The message was:\n' +
+                    '\n' +
+                    '   ' +
+                    timeSeriesCorrectedData.ResponseStatus.Message;
                 return;
             }
 
@@ -452,18 +444,18 @@ function getLocationData(token, locationIdentifier, callback) {
     /**
        @description Handle response from GetLocationData.
     */
-    function getLocationDataCallback(aquariusResponse) {
+    function getLocationDataCallback(response) {
         var messageBody = '';
         var locationDataServiceResponse;
 
         // accumulate response
-        aquariusResponse.on(
+        response.on(
             'data',
             function (chunk) {
                 messageBody += chunk;
             });
 
-        aquariusResponse.on('end', function () {
+        response.on('end', function () {
             try {
                 locationDataServiceResponse = JSON.parse(messageBody);
             }
