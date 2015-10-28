@@ -324,7 +324,16 @@ function getTimeSeriesDescriptionList(
                     JSON.parse(messageBody);
             }
             catch (error) {
-                throw error;
+                if (error == 'SyntaxError: Unexpected token <') {
+                    callback(
+                        'It looks like ' +
+                            'GetTimeSeriesDescriptionList could be ' +
+                            'serving some form of SGML'
+                    );
+                }
+                else {
+                    callback(error);
+                }
                 return;         // go no further
             }
 
@@ -540,34 +549,50 @@ function rdbHeading() {
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetDVTable',
     function (request, response) {
-        try {
-            var field = querystring.parse(request.url);
-            delete field['/' + PACKAGE_NAME + '/GetDVTable?']; // not used
-        }
-        catch(error) {
-            throw error;
-        }
-
-        for (var name in field) {
-            if (name.match(/^(userName|password)$/)) {
-                // GetAQToken fields
-            }
-            else if (
-                name.match(/^(LocationIdentifier|Parameter|QueryFrom|QueryTo)$/)
-            ) {
-                // AQUARIUS fields
-            }
-            else {
-                throw 'Unknown field "' + name + '"';a
-            }
-        }
-
+        var field;
+        
         /**
            @see https://github.com/caolan/async
         */
         async.waterfall([
             function (callback) {
-                getAQToken(field.userName, field.password, callback);
+                try {
+                    field = querystring.parse(request.url);
+                    // not used:
+                    delete field['/' + PACKAGE_NAME + '/GetDVTable?'];
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+
+                for (var name in field) {
+                    if (name.match(/^(userName|password)$/)) {
+                        // GetAQToken fields
+                    }
+                    else if (
+                        name.match(
+                          /^(LocationIdentifier|Parameter|QueryFrom|QueryTo)$/
+                        )
+                    ) {
+                        // AQUARIUS fields
+                    }
+                    else {
+                        callback(new Error('Unknown field "' + name + '"'));
+                        return;
+                    }
+                }
+                callback(null); // proceed to next waterfall below
+            },
+            function (callback) {
+                try {
+                    getAQToken(
+                        field.userName, field.password, callback
+                    );
+                }
+                catch (error) {
+                    callback(error);
+                }
             },
             function (token, callback) {
                 // TODO: this might need to be adjusted
@@ -932,6 +957,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             callback(null);
         }
     ], function (error) {
+        if (error) {
+            response.write('# ' + error);
+        }
         response.end();
     });
 }); // httpdispatcher.onGet()
@@ -944,7 +972,15 @@ function handleRequest(request, response) {
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
-        throw error;
+        // put error message in an RDB comment line
+        var statusMessage = '# ' + PACKAGE_NAME + ': ' + error;
+
+        // TODO: need to make "statusCode" value [1st writeHead()
+        // argument] more robust here
+        response.writeHead(200, statusMessage,
+                           {'Content-Length': statusMessage.length,
+                            'Content-Type': 'text/plain'});
+        response.end(statusMessage, 'ascii');
     }
 }
 

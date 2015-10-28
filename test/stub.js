@@ -16,7 +16,7 @@ var GETAQTOKEN_PORT = 8080;
 
 httpdispatcher.onGet('/services/GetAQToken', function (request, response) {
     // serve a bogus AQUARIUS token
-    response.end('ABogusAQUARIUSToken');
+    response.end('ABogusAQUARIUSToken', 'ascii');
 });
 
 /**
