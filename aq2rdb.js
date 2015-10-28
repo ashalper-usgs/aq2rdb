@@ -771,6 +771,11 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             );
         },
         function (token, timeSeriesDescriptions, callback) {
+	    // TODO: there is likely no concurrency advantage to the
+	    // "nested" waterfall below, and it makes the code more
+	    // difficult to read, so try to re-factor into the outer
+	    // waterfall function(s).
+
             // waterfall within a waterfall
             async.waterfall([
                 function (callback) {
