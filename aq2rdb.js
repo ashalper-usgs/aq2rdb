@@ -556,6 +556,67 @@ function rdbHeading() {
 } // rdbHeading
 
 /**
+   @description Create RDB, DV table row.
+*/
+function dvTableRow(date, value, notes, type) {
+    return date +
+        // TIME column will always be empty for daily
+        // values
+        '\t\t' + value + '\t' +
+
+    // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
+    // <sbarthol@usgs.gov> said:
+    //
+    // Precision isn't stored in the database so it would
+    // have to be derived from the numeric string returned
+    // in the json output. I don't know how useful it is
+    // anymore. It was mainly there for the "suppress
+    // rounding" option so the user would know how many
+    // digits to round it to for rounded display.
+    value.toString().replace('.', '').length + '\t' +
+
+    // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
+    // <sbarthol@usgs.gov> said:
+    //
+    // Remark will have to be derived from the Qualifier
+    // section of the response. It will have begin and end
+    // dates for various qualification periods.
+
+    // TODO: "Notes" looks like it's an array in the JSON
+    // messageBody, so we might need further processing
+    // here
+    notes + '\t' +
+
+    // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
+    // <sbarthol@usgs.gov> said:
+    //
+    // I think some of what used to be flags are now
+    // Qualifiers. Things like thereshold exceedances
+    // (high, very high, low, very low, rapid
+    // increace/decreast [sic], etc.). The users might
+    // want you to put something in that column for the
+    // Method and Grade sections of the response as well
+    '\t' +
+
+    // TODO: need to ask Brad and/or users about
+    // preserving the TYPE column (see excerpt from
+    // Scott's mail below).
+
+    // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
+    // <sbarthol@usgs.gov> said:
+    //
+    // Type I would put in something like "R" for raw and
+    // "C" for corrected depending on which get method was
+    // used. That is similar to what C (computed) and E
+    // (Edited) meant for DV data in Adaps.  We don't
+    // explicitly have the Meas, Edit, and Comp UV types
+    // anymore, they are separate timeseries in AQUARIUS.
+    '\t' +
+     // TODO: FLAGS?
+     '\t' + type + '\n'
+} // dvTableRow
+
+/**
    @description GetDVTable service request handler.
 */
 httpdispatcher.onGet(
@@ -836,8 +897,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 }
             ]);
 
-            // TODO: this loop is going to need to be async.sequenced:
-            // one sequenced function per UniqueId value
+            // TODO: this loop is going to need to be
+            // async.forEachOf()ed.  one sequenced function per
+            // UniqueId value
             var n = timeSeriesDescriptions.length;
             for (var i = 0; i < n; i++) {
                 getTimeSeriesCorrectedData(
@@ -850,126 +912,78 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             }
         },
         function (timeSeriesCorrectedData, callback) {
-            var n = timeSeriesCorrectedData.Points.length;
-            // TODO: for tables with a very large number of rows, we'll
-            // probably need to convert this loop to an event-driven
-            // mechanism (driven by AQUARIUS response?), instead of
-            // accumulating all RDB table rows, and possibly using tons of
-            // memory.
-            for (var i = 0; i < n; i++) {
-                // shorten some object identifier references below
-                var point = timeSeriesCorrectedData.Points[i];
+            async.forEachOf(
+                timeSeriesCorrectedData.Points,
+                function (point, key, callback) {
+                    // the daily value
+                    var value = point.Value.Numeric.toString();
 
-                // the daily value
-                var value = point.Value.Numeric.toString();
+                    // TODO: For DVs at least (and perhaps other
+                    // types), legacy dates might need to be re-offset
+                    // on output:
 
-                // TODO: For DVs at least (and perhaps other types),
-                // legacy dates might need to be re-offset on output:
-
-                // On Mon, Sep 28, 2015 at 3:05 PM, Scott Bartholoma
-                // <sbarthol@usgs.gov> said:
-                //
-                // The migration exported all the data in the standard
-                // time UTC offset for the site in the SITEFILE and as far
-                // as I know AQUARIUS imported it that way. There was no
-                // timestamp on the Daily Values exported from Adaps, so
-                // AQUARIUS had to "make one up".  I'm pretty sure they
-                // used end-of-day midnight, which means that for Migrated
-                // data the dates in the timeseries have to be
-                // decremented.  "2015-01-01T00:00:00.0000000-07:00" is
-                // the value for 09/30/2015.
-                //
-                // However, to do this properly so it will work correctly
-                // for ALL data, including future setups that don't match
-                // how we migrated, you have to pay attention to the
-                // interpolation type from the timeseries description. We
-                // are using "Preceeding Constant" where the value
-                // represents the statistic for the preceeding period.
-                // However, there is also "Succeeding Constant". And to
-                // further complicate this, you can select to have the
-                // value be at the beginning of the day or at the end of
-                // the day (see image below).
-                //
-                // As I write this, I created a timeseries and then got
-                // it's description. I don't see anything in the
-                // timeseries description to tell us what the
-                // interpolation type is not which setting was chosen in
-                // the image below was chosen. Here is the json output
-                // from the getTimeseriesDescriptionList call. I must be
-                // missing something.
-
-                // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-                // <sbarthol@usgs.gov> said:
-                //
-                // I see Interpolation Type is part of the timeseries data
-                // response, not part of the timeseries description. As i
-                // recall, it can be changed over time, but I wouldn't use
-                // that "feature". If I wanted to change interpolation
-                // type I would start a new timeseries.In any case, you
-                // might be able to use it to decide if you need to
-                // decrement the date or not when doing DV data.
-
-                response.write(
-                    toNWISFormat(point.Timestamp) +
-                        // TIME column will always be empty for daily
-                        // values
-                        '\t\t' + value + '\t' +
-
-                    // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-                    // <sbarthol@usgs.gov> said:
+                    // On Mon, Sep 28, 2015 at 3:05 PM, Scott
+                    // Bartholoma <sbarthol@usgs.gov> said:
                     //
-                    // Precision isn't stored in the database so it would
-                    // have to be derived from the numeric string returned
-                    // in the json output. I don't know how useful it is
-                    // anymore. It was mainly there for the "suppress
-                    // rounding" option so the user would know how many
-                    // digits to round it to for rounded display.
-                    value.toString().replace('.', '').length + '\t' +
-
-                    // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-                    // <sbarthol@usgs.gov> said:
+                    // The migration exported all the data in the
+                    // standard time UTC offset for the site in the
+                    // SITEFILE and as far as I know AQUARIUS imported
+                    // it that way. There was no timestamp on the
+                    // Daily Values exported from Adaps, so AQUARIUS
+                    // had to "make one up".  I'm pretty sure they
+                    // used end-of-day midnight, which means that for
+                    // Migrated data the dates in the timeseries have
+                    // to be decremented.
+                    // "2015-01-01T00:00:00.0000000-07:00" is the
+                    // value for 09/30/2015.
                     //
-                    // Remark will have to be derived from the Qualifier
-                    // section of the response. It will have begin and end
-                    // dates for various qualification periods.
-
-                    // TODO: "Notes" looks like it's an array in the JSON
-                    // messageBody, so we might need further processing
-                    // here
-                    timeSeriesCorrectedData.Notes + '\t' +
-
-                    // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-                    // <sbarthol@usgs.gov> said:
+                    // However, to do this properly so it will work
+                    // correctly for ALL data, including future setups
+                    // that don't match how we migrated, you have to
+                    // pay attention to the interpolation type from
+                    // the timeseries description. We are using
+                    // "Preceeding Constant" where the value
+                    // represents the statistic for the preceeding
+                    // period.  However, there is also "Succeeding
+                    // Constant". And to further complicate this, you
+                    // can select to have the value be at the
+                    // beginning of the day or at the end of the day
+                    // (see image below).
                     //
-                    // I think some of what used to be flags are now
-                    // Qualifiers. Things like thereshold exceedances
-                    // (high, very high, low, very low, rapid
-                    // increace/decreast [sic], etc.). The users might
-                    // want you to put something in that column for the
-                    // Method and Grade sections of the response as well
-                    '\t' +
+                    // As I write this, I created a timeseries and
+                    // then got it's description. I don't see anything
+                    // in the timeseries description to tell us what
+                    // the interpolation type is not which setting was
+                    // chosen in the image below was chosen. Here is
+                    // the json output from the
+                    // getTimeseriesDescriptionList call. I must be
+                    // missing something.
 
-                    // TODO: need to ask Brad and/or users about
-                    // preserving the TYPE column (see excerpt from
-                    // Scott's mail below).
-
-                    // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-                    // <sbarthol@usgs.gov> said:
+                    // On Tue, Sep 29, 2015 at 10:57 AM, Scott
+                    // Bartholoma <sbarthol@usgs.gov> said:
                     //
-                    // Type I would put in something like "R" for raw and
-                    // "C" for corrected depending on which get method was
-                    // used. That is similar to what C (computed) and E
-                    // (Edited) meant for DV data in Adaps.  We don't
-                    // explicitly have the Meas, Edit, and Comp UV types
-                    // anymore, they are separate timeseries in AQUARIUS.
-                    '\t' +
-                        // TODO: FLAGS?
-                        '\t' +
+                    // I see Interpolation Type is part of the
+                    // timeseries data response, not part of the
+                    // timeseries description. As i recall, it can be
+                    // changed over time, but I wouldn't use that
+                    // "feature". If I wanted to change interpolation
+                    // type I would start a new timeseries.In any
+                    // case, you might be able to use it to decide if
+                    // you need to decrement the date or not when
+                    // doing DV data.
+
+                    response.write(
+                        dvTableRow(
+                            toNWISFormat(point.Timestamp),
+                            value,
+                            timeSeriesCorrectedData.Notes,
                 timeSeriesCorrectedData.Approvals[0].LevelDescription.charAt(0)
-                        + '\n',
-                    'ascii'
-                );
-            }
+                        ),
+                        'ascii'
+                    );
+                    callback(null);
+                }
+            );
             callback(null);
         }
     ], function (error) {
