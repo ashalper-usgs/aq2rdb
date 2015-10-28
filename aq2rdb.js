@@ -796,12 +796,10 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             );
         },
         function (token, timeSeriesDescriptions, callback) {
-	    // TODO: there is likely no concurrency advantage to the
-	    // "nested" waterfall below, and it makes the code more
-	    // difficult to read, so try to re-factor into the outer
-	    // waterfall function(s).
-
-            // waterfall within a waterfall
+            // A waterfall within a waterfall; this is here to avoid
+            // having to pass timeSeriesDescriptions through blocks
+            // where it is not referenced, and therefore does not need
+            // to be in scope.
             async.waterfall([
                 function (callback) {
                     getLocationData(token, locationIdentifier, callback);
