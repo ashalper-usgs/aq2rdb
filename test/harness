@@ -2,12 +2,10 @@
 
 aq2rdb () {
     curl -g "http://localhost:8081/aq2rdb?$1"
-    echo
 }
 
 GetDVTable () {
     curl -g "http://localhost:8081/aq2rdb/GetDVTable?$1"
-    echo
 }
 
 # if "stub" option
@@ -36,7 +34,7 @@ aq2rdb "&userName=apiuser&password=$password&z=prod&u=Discharge.ft^3/s.Mean@0938
 
 #GetDVTable "&userName=apiuser&password=not4passwurd&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&computed=true"
 
-#GetDVTable "&userName=apiuser&password=$password&LocationIdentifier=09380000&Parameter=Discharge&QueryFrom=2015-01-01T00%3A00%3A00-07%3A00&QueryTo=2015-01-03T00%3A00%3A00-07%3A00"
+GetDVTable "&userName=apiuser&password=$password&LocationIdentifier=09380000&Parameter=Discharge&QueryFrom=2015-01-01T00%3A00%3A00-07%3A00&QueryTo=2015-01-03T00%3A00%3A00-07%3A00"
 
 kill $aq2rdb
 
