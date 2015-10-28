@@ -285,12 +285,13 @@ function getAQToken(userName, password, callback) {
         var statusMessage;
 
         if (error.message === 'connect ECONNREFUSED') {
-            throw 'Could not connect to GetAQToken service for ' +
-                'AQUARIUS authentication token';
+            callback('Could not connect to GetAQToken service for ' +
+                     'AQUARIUS authentication token');
         }
         else {
-            throw error;
+            callback(error);
         }
+        return;
     });
 
     request.end();
@@ -773,7 +774,12 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     */
     async.waterfall([
         function (callback) {
-            getAQToken(userName, password, callback);
+            try {
+                getAQToken(userName, password, callback);
+            }
+            catch (error) {
+                callback(error);
+            }
         },
         function (token, callback) {
             var extendedFilters;
