@@ -238,11 +238,15 @@ var BasicFormat = function (text) {
                 token.
 */
 function getAQToken(userName, password, callback) {
-    if (userName === undefined)
-        throw 'Required field "userName" is missing';
+    if (userName === undefined) {
+        callback('Required field "userName" is missing');
+        return;
+    }
 
-    if (password === undefined)
-        throw 'Required field "password" is missing';
+    if (password === undefined) {
+        callback('Required field "password" is missing');
+        return;
+    }
     
     /**
        @description GetAQToken service response callback.
@@ -345,8 +349,8 @@ function getTimeSeriesDescriptionList(
                     undefined
             ) {
                 // there's nothing more we can do
-                throw 'The query found no time series descriptions ' +
-                    'in AQUARIUS';
+                callback('The query found no time series descriptions ' +
+                         'in AQUARIUS');
                 return;
             }
 
@@ -378,7 +382,8 @@ function getTimeSeriesDescriptionList(
        invocation errors.
     */
     request.on('error', function (error) {
-        throw error;
+        callback(error);
+        return;
     });
 
     request.end();
@@ -409,15 +414,18 @@ function getTimeSeriesCorrectedData(
                 timeSeriesCorrectedData = JSON.parse(messageBody);
             }
             catch (error) {
-                throw error;
+                callback(error);
+                return;
             }
 
             if (200 < response.statusCode) {
-                throw 'AQUARIUS replied with an error. ' +
+                callback(
+                    'AQUARIUS replied with an error. ' +
                     'The message was:\n' +
                     '\n' +
                     '   ' +
-                    timeSeriesCorrectedData.ResponseStatus.Message;
+                    timeSeriesCorrectedData.ResponseStatus.Message
+                );
                 return;
             }
 
@@ -441,7 +449,8 @@ function getTimeSeriesCorrectedData(
                     invocation errors.
     */
     request.on('error', function (error) {
-        throw error;
+        callback(error);
+        return;
     });
 
     request.end();
@@ -470,7 +479,8 @@ function getLocationData(token, locationIdentifier, callback) {
                 locationDataServiceResponse = JSON.parse(messageBody);
             }
             catch (error) {
-                throw error;
+                callback(error);
+                return;
             }
             callback(null, locationDataServiceResponse);
             return;
@@ -493,7 +503,8 @@ function getLocationData(token, locationIdentifier, callback) {
                     invocation errors.
     */
     request.on('error', function (error) {
-        throw error;
+        callback(error);
+        return;
     });
 
     request.end();
@@ -779,6 +790,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             }
             catch (error) {
                 callback(error);
+                return;
             }
         },
         function (token, callback) {
