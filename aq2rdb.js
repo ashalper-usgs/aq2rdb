@@ -828,29 +828,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
 ) {
     // parse HTTP query
     var arg = querystring.parse(request.url);
+    delete arg['/' + PACKAGE_NAME + '?']; // not used
     var userName, password;
-
-    if (arg.userName.length === 0) {
-        throw 'Required parameter "userName" not found';
-    }
-    userName = arg.userName;
-
-    if (arg.password.length === 0) {
-        throw 'Required parameter "password" not found';
-    }
-    password = arg.password;
-
-    // TODO: this might need to be factored-out eventually
-    if (arg.u !== undefined &&
-        (arg.a !== undefined || arg.n !== undefined ||
-         arg.t !== undefined || arg.s !== undefined ||
-         arg.d !== undefined || arg.r !== undefined ||
-         arg.p !== undefined)
-       ) {
-        throw 'If "u" is specified, "a", "n", "t", "s", ' +
-            '"d", "r", and "p" must be omitted';
-    }
-
     var environment = 'production';
     var timeSeriesIdentifier;
     var a, n, t, d, b, e, c, r, l;
@@ -858,6 +837,12 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     // get HTTP query arguments
     for (var opt in arg) {
         switch (opt) {
+        case 'userName':
+            userName = arg[opt];
+            break;
+        case 'password':
+            password = arg[opt];
+            break;
         case 'z':
             // -z now indicates environment, not database number. In
             // AQUARIUS Era, logical database numbers have been
@@ -882,16 +867,6 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             break;
         case 'n':
             n = arg[opt];
-            break;
-        case 'u':
-            // -u is a new option for specifying a time-series
-            // identifier, and is preferred over -d whenever possible
-            try {
-                timeSeriesIdentifier = new TimeSeriesIdentifier(arg[opt]);
-            }
-            catch (error) {
-                throw error;
-            }
             break;
         case 'd':
             // -d data descriptor number is supported but is
@@ -937,6 +912,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                     'basic format date must be provided';
             }
             break;
+        default:
+            throw 'Unknown field "' + opt + '"';
         }
     }
 
