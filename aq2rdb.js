@@ -234,6 +234,52 @@ var BasicFormat = function (text) {
 } // BasicFormat
 
 /**
+   @description Call a REST Web service with a query; send response
+                via a callback.
+*/
+function httpQuery(host, path, field, callback) {
+    /**
+       @description Handle response from GetLocationData.
+    */
+    function httpQueryCallback(response) {
+        var messageBody = '';
+
+        // accumulate response
+        response.on(
+            'data',
+            function (chunk) {
+                messageBody += chunk;
+            });
+
+        response.on('end', function () {
+            callback(null, messageBody);
+            return;
+        });
+    }
+    
+    var p = path + '?';         // path prefix
+    // bind field/value pairs
+    for (var name in field) {
+        p += bind(name, field[name]);
+    }
+
+    var request = http.request({
+        host: host,
+        path: p
+    }, httpQueryCallback);
+
+    /**
+       @description Handle service invocation errors.
+    */
+    request.on('error', function (error) {
+        callback(error);
+        return;
+    });
+
+    request.end();
+} // httpQuery
+
+/**
    @description Call GetAQToken service to get AQUARIUS authentication
                 token.
 */
@@ -412,7 +458,6 @@ function getLocationData(token, locationIdentifier, callback) {
     */
     function getLocationDataCallback(response) {
         var messageBody = '';
-        var locationDataServiceResponse;
 
         // accumulate response
         response.on(
@@ -614,13 +659,12 @@ httpdispatcher.onGet(
             function (messageBody, callback) {
                 token = messageBody;
 
-                // TODO: replace this with call to e.g.
-                // http://waterservices.usgs.gov/nwis/site/?format=rdb&sites=USGS:09180500&siteOutput=expanded
-                // because AQUARIUS does not have site DST flag.
-
                 try {
-                    getLocationData(
-                        token, field.LocationIdentifier, callback
+                    httpQuery(
+                        'waterservices.usgs.gov', '/nwis/site/',
+                        {format: 'rdb',
+                         sites: field.LocationIdentifier,
+                         siteOutput: 'expanded'}, callback
                     );
                 }
                 catch (error) {
@@ -632,21 +676,33 @@ httpdispatcher.onGet(
                             GetLocationData.
             */
             function (messageBody, callback) {
-                var locationDataServiceResponse;
+                var stationNm, tzCd, localTimeFg;
 
                 try {
-                    locationDataServiceResponse =
-                        JSON.parse(messageBody);
+                    // parse (station_nm,tz_cd,local_time_fg) from RDB
+                    // response
+                    var row = messageBody.split('\n');
+                    // RDB column names
+                    var columnName = row[row.length - 4].split('\t');
+                    // site column values are in last row of table
+                    var siteField = row[row.length - 2].split('\t');
+
+                    // values that are used in the aq2rdb RDB header
+                    stationNm =
+                        siteField[columnName.indexOf('station_nm')];
+                    tzCd = siteField[columnName.indexOf('tz_cd')];
+                    localTimeFg =
+                        siteField[columnName.indexOf('local_time_fg')];
                 }
                 catch (error) {
                     callback(error);
                 }
-                callback(null, locationDataServiceResponse.LocationName);
+                callback(null, stationNm, tzCd, localTimeFg);
             },
             /**
                @description Write RDB header and heading.
             */
-            function (locationName, callback) {
+            function (stationNm, tzCd, localTimeFg, callback) {
                 async.series([
                     function (callback) {
                         response.writeHead(
@@ -677,9 +733,8 @@ httpdispatcher.onGet(
                         }
 
                         var header = rdbHeader(
-                            agencyCode, siteNumber, locationName,
-                            // TODO: timeZone, dstFlag,
-                            'MST', 'Y',
+                            agencyCode, siteNumber, stationNm,
+                            tzCd, localTimeFg,
                             {start: toNWISFormat(field.QueryFrom),
                              end: toNWISFormat(field.QueryTo)}
                         );
