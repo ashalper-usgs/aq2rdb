@@ -453,23 +453,11 @@ function getLocationData(token, locationIdentifier, callback) {
 /**
    @description Create RDB header block.
 */
-function rdbHeader(locationIdentifier, stationName, range) {
+function rdbHeader(
+    agencyCode, siteNumber, stationName, timeZone, dstFlag, range
+) {
     // some convoluted syntax for "now"
     var retrieved = toBasicFormat((new Date()).toISOString());
-    var agencyCode, siteNumber;
-
-    // if agency code delimiter is present in location identifier
-    if (locationIdentifier.search('-') === -1) {
-        agencyCode = 'USGS';    // default agency code
-        siteNumber = locationIdentifier;
-    }
-    else {
-        // parse (agency code, site number) embedded in
-        // locationIdentifier
-        var field = locationIdentifier.split('-');
-        agencyCode = field[1];
-        siteNumber = field[0];
-    }
 
     return '# //UNITED STATES GEOLOGICAL SURVEY       ' +
         'http://water.usgs.gov/\n' +
@@ -481,7 +469,8 @@ function rdbHeader(locationIdentifier, stationName, range) {
         '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
         'EDITABLE=NO\n' +
         '# //STATION AGENCY="' + agencyCode +
-        '" NUMBER="' + siteNumber + '       "\n' +
+        '" NUMBER="' + siteNumber + '       " ' +
+        'TIME_ZONE="' + timeZone + '" DST_FLAG=' + dstFlag + '\n' +
         '# //STATION NAME="' + stationName + '"\n' +
         '# //RANGE START="' + range.start + '" END="' + range.end + '"\n';
 } // rdbHeader
@@ -624,6 +613,11 @@ httpdispatcher.onGet(
             */
             function (messageBody, callback) {
                 token = messageBody;
+
+                // TODO: replace this with call to e.g.
+                // http://waterservices.usgs.gov/nwis/site/?format=rdb&sites=USGS:09180500&siteOutput=expanded
+                // because AQUARIUS does not have site DST flag.
+
                 try {
                     getLocationData(
                         token, field.LocationIdentifier, callback
@@ -661,9 +655,31 @@ httpdispatcher.onGet(
                         callback(null);
                     },
                     function (callback) {
+                        var agencyCode, siteNumber;
+
+                        // TODO: this conditional will probably need
+                        // to be re-factored into a function or
+                        // object, for use by more than 1 aq2rdb
+                        // endpoint:
+
+                        // if agency code delimiter ("-") is present
+                        // in location identifier
+                        if (field.LocationIdentifier.search('-') === -1) {
+                            agencyCode = 'USGS';    // default agency code
+                            siteNumber = field.LocationIdentifier;
+                        }
+                        else {
+                            // parse (agency code, site number) embedded in
+                            // locationIdentifier
+                            var s = field.LocationIdentifier.split('-');
+                            agencyCode = s[1];
+                            siteNumber = s[0];
+                        }
+
                         var header = rdbHeader(
-                            field.LocationIdentifier,
-                            locationName,
+                            agencyCode, siteNumber, locationName,
+                            // TODO: timeZone, dstFlag,
+                            'MST', 'Y',
                             {start: toNWISFormat(field.QueryFrom),
                              end: toNWISFormat(field.QueryTo)}
                         );
