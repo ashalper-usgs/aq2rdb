@@ -847,7 +847,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     delete arg['/' + PACKAGE_NAME + '?']; // not used
     var userName, password;
     var environment = 'production';
-    var timeSeriesIdentifier;
+    var locationIdentifier, timeSeriesIdentifier;
     var a, n, t, d, b, e, c, r, l;
 
     // get HTTP query arguments
@@ -933,13 +933,19 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
         }
     }
 
-    // TODO: this probably won't work when a === 'USGS'
-    var locationIdentifier = a === undefined ? n : n + '-' + a;
-
+    // if time-series identifier is present
     if (timeSeriesIdentifier !== undefined) {
-        // time-series identifier is present
+        // derive location identifier from it
         locationIdentifier =
             timeSeriesIdentifier.locationIdentifier();
+    }
+    // AQUARIUS appears to do some weird defaulting things with
+    // (agency_cd,site_no)
+    else if (a === undefined || a === 'USGS') {
+        locationIdentifier = n;
+    }
+    else {
+        locationIdentifier = n + '-' + a;
     }
 
     var parameter = timeSeriesIdentifier.parameter();
