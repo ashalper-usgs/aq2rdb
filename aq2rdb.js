@@ -306,7 +306,7 @@ function getAQToken(userName, password, callback) {
                 service.
 */
 function getTimeSeriesDescriptionList(
-    token, locationIdentifier, parameter, computationIdentifier,
+    token, locationIdentifier, parameter, computationPeriodIdentifier,
     extendedFilters, callback
 ) {
     /**
@@ -335,7 +335,7 @@ function getTimeSeriesDescriptionList(
         bind('format', 'json') +
         bind('LocationIdentifier', locationIdentifier) +
         bind('Parameter', parameter) +
-        bind('ComputationIdentifier', computationIdentifier) +
+        bind('ComputationPeriodIdentifier', computationPeriodIdentifier) +
         bind('ExtendedFilters', extendedFilters);
 
     var request = http.request({
@@ -653,16 +653,16 @@ httpdispatcher.onGet(
                @description Write RDB header and heading.
             */
             function (locationName, callback) {
-                response.writeHead(200, {"Content-Type": "text/plain"});
-                response.write(
-                    rdbHeader(
+                response.writeHead(
+                    200, {"Content-Type": "text/plain"}
+                );
+                var header = rdbHeader(
                         field.LocationIdentifier,
                         locationName,
                         {start: toNWISFormat(field.QueryFrom),
                          end: toNWISFormat(field.QueryTo)}
-                    ),
-                    'ascii'
-                );
+                    );
+                response.write(header, 'ascii');
                 response.write(rdbHeading(), 'ascii');
                 callback(null);
             },
@@ -675,12 +675,9 @@ httpdispatcher.onGet(
             */
             function (callback) {
                 try {
-                    // TODO: when computationIdentifier is 'Daily' for
-                    // our test case, AQUARIUS is not returning
-                    // anything.
                     getTimeSeriesDescriptionList(
                         token, field.LocationIdentifier,
-                        field.Parameter, '',
+                        field.Parameter, 'Daily',
                         '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]',
                         callback
                     );
@@ -762,6 +759,14 @@ httpdispatcher.onGet(
                                 catch (error) {
                                     callback(error);
                                 }
+
+                                // TODO: since AQUARIUS
+                                // GetTimeSeriesCorrectedData
+                                // responses will be asynchronous,
+                                // timeSeriesDataServiceResponse.Points
+                                // may need to be accumulated and
+                                // sorted by date before output to RDB
+                                // here.
 
                                 async.each(
                                     timeSeriesDataServiceResponse.Points,
