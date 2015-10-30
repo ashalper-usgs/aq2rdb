@@ -306,7 +306,8 @@ function getAQToken(userName, password, callback) {
                 service.
 */
 function getTimeSeriesDescriptionList(
-    token, locationIdentifier, parameter, extendedFilters, callback
+    token, locationIdentifier, parameter, computationIdentifier,
+    extendedFilters, callback
 ) {
     /**
        @description Handle response from GetTimeSeriesDescriptionList.
@@ -322,43 +323,7 @@ function getTimeSeriesDescriptionList(
             });
 
         response.on('end', function () {
-            var timeSeriesDescriptionServiceRequest;
-
-            try {
-                timeSeriesDescriptionServiceRequest =
-                    JSON.parse(messageBody);
-            }
-            catch (error) {
-                if (error == 'SyntaxError: Unexpected token <') {
-                    callback(
-                        'It looks like ' +
-                            'GetTimeSeriesDescriptionList could be ' +
-                            'serving some form of SGML'
-                    );
-                }
-                else {
-                    callback(error);
-                }
-                return;         // go no further
-            }
-
-            // if the GetTimeSeriesDescriptionList query returned no
-            // time series descriptions
-            if (
-                timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions ===
-                    undefined
-            ) {
-                // there's nothing more we can do
-                callback('The query found no time series descriptions ' +
-                         'in AQUARIUS');
-                return;
-            }
-
-            callback(
-                null,
-                token,
-                timeSeriesDescriptionServiceRequest.TimeSeriesDescriptions
-            );
+            callback(null, messageBody);
             return;
         });
     } // getTimeSeriesDescriptionListCallback
@@ -370,6 +335,7 @@ function getTimeSeriesDescriptionList(
         bind('format', 'json') +
         bind('LocationIdentifier', locationIdentifier) +
         bind('Parameter', parameter) +
+        bind('ComputationIdentifier', computationIdentifier) +
         bind('ExtendedFilters', extendedFilters);
 
     var request = http.request({
@@ -410,26 +376,7 @@ function getTimeSeriesCorrectedData(
             });
 
         response.on('end', function () {
-            try {
-                timeSeriesCorrectedData = JSON.parse(messageBody);
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-
-            if (200 < response.statusCode) {
-                callback(
-                    'AQUARIUS replied with an error. ' +
-                    'The message was:\n' +
-                    '\n' +
-                    '   ' +
-                    timeSeriesCorrectedData.ResponseStatus.Message
-                );
-                return;
-            }
-
-            callback(null, timeSeriesCorrectedData);
+            callback(null, messageBody);
             return;
         });
     } // getTimeSeriesCorrectedDataCallback
@@ -475,14 +422,7 @@ function getLocationData(token, locationIdentifier, callback) {
             });
 
         response.on('end', function () {
-            try {
-                locationDataServiceResponse = JSON.parse(messageBody);
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-            callback(null, locationDataServiceResponse);
+            callback(null, messageBody);
             return;
         });
     }
@@ -623,11 +563,15 @@ httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetDVTable',
     function (request, response) {
         var field;
-        
+        var token;
+
         /**
            @see https://github.com/caolan/async
         */
         async.waterfall([
+            /**
+               @description Parse fields and values in GetDVTable URL.
+            */
             function (callback) {
                 try {
                     field = querystring.parse(request.url);
@@ -657,6 +601,10 @@ httpdispatcher.onGet(
                 }
                 callback(null); // proceed to next waterfall below
             },
+            /**
+               @description Get AQUARIUS authentication token from
+                            GetAQToken service.
+            */
             function (callback) {
                 try {
                     getAQToken(
@@ -664,31 +612,52 @@ httpdispatcher.onGet(
                     );
                 }
                 catch (error) {
+                    // abort & pass "error" to final callback
                     callback(error);
                 }
             },
-            function (token, callback) {
-                // TODO: this might need to be adjusted
-                var extendedFilters =
-                    '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
+            /**
+               @description Receive AQUARIUS authentication token from
+                            GetAQToken service, then query
+                            GetLocationData service to obtain site
+                            name.
+            */
+            function (messageBody, callback) {
+                token = messageBody;
+                try {
+                    getLocationData(
+                        token, field.LocationIdentifier, callback
+                    );
+                }
+                catch (error) {
+                    callback(error);
+                }
+            },
+            /**
+               @description Receive and parse response from
+                            GetLocationData.
+            */
+            function (messageBody, callback) {
+                var locationDataServiceResponse;
 
-                getTimeSeriesDescriptionList(
-                    token, field.LocationIdentifier, field.Parameter,
-                    extendedFilters,
-                    callback
-                );
+                try {
+                    locationDataServiceResponse =
+                        JSON.parse(messageBody);
+                }
+                catch (error) {
+                    callback(error);
+                }
+                callback(null, locationDataServiceResponse.LocationName);
             },
-            function (token, timeSeriesDescriptions, callback) {
-                getLocationData(
-                    token, field.LocationIdentifier, callback
-                );
-            },
-            function (locationDataServiceResponse, callback) {
+            /**
+               @description Write RDB header and heading.
+            */
+            function (locationName, callback) {
                 response.writeHead(200, {"Content-Type": "text/plain"});
                 response.write(
                     rdbHeader(
                         field.LocationIdentifier,
-                        locationDataServiceResponse.LocationName,
+                        locationName,
                         {start: toNWISFormat(field.QueryFrom),
                          end: toNWISFormat(field.QueryTo)}
                     ),
@@ -696,10 +665,155 @@ httpdispatcher.onGet(
                 );
                 response.write(rdbHeading(), 'ascii');
                 callback(null);
+            },
+            /**
+               @description Query AQUARIUS
+                            GetTimeSeriesDescriptionList service to
+                            get list of AQUARIUS, time series
+                            UniqueIds related to aq2rdb, GetDVTable
+                            location and parameter.
+            */
+            function (callback) {
+                try {
+                    // TODO: when computationIdentifier is 'Daily' for
+                    // our test case, AQUARIUS is not returning
+                    // anything.
+                    getTimeSeriesDescriptionList(
+                        token, field.LocationIdentifier,
+                        field.Parameter, '',
+                        '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]',
+                        callback
+                    );
+                }
+                catch (error) {
+                    callback(error);
+                }
+            },
+            /**
+               @description Receive response from AQUARIUS
+                            GetTimeSeriesDescriptionList, then parse
+                            list of related TimeSeriesDescriptions to
+                            query AQUARIUS GetTimeSeriesCorrectedData
+                            service.
+            */
+            function (messageBody, callback) {
+                var timeSeriesDescriptionListServiceResponse;
+
+                try {
+                    timeSeriesDescriptionListServiceResponse =
+                        JSON.parse(messageBody);
+                }
+                catch (error) {
+                    callback(error);
+                }
+
+                callback(
+                 null,
+                 timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
+                );
+            },
+            /**
+               @description For each AQUARIUS time series description,
+                            query GetTimeSeriesCorrectedData to get
+                            related daily values.
+            */
+            function (timeSeriesDescriptions, callback) {
+                async.each(
+                    timeSeriesDescriptions,
+                    /**
+                       @description Process a time series description.
+                    */
+                    function (timeSeriesDescription, callback) {
+                        var timeSeriesUniqueId =
+                            timeSeriesDescription.UniqueId;
+
+                        async.waterfall([
+                            /**
+                               @description Query AQUARIUS
+                                            GetTimeSeriesCorrectedData
+                                            to get related daily
+                                            values.
+                            */
+                            function (callback) {
+                                try {
+                                    getTimeSeriesCorrectedData(
+                                        token, timeSeriesUniqueId,
+                                        field.QueryFrom,
+                                        field.QueryTo, callback
+                                    );
+                                }
+                                catch (error) {
+                                    callback(error);
+                                }
+                            },
+                            /**
+                               @description Receive response from
+                                            GetTimeSeriesCorrectedData,
+                                            and parse.
+                            */
+                            function (messageBody, callback) {
+                                var timeSeriesDataServiceResponse;
+                                var notes, type;
+
+                                try {
+                                    timeSeriesDataServiceResponse =
+                                        JSON.parse(messageBody);
+                                }
+                                catch (error) {
+                                    callback(error);
+                                }
+
+                                async.each(
+                                    timeSeriesDataServiceResponse.Points,
+                                    /**
+                                       @description Write an RDB row
+                                                    for one time
+                                                    series point.
+                                    */
+                                    function (timeSeriesPoint, callback) {
+                                response.write(
+                                    dvTableRow(
+                                      toNWISFormat(timeSeriesPoint.Timestamp),
+                                      timeSeriesPoint.Value.Numeric.toString(),
+                                      timeSeriesDataServiceResponse.Notes,
+          timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
+                                    ),
+                                    'ascii'
+                                );
+                                        callback(null);
+                                    }
+                                );
+                                callback(null);
+                            }
+                        ], function (error) {
+                            if (error) {
+                                callback(error);
+                            }
+                            else {
+                                callback(null);
+                            }
+                        });
+                    },
+                    function (error) {
+                        if (error) {
+                            callback(error);
+                        }
+                        else {
+                            callback(null);
+                        }
+                    }
+                );
             }
-        ], function (error) {
-            response.end();
-        });
+        ],
+        function (error) {
+            if (error) {
+                throw error;
+            }
+            else {
+                response.end();
+            }
+        }
+      );
     }
 );
 
