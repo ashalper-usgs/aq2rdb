@@ -807,7 +807,7 @@ httpdispatcher.onGet(
         ],
         function (error) {
             if (error) {
-                throw error;
+                rdbMessage(response, 400, error);
             }
             else {
                 response.end();
