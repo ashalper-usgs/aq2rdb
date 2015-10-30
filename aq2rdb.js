@@ -653,17 +653,28 @@ httpdispatcher.onGet(
                @description Write RDB header and heading.
             */
             function (locationName, callback) {
-                response.writeHead(
-                    200, {"Content-Type": "text/plain"}
-                );
-                var header = rdbHeader(
-                        field.LocationIdentifier,
-                        locationName,
-                        {start: toNWISFormat(field.QueryFrom),
-                         end: toNWISFormat(field.QueryTo)}
-                    );
-                response.write(header, 'ascii');
-                response.write(rdbHeading(), 'ascii');
+                async.series([
+                    function (callback) {
+                        response.writeHead(
+                            200, {"Content-Type": "text/plain"}
+                        );
+                        callback(null);
+                    },
+                    function (callback) {
+                        var header = rdbHeader(
+                            field.LocationIdentifier,
+                            locationName,
+                            {start: toNWISFormat(field.QueryFrom),
+                             end: toNWISFormat(field.QueryTo)}
+                        );
+                        response.write(header, 'ascii');
+                        callback(null);
+                    },
+                    function (callback) {
+                        response.write(rdbHeading(), 'ascii');
+                        callback(null);
+                    }
+                ]);
                 callback(null);
             },
             /**
