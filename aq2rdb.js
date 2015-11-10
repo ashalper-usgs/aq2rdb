@@ -284,8 +284,14 @@ function httpQuery(host, path, field, callback) {
                 token.
 */
 function getAQToken(userName, password, callback) {
+
     if (userName === undefined) {
         callback('Required field "userName" is missing');
+        return;
+    }
+
+    if (userName === '') {
+        callback('Required field "userName" must have a value');
         return;
     }
 
@@ -293,7 +299,12 @@ function getAQToken(userName, password, callback) {
         callback('Required field "password" is missing');
         return;
     }
-    
+
+    if (password === '') {
+        callback('Required field "password" must have a value');
+        return;
+    }
+
     /**
        @description GetAQToken service response callback.
     */
@@ -314,8 +325,7 @@ function getAQToken(userName, password, callback) {
 
     /**
        @description GetAQToken service request for AQUARIUS
-       authentication token needed for AQUARIUS
-       API.
+                    authentication token needed for AQUARIUS API.
     */
     var path = '/services/GetAQToken?' +
         bind('userName', userName) +
@@ -902,7 +912,16 @@ httpdispatcher.onGet(
         }
       );
     }
-);
+); // GetDVTable
+
+/**
+   @description GetUVTable service request handler.
+*/
+httpdispatcher.onGet(
+    '/' + PACKAGE_NAME + '/GetUVTable',
+    function (request, response) {
+    }
+); // GetUVTable
 
 /**
    @description Legacy, pseudo-nwts2rdb service request handler. Use
@@ -1039,9 +1058,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             }
         },
         function (token, callback) {
-	    // Presently, the only known documentation for the
-	    // ExtendedFilters field is at
-	    // https://sites.google.com/a/usgs.gov/aquarius-api-wiki/tips-and-tricks/attributes-and-extended-attributes-in-aquarius?pli=1
+            // Presently, the only known documentation for the
+            // ExtendedFilters field is at
+            // https://sites.google.com/a/usgs.gov/aquarius-api-wiki/tips-and-tricks/attributes-and-extended-attributes-in-aquarius?pli=1
             var extendedFilters;
 
             if (timeSeriesIdentifier === undefined) {
