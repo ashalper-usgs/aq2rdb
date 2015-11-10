@@ -643,7 +643,7 @@ httpdispatcher.onGet(
                         return;
                     }
                 }
-                callback(null); // proceed to next waterfall below
+                callback(null); // proceed to next waterfall
             },
             /**
                @description Get AQUARIUS authentication token from
@@ -659,6 +659,8 @@ httpdispatcher.onGet(
                     // abort & pass "error" to final callback
                     callback(error);
                 }
+                // no callback here, because it is passed to
+                // getAQToken(), and called from there if successful
             },
             /**
                @description Receive AQUARIUS authentication token from
@@ -958,6 +960,23 @@ httpdispatcher.onGet(
                     }
                 }
                 callback(null); // proceed to next waterfall
+            },
+            /**
+               @description Get AQUARIUS authentication token from
+                            GetAQToken service.
+            */
+            function (callback) {
+                try {
+                    getAQToken(
+                        field.userName, field.password, callback
+                    );
+                }
+                catch (error) {
+                    // abort & pass "error" to final callback
+                    callback(error);
+                }
+                // no callback here, because it is passed to
+                // getAQToken(), and called from there if successful
             }
         ],
         function (error) {
