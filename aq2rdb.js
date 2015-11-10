@@ -1039,6 +1039,9 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             }
         },
         function (token, callback) {
+	    // Presently, the only known documentation for the
+	    // ExtendedFilters field is at
+	    // https://sites.google.com/a/usgs.gov/aquarius-api-wiki/tips-and-tricks/attributes-and-extended-attributes-in-aquarius?pli=1
             var extendedFilters;
 
             if (timeSeriesIdentifier === undefined) {
