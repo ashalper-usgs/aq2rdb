@@ -920,6 +920,55 @@ httpdispatcher.onGet(
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetUVTable',
     function (request, response) {
+        var field;
+        var token;
+
+        /**
+           @see https://github.com/caolan/async
+        */
+        async.waterfall([
+            /**
+               @description Parse fields and values in GetUVTable URL.
+            */
+            function (callback) {
+                try {
+                    field = querystring.parse(request.url);
+                    // not used:
+                    delete field['/' + PACKAGE_NAME + '/GetUVTable?'];
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+
+                for (var name in field) {
+                    if (name.match(/^(userName|password)$/)) {
+                        // GetAQToken fields
+                    }
+                    else if (
+                        name.match(
+                          /^(LocationIdentifier|Parameter|QueryFrom|QueryTo)$/
+                        )
+                    ) {
+                        // AQUARIUS fields
+                    }
+                    else {
+                        callback(new Error('Unknown field "' + name + '"'));
+                        return;
+                    }
+                }
+                callback(null); // proceed to next waterfall
+            }
+        ],
+        function (error) {
+            if (error) {
+                rdbMessage(response, 400, error);
+            }
+            else {
+                response.end();
+            }
+        }
+        ); // async.waterfall
     }
 ); // GetUVTable
 
