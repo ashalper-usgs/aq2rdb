@@ -149,6 +149,45 @@ var DataType = function (text) {
 /**
    @description TimeSeriesIdentifier object prototype.
 */
+var LocationIdentifier = function (text) {
+    var text = text;
+
+    this.agencyCode = function () {
+        // if agency code delimiter ("-") is present in location
+        // identifier
+        if (text.search('-') === -1) {
+            return 'USGS';    // default agency code
+        }
+        else {
+            // parse (agency code, site number) embedded in
+            // locationIdentifier
+            var s = text.split('-');
+            return s[1];
+        }
+    }
+
+    this.siteNumber = function () {
+        // if agency code delimiter ("-") is present in location
+        // identifier
+        if (text.search('-') === -1) {
+            return text;
+        }
+        else {
+            // parse (agency code, site number) embedded in
+            // locationIdentifier
+            var s = text.split('-');
+            return s[0];
+        }
+    }
+
+    this.toString = function () {
+        return text;
+    }
+} // LocationIdentifier
+
+/**
+   @description TimeSeriesIdentifier object prototype.
+*/
 var TimeSeriesIdentifier = function (text) {
     // private; no reason to modify this once the object is created
     var text = text;
@@ -179,17 +218,16 @@ var TimeSeriesIdentifier = function (text) {
     }
 
     /**
-       @description Make LocationIdentifier substring of
-                    TimeSeriesIdentifier visible.
+       @description Make LocationIdentifier object from this.
     */
-    this.locationIdentifier = function () {
+    this.toLocationIdentifier = function () {
         // try to parse "locationIdentifier" field value
         var field = text.split('@');
 
         if (field.length < 2) {
-            return;             // failure
+            return undefined;   // failure
         }
-        return field[1];
+        return new LocationIdentifier(field[1]);
     }
 } // TimeSeriesIdentifier
 
@@ -510,7 +548,7 @@ function getLocationData(token, locationIdentifier, callback) {
 */
 function rdbHeader(
     agencyCode, siteNumber, stationName, timeZone, dstFlag,
-    subLocationIdentifer, range
+    subLocationIdentifer, timeSeriesIdentifier, range
 ) {
     // some convoluted syntax for "now"
     var retrieved = toBasicFormat((new Date()).toISOString());
@@ -616,9 +654,12 @@ function rdbHeader(
     // # //TIMESERIES IDENTIFIER="Discharge, ft^3/s@12345678"
     // 
     // and maybe some other information.
+    if (timeSeriesIdentifier !== undefined) {
+        header += '# //TIMESERIES IDENTIFIER="' + '"\n';
+    }
 
-    header += '# //RANGE START="' + range.start +
-        '" END="' + range.end + '"\n';
+    header +=
+    '# //RANGE START="' + range.start + '" END="' + range.end + '"\n';
 
     return header;
 } // rdbHeader
@@ -699,8 +740,7 @@ function dvTableRow(date, value, notes, type) {
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetDVTable',
     function (request, response) {
-        var field;
-        var token;
+        var field, token, locationIdentifier;
 
         /**
            @see https://github.com/caolan/async
@@ -724,11 +764,11 @@ httpdispatcher.onGet(
                     if (name.match(/^(userName|password)$/)) {
                         // GetAQToken fields
                     }
-                    else if (
-                        name.match(
-                          /^(LocationIdentifier|Parameter|QueryFrom|QueryTo)$/
-                        )
-                    ) {
+                    else if (name === 'LocationIdentifier') {
+                        locationIdentifier =
+                            new LocationIdentifier(field.LocationIdentifier);
+                    }
+                    else if (name.match(/^(Parameter|QueryFrom|QueryTo)$/)) {
                         // AQUARIUS fields
                     }
                     else {
@@ -768,7 +808,7 @@ httpdispatcher.onGet(
                     httpQuery(
                         'waterservices.usgs.gov', '/nwis/site/',
                         {format: 'rdb',
-                         sites: field.LocationIdentifier,
+                         sites: locationIdentifier.toString(),
                          siteOutput: 'expanded'}, callback
                     );
                 }
@@ -818,31 +858,13 @@ httpdispatcher.onGet(
                         callback(null);
                     },
                     function (callback) {
-                        var agencyCode, siteNumber;
-
-                        // TODO: this conditional will probably need
-                        // to be re-factored into a function or
-                        // object, for use by more than 1 aq2rdb
-                        // endpoint:
-
-                        // if agency code delimiter ("-") is present
-                        // in location identifier
-                        if (field.LocationIdentifier.search('-') === -1) {
-                            agencyCode = 'USGS';    // default agency code
-                            siteNumber = field.LocationIdentifier;
-                        }
-                        else {
-                            // parse (agency code, site number) embedded in
-                            // locationIdentifier
-                            var s = field.LocationIdentifier.split('-');
-                            agencyCode = s[1];
-                            siteNumber = s[0];
-                        }
+                        var timeSeriesIdentifier;
 
                         var header = rdbHeader(
-                            agencyCode, siteNumber, stationNm,
-                            tzCd, localTimeFg,
-                            field.SubLocationIdentifer,
+                            locationIdentifier.agencyCode(),
+                            locationIdentifier.siteNumber(),
+                            stationNm, tzCd, localTimeFg,
+                            field.SubLocationIdentifer, undefined,
                             {start: toNWISFormat(field.QueryFrom),
                              end: toNWISFormat(field.QueryTo)}
                         );
@@ -866,7 +888,7 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     getTimeSeriesDescriptionList(
-                        token, field.LocationIdentifier,
+                        token, locationIdentifier.toString(),
                         field.Parameter, 'Daily',
                         '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]',
                         callback
@@ -1047,11 +1069,10 @@ httpdispatcher.onGet(
                     if (name.match(/^(userName|password)$/)) {
                         // GetAQToken fields
                     }
-                    else if (
-                        name.match(
-                          /^(LocationIdentifier|Parameter|QueryFrom|QueryTo)$/
-                        )
-                    ) {
+                    else if (name === 'LocationIdentifier') {
+                        locationIdentifier = new LocationIdentifier(name);
+                    }
+                    else if (name.match(/^(Parameter|QueryFrom|QueryTo)$/)) {
                         // AQUARIUS fields
                     }
                     else {
@@ -1195,15 +1216,15 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     if (timeSeriesIdentifier !== undefined) {
         // derive location identifier from it
         locationIdentifier =
-            timeSeriesIdentifier.locationIdentifier();
+            timeSeriesIdentifier.toLocationIdentifier();
     }
     // AQUARIUS appears to do some weird defaulting things with
     // (agency_cd,site_no)
     else if (a === undefined || a === 'USGS') {
-        locationIdentifier = n;
+        locationIdentifier = new LocationIdentifier(n);
     }
     else {
-        locationIdentifier = n + '-' + a;
+        locationIdentifier = new LocationIdentifier(n + '-' + a);
     }
 
     var parameter = timeSeriesIdentifier.parameter();
@@ -1244,8 +1265,8 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             }
 
             getTimeSeriesDescriptionList(
-                token, locationIdentifier, parameter, extendedFilters,
-                callback
+                token, locationIdentifier.toString(), parameter,
+                extendedFilters, callback
             );
         },
         function (token, timeSeriesDescriptions, callback) {
@@ -1255,13 +1276,17 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             // to be in scope.
             async.waterfall([
                 function (callback) {
-                    getLocationData(token, locationIdentifier, callback);
+                    getLocationData(
+                        token, locationIdentifier.toString(), callback
+                    );
                 },
                 function (locationDataServiceResponse, callback) {
                     response.writeHead(200, {"Content-Type": "text/plain"});
                     response.write(
                         rdbHeader(
-                            locationIdentifier,
+                            locationIdentifier.agencyCode(),
+                            locationIdentifier.siteNumber(),
+                            locationIdentifier.toString(),
                             locationDataServiceResponse.LocationName,
                             {start: b.toString(), end: e.toString()}
                         ),
