@@ -231,7 +231,7 @@ var TimeSeriesIdentifier = function (text) {
     }
 
     this.toString = function () {
-	return text;
+        return text;
     }
 } // TimeSeriesIdentifier
 
@@ -670,7 +670,7 @@ function rdbHeader(
                 header).
 */
 function rdbHeading() {
-    return 'DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n' +
+    return 'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
         '8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n';
 } // rdbHeading
 
@@ -692,7 +692,7 @@ function dvTableRow(date, value, notes, type) {
     // anymore. It was mainly there for the "suppress
     // rounding" option so the user would know how many
     // digits to round it to for rounded display.
-    value.toString().replace('.', '').length + '\t' +
+    '\t' +
 
     // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
     // <sbarthol@usgs.gov> said:
