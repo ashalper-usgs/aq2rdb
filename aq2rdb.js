@@ -229,6 +229,10 @@ var TimeSeriesIdentifier = function (text) {
         }
         return new LocationIdentifier(field[1]);
     }
+
+    this.toString = function () {
+	return text;
+    }
 } // TimeSeriesIdentifier
 
 /**
@@ -548,7 +552,7 @@ function getLocationData(token, locationIdentifier, callback) {
 */
 function rdbHeader(
     agencyCode, siteNumber, stationName, timeZone, dstFlag,
-    subLocationIdentifer, timeSeriesIdentifier, range
+    subLocationIdentifer, range
 ) {
     // some convoluted syntax for "now"
     var retrieved = toBasicFormat((new Date()).toISOString());
@@ -654,12 +658,9 @@ function rdbHeader(
     // # //TIMESERIES IDENTIFIER="Discharge, ft^3/s@12345678"
     // 
     // and maybe some other information.
-    if (timeSeriesIdentifier !== undefined) {
-        header += '# //TIMESERIES IDENTIFIER="' + '"\n';
-    }
 
-    header +=
-    '# //RANGE START="' + range.start + '" END="' + range.end + '"\n';
+    header += '# //RANGE START="' + range.start + '" END="' +
+	range.end + '"\n';
 
     return header;
 } // rdbHeader
@@ -858,13 +859,11 @@ httpdispatcher.onGet(
                         callback(null);
                     },
                     function (callback) {
-                        var timeSeriesIdentifier;
-
                         var header = rdbHeader(
                             locationIdentifier.agencyCode(),
                             locationIdentifier.siteNumber(),
                             stationNm, tzCd, localTimeFg,
-                            field.SubLocationIdentifer, undefined,
+                            field.SubLocationIdentifer,
                             {start: toNWISFormat(field.QueryFrom),
                              end: toNWISFormat(field.QueryTo)}
                         );
