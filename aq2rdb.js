@@ -514,6 +514,71 @@ function rdbHeader(
     // some convoluted syntax for "now"
     var retrieved = toBasicFormat((new Date()).toISOString());
 
+    // TODO: On Tue, Nov 10, 2015 at 4:16 PM, Brad Garner
+    // <bdgarner@usgs.gov> said:
+    // 
+    // Andy,
+    // I know I've mentioned before we consider going to a release
+    // without all of these, and then let aggressive testing find the
+    // gaps.  I still think that's a fine idea that aligns with the
+    // spirit of minimally viable product.
+    // 
+    // How do we do this?  Here's an example.
+    // 
+    // Consider RNDARY="2222233332".  There is nothing like this
+    // easily available from AQUARIUS API. Yet, AQ API does have the
+    // new rounding specification, the next & improved evolution in
+    // how we think of rounding; it looks like SIG(3) as one example.
+    // Facing this, I can see 3 approaches, in increasing order of
+    // complexity:
+    //   1) Just stop.  Stop serving RNDARY="foo", assuming most
+    //      people "just wanted the data"
+    //   2) New field. Replace RNDARY with a new element like
+    //      RNDSPEC="foo", which simply relays the new AQUARIUS
+    //      RoundingSpec.
+    //   3) Backward compatibility. Write code that converts a AQ
+    //      rounding spec to a 10-digit NWIS rounding array.  Painful,
+    //      full of assumptions & edge cases.  But surely doable.
+    //
+    // In the agile and minimum-vial-product [sic] spirits, I'd
+    // propose leaning toward (1) as a starting point.  As user
+    // testing and interaction informs us to the contrary, consider
+    // (2) or (3) for some fields.  But recognize that option (2) is
+    // always the most expensive one, so we should do it judiciously
+    // and only when it's been demonstrated there's a user story
+    // driving it.
+    //
+    // The above logic should work for every field in this header
+    // block.
+    //
+    // Having said all that, some fields are trivially easy to find in
+    // the AQUARIUS API--that is, option (3) is especially easy, so
+    // maybe just do them.  In increasing order of difficulty (and
+    // therefore increasing degrees of warranted-ness):
+    //
+    //  - LOCATION NAME="foo"  ... This would be the
+    //    SubLocationIdentifer in a GetTimeSeriesDescriptionList()
+    //    call.
+    //  - PARAMETER LNAME="foo" ... is just Parameter as returned by
+    //    GetTimeSeriesDescriptionList()
+    //  - STATISTIC LNAME="foo" ... is ComputationIdentifier +
+    //    ComputationPeriodIdentifier in
+    //    GetTimeSeriesDescriptionList(), although the names will
+    //    shift somewhat from what they would have been in ADAPS which
+    //    might complicate things.
+    //  - DD LABEL="foo" ... Except for the confusing carryover of the
+    //    DD semantic, this should just be some combination of
+    //    Identifier + Label + Comment + Description from
+    //    GetTimeSeriesDescriptionList().  How to combine them, I'm
+    //    not sure, but it should be determinable
+    //  - DD DDID="foo" ...  When and if the extended attribute
+    //    ADAPS_DD is populated in GetTimeSeriesDescriptionList(),
+    //    this is easily populated.  But I think we should wean people
+    //    off this.
+    //  - Note: Although AGING fields might seem simple at first blush
+    //    (the Approvals[] struct from GetTimeSeriesCorrectedData())
+    //    the logic for emulating this old ADAPS format likely would
+    //    get messy in a hurry.
     return '# //UNITED STATES GEOLOGICAL SURVEY       ' +
         'http://water.usgs.gov/\n' +
         '# //NATIONAL WATER INFORMATION SYSTEM     ' +
@@ -690,6 +755,8 @@ httpdispatcher.onGet(
             function (messageBody, callback) {
                 var stationNm, tzCd, localTimeFg;
 
+                // TODO: here we're parsing RDB, which is messy, and
+                // would be nice to encapsulate; see also getSite()
                 try {
                     // parse (station_nm,tz_cd,local_time_fg) from RDB
                     // response
