@@ -509,7 +509,8 @@ function getLocationData(token, locationIdentifier, callback) {
    @description Create RDB header block.
 */
 function rdbHeader(
-    agencyCode, siteNumber, stationName, timeZone, dstFlag, range
+    agencyCode, siteNumber, stationName, timeZone, dstFlag,
+    subLocationIdentifer, range
 ) {
     // some convoluted syntax for "now"
     var retrieved = toBasicFormat((new Date()).toISOString());
@@ -579,7 +580,7 @@ function rdbHeader(
     //    (the Approvals[] struct from GetTimeSeriesCorrectedData())
     //    the logic for emulating this old ADAPS format likely would
     //    get messy in a hurry.
-    return '# //UNITED STATES GEOLOGICAL SURVEY       ' +
+    var header = '# //UNITED STATES GEOLOGICAL SURVEY       ' +
         'http://water.usgs.gov/\n' +
         '# //NATIONAL WATER INFORMATION SYSTEM     ' +
         'http://water.usgs.gov/data.html\n' +
@@ -591,8 +592,35 @@ function rdbHeader(
         '# //STATION AGENCY="' + agencyCode +
         '" NUMBER="' + siteNumber + '       " ' +
         'TIME_ZONE="' + timeZone + '" DST_FLAG=' + dstFlag + '\n' +
-        '# //STATION NAME="' + stationName + '"\n' +
-        '# //RANGE START="' + range.start + '" END="' + range.end + '"\n';
+        '# //STATION NAME="' + stationName + '"\n';
+
+    // On Wed, Nov 11, 2015 at 4:31 PM, Scott Bartholoma
+    // <sbarthol@usgs.gov> said:
+    //
+    // I think that "# //LOCATION NUMBER=0 NAME="Default"" would
+    // change to:
+    // 
+    // # //SUBLOCATION NAME="sublocation name"
+    // 
+    // and would be omitted if it were the default sublocation and
+    // had no name.
+    if (subLocationIdentifer !== undefined) {
+        header += '# //SUBLOCATION ID="' + subLocationIdentifer + '"\n';
+    }
+
+    // I would be against continuing the DDID field since only
+    // migrated timeseries will have ADAPS_DD populated.  Instead
+    // we should probably replace the "# //DD" lines with "#
+    // //TIMESERIES" lines, maybe something like:
+    // 
+    // # //TIMESERIES IDENTIFIER="Discharge, ft^3/s@12345678"
+    // 
+    // and maybe some other information.
+
+    header += '# //RANGE START="' + range.start +
+        '" END="' + range.end + '"\n';
+
+    return header;
 } // rdbHeader
 
 /**
@@ -814,6 +842,7 @@ httpdispatcher.onGet(
                         var header = rdbHeader(
                             agencyCode, siteNumber, stationNm,
                             tzCd, localTimeFg,
+                            field.SubLocationIdentifer,
                             {start: toNWISFormat(field.QueryFrom),
                              end: toNWISFormat(field.QueryTo)}
                         );
@@ -864,6 +893,10 @@ httpdispatcher.onGet(
                 catch (error) {
                     callback(error);
                 }
+
+                // TODO: need to move rdbHeader() here because we now
+                // need
+                // timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions[n].SubLocationIdentifier
 
                 callback(
                  null,
