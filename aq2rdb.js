@@ -660,7 +660,7 @@ function rdbHeader(
     // and maybe some other information.
 
     header += '# //RANGE START="' + range.start + '" END="' +
-	range.end + '"\n';
+        range.end + '"\n';
 
     return header;
 } // rdbHeader
@@ -677,10 +677,9 @@ function rdbHeading() {
 /**
    @description Create RDB, DV table row.
 */
-function dvTableRow(date, value, notes, type) {
-    return date +
-        // TIME column will always be empty for daily
-        // values
+function dvTableRow(timestamp, value, qualifiers, type) {
+    var row = toNWISFormat(timestamp) +
+        // TIME column will always be empty for daily values
         '\t\t' + value + '\t' +
 
     // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
@@ -692,7 +691,7 @@ function dvTableRow(date, value, notes, type) {
     // anymore. It was mainly there for the "suppress
     // rounding" option so the user would know how many
     // digits to round it to for rounded display.
-    '\t' +
+    '\t';
 
     // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
     // <sbarthol@usgs.gov> said:
@@ -700,11 +699,45 @@ function dvTableRow(date, value, notes, type) {
     // Remark will have to be derived from the Qualifier
     // section of the response. It will have begin and end
     // dates for various qualification periods.
+    async.detect(qualifiers, function (qualifier, callback) {
+        var pointTime, startTime, endTime;
 
-    // TODO: "Notes" looks like it's an array in the JSON
-    // messageBody, so we might need further processing
-    // here
-    notes + '\t' +
+        try {
+            pointTime = new Date(timestamp);
+        }
+        catch (error) {
+            throw error;
+            return;
+        }
+
+        try {
+            startTime = new Date(qualifier.StartTime);
+        }
+        catch (error) {
+            throw error;
+            return;
+        }
+
+        try {
+            endTime = new Date(qualifier.EndTime);
+        }
+        catch (error) {
+            throw error;
+            return;
+        }
+
+        // if this daily value's date point intersects the qualifier
+        // interval
+        if (startTime <= pointTime && pointTime <= endTime) {
+            // TODO: this needs to be mapped to code by calling
+            // AQUARIUS getQualifierList() "method" (Web service
+            // call?)
+            row += qualifier.Identifier;
+            callback(true);
+        }
+    }, function (result) {
+        row += '\t';
+    });
 
     // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
     // <sbarthol@usgs.gov> said:
@@ -715,7 +748,7 @@ function dvTableRow(date, value, notes, type) {
     // increace/decreast [sic], etc.). The users might
     // want you to put something in that column for the
     // Method and Grade sections of the response as well
-    '\t' +
+    row += '\t' +
 
     // TODO: need to ask Brad and/or users about
     // preserving the TYPE column (see excerpt from
@@ -732,7 +765,9 @@ function dvTableRow(date, value, notes, type) {
     // anymore, they are separate timeseries in AQUARIUS.
     '\t' +
      // TODO: FLAGS?
-     '\t' + type + '\n'
+     '\t' + type + '\n';
+
+    return row;
 } // dvTableRow
 
 /**
@@ -983,6 +1018,10 @@ httpdispatcher.onGet(
                                 // sorted by date before output to RDB
                                 // here.
 
+                                console.log(
+                'timeSeriesDataServiceResponse.Qualifiers.length: ' + 
+                timeSeriesDataServiceResponse.Qualifiers.length
+                                );
                                 async.each(
                                     timeSeriesDataServiceResponse.Points,
                                     /**
@@ -993,9 +1032,9 @@ httpdispatcher.onGet(
                                     function (timeSeriesPoint, callback) {
                                 response.write(
                                     dvTableRow(
-                                      toNWISFormat(timeSeriesPoint.Timestamp),
-                                      timeSeriesPoint.Value.Numeric.toString(),
-                                      timeSeriesDataServiceResponse.Notes,
+                                     timeSeriesPoint.Timestamp,
+                                     timeSeriesPoint.Value.Numeric.toString(),
+                                     timeSeriesDataServiceResponse.Qualifiers,
           timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
                                     ),
                                     'ascii'
