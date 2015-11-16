@@ -375,7 +375,7 @@ function getAQToken(userName, password, callback) {
         bind('uriString',
              'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
     var request = http.request({
-        host: 'localhost',
+        host: 'cidasdqaasaq2rd.cr.usgs.gov',
         port: '8080',
         path: path
     }, getAQTokenCallback);
