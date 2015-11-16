@@ -677,7 +677,7 @@ function rdbHeading() {
 /**
    @description Create RDB, DV table row.
 */
-function dvTableRow(timestamp, value, qualifiers, type) {
+function dvTableRow(timestamp, value, qualifiers, remarkCodes, type) {
     var row = toNWISFormat(timestamp) +
         // TIME column will always be empty for daily values
         '\t\t' + value + '\t' +
@@ -729,10 +729,14 @@ function dvTableRow(timestamp, value, qualifiers, type) {
         // if this daily value's date point intersects the qualifier
         // interval
         if (startTime <= pointTime && pointTime <= endTime) {
-            // TODO: this needs to be mapped to code by calling
-            // AQUARIUS getQualifierList() "method" (Web service
-            // call?)
-            row += qualifier.Identifier;
+            if (remarkCodes[qualifier.Identifier] !== undefined) {
+                row += remarkCodes[qualifier.Identifier];
+            }
+            else {
+                throw 'No remark code found for "' +
+                    qualifier.Identifier + '"';
+                return;
+            }
             callback(true);
         }
     }, function (result) {
@@ -777,6 +781,7 @@ httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetDVTable',
     function (request, response) {
         var field, token, locationIdentifier;
+        var remarkCodes;
 
         /**
            @see https://github.com/caolan/async
@@ -913,6 +918,53 @@ httpdispatcher.onGet(
                 callback(null);
             },
             /**
+               @description Request remark codes from AQUARIUS.
+            */
+            // TODO: this is fairly kludgey, because remark codes
+            // might not be required for every DV interval; try to
+            // nest in a conditional eventually.
+            function (callback) {
+                try {
+                    httpQuery(
+                        AQUARIUS_HOSTNAME,
+                        AQUARIUS_PREFIX + 'GetQualifierList/',
+                        {token: token,
+                         format: 'json'}, callback
+                    );
+                }
+                catch (error) {
+                    callback(error);
+                }
+            },
+            /**
+               @description Receive remark codes from AQUARIUS.
+            */
+            function (messageBody, callback) {
+                var qualifierListServiceResponse;
+
+                try {
+                    qualifierListServiceResponse =
+                        JSON.parse(messageBody);
+                }
+                catch (error) {
+                    callback(error);
+                }
+
+                // put remark codes in an array for faster access later
+                remarkCodes = new Array();
+                async.each(
+                    qualifierListServiceResponse.Qualifiers,
+                    function(qualifierMetadata, callback) {
+                        remarkCodes[qualifierMetadata.Identifier] =
+                            qualifierMetadata.Code;
+                        callback(null);
+                    }
+                );
+
+                // proceed to next waterfall
+                callback(null);
+            },
+            /**
                @description Query AQUARIUS
                             GetTimeSeriesDescriptionList service to
                             get list of AQUARIUS, time series
@@ -965,6 +1017,8 @@ httpdispatcher.onGet(
                             related daily values.
             */
             function (timeSeriesDescriptions, callback) {
+                var timeSeriesDataServiceResponse;
+
                 async.each(
                     timeSeriesDescriptions,
                     /**
@@ -993,15 +1047,7 @@ httpdispatcher.onGet(
                                     callback(error);
                                 }
                             },
-                            /**
-                               @description Receive response from
-                                            GetTimeSeriesCorrectedData,
-                                            and parse.
-                            */
                             function (messageBody, callback) {
-                                var timeSeriesDataServiceResponse;
-                                var notes, type;
-
                                 try {
                                     timeSeriesDataServiceResponse =
                                         JSON.parse(messageBody);
@@ -1010,6 +1056,9 @@ httpdispatcher.onGet(
                                     callback(error);
                                 }
 
+                                callback(null);
+                            },
+                            function () {
                                 // TODO: since AQUARIUS
                                 // GetTimeSeriesCorrectedData
                                 // responses will be asynchronous,
@@ -1018,10 +1067,6 @@ httpdispatcher.onGet(
                                 // sorted by date before output to RDB
                                 // here.
 
-                                console.log(
-                'timeSeriesDataServiceResponse.Qualifiers.length: ' + 
-                timeSeriesDataServiceResponse.Qualifiers.length
-                                );
                                 async.each(
                                     timeSeriesDataServiceResponse.Points,
                                     /**
@@ -1035,6 +1080,7 @@ httpdispatcher.onGet(
                                      timeSeriesPoint.Timestamp,
                                      timeSeriesPoint.Value.Numeric.toString(),
                                      timeSeriesDataServiceResponse.Qualifiers,
+                                     remarkCodes,
           timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
                                     ),
                                     'ascii'
