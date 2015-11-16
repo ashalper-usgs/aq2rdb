@@ -6,8 +6,8 @@ aq2rdb () {
     curl -g "http://$HOST:8081/aq2rdb?$1"
 }
 
-GetDVTable () {
-    curl -g "http://$HOST:8081/aq2rdb/GetDVTable?$1"
+endpoint () {
+    curl -g "http://$HOST:8081/aq2rdb/$1?$2"
 }
 
 # if "stub" option
@@ -28,15 +28,15 @@ fi
 
 aq2rdb "&userName=apiuser&password=$password&z=prod&t=dv&u=Discharge.ft^3/s.Mean@09380000&b=20150101&e=20150103"
 echo
-GetDVTable "&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000"
+endpoint GetDVTable "&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000"
 echo
-GetDVTable "&shahDoobie=Discharge.ft^3/s.Mean@09380000"
+endpoint GetDVTable "&shahDoobie=Discharge.ft^3/s.Mean@09380000"
 echo
-GetDVTable "&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&computed=trued"
+endpoint GetDVTable "&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&computed=trued"
 echo
-GetDVTable "&userName=apiuser&password=not4passwurd&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&computed=true"
+endpoint GetDVTable "&userName=apiuser&password=not4passwurd&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&computed=true"
 echo
-GetDVTable "&userName=apiuser&password=$password&LocationIdentifier=09380000&Parameter=Discharge&QueryFrom=2015-01-01T00%3A00%3A00-07%3A00&QueryTo=2015-01-03T00%3A00%3A00-07%3A00"
+endpoint GetDVTable "&userName=apiuser&password=$password&LocationIdentifier=09380000&Parameter=Discharge&QueryFrom=2015-01-01T00%3A00%3A00-07%3A00&QueryTo=2015-01-03T00%3A00%3A00-07%3A00"
 
 kill $aq2rdb
 
