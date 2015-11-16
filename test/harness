@@ -1,11 +1,13 @@
 #! /bin/sh
 
+HOST=cidasdqaasaq2rd.cr.usgs.gov
+
 aq2rdb () {
-    curl -g "http://localhost:8081/aq2rdb?$1"
+    curl -g "http://$HOST:8081/aq2rdb?$1"
 }
 
 GetDVTable () {
-    curl -g "http://localhost:8081/aq2rdb/GetDVTable?$1"
+    curl -g "http://$HOST:8081/aq2rdb/GetDVTable?$1"
 }
 
 # if "stub" option
