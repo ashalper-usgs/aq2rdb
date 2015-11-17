@@ -1,7 +1,5 @@
 #! /bin/sh
 
-HOST=cidasdqaasaq2rd.cr.usgs.gov
-
 aq2rdb () {
     curl -g "http://$HOST:8081/aq2rdb?$1"
 }
@@ -10,6 +8,13 @@ endpoint () {
     curl -g "http://$HOST:8081/aq2rdb/$1?$2"
 }
 
+# if "localhost" option
+if [ "$1" = -l ]; then
+    HOST=localhost
+else
+    HOST=cidasdqaasaq2rd.cr.usgs.gov
+fi
+
 # if "stub" option
 if [ "$1" = -s ]; then
     # start stub server
@@ -17,8 +22,10 @@ if [ "$1" = -s ]; then
     stub=$!
 fi
 
-node ../aq2rdb.js &
-aq2rdb=$!
+if [ "$1" = -l ]; then
+   node ../aq2rdb.js &
+   aq2rdb=$!
+fi
 
 if [ `hostname` = hemi ]; then
     # Sometimes necessary on systems where the Node.js scripts above
@@ -38,9 +45,11 @@ fi
 #echo
 #endpoint GetDVTable "&userName=apiuser&password=$password&LocationIdentifier=09380000&Parameter=Discharge&QueryFrom=2015-01-01T00%3A00%3A00-07%3A00&QueryTo=2015-01-03T00%3A00%3A00-07%3A00"
 echo
-endpoint GetDVTable "&userName=apiuser&password=$password&LocationIdentifier=01010000&Parameter=Discharge&QueryFrom=1996-01-01T00%3A00%3A00-07%3A00&QueryTo=1997-01-01T00%3A00%3A00-07%3A00"
+endpoint GetDVTable "&userName=apiuser&password=$password&LocationIdentifier=01010000&Parameter=Discharge&QueryFrom=1996-01-02T00%3A00%3A00-07%3A00&QueryTo=1997-01-02T00%3A00%3A00-07%3A00"
 
-kill $aq2rdb
+if [ "$1" = -l ]; then
+    kill $aq2rdb
+fi
 
 if [ "$1" = -s ]; then
     kill $stub
