@@ -991,13 +991,24 @@ httpdispatcher.onGet(
                 }
                 catch (error) {
                     callback(error);
+                    return;
+                }
+
+                // if we didn't get the remark codes domain table
+                if (qualifierListServiceResponse === undefined) {
+                    callback(
+                        'Could not get remark codes from http://' +
+                            AQUARIUS_HOSTNAME + AQUARIUS_PREFIX +
+                            'GetQualifierList/'
+                    );
+                    return;
                 }
 
                 // put remark codes in an array for faster access later
                 remarkCodes = new Array();
                 async.each(
                     qualifierListServiceResponse.Qualifiers,
-                    function(qualifierMetadata, callback) {
+                    function (qualifierMetadata, callback) {
                         remarkCodes[qualifierMetadata.Identifier] =
                             qualifierMetadata.Code;
                         callback(null);
