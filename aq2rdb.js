@@ -757,7 +757,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, type) {
         // interval
         if (startTime <= pointTime && pointTime <= endTime) {
             if (remarkCodes[qualifier.Identifier] !== undefined) {
-                row += remarkCodes[qualifier.Identifier];
+                row += remarkCodes[qualifier.Identifier].toLowerCase();
             }
             else {
                 throw 'No remark code found for "' +
