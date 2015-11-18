@@ -1066,72 +1066,84 @@ httpdispatcher.onGet(
                 );
             },
             /**
-               @description For each AQUARIUS time series description,
-                            query GetTimeSeriesCorrectedData to get
+               @description Query GetTimeSeriesCorrectedData to get
                             related daily values.
             */
             function (timeSeriesDescriptions, callback) {
                 var timeSeriesDataServiceResponse;
 
-                async.each(
-                    timeSeriesDescriptions,
+		if (timeSeriesDescriptions.length === 0) {
+		    callback(
+			'No time series descriptions found for ' +
+			    locationIdentifier.toString() + ', ' +
+			    'parameter "' + field.Parameter + '"'
+		    );
+		    return;
+		}
+
+		// if we get more than one time series description
+		// from GetTimeSeriesDescriptionList
+		if (1 < timeSeriesDescriptions.length) {
+		    // this isn't supposed to happen; all bets are off
+		    callback(
+			'Received more than 1 time series ' +
+			    'description from ' +
+			    'GetTimeSeriesDescriptionList'
+		    );
+		    return;
+		}
+
+                var timeSeriesUniqueId =
+                    timeSeriesDescriptions[0].UniqueId;
+
+                async.waterfall([
                     /**
-                       @description Process a time series description.
+                       @description Query AQUARIUS
+                                    GetTimeSeriesCorrectedData to get
+                                    related daily values.
                     */
-                    function (timeSeriesDescription, callback) {
-                        var timeSeriesUniqueId =
-                            timeSeriesDescription.UniqueId;
+                    function (callback) {
+                        try {
+                            getTimeSeriesCorrectedData(
+                                token, timeSeriesUniqueId,
+                                field.QueryFrom,
+                                field.QueryTo, callback
+                            );
+                        }
+                        catch (error) {
+                            callback(error);
+                        }
+                    },
+                    /**
+                       @description Parse AQUARIUS
+                                    TimeSeriesDataServiceResponse
+                                    received from
+                                    GetTimeSeriesCorrectedData
+                                    service.
+                    */
+                    function (messageBody, callback) {
+                        try {
+                            timeSeriesDataServiceResponse =
+                                JSON.parse(messageBody);
+                        }
+                        catch (error) {
+                            callback(error);
+                        }
 
-                        async.waterfall([
+                        callback(null);
+                    },
+                    /**
+                       @description Write each RDB row to HTTP response.
+                    */
+                    function () {
+                        async.each(
+                            timeSeriesDataServiceResponse.Points,
                             /**
-                               @description Query AQUARIUS
-                                            GetTimeSeriesCorrectedData
-                                            to get related daily
-                                            values.
+                               @description Write an RDB row
+                                            for one time
+                                            series point.
                             */
-                            function (callback) {
-                                try {
-                                    getTimeSeriesCorrectedData(
-                                        token, timeSeriesUniqueId,
-                                        field.QueryFrom,
-                                        field.QueryTo, callback
-                                    );
-                                }
-                                catch (error) {
-                                    callback(error);
-                                }
-                            },
-                            /**
-                               @description Parse AQUARIUS
-                                            TimeSeriesDataServiceResponse
-                                            received from
-                                            GetTimeSeriesCorrectedData
-                                            service.
-                            */
-                            function (messageBody, callback) {
-                                try {
-                                    timeSeriesDataServiceResponse =
-                                        JSON.parse(messageBody);
-                                }
-                                catch (error) {
-                                    callback(error);
-                                }
-
-                                callback(null);
-                            },
-                            /**
-                               @description Write each RDB row to HTTP
-                                            response.
-                            */
-                            function () {
-                                async.each(
-                                    timeSeriesDataServiceResponse.Points,
-                                    /**
-                                       @description Write an RDB row
-                                                    for one time
-                                                    series point.
-                                    */
-                                    function (timeSeriesPoint, callback) {
+                            function (timeSeriesPoint, callback) {
                                 response.write(
                                     dvTableRow(
                                      timeSeriesPoint.Timestamp,
@@ -1142,35 +1154,20 @@ httpdispatcher.onGet(
                                     ),
                                     'ascii'
                                 );
-                                        callback(null);
-                                    }
-                                );
                                 callback(null);
                             }
-                        ], function (error) {
-                            if (error) {
-                                callback(error);
-                            }
-                            else {
-                                callback(null);
-                            }
-                        });
-                    },
-                    /**
-                       @description node-async error handler function
-                                    for async.each loop function.
-                    */
-                    function (error) {
-                        if (error) {
-                            callback(error);
-                            return;
-                        }
-                        else {
-                            callback(null);
-                        }
+                        );
+                        callback(null);
                     }
-                );
-            }
+                ], function (error) {
+                    if (error) {
+                        callback(error);
+                    }
+                    else {
+                        callback(null);
+                    }
+                });
+	    }
         ],
         /**
            @description node-async error handler function for
@@ -1249,7 +1246,10 @@ httpdispatcher.onGet(
                 }
                 // no callback here, because it is passed to
                 // getAQToken(), and called from there if successful
-            }
+            },
+	    function (messageBody, callback) {
+		token = messageBody;
+	    }
         ],
         /**
            @description node-async error handler function for
