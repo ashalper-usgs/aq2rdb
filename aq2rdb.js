@@ -12,6 +12,7 @@ var http = require('http');
 var httpdispatcher = require('httpdispatcher');
 var querystring = require('querystring');
 var async = require('async');
+var fs = require('fs');
 
 /**
    @description The aq2rdb Web service name.
@@ -32,6 +33,9 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
    @description AQUARIUS Web services path prefix.
 */
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
+
+// TODO: for aq2rdb global functions, investigate
+// https://github.com/caolan/async#asyncify
 
 /**
    @description Consolidated error message writer. Writes message in
@@ -791,6 +795,22 @@ httpdispatcher.onGet(
                @description Parse fields and values in GetDVTable URL.
             */
             function (callback) {
+                // if this is a documentation request
+                if (request.url === '/' + PACKAGE_NAME + '/GetDVTable') {
+                    // read and serve the documentation page
+                    fs.readFile('doc/GetDVTable.html', function (error, html) {
+                        if (error) {
+                            callback(error);
+                            return;
+                        }       
+                        response.writeHeader(
+                            200, {"Content-Type": "text/html"}
+                        );  
+                        response.end(html);
+                    });
+                    return;
+                }
+
                 try {
                     field = querystring.parse(request.url);
                     // not used:
