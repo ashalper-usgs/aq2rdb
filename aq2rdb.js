@@ -34,9 +34,6 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 */
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 
-// TODO: for aq2rdb global functions, investigate
-// https://github.com/caolan/async#asyncify
-
 /**
    @description Consolidated error message writer. Writes message in
                 a single-line, RDB comment.
@@ -140,6 +137,10 @@ var DataType = function (text) {
 
     var text = text;
 
+    /**
+       @description Convert (legacy NWIS) nwts2rdb data type to
+                    AQUARIUS ComputationPeriodIdentifier.
+    */
     this.toComputationPeriodIdentifier = function () {
         switch(text) {
         case 'DV':
@@ -148,6 +149,7 @@ var DataType = function (text) {
             return undefined;
         }
     } // toComputationPeriodIdentifier
+
 } // DataType
 
 /**
@@ -156,6 +158,9 @@ var DataType = function (text) {
 var LocationIdentifier = function (text) {
     var text = text;
 
+    /**
+       @description Parse agency code in AQUARIUS locationIdentifier.
+    */
     this.agencyCode = function () {
         // if agency code delimiter ("-") is present in location
         // identifier
@@ -170,6 +175,9 @@ var LocationIdentifier = function (text) {
         }
     }
 
+    /**
+       @description Parse site number in AQUARIUS locationIdentifier.
+    */
     this.siteNumber = function () {
         // if agency code delimiter ("-") is present in location
         // identifier
@@ -184,9 +192,14 @@ var LocationIdentifier = function (text) {
         }
     }
 
+    /**
+       @description Return string representation of LocationIdentifier
+                    object.
+    */
     this.toString = function () {
         return text;
     }
+
 } // LocationIdentifier
 
 /**
@@ -222,7 +235,8 @@ var TimeSeriesIdentifier = function (text) {
     }
 
     /**
-       @description Make LocationIdentifier object from this.
+       @description Make LocationIdentifier object from
+                    TimeSeriesIdentifier.
     */
     this.toLocationIdentifier = function () {
         // try to parse "locationIdentifier" field value
@@ -234,9 +248,14 @@ var TimeSeriesIdentifier = function (text) {
         return new LocationIdentifier(field[1]);
     }
 
+    /**
+       @description Return string representation of
+                    TimeSeriesIdentifier object.
+    */
     this.toString = function () {
         return text;
     }
+
 } // TimeSeriesIdentifier
 
 /**
@@ -273,6 +292,10 @@ var BasicFormat = function (text) {
         }
     } // toCombinedExtendedFormat
 
+    /**
+       @description Return string representation of BasicFormat
+                    object.
+    */
     this.toString = function () {
         return text;
     } // toString
@@ -447,7 +470,7 @@ function getTimeSeriesDescriptionList(
 
     /**
        @description Handle GetTimeSeriesDescriptionList service
-       invocation errors.
+                    invocation errors.
     */
     request.on('error', function (error) {
         callback(error);
@@ -912,12 +935,18 @@ httpdispatcher.onGet(
             */
             function (stationNm, tzCd, localTimeFg, callback) {
                 async.series([
+                    /**
+                       @description Write HTTP response header.
+                    */
                     function (callback) {
                         response.writeHead(
                             200, {"Content-Type": "text/plain"}
                         );
                         callback(null);
                     },
+                    /**
+                       @description Write RDB header to HTTP response.
+                    */
                     function (callback) {
                         var header = rdbHeader(
                             locationIdentifier.agencyCode(),
@@ -930,6 +959,11 @@ httpdispatcher.onGet(
                         response.write(header, 'ascii');
                         callback(null);
                     },
+                    /**
+                       @description Write RDB heading (a different
+                                    thing than RDB header, above) to
+                                    HTTP response.
+                    */
                     function (callback) {
                         response.write(rdbHeading(), 'ascii');
                         callback(null);
@@ -1067,6 +1101,13 @@ httpdispatcher.onGet(
                                     callback(error);
                                 }
                             },
+                            /**
+                               @description Parse AQUARIUS
+                                            TimeSeriesDataServiceResponse
+                                            received from
+                                            GetTimeSeriesCorrectedData
+                                            service.
+                            */
                             function (messageBody, callback) {
                                 try {
                                     timeSeriesDataServiceResponse =
@@ -1078,15 +1119,11 @@ httpdispatcher.onGet(
 
                                 callback(null);
                             },
+                            /**
+                               @description Write each RDB row to HTTP
+                                            response.
+                            */
                             function () {
-                                // TODO: since AQUARIUS
-                                // GetTimeSeriesCorrectedData
-                                // responses will be asynchronous,
-                                // timeSeriesDataServiceResponse.Points
-                                // may need to be accumulated and
-                                // sorted by date before output to RDB
-                                // here.
-
                                 async.each(
                                     timeSeriesDataServiceResponse.Points,
                                     /**
@@ -1119,9 +1156,14 @@ httpdispatcher.onGet(
                             }
                         });
                     },
+                    /**
+                       @description node-async error handler function
+                                    for async.each loop function.
+                    */
                     function (error) {
                         if (error) {
                             callback(error);
+                            return;
                         }
                         else {
                             callback(null);
@@ -1130,6 +1172,11 @@ httpdispatcher.onGet(
                 );
             }
         ],
+        /**
+           @description node-async error handler function for
+                        outer-most, GetDVTable async.waterfall
+                        function.
+        */
         function (error) {
             if (error) {
                 rdbMessage(response, 400, error);
@@ -1204,9 +1251,15 @@ httpdispatcher.onGet(
                 // getAQToken(), and called from there if successful
             }
         ],
+        /**
+           @description node-async error handler function for
+                        outer-most, GetUVTable async.waterfall
+                        function.
+        */
         function (error) {
             if (error) {
                 rdbMessage(response, 400, error);
+                return;
             }
             else {
                 response.end();
@@ -1341,6 +1394,10 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
        @see https://github.com/caolan/async
     */
     async.waterfall([
+        /**
+           @description Call GetAQToken service to get AQUARIUS
+                        authentication token.
+        */
         function (callback) {
             try {
                 getAQToken(userName, password, callback);
@@ -1350,6 +1407,10 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 return;
             }
         },
+        /**
+           @description Call AQUARIUS GetTimeSeriesDescriptionList
+                        service.
+        */
         function (token, callback) {
             // Presently, the only known documentation for the
             // ExtendedFilters field is at
@@ -1373,17 +1434,30 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 extendedFilters, callback
             );
         },
+        /**
+           @description Call GetLocationData service to look up site
+                        name and local time offset flag.
+        */
         function (token, timeSeriesDescriptions, callback) {
             // A waterfall within a waterfall; this is here to avoid
             // having to pass timeSeriesDescriptions through blocks
             // where it is not referenced, and therefore does not need
             // to be in scope.
             async.waterfall([
+                /**
+                   @description Call GetLocationData service with site
+                                number.
+                */
                 function (callback) {
                     getLocationData(
                         token, locationIdentifier.toString(), callback
                     );
                 },
+                /**
+                   @description Receive GetLocationData service
+                                response, and write RDB header and
+                                heading to aq2rdb HTTP response.
+                */
                 function (locationDataServiceResponse, callback) {
                     response.writeHead(200, {"Content-Type": "text/plain"});
                     response.write(
@@ -1401,7 +1475,7 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
             ]);
 
             // TODO: this loop is going to need to be
-            // async.forEachOf()ed.  one sequenced function per
+            // async.forEach()ed: one sequenced function per
             // UniqueId value
             var n = timeSeriesDescriptions.length;
             for (var i = 0; i < n; i++) {
@@ -1414,9 +1488,17 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                 );
             }
         },
+        /**
+           @description Receive AQUARIUS TimeSeriesCorrectedData
+                        response.
+        */
         function (timeSeriesCorrectedData, callback) {
             async.forEachOf(
                 timeSeriesCorrectedData.Points,
+                /**
+                   @description Write one daily value row to RDB,
+                                aq2rdb HTTP response.
+                */
                 function (point, key, callback) {
                     // the daily value
                     var value = point.Value.Numeric.toString();
