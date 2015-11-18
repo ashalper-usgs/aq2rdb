@@ -45,7 +45,7 @@ fi
 #echo
 #endpoint GetDVTable "&userName=apiuser&password=$password&LocationIdentifier=09380000&Parameter=Discharge&QueryFrom=2015-01-01T00%3A00%3A00-07%3A00&QueryTo=2015-01-03T00%3A00%3A00-07%3A00"
 echo
-endpoint GetDVTable "&userName=apiuser&password=$password&LocationIdentifier=01010000&Parameter=Discharge&QueryFrom=1996-01-02T00%3A00%3A00-07%3A00&QueryTo=1997-01-02T00%3A00%3A00-07%3A00"
+endpoint GetDVTable "&userName=apiuser&password=$password&LocationIdentifier=01010000&Parameter=Discharge&QueryFrom=1995-12-31T00%3A00%3A00-07%3A00&QueryTo=1996-12-31T00%3A00%3A00-07%3A00"
 
 if [ "$1" = -l ]; then
     kill $aq2rdb
