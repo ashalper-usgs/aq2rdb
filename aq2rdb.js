@@ -10,7 +10,7 @@
 'use strict';
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
-var querystring = require('querystring');
+var url = require('url');
 var async = require('async');
 var fs = require('fs');
 
@@ -768,9 +768,7 @@ httpdispatcher.onGet(
                 }
 
                 try {
-                    field = querystring.parse(request.url);
-                    // not used:
-                    delete field['/' + PACKAGE_NAME + '/GetDVTable?'];
+                    field = url.parse(request.url, true).query;
                 }
                 catch (error) {
                     callback(error);
@@ -978,12 +976,12 @@ httpdispatcher.onGet(
                             location and parameter.
             */
             function (callback) {
-		// TODO: when "Parameter" field is omitted from aq2rdb
-		// URL, this appears to end in:
-		// 
-		// curl: (56) Illegal or missing hexadecimal sequence in chunked-encoding
-		// Need to decide whether "Parameter" is a required
-		// field.
+                // TODO: when "Parameter" field is omitted from aq2rdb
+                // URL, this appears to end in:
+                // 
+                // curl: (56) Illegal or missing hexadecimal sequence in chunked-encoding
+                // Need to decide whether "Parameter" is a required
+                // field.
                 try {
                     httpQuery(
                         AQUARIUS_HOSTNAME,
@@ -1162,9 +1160,7 @@ httpdispatcher.onGet(
             */
             function (callback) {
                 try {
-                    field = querystring.parse(request.url);
-                    // not used:
-                    delete field['/' + PACKAGE_NAME + '/GetUVTable?'];
+                    field = url.parse(request.url, true).query;
                 }
                 catch (error) {
                     callback(error);
@@ -1237,12 +1233,19 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
     request, response
 ) {
     // parse HTTP query
-    var arg = querystring.parse(request.url);
+    var arg;
     delete arg['/' + PACKAGE_NAME + '?']; // not used
     var userName, password;
     var environment = 'production';
     var locationIdentifier, timeSeriesIdentifier;
     var a, n, t, d, b, e, c, r, l;
+
+    try {
+        arg = url.parse(request.url, true).query;
+    }
+    catch (error) {
+        throw error;
+    }
 
     // get HTTP query arguments
     for (var opt in arg) {
