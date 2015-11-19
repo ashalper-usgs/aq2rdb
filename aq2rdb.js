@@ -326,15 +326,15 @@ function httpQuery(host, path, field, callback) {
         });
     }
     
-    var p = path + '?';         // path prefix
-    // bind field/value pairs
+    path += '?';                // HTTP query string separator
+    // bind HTTP query, field/value pairs
     for (var name in field) {
-        p += bind(name, field[name]);
+        path += bind(name, field[name]);
     }
 
     var request = http.request({
         host: host,
-        path: p
+        path: path
     }, httpQueryCallback);
 
     /**
