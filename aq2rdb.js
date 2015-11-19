@@ -1049,103 +1049,93 @@ httpdispatcher.onGet(
             function (timeSeriesDescriptions, callback) {
                 var timeSeriesDataServiceResponse;
 
-                async.each(
-                    timeSeriesDescriptions,
-                    /**
-                       @description Process a time series description.
-                    */
-                    function (timeSeriesDescription, callback) {
-                        var timeSeriesUniqueId =
-                            timeSeriesDescription.UniqueId;
+                if (timeSeriesDescriptions.length === 1) {
+                    var timeSeriesUniqueId =
+                        timeSeriesDescriptions[0].UniqueId;
 
-                        async.waterfall([
-                            /**
-                               @description Query AQUARIUS
-                                            GetTimeSeriesCorrectedData
-                                            to get related daily
-                                            values.
-                            */
-                            function (callback) {
-                                try {
-                                    getTimeSeriesCorrectedData(
-                                        token, timeSeriesUniqueId,
-                                        field.QueryFrom,
-                                        field.QueryTo, callback
-                                    );
-                                }
-                                catch (error) {
-                                    callback(error);
-                                }
-                            },
-                            /**
-                               @description Parse AQUARIUS
-                                            TimeSeriesDataServiceResponse
-                                            received from
-                                            GetTimeSeriesCorrectedData
-                                            service.
-                            */
-                            function (messageBody, callback) {
-                                try {
-                                    timeSeriesDataServiceResponse =
-                                        JSON.parse(messageBody);
-                                }
-                                catch (error) {
-                                    callback(error);
-                                }
+                    async.waterfall([
+                        /**
+                           @description Query AQUARIUS
+                                        GetTimeSeriesCorrectedData to
+                                        get related daily values.
+                        */
+                        function (callback) {
+                            try {
+                                getTimeSeriesCorrectedData(
+                                    token, timeSeriesUniqueId,
+                                    field.QueryFrom, field.QueryTo,
+                                    callback
+                                );
+                            }
+                            catch (error) {
+                                callback(error);
+                            }
+                        },
+                        /**
+                           @description Parse AQUARIUS
+                                        TimeSeriesDataServiceResponse
+                                        received from
+                                        GetTimeSeriesCorrectedData
+                                        service.
+                        */
+                        function (messageBody, callback) {
+                            try {
+                                timeSeriesDataServiceResponse =
+                                    JSON.parse(messageBody);
+                            }
+                            catch (error) {
+                                callback(error);
+                            }
 
-                                callback(null);
-                            },
-                            /**
-                               @description Write each RDB row to HTTP
-                                            response.
-                            */
-                            function (callback) {
-                                async.each(
-                                    timeSeriesDataServiceResponse.Points,
-                                    /**
-                                       @description Write an RDB row
-                                                    for one time
-                                                    series point.
-                                    */
-                                    function (timeSeriesPoint, callback) {
-                                        response.write(
-                                            dvTableRow(
-                                                timeSeriesPoint.Timestamp,
-                                 timeSeriesPoint.Value.Numeric.toString(),
-                                 timeSeriesDataServiceResponse.Qualifiers,
-                                                remarkCodes,
-          timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
-                                            ),
-                                            'ascii'
-                                        );
-                                        callback(null);
-                                    });
-                                callback(null);
-                            }],
-                             function (error) {
-                                 if (error) {
-                                     callback(error);
-                                 }
-                                 else {
-                                     callback(null);
-                                 }
-                             });
-                    },
-                    /**
-                       @description node-async error handler function
-                                    for async.each loop function.
-                    */
-                    function (error) {
-                        if (error) {
-                            callback(error);
-                            return;
-                        }
-                        else {
                             callback(null);
-                        }
-                    }
-                );
-            }
+                        },
+                        /**
+                           @description Write each RDB row to HTTP
+                                        response.
+                        */
+                        function (callback) {
+                            async.each(
+                                timeSeriesDataServiceResponse.Points,
+                                /**
+                                   @description Write an RDB row for
+                                                one time series point.
+                                */
+                                function (timeSeriesPoint, callback) {
+                                    response.write(
+                                        dvTableRow(
+                                            timeSeriesPoint.Timestamp,
+                                            timeSeriesPoint.Value.Numeric.toString(),
+                                            timeSeriesDataServiceResponse.Qualifiers,
+                                            remarkCodes,
+                                            timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
+                                        ),
+                                        'ascii'
+                                    );
+                                    callback(null);
+                                });
+                            callback(null);
+                        }],
+                         function (error) {
+                             if (error) {
+                                 callback(error);
+                             }
+                             else {
+                                 callback(null);
+                             }
+                         }
+                    ); // async.waterfall
+                } // (timeSeriesDescriptions.length === 1)
+                else {
+                    // TODO: need to cope with this case gracefully
+                    callback(
+                        timeSeriesDescriptions.length.toString() +
+                            ' TimeSeriesDescriptions found for ' +
+                            'LocationIdentifier "' +
+                            locationIdentifier.toString() + '"'
+                    );
+                    return;
+                }
+            } // function (timeSeriesDescriptions, callback)
         ],
         /**
            @description node-async error handler function for
@@ -1154,11 +1144,11 @@ httpdispatcher.onGet(
         */
         function (error) {
             if (error) {
-                rdbMessage(response, 400, error);
+                var statusMessage =
+                    '# ' + PACKAGE_NAME + ': ' + error;
+                response.write(statusMessage, 'ascii');
             }
-            else {
-                response.end();
-            }
+            response.end();
         }
       );
     }
