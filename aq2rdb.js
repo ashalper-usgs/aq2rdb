@@ -792,7 +792,7 @@ httpdispatcher.onGet(
                         locationIdentifier =
                             new LocationIdentifier(field.LocationIdentifier);
                     }
-                    else if (name.match(/^(Parameter|QueryFrom|QueryTo)$/)) {
+                    else if (name.match(/^(Parameter|ComputationIdentifier|QueryFrom|QueryTo)$/)) {
                         // AQUARIUS fields
                     }
                     else {
@@ -1007,6 +1007,7 @@ httpdispatcher.onGet(
                         {token: token, format: 'json',
                          LocationIdentifier: locationIdentifier.toString(),
                          Parameter: field.Parameter,
+                         ComputationIdentifier: field.ComputationIdentifier,
                          ComputationPeriodIdentifier: 'Daily',
                          ExtendedFilters:
                          '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
