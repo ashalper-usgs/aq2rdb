@@ -632,8 +632,17 @@ function rdbHeader(
     // 
     // and maybe some other information.
 
-    header += '# //RANGE START="' + range.start + '" END="' +
-        range.end + '"\n';
+    header += '# //RANGE START="';
+    if (range.start !== undefined) {
+        header += range.start;
+    }
+    header += '"';
+
+    header += ' END="';
+    if (range.end !== undefined) {
+        header += range.end;
+    }
+    header += '"\n';
 
     return header;
 } // rdbHeader
@@ -887,13 +896,22 @@ httpdispatcher.onGet(
                        @description Write RDB header to HTTP response.
                     */
                     function (callback) {
+                        var start, end;
+
+                        if (field.QueryFrom !== undefined) {
+                            start = toNWISFormat(field.QueryFrom);
+                        }
+
+                        if (field.QueryTo !== undefined) {
+                            end = toNWISFormat(field.QueryTo);
+                        }
+
                         var header = rdbHeader(
                             locationIdentifier.agencyCode(),
                             locationIdentifier.siteNumber(),
                             stationNm, tzCd, localTimeFg,
                             field.SubLocationIdentifer,
-                            {start: toNWISFormat(field.QueryFrom),
-                             end: toNWISFormat(field.QueryTo)}
+                            {start: start, end: end}
                         );
                         response.write(header, 'ascii');
                         callback(null);
