@@ -1099,7 +1099,7 @@ httpdispatcher.onGet(
                                @description Write each RDB row to HTTP
                                             response.
                             */
-                            function () {
+                            function (callback) {
                                 async.each(
                                     timeSeriesDataServiceResponse.Points,
                                     /**
@@ -1108,29 +1108,28 @@ httpdispatcher.onGet(
                                                     series point.
                                     */
                                     function (timeSeriesPoint, callback) {
-                                response.write(
-                                    dvTableRow(
-                                     timeSeriesPoint.Timestamp,
-                                     timeSeriesPoint.Value.Numeric.toString(),
-                                     timeSeriesDataServiceResponse.Qualifiers,
-                                     remarkCodes,
+                                        response.write(
+                                            dvTableRow(
+                                                timeSeriesPoint.Timestamp,
+                                 timeSeriesPoint.Value.Numeric.toString(),
+                                 timeSeriesDataServiceResponse.Qualifiers,
+                                                remarkCodes,
           timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
-                                    ),
-                                    'ascii'
-                                );
+                                            ),
+                                            'ascii'
+                                        );
                                         callback(null);
-                                    }
-                                );
+                                    });
                                 callback(null);
-                            }
-                        ], function (error) {
-                            if (error) {
-                                callback(error);
-                            }
-                            else {
-                                callback(null);
-                            }
-                        });
+                            }],
+                             function (error) {
+                                 if (error) {
+                                     callback(error);
+                                 }
+                                 else {
+                                     callback(null);
+                                 }
+                             });
                     },
                     /**
                        @description node-async error handler function
