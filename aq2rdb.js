@@ -427,60 +427,6 @@ function getAQToken(userName, password, callback) {
 } // getAQToken
 
 /**
-   @description Call AQUARIUS GetTimeSeriesDescriptionList Web
-                service.
-*/
-function getTimeSeriesDescriptionList(
-    token, locationIdentifier, parameter, computationPeriodIdentifier,
-    extendedFilters, callback
-) {
-    /**
-       @description Handle response from GetTimeSeriesDescriptionList.
-    */
-    function getTimeSeriesDescriptionListCallback(response) {
-        var messageBody = '';
-
-        // accumulate response
-        response.on(
-            'data',
-            function (chunk) {
-                messageBody += chunk;
-            });
-
-        response.on('end', function () {
-            callback(null, messageBody);
-            return;
-        });
-    } // getTimeSeriesDescriptionListCallback
-
-    // the path part of GetTimeSeriesDescriptionList URL
-    var path = AQUARIUS_PREFIX +
-        'GetTimeSeriesDescriptionList?' +
-        bind('token', token) +
-        bind('format', 'json') +
-        bind('LocationIdentifier', locationIdentifier) +
-        bind('Parameter', parameter) +
-        bind('ComputationPeriodIdentifier', computationPeriodIdentifier) +
-        bind('ExtendedFilters', extendedFilters);
-
-    var request = http.request({
-        host: AQUARIUS_HOSTNAME,
-        path: path                
-    }, getTimeSeriesDescriptionListCallback);
-
-    /**
-       @description Handle GetTimeSeriesDescriptionList service
-                    invocation errors.
-    */
-    request.on('error', function (error) {
-        callback(error);
-        return;
-    });
-
-    request.end();
-} // getTimeSeriesDescriptionList
-
-/**
    @description Call AQUARIUS GetTimeSeriesCorrectedData Web service.
 */
 function getTimeSeriesCorrectedData(
@@ -770,9 +716,9 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, type) {
     // Method and Grade sections of the response as well
     row += '\t' +
 
-    // TODO: need to ask Brad and/or users about
-    // preserving the TYPE column (see excerpt from
-    // Scott's mail below).
+    // TODO: There is outstanding mail to Wade Walker
+    // <walker@usgs.gov> about preserving the TYPE column (see also
+    // excerpt from Scott Bartholoma's mail below).
 
     // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
     // <sbarthol@usgs.gov> said:
@@ -897,7 +843,7 @@ httpdispatcher.onGet(
                 var stationNm, tzCd, localTimeFg;
 
                 // TODO: here we're parsing RDB, which is messy, and
-                // would be nice to encapsulate; see also getSite()
+                // would be nice to encapsulate.
                 try {
                     // parse (station_nm,tz_cd,local_time_fg) from RDB
                     // response
@@ -1027,10 +973,15 @@ httpdispatcher.onGet(
             */
             function (callback) {
                 try {
-                    getTimeSeriesDescriptionList(
-                        token, locationIdentifier.toString(),
-                        field.Parameter, 'Daily',
-                        '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]',
+                    httpQuery(
+                        AQUARIUS_HOSTNAME,
+                        AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList',
+                        {token: token, format: 'json',
+                         LocationIdentifier: locationIdentifier.toString(),
+                         Parameter: field.Parameter,
+                         ComputationPeriodIdentifier: 'Daily',
+                         ExtendedFilters:
+                         '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
                         callback
                     );
                 }
@@ -1056,10 +1007,6 @@ httpdispatcher.onGet(
                     callback(error);
                 }
 
-                // TODO: need to move rdbHeader() here because we now
-                // need
-                // timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions[n].SubLocationIdentifier
-
                 callback(
                  null,
                  timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
@@ -1072,26 +1019,26 @@ httpdispatcher.onGet(
             function (timeSeriesDescriptions, callback) {
                 var timeSeriesDataServiceResponse;
 
-		if (timeSeriesDescriptions.length === 0) {
-		    callback(
-			'No time series descriptions found for ' +
-			    locationIdentifier.toString() + ', ' +
-			    'parameter "' + field.Parameter + '"'
-		    );
-		    return;
-		}
+                if (timeSeriesDescriptions.length === 0) {
+                    callback(
+                        'No time series descriptions found for ' +
+                            locationIdentifier.toString() + ', ' +
+                            'parameter "' + field.Parameter + '"'
+                    );
+                    return;
+                }
 
-		// if we get more than one time series description
-		// from GetTimeSeriesDescriptionList
-		if (1 < timeSeriesDescriptions.length) {
-		    // this isn't supposed to happen; all bets are off
-		    callback(
-			'Received more than 1 time series ' +
-			    'description from ' +
-			    'GetTimeSeriesDescriptionList'
-		    );
-		    return;
-		}
+                // if we get more than one time series description
+                // from GetTimeSeriesDescriptionList
+                if (1 < timeSeriesDescriptions.length) {
+                    // this isn't supposed to happen; all bets are off
+                    callback(
+                        'Received more than 1 time series ' +
+                            'description from ' +
+                            'GetTimeSeriesDescriptionList'
+                    );
+                    return;
+                }
 
                 var timeSeriesUniqueId =
                     timeSeriesDescriptions[0].UniqueId;
@@ -1139,9 +1086,8 @@ httpdispatcher.onGet(
                         async.each(
                             timeSeriesDataServiceResponse.Points,
                             /**
-                               @description Write an RDB row
-                                            for one time
-                                            series point.
+                               @description Write an RDB row for one
+                                            time series point.
                             */
                             function (timeSeriesPoint, callback) {
                                 response.write(
@@ -1167,7 +1113,7 @@ httpdispatcher.onGet(
                         callback(null);
                     }
                 });
-	    }
+            }
         ],
         /**
            @description node-async error handler function for
@@ -1247,9 +1193,9 @@ httpdispatcher.onGet(
                 // no callback here, because it is passed to
                 // getAQToken(), and called from there if successful
             },
-	    function (messageBody, callback) {
-		token = messageBody;
-	    }
+            function (messageBody, callback) {
+                token = messageBody;
+            }
         ],
         /**
            @description node-async error handler function for
@@ -1429,9 +1375,15 @@ httpdispatcher.onGet('/' + PACKAGE_NAME, function (
                     '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]';
             }
 
-            getTimeSeriesDescriptionList(
-                token, locationIdentifier.toString(), parameter,
-                extendedFilters, callback
+            httpQuery(
+                AQUARIUS_HOSTNAME,
+                AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList',
+                {token: token, format: 'json',
+                 LocationIdentifier: locationIdentifier.toString(),
+                 Parameter: field.Parameter,
+                 ComputationPeriodIdentifier: 'Daily',
+                 ExtendedFilters: extendedFilters},
+                callback
             );
         },
         /**
