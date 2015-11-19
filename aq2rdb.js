@@ -650,7 +650,7 @@ function rdbHeading() {
 /**
    @description Create RDB, DV table row.
 */
-function dvTableRow(timestamp, value, qualifiers, remarkCodes, type) {
+function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     var row = toNWISFormat(timestamp) +
         // TIME column will always be empty for daily values
         '\t\t' + value + '\t';
@@ -729,9 +729,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, type) {
     // (Edited) meant for DV data in Adaps.  We don't
     // explicitly have the Meas, Edit, and Comp UV types
     // anymore, they are separate timeseries in AQUARIUS.
-    '\t' +
-     // TODO: FLAGS?
-     '\t' + type + '\n';
+    '\tC\t' + qa + '\n';
 
     return row;
 } // dvTableRow
@@ -980,6 +978,12 @@ httpdispatcher.onGet(
                             location and parameter.
             */
             function (callback) {
+		// TODO: when "Parameter" field is omitted from aq2rdb
+		// URL, this appears to end in:
+		// 
+		// curl: (56) Illegal or missing hexadecimal sequence in chunked-encoding
+		// Need to decide whether "Parameter" is a required
+		// field.
                 try {
                     httpQuery(
                         AQUARIUS_HOSTNAME,
