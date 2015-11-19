@@ -795,6 +795,14 @@ httpdispatcher.onGet(
                         return;
                     }
                 }
+                
+                if (locationIdentifier === undefined) {
+                    callback(
+                        'Required field "LocationIdentifier" not found'
+                    );
+                    return;
+                }
+
                 callback(null); // proceed to next waterfall
             },
             /**
