@@ -657,6 +657,79 @@ function rdbHeading() {
 } // rdbHeading
 
 /**
+   @description Respond with daily values table body.
+*/
+function dvTableBody(timeSeriesUniqueId) {
+    async.waterfall([
+        /**
+           @description Query AQUARIUS GetTimeSeriesCorrectedData to
+                        get related daily values.
+        */
+        function (callback) {
+            try {
+                getTimeSeriesCorrectedData(
+                    token, timeSeriesUniqueId,
+                    field.QueryFrom, field.QueryTo, callback
+                );
+            }
+            catch (error) {
+                callback(error);
+            }
+        },
+        /**
+           @description Parse AQUARIUS TimeSeriesDataServiceResponse
+                        received from GetTimeSeriesCorrectedData
+                        service.
+        */
+        function (messageBody, callback) {
+            try {
+                timeSeriesDataServiceResponse =
+                    JSON.parse(messageBody);
+            }
+            catch (error) {
+                callback(error);
+            }
+
+            callback(null);
+        },
+        /**
+           @description Write each RDB row to HTTP response.
+        */
+        function (callback) {
+            async.each(
+                timeSeriesDataServiceResponse.Points,
+                /**
+                   @description Write an RDB row for one time series
+                                point.
+                */
+                function (timeSeriesPoint, callback) {
+                    response.write(
+                        dvTableRow(
+                            timeSeriesPoint.Timestamp,
+                            timeSeriesPoint.Value.Numeric.toString(),
+                            timeSeriesDataServiceResponse.Qualifiers,
+                            remarkCodes,
+           timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
+                        ),
+                        'ascii'
+                    );
+                    callback(null);
+                }
+            );
+            callback(null);
+        }],
+        function (error) {
+            if (error) {
+                callback(error);
+            }
+            else {
+                callback(null);
+            }
+        }
+    ); // async.waterfall
+} // dvTableBody
+
+/**
    @description Create RDB, DV table row.
 */
 function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
@@ -1050,80 +1123,7 @@ httpdispatcher.onGet(
                 var timeSeriesDataServiceResponse;
 
                 if (timeSeriesDescriptions.length === 1) {
-                    var timeSeriesUniqueId =
-                        timeSeriesDescriptions[0].UniqueId;
-
-                    async.waterfall([
-                        /**
-                           @description Query AQUARIUS
-                                        GetTimeSeriesCorrectedData to
-                                        get related daily values.
-                        */
-                        function (callback) {
-                            try {
-                                getTimeSeriesCorrectedData(
-                                    token, timeSeriesUniqueId,
-                                    field.QueryFrom, field.QueryTo,
-                                    callback
-                                );
-                            }
-                            catch (error) {
-                                callback(error);
-                            }
-                        },
-                        /**
-                           @description Parse AQUARIUS
-                                        TimeSeriesDataServiceResponse
-                                        received from
-                                        GetTimeSeriesCorrectedData
-                                        service.
-                        */
-                        function (messageBody, callback) {
-                            try {
-                                timeSeriesDataServiceResponse =
-                                    JSON.parse(messageBody);
-                            }
-                            catch (error) {
-                                callback(error);
-                            }
-
-                            callback(null);
-                        },
-                        /**
-                           @description Write each RDB row to HTTP
-                                        response.
-                        */
-                        function (callback) {
-                            async.each(
-                                timeSeriesDataServiceResponse.Points,
-                                /**
-                                   @description Write an RDB row for
-                                                one time series point.
-                                */
-                                function (timeSeriesPoint, callback) {
-                                    response.write(
-                                        dvTableRow(
-                                            timeSeriesPoint.Timestamp,
-                                            timeSeriesPoint.Value.Numeric.toString(),
-                                            timeSeriesDataServiceResponse.Qualifiers,
-                                            remarkCodes,
-                                            timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
-                                        ),
-                                        'ascii'
-                                    );
-                                    callback(null);
-                                });
-                            callback(null);
-                        }],
-                         function (error) {
-                             if (error) {
-                                 callback(error);
-                             }
-                             else {
-                                 callback(null);
-                             }
-                         }
-                    ); // async.waterfall
+                    dvTableBody(timeSeriesDescriptions[0].UniqueId);
                 } // (timeSeriesDescriptions.length === 1)
                 else {
                     // TODO: need to cope with this case gracefully
