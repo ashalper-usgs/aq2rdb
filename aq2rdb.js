@@ -1137,14 +1137,83 @@ httpdispatcher.onGet(
                     );
                     break;
                 default:
-                    callback(
-                        timeSeriesDescriptions.length.toString() +
-                            ' TimeSeriesDescriptions found for ' +
-                            'LocationIdentifier "' +
-                            locationIdentifier.toString() + '"'
-                    );
-                    return;
-                }
+                    /**
+                       @description Filter out set of primary time
+                                    series.
+                    */
+                    async.filter(
+                        timeSeriesDescriptions,
+                        /**
+                           @description Primary time series filter
+                                        iterator function.
+                        */
+                        function (timeSeriesDescription, callback) {
+                            /**
+                               @description Detect
+                                            {"Name": "PRIMARY_FLAG",
+                                             "Value": "Primary"} in
+                                       TimeSeriesDescription.ExtendedAttributes
+                            */
+                            async.detect(
+                                timeSeriesDescription.ExtendedAttributes,
+                                function (extendedAttribute, callback) {
+                                    // if this time series description
+                                    // is (hopefully) the (only)
+                                    // primary
+                                    if (extendedAttribute.Name ===
+                                        'PRIMARY_FLAG'
+                                        &&
+                                        extendedAttribute.Value ===
+                                        'Primary') {
+                                        callback(true);
+                                    }
+                                    else {
+                                        callback(false);
+                                    }
+                                },
+                                function (result) {
+                                    // notify async.filter that we...
+                                    if (result === undefined) {
+                                        // ...did not find a primary
+                                        // time series description
+                                        callback(false);
+                                    }
+                                    else {
+                                        // ...found a primary time
+                                        // series description
+                                        callback(true);
+                                    }
+                                }
+                            );
+                        },
+                        function (primaryTimeSeriesDescriptions) {
+                            // if there is 1-and-only-1 primary time
+                            // series description
+                            if (primaryTimeSeriesDescriptions.length ===
+                                1) {
+                                // use it to create the DV table body
+                                dvTableBody(
+                                    token, field,
+                                    timeSeriesDescriptions[0].UniqueId,
+                                    remarkCodes, response, callback
+                                );
+                            }
+                            else {
+                                // TODO: we should probably defer
+                                // production of header and heading
+                                // until after this check.
+
+                                // raise error
+                                callback(
+                                    'More than 1 primary time ' +
+                                        'series found for "' +
+                                        locationIdentifier.toString() +
+                                        '"'
+                                );
+                            }
+                        }
+                    ); // async.filter
+                } // switch (timeSeriesDescriptions.length)
             } // function (timeSeriesDescriptions, callback)
         ],
         /**
