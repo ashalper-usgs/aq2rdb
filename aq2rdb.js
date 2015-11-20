@@ -604,7 +604,8 @@ function rdbHeader(
         'http://water.usgs.gov/data.html\n' +
         '# //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL ' +
         'PUBLISHED BY USGS\n' +
-        '# //RETRIEVED: ' + retrieved + '\n' +
+        '# //RETRIEVED: ' + retrieved.substr(0, retrieved.length - 1) +
+        ' UTC\n' +
         '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
         'EDITABLE=NO\n' +
         '# //STATION AGENCY="' + agencyCode +
