@@ -659,7 +659,9 @@ function rdbHeading() {
 /**
    @description Respond with daily values table body.
 */
-function dvTableBody(timeSeriesUniqueId) {
+function dvTableBody(
+    token, field, timeSeriesUniqueId, remarkCodes, response, callback
+) {
     async.waterfall([
         /**
            @description Query AQUARIUS GetTimeSeriesCorrectedData to
@@ -682,6 +684,8 @@ function dvTableBody(timeSeriesUniqueId) {
                         service.
         */
         function (messageBody, callback) {
+            var timeSeriesDataServiceResponse;
+
             try {
                 timeSeriesDataServiceResponse =
                     JSON.parse(messageBody);
@@ -690,12 +694,12 @@ function dvTableBody(timeSeriesUniqueId) {
                 callback(error);
             }
 
-            callback(null);
+            callback(null, timeSeriesDataServiceResponse);
         },
         /**
            @description Write each RDB row to HTTP response.
         */
-        function (callback) {
+        function (timeSeriesDataServiceResponse, callback) {
             async.each(
                 timeSeriesDataServiceResponse.Points,
                 /**
@@ -865,7 +869,9 @@ httpdispatcher.onGet(
                         locationIdentifier =
                             new LocationIdentifier(field.LocationIdentifier);
                     }
-                    else if (name.match(/^(Parameter|ComputationIdentifier|QueryFrom|QueryTo)$/)) {
+                    else if (
+             name.match(/^(Parameter|ComputationIdentifier|QueryFrom|QueryTo)$/)
+                    ) {
                         // AQUARIUS fields
                     }
                     else {
@@ -1120,13 +1126,17 @@ httpdispatcher.onGet(
                             related daily values.
             */
             function (timeSeriesDescriptions, callback) {
-                var timeSeriesDataServiceResponse;
-
-                if (timeSeriesDescriptions.length === 1) {
-                    dvTableBody(timeSeriesDescriptions[0].UniqueId);
-                } // (timeSeriesDescriptions.length === 1)
-                else {
-                    // TODO: need to cope with this case gracefully
+                switch (timeSeriesDescriptions.length) {
+                case 0:
+                    break;
+                case 1:
+                    dvTableBody(
+                        token, field,
+                        timeSeriesDescriptions[0].UniqueId,
+                        remarkCodes, response, callback
+                    );
+                    break;
+                default:
                     callback(
                         timeSeriesDescriptions.length.toString() +
                             ' TimeSeriesDescriptions found for ' +
