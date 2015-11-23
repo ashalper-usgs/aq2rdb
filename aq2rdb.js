@@ -796,9 +796,9 @@ httpdispatcher.onGet(
                         locationIdentifier =
                             new LocationIdentifier(field.LocationIdentifier);
                     }
-                    else if (
-             name.match(/^(Parameter|ComputationIdentifier|QueryFrom|QueryTo)$/)
-                    ) {
+                    else if (name.match(
+                        /^(Parameter|ComputationIdentifier|QueryFrom|QueryTo)$/
+                    )) {
                         // AQUARIUS fields
                     }
                     else {
@@ -850,12 +850,6 @@ httpdispatcher.onGet(
                             location and parameter.
             */
             function (callback) {
-                // TODO: when "Parameter" field is omitted from aq2rdb
-                // URL, this appears to end in:
-                // 
-                // curl: (56) Illegal or missing hexadecimal sequence in chunked-encoding
-                // Need to decide whether "Parameter" is a required
-                // field.
                 try {
                     httpQuery(
                         AQUARIUS_HOSTNAME,
