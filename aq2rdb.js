@@ -19,27 +19,36 @@ var fs = require('fs');
 
 /**
    @description The aq2rdb Web service name.
+   @constant
 */
 var PACKAGE_NAME = 'aq2rdb';
 
 /**
    @description The port the aq2rdb service listens on.
+   @constant
 */
 var PORT = 8081;
 
 /**
    @description AQUARIUS host.
+   @constant
 */
 var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 
 /**
    @description AQUARIUS Web services path prefix.
+   @constant
 */
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 
 /**
    @function Consolidated error message writer. Writes message in a
              single-line, RDB comment.
+   @param {object} response aq2rdb IncomingMessage object created by
+          http.Server.
+   @param {number} statusCode HTTP status code to send with message.
+   @param {string} message Message to respond with as RDB comment
+          line.
 */ 
 function rdbMessage(response, statusCode, message) {
     var statusMessage = '# ' + PACKAGE_NAME + ': ' + message;
@@ -51,16 +60,19 @@ function rdbMessage(response, statusCode, message) {
 }
 
 /**
-   @function Convert an ISO 8601 extended format, date string to basic
-             format.
+   @function Convert an ISO 8601 extended format, date string to RFC
+             3339 basic format.
+   @param {string} s ISO 8601 date string to convert.
+   @see https://tools.ietf.org/html/rfc3339
 */
 function toBasicFormat(s) {
     return s.replace('T', ' ').replace(/\.\d*/, '');
 }
 
 /**
-   @function Convert AQUARIUS TimeSeriesPoint.Timestamp data type to
+   @function Convert AQUARIUS TimeSeriesPoint.Timestamp data type to a
              common NWIS date type.
+   @param {string} timestamp AQUARIUS Timestamp string to convert.
 */
 function toNWISFormat(timestamp) {
     var date;
@@ -77,6 +89,9 @@ function toNWISFormat(timestamp) {
 
 /**
    @function Create a valid HTTP query field/value pair substring.
+   @param {string} field An HTTP query field name.
+   @param {string} value An HTTP query field value.
+   @see https://en.wikipedia.org/wiki/Uniform_Resource_Locator#Syntax
 */ 
 function bind(field, value) {
     if (value === undefined) {
@@ -87,6 +102,9 @@ function bind(field, value) {
 
 /**
    @function Error messager for JSON parse errors.
+   @param {object} response aq2rdb IncomingMessage object created by
+          http.Server.
+   @param {string} message Error message to display in an RDB comment.
 */ 
 function jsonParseErrorMessage(response, message) {
     rdbMessage(
@@ -98,20 +116,22 @@ function jsonParseErrorMessage(response, message) {
 
 /**
    @description LocationIdentifier object prototype.
-
    @class
 */
 var LocationIdentifier = function (text) {
     var text = text;
 
     /**
-       @description Parse agency code in AQUARIUS locationIdentifier.
+       @method Return agency code.
     */
     this.agencyCode = function () {
         // if agency code delimiter ("-") is present in location
         // identifier
         if (text.search('-') === -1) {
-            return 'USGS';    // default agency code
+            /**
+               @default Agency code.
+            */
+            return 'USGS';
         }
         else {
             // parse (agency code, site number) embedded in
@@ -122,7 +142,7 @@ var LocationIdentifier = function (text) {
     }
 
     /**
-       @description Parse site number in AQUARIUS LocationIdentifier.
+       @method Return site number.
     */
     this.siteNumber = function () {
         // if agency code delimiter ("-") is present in location
@@ -139,8 +159,7 @@ var LocationIdentifier = function (text) {
     }
 
     /**
-       @description Return string representation of LocationIdentifier
-                    object.
+       @method Return string representation of this object.
     */
     this.toString = function () {
         return text;
@@ -149,8 +168,14 @@ var LocationIdentifier = function (text) {
 } // LocationIdentifier
 
 /**
-   @function Call a REST Web service with a query; send response via a
-             callback.
+   @function Call a REST Web service with an HTTP query; send response
+             via a callback.
+   @param {string} host Host part of HTTP query URL.
+   @param {string} path Path part of HTTP query URL.
+   @param {object} field An array of attribute-value pairs to bind in
+          HTTP query URL.
+   @param {function} callback Callback function to call if/when
+          response from Web service is received.
 */
 function httpQuery(host, path, field, callback) {
     /**
