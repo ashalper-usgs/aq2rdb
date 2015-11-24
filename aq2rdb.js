@@ -592,7 +592,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     /**
        @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
 
-       On Tue, Sep 29, 2015 at 10:57 AM:
+       @since 2015-09-29T10:57-07:00
       
        I think some of what used to be flags are now
        Qualifiers. Things like thereshold [sic] exceedances [sic]
@@ -605,7 +605,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     /**
        @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
 
-       On Tue, Sep 29, 2015 at 10:57 AM:
+       @since 2015-09-29T10:57-07:00
       
        Type I would put in something like "R" for raw and "C" for
        corrected depending on which get method was used. That is
