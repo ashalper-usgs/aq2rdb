@@ -222,6 +222,10 @@ function httpQuery(host, path, field, callback) {
 /**
    @function Call GetAQToken service to get AQUARIUS authentication
              token.
+   @param {string} userName AQUARIUS user name.
+   @param {string} password AQUARIUS password.
+   @param {function} callback Callback function to call if/when
+          GetAQToken responds.
 */
 function getAQToken(userName, password, callback) {
 
@@ -299,6 +303,19 @@ function getAQToken(userName, password, callback) {
 
 /**
    @function Call AQUARIUS GetTimeSeriesCorrectedData Web service.
+   @param {string} token AQUARIUS authentication token.
+   @param {string} timeSeriesUniqueId AQUARIUS
+          GetTimeSeriesCorrectedData service
+          TimeSeriesDataCorrectedServiceRequest.TimeSeriesUniqueId
+          parameter.
+   @param {string} queryFrom AQUARIUS GetTimeSeriesCorrectedData
+          service TimeSeriesDataCorrectedServiceRequest.QueryFrom
+          parameter.
+   @param {string} QueryTo AQUARIUS GetTimeSeriesCorrectedData
+          service TimeSeriesDataCorrectedServiceRequest.QueryTo
+          parameter.
+   @param {function} callback Callback to call if/when
+          GetTimeSeriesCorrectedData service responds.
 */
 function getTimeSeriesCorrectedData(
     token, timeSeriesUniqueId, queryFrom, queryTo, callback
@@ -347,6 +364,10 @@ function getTimeSeriesCorrectedData(
 
 /**
    @function Call AQUARIUS GetLocationData Web service.
+   @param {string} token AQUARIUS authentication token.
+   @param {string} locationIdentifier AQUARIUS location identifier.
+   @param {function} callback Callback function to call if/when
+          response from GetLocationData is received.
 */
 function getLocationData(token, locationIdentifier, callback) {
     /**
@@ -393,6 +414,13 @@ function getLocationData(token, locationIdentifier, callback) {
 
 /**
    @function Create RDB header block.
+   @param {string} agencyCode Site agency code.
+   @param {string} siteNumber Site number.
+   @param {string} stationName Site name (a.k.a. station name).
+   @param {string} timeZone Site time zone code.
+   @param {string} dstFlag Site daylight saving time flag.
+   @param {string} subLocationIdentifer Sublocation identifier.
+   @param {object} range Time series query date range.
 */
 function rdbHeader(
     agencyCode, siteNumber, stationName, timeZone, dstFlag,
@@ -484,29 +512,39 @@ function rdbHeader(
         'TIME_ZONE="' + timeZone + '" DST_FLAG=' + dstFlag + '\n' +
         '# //STATION NAME="' + stationName + '"\n';
 
-    // On Wed, Nov 11, 2015 at 4:31 PM, Scott Bartholoma
-    // <sbarthol@usgs.gov> said:
-    //
-    // I think that "# //LOCATION NUMBER=0 NAME="Default"" would
-    // change to:
-    // 
-    // # //SUBLOCATION NAME="sublocation name"
-    // 
-    // and would be omitted if it were the default sublocation and
-    // had no name.
+    /**
+       @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+
+       @since 2015-11-11T16:31-07:00
+
+       @todo
+
+       I think that "# //LOCATION NUMBER=0 NAME="Default"" would
+       change to:
+       
+       # //SUBLOCATION NAME="sublocation name"
+       
+       and would be omitted if it were the default sublocation and
+       had no name.
+    */
     if (subLocationIdentifer !== undefined) {
         header += '# //SUBLOCATION ID="' + subLocationIdentifer + '"\n';
     }
 
-    // I would be against continuing the DDID field since only
-    // migrated timeseries will have ADAPS_DD populated.  Instead
-    // we should probably replace the "# //DD" lines with "#
-    // //TIMESERIES" lines, maybe something like:
-    // 
-    // # //TIMESERIES IDENTIFIER="Discharge, ft^3/s@12345678"
-    // 
-    // and maybe some other information.
+    /**
+       @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
 
+       @since 2015-11-11T16:31-07:00
+
+       I would be against continuing the DDID field since only
+       migrated timeseries will have ADAPS_DD populated.  Instead
+       we should probably replace the "# //DD" lines with "#
+       //TIMESERIES" lines, maybe something like:
+       
+       # //TIMESERIES IDENTIFIER="Discharge, ft^3/s@12345678"
+       
+       and maybe some other information.
+    */
     header += '# //RANGE START="';
     if (range.start !== undefined) {
         header += range.start;
@@ -523,8 +561,8 @@ function rdbHeader(
 } // rdbHeader
 
 /**
-   @function Create RDB table heading (which is different than a
-             header).
+   @function Produce daily values, RDB table heading (which is
+             different than a header).
 */
 function rdbHeading() {
     return 'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
@@ -533,18 +571,29 @@ function rdbHeading() {
 
 /**
    @function Create RDB, DV table row.
+   @param {string} timestamp AQUARIUS timestamp string.
+   @param {string} value Time series daily value.
+   @param {object} qualifiers AQUARIUS
+          QualifierListServiceResponse.Qualifiers.
+   @param {object} remarkCodes An array (as domain table) of daily
+          values remark codes, indexed by AQUARIUS
+          QualifierMetadata.Identifier.
+   @param {string} qa QA code.
 */
 function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     var row = toNWISFormat(timestamp) +
         // TIME column will always be empty for daily values
         '\t\t' + value + '\t';
 
-    // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-    // <sbarthol@usgs.gov> said:
-    //
-    // Remark will have to be derived from the Qualifier
-    // section of the response. It will have begin and end
-    // dates for various qualification periods.
+    /**
+       @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+
+       @since 2015-09-29T10:57-07:00
+
+       Remark will have to be derived from the Qualifier section of
+       the response. It will have begin and end dates for various
+       qualification periods.
+    */
     async.detect(qualifiers, function (qualifier, callback) {
         var pointTime, startTime, endTime;
 
@@ -708,6 +757,10 @@ httpdispatcher.onGet(
             /**
                @function Receive AQUARIUS authentication token from
                          GetAQToken service.
+               @param {string} messageBody Message body of response
+                      from GetAQToken.
+               @param {function} callback async.waterfall() callback
+                      function.
             */
             function (messageBody, callback) {
                 token = messageBody;
@@ -718,6 +771,8 @@ httpdispatcher.onGet(
                          service to get list of AQUARIUS, time series
                          UniqueIds related to aq2rdb, GetDVTable
                          location and parameter.
+               @param {function} callback async.waterfall() callback
+                      function.
             */
             function (callback) {
                 try {
@@ -744,6 +799,8 @@ httpdispatcher.onGet(
                          GetTimeSeriesDescriptionList, then parse list
                          of related TimeSeriesDescriptions to query
                          AQUARIUS GetTimeSeriesCorrectedData service.
+               @param {string} messageBody Message body part of
+                      HTTP response from GetTimeSeriesDescriptionList.
             */
             function (messageBody, callback) {
                 var timeSeriesDescriptionListServiceResponse;
@@ -873,8 +930,7 @@ httpdispatcher.onGet(
                 callback(null);
             },
             /**
-               @function Query GetLocationData service to obtain site
-                         name.
+               @function Query USGS Site Web Service.
             */
             function (callback) {
                 try {
@@ -891,8 +947,8 @@ httpdispatcher.onGet(
                 }
             },
             /**
-               @function Receive and parse response from
-                         GetLocationData.
+               @function Receive and parse response from USGS Site Web
+                         Service.
             */
             function (messageBody, callback) {
                 var stationNm, tzCd, localTimeFg;
