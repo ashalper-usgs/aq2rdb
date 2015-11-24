@@ -168,6 +168,20 @@ var LocationIdentifier = function (text) {
 } // LocationIdentifier
 
 /**
+   @function Boilerplate to check for a required HTTP query field.
+   @param {object} field The value of the HTTP query field to check.
+   @param {string} name The name of the HTTP query field to check.
+   @param {function} Callback function to pass error message to, if
+          necessary.
+*/
+function checkRequired(field, name, callback) {
+    if (field === undefined) {
+        callback('Required field "' + name + '" not found');
+        return;
+    }
+} // checkRequired
+
+/**
    @function Call a REST Web service with an HTTP query; send response
              via a callback.
    @param {string} host Host part of HTTP query URL.
@@ -727,12 +741,10 @@ httpdispatcher.onGet(
                     }
                 }
                 
-                if (locationIdentifier === undefined) {
-                    callback(
-                        'Required field "LocationIdentifier" not found'
-                    );
-                    return;
-                }
+                checkRequired(locationIdentifier,
+                              'LocationIdentifier', callback);
+
+                checkRequired(parameter, 'Parameter', callback);
 
                 callback(null); // proceed to next waterfall
             },
