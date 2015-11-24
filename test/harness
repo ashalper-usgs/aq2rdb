@@ -33,8 +33,6 @@ if [ `hostname` = hemi ]; then
     sleep 1s
 fi
 
-#aq2rdb "userName=apiuser&password=$password&z=prod&t=dv&u=Discharge.ft^3/s.Mean@09380000&b=20150101&e=20150103"
-#echo
 endpoint GetDVTable "timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000"
 echo
 endpoint GetDVTable "shahDoobie=Discharge.ft^3/s.Mean@09380000"
