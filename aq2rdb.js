@@ -38,8 +38,8 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 
 /**
-   @description Consolidated error message writer. Writes message in
-                a single-line, RDB comment.
+   @function Consolidated error message writer. Writes message in a
+             single-line, RDB comment.
 */ 
 function rdbMessage(response, statusCode, message) {
     var statusMessage = '# ' + PACKAGE_NAME + ': ' + message;
@@ -51,16 +51,16 @@ function rdbMessage(response, statusCode, message) {
 }
 
 /**
-   @description Convert an ISO 8601 extended format, date string to
-                basic format.
+   @function Convert an ISO 8601 extended format, date string to basic
+             format.
 */
 function toBasicFormat(s) {
     return s.replace('T', ' ').replace(/\.\d*/, '');
 }
 
 /**
-   @description Convert AQUARIUS TimeSeriesPoint.Timestamp data type
-                to common NWIS date type.
+   @function Convert AQUARIUS TimeSeriesPoint.Timestamp data type to
+             common NWIS date type.
 */
 function toNWISFormat(timestamp) {
     var date;
@@ -76,7 +76,7 @@ function toNWISFormat(timestamp) {
 } // toNWISFormat
 
 /**
-   @description Create a valid HTTP query field/value pair substring.
+   @function Create a valid HTTP query field/value pair substring.
 */ 
 function bind(field, value) {
     if (value === undefined) {
@@ -86,7 +86,7 @@ function bind(field, value) {
 }
 
 /**
-   @description Error messager for JSON parse errors.
+   @function Error messager for JSON parse errors.
 */ 
 function jsonParseErrorMessage(response, message) {
     rdbMessage(
@@ -148,8 +148,8 @@ var LocationIdentifier = function (text) {
 } // LocationIdentifier
 
 /**
-   @description Call a REST Web service with a query; send response
-                via a callback.
+   @function Call a REST Web service with a query; send response via a
+             callback.
 */
 function httpQuery(host, path, field, callback) {
     /**
@@ -194,8 +194,8 @@ function httpQuery(host, path, field, callback) {
 } // httpQuery
 
 /**
-   @description Call GetAQToken service to get AQUARIUS authentication
-                token.
+   @function Call GetAQToken service to get AQUARIUS authentication
+             token.
 */
 function getAQToken(userName, password, callback) {
 
@@ -272,7 +272,7 @@ function getAQToken(userName, password, callback) {
 } // getAQToken
 
 /**
-   @description Call AQUARIUS GetTimeSeriesCorrectedData Web service.
+   @function Call AQUARIUS GetTimeSeriesCorrectedData Web service.
 */
 function getTimeSeriesCorrectedData(
     token, timeSeriesUniqueId, queryFrom, queryTo, callback
@@ -320,7 +320,7 @@ function getTimeSeriesCorrectedData(
 } // getTimeSeriesCorrectedData
 
 /**
-   @description Call AQUARIUS GetLocationData Web service.
+   @function Call AQUARIUS GetLocationData Web service.
 */
 function getLocationData(token, locationIdentifier, callback) {
     /**
@@ -366,7 +366,7 @@ function getLocationData(token, locationIdentifier, callback) {
 } // getLocationData
 
 /**
-   @description Create RDB header block.
+   @function Create RDB header block.
 */
 function rdbHeader(
     agencyCode, siteNumber, stationName, timeZone, dstFlag,
@@ -375,71 +375,74 @@ function rdbHeader(
     // some convoluted syntax for "now"
     var retrieved = toBasicFormat((new Date()).toISOString());
 
-    // TODO: On Tue, Nov 10, 2015 at 4:16 PM, Brad Garner
-    // <bdgarner@usgs.gov> said:
-    // 
-    // Andy,
-    // I know I've mentioned before we consider going to a release
-    // without all of these, and then let aggressive testing find the
-    // gaps.  I still think that's a fine idea that aligns with the
-    // spirit of minimally viable product.
-    // 
-    // How do we do this?  Here's an example.
-    // 
-    // Consider RNDARY="2222233332".  There is nothing like this
-    // easily available from AQUARIUS API. Yet, AQ API does have the
-    // new rounding specification, the next & improved evolution in
-    // how we think of rounding; it looks like SIG(3) as one example.
-    // Facing this, I can see 3 approaches, in increasing order of
-    // complexity:
-    //   1) Just stop.  Stop serving RNDARY="foo", assuming most
-    //      people "just wanted the data"
-    //   2) New field. Replace RNDARY with a new element like
-    //      RNDSPEC="foo", which simply relays the new AQUARIUS
-    //      RoundingSpec.
-    //   3) Backward compatibility. Write code that converts a AQ
-    //      rounding spec to a 10-digit NWIS rounding array.  Painful,
-    //      full of assumptions & edge cases.  But surely doable.
-    //
-    // In the agile and minimum-vial-product [sic] spirits, I'd
-    // propose leaning toward (1) as a starting point.  As user
-    // testing and interaction informs us to the contrary, consider
-    // (2) or (3) for some fields.  But recognize that option (2) is
-    // always the most expensive one, so we should do it judiciously
-    // and only when it's been demonstrated there's a user story
-    // driving it.
-    //
-    // The above logic should work for every field in this header
-    // block.
-    //
-    // Having said all that, some fields are trivially easy to find in
-    // the AQUARIUS API--that is, option (3) is especially easy, so
-    // maybe just do them.  In increasing order of difficulty (and
-    // therefore increasing degrees of warranted-ness):
-    //
-    //  - LOCATION NAME="foo"  ... This would be the
-    //    SubLocationIdentifer in a GetTimeSeriesDescriptionList()
-    //    call.
-    //  - PARAMETER LNAME="foo" ... is just Parameter as returned by
-    //    GetTimeSeriesDescriptionList()
-    //  - STATISTIC LNAME="foo" ... is ComputationIdentifier +
-    //    ComputationPeriodIdentifier in
-    //    GetTimeSeriesDescriptionList(), although the names will
-    //    shift somewhat from what they would have been in ADAPS which
-    //    might complicate things.
-    //  - DD LABEL="foo" ... Except for the confusing carryover of the
-    //    DD semantic, this should just be some combination of
-    //    Identifier + Label + Comment + Description from
-    //    GetTimeSeriesDescriptionList().  How to combine them, I'm
-    //    not sure, but it should be determinable
-    //  - DD DDID="foo" ...  When and if the extended attribute
-    //    ADAPS_DD is populated in GetTimeSeriesDescriptionList(),
-    //    this is easily populated.  But I think we should wean people
-    //    off this.
-    //  - Note: Although AGING fields might seem simple at first blush
-    //    (the Approvals[] struct from GetTimeSeriesCorrectedData())
-    //    the logic for emulating this old ADAPS format likely would
-    //    get messy in a hurry.
+    /**
+       @author <a href="mailto:bdgarner@usgs.gov">Bradley Garner</a>
+
+       @todo
+       
+       Andy,
+       I know I've mentioned before we consider going to a release
+       without all of these, and then let aggressive testing find the
+       gaps.  I still think that's a fine idea that aligns with the
+       spirit of minimally viable product.
+       
+       How do we do this?  Here's an example.
+       
+       Consider RNDARY="2222233332".  There is nothing like this
+       easily available from AQUARIUS API. Yet, AQ API does have the
+       new rounding specification, the next & improved evolution in
+       how we think of rounding; it looks like SIG(3) as one example.
+       Facing this, I can see 3 approaches, in increasing order of
+       complexity:
+         1) Just stop.  Stop serving RNDARY="foo", assuming most
+            people "just wanted the data"
+         2) New field. Replace RNDARY with a new element like
+            RNDSPEC="foo", which simply relays the new AQUARIUS
+            RoundingSpec.
+         3) Backward compatibility. Write code that converts a AQ
+            rounding spec to a 10-digit NWIS rounding array.  Painful,
+            full of assumptions & edge cases.  But surely doable.
+      
+       In the agile and minimum-vial-product [sic] spirits, I'd
+       propose leaning toward (1) as a starting point.  As user
+       testing and interaction informs us to the contrary, consider
+       (2) or (3) for some fields.  But recognize that option (2) is
+       always the most expensive one, so we should do it judiciously
+       and only when it's been demonstrated there's a user story
+       driving it.
+      
+       The above logic should work for every field in this header
+       block.
+      
+       Having said all that, some fields are trivially easy to find in
+       the AQUARIUS API--that is, option (3) is especially easy, so
+       maybe just do them.  In increasing order of difficulty (and
+       therefore increasing degrees of warranted-ness):
+      
+        - LOCATION NAME="foo"  ... This would be the
+          SubLocationIdentifer in a GetTimeSeriesDescriptionList()
+          call.
+        - PARAMETER LNAME="foo" ... is just Parameter as returned by
+          GetTimeSeriesDescriptionList()
+        - STATISTIC LNAME="foo" ... is ComputationIdentifier +
+          ComputationPeriodIdentifier in
+          GetTimeSeriesDescriptionList(), although the names will
+          shift somewhat from what they would have been in ADAPS which
+          might complicate things.
+        - DD LABEL="foo" ... Except for the confusing carryover of the
+          DD semantic, this should just be some combination of
+          Identifier + Label + Comment + Description from
+          GetTimeSeriesDescriptionList().  How to combine them, I'm
+          not sure, but it should be determinable
+        - DD DDID="foo" ...  When and if the extended attribute
+          ADAPS_DD is populated in GetTimeSeriesDescriptionList(),
+          this is easily populated.  But I think we should wean people
+          off this.
+        - Note: Although AGING fields might seem simple at first blush
+          (the Approvals[] struct from GetTimeSeriesCorrectedData())
+          the logic for emulating this old ADAPS format likely would
+          get messy in a hurry.
+    */
     var header = '# //UNITED STATES GEOLOGICAL SURVEY       ' +
         'http://water.usgs.gov/\n' +
         '# //NATIONAL WATER INFORMATION SYSTEM     ' +
@@ -494,8 +497,8 @@ function rdbHeader(
 } // rdbHeader
 
 /**
-   @description Create RDB table heading (which is different than a
-                header).
+   @function Create RDB table heading (which is different than a
+             header).
 */
 function rdbHeading() {
     return 'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
@@ -503,7 +506,7 @@ function rdbHeading() {
 } // rdbHeading
 
 /**
-   @description Create RDB, DV table row.
+   @function Create RDB, DV table row.
 */
 function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     var row = toNWISFormat(timestamp) +
@@ -603,7 +606,7 @@ httpdispatcher.onGet(
         */
         async.waterfall([
             /**
-               @description Parse fields and values in GetDVTable URL.
+               @function Parse fields and values in GetDVTable URL.
             */
             function (callback) {
                 // if this is a documentation request
@@ -659,8 +662,8 @@ httpdispatcher.onGet(
                 callback(null); // proceed to next waterfall
             },
             /**
-               @description Get AQUARIUS authentication token from
-                            GetAQToken service.
+               @function Get AQUARIUS authentication token from
+                         GetAQToken service.
             */
             function (callback) {
                 try {
@@ -677,19 +680,18 @@ httpdispatcher.onGet(
                 // getAQToken(), and called from there if successful
             },
             /**
-               @description Receive AQUARIUS authentication token from
-                            GetAQToken service.
+               @function Receive AQUARIUS authentication token from
+                         GetAQToken service.
             */
             function (messageBody, callback) {
                 token = messageBody;
                 callback(null);
             },
             /**
-               @description Query AQUARIUS
-                            GetTimeSeriesDescriptionList service to
-                            get list of AQUARIUS, time series
-                            UniqueIds related to aq2rdb, GetDVTable
-                            location and parameter.
+               @function Query AQUARIUS GetTimeSeriesDescriptionList
+                         service to get list of AQUARIUS, time series
+                         UniqueIds related to aq2rdb, GetDVTable
+                         location and parameter.
             */
             function (callback) {
                 try {
@@ -712,11 +714,10 @@ httpdispatcher.onGet(
                 }
             },
             /**
-               @description Receive response from AQUARIUS
-                            GetTimeSeriesDescriptionList, then parse
-                            list of related TimeSeriesDescriptions to
-                            query AQUARIUS GetTimeSeriesCorrectedData
-                            service.
+               @function Receive response from AQUARIUS
+                         GetTimeSeriesDescriptionList, then parse list
+                         of related TimeSeriesDescriptions to query
+                         AQUARIUS GetTimeSeriesCorrectedData service.
             */
             function (messageBody, callback) {
                 var timeSeriesDescriptionListServiceResponse;
@@ -736,9 +737,9 @@ httpdispatcher.onGet(
                 );
             },
             /**
-               @description For each AQUARIUS time series description,
-                            query GetTimeSeriesCorrectedData to get
-                            related daily values.
+               @function For each AQUARIUS time series description,
+                         query GetTimeSeriesCorrectedData to get
+                         related daily values.
             */
             function (timeSeriesDescriptions, callback) {
                 switch (timeSeriesDescriptions.length) {
@@ -757,8 +758,8 @@ httpdispatcher.onGet(
                     async.filter(
                         timeSeriesDescriptions,
                         /**
-                           @description Primary time series filter
-                                        iterator function.
+                           @function Primary time series filter
+                                     iterator function.
                         */
                         function (timeSeriesDescription, callback) {
                             /**
@@ -769,6 +770,11 @@ httpdispatcher.onGet(
                             */
                             async.detect(
                                 timeSeriesDescription.ExtendedAttributes,
+                                /**
+                                   @function Primary time series,
+                                             async.detect truth value
+                                             function.
+                                */
                                 function (extendedAttribute, callback) {
                                     // if this time series description
                                     // is (hopefully) the (only)
@@ -784,6 +790,11 @@ httpdispatcher.onGet(
                                         callback(false);
                                     }
                                 },
+                                /**
+                                   @function Primary time series,
+                                             async.detect final
+                                             function.
+                                */
                                 function (result) {
                                     // notify async.filter that we...
                                     if (result === undefined) {
@@ -799,6 +810,12 @@ httpdispatcher.onGet(
                                 }
                             );
                         },
+                        /**
+                           @function Check arity of primary time
+                                     series descriptions returned from
+                                     AQUARIUS
+                                     GetTimeSeriesDescriptionList.
+                        */
                         function (primaryTimeSeriesDescriptions) {
                             // if there is 1-and-only-1 primary time
                             // series description
@@ -826,8 +843,8 @@ httpdispatcher.onGet(
                 callback(null);
             },
             /**
-               @description Query GetLocationData service to obtain
-                            site name.
+               @function Query GetLocationData service to obtain site
+                         name.
             */
             function (callback) {
                 try {
@@ -844,8 +861,8 @@ httpdispatcher.onGet(
                 }
             },
             /**
-               @description Receive and parse response from
-                            GetLocationData.
+               @function Receive and parse response from
+                         GetLocationData.
             */
             function (messageBody, callback) {
                 var stationNm, tzCd, localTimeFg;
@@ -875,12 +892,12 @@ httpdispatcher.onGet(
                 callback(null, stationNm, tzCd, localTimeFg);
             },
             /**
-               @description Write RDB header and heading.
+               @function Write RDB header and heading.
             */
             function (stationNm, tzCd, localTimeFg, callback) {
                 async.series([
                     /**
-                       @description Write HTTP response header.
+                       @function Write HTTP response header.
                     */
                     function (callback) {
                         response.writeHead(
@@ -889,7 +906,7 @@ httpdispatcher.onGet(
                         callback(null);
                     },
                     /**
-                       @description Write RDB header to HTTP response.
+                       @function Write RDB header to HTTP response.
                     */
                     function (callback) {
                         var start, end;
@@ -913,9 +930,9 @@ httpdispatcher.onGet(
                         callback(null);
                     },
                     /**
-                       @description Write RDB heading (a different
-                                    thing than RDB header, above) to
-                                    HTTP response.
+                       @function Write RDB heading (a different thing
+                                 than RDB header, above) to HTTP
+                                 response.
                     */
                     function (callback) {
                         response.write(rdbHeading(), 'ascii');
@@ -925,11 +942,12 @@ httpdispatcher.onGet(
                 callback(null);
             },
             /**
-               @description Request remark codes from AQUARIUS.
+               @function Request remark codes from AQUARIUS.
+
+               @todo This is fairly kludgey, because remark codes
+                     might not be required for every DV interval; try
+                     to nest in a conditional eventually.
             */
-            // TODO: this is fairly kludgey, because remark codes
-            // might not be required for every DV interval; try to
-            // nest in a conditional eventually.
             function (callback) {
                 try {
                     httpQuery(
@@ -945,7 +963,7 @@ httpdispatcher.onGet(
                 }
             },
             /**
-               @description Receive remark codes from AQUARIUS.
+               @function Receive remark codes from AQUARIUS.
             */
             function (messageBody, callback) {
                 var qualifierListServiceResponse;
@@ -984,7 +1002,7 @@ httpdispatcher.onGet(
                 callback(null);
             },
             /**
-               @description Query AQUARIUS GetTimeSeriesCorrectedData
+               @function Query AQUARIUS GetTimeSeriesCorrectedData
                             to get related daily values.
             */
             function (callback) {
@@ -1000,7 +1018,7 @@ httpdispatcher.onGet(
                 }
             },
             /**
-               @description Parse AQUARIUS
+               @function Parse AQUARIUS
                             TimeSeriesDataServiceResponse received
                             from GetTimeSeriesCorrectedData service.
             */
@@ -1019,14 +1037,14 @@ httpdispatcher.onGet(
                 callback(null, timeSeriesDataServiceResponse);
             },
             /**
-               @description Write each RDB row to HTTP response.
+               @function Write each RDB row to HTTP response.
             */
             function (timeSeriesDataServiceResponse, callback) {
                 async.each(
                     timeSeriesDataServiceResponse.Points,
                     /**
                        @description Write an RDB row for one time series
-                       point.
+                                    point.
                     */
                     function (timeSeriesPoint, callback) {
                         response.write(
