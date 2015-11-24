@@ -76,13 +76,6 @@ function toNWISFormat(timestamp) {
 } // toNWISFormat
 
 /**
-   @description Primitive logging function for debugging purposes.
-*/
-function log(message) {
-    console.log(PACKAGE_NAME + ': ' + message);
-}
-
-/**
    @description Create a valid HTTP query field/value pair substring.
 */ 
 function bind(field, value) {
@@ -104,7 +97,7 @@ function jsonParseErrorMessage(response, message) {
 }
 
 /**
-   @description TimeSeriesIdentifier object prototype.
+   @description LocationIdentifier object prototype.
 */
 var LocationIdentifier = function (text) {
     var text = text;
@@ -152,62 +145,6 @@ var LocationIdentifier = function (text) {
     }
 
 } // LocationIdentifier
-
-/**
-   @description TimeSeriesIdentifier object prototype.
-*/
-var TimeSeriesIdentifier = function (text) {
-    // private; no reason to modify this once the object is created
-    var text = text;
-
-    /**
-       @description Make site number substring of TimeSeriesIdentifier
-                    visible.
-    */
-    this.siteNumber = function () {
-        if (text.indexOf('@') === -1) {
-            return undefined;
-        }
-        return text.split('@')[1]; // return parsed site number
-    }
-
-    /**
-       @description Make parameter substring of TimeSeriesIdentifier
-                    visible.
-    */
-    this.parameter = function () {
-        // try to parse "Parameter" field value
-        var field = text.split('.');
-
-        if (field.length < 2) {
-            return;             // failure
-        }
-        return field[0];
-    }
-
-    /**
-       @description Make LocationIdentifier object from
-                    TimeSeriesIdentifier.
-    */
-    this.toLocationIdentifier = function () {
-        // try to parse "locationIdentifier" field value
-        var field = text.split('@');
-
-        if (field.length < 2) {
-            return undefined;   // failure
-        }
-        return new LocationIdentifier(field[1]);
-    }
-
-    /**
-       @description Return string representation of
-                    TimeSeriesIdentifier object.
-    */
-    this.toString = function () {
-        return text;
-    }
-
-} // TimeSeriesIdentifier
 
 /**
    @description ISO 8601 "basic format" date prototype.
@@ -1277,5 +1214,6 @@ var server = http.createServer(handleRequest);
    @description Start listening for requests.
 */ 
 server.listen(PORT, function () {
-    log('Server listening on: http://localhost:' + PORT.toString());
+    console.log(PACKAGE_NAME + ': Server listening on: http://localhost:' +
+                PORT.toString());
 });
