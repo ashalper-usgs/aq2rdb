@@ -104,58 +104,6 @@ function jsonParseErrorMessage(response, message) {
 }
 
 /**
-   @description DataType prototype.
-*/ 
-var DataType = function (text) {
-    // data type ("t") parameter domain validation
-    switch (text) {
-    case 'MS':
-        throw 'Pseudo-time series (e.g., gage inspections) are not supported';
-        break;
-    case 'VT':
-        throw 'Sensor inspections and readings are not supported';
-        break;
-    case 'PK':
-        throw 'Peak-flow data are not supported';
-        break;
-    case 'DC':
-        throw 'Data corrections are not supported';
-        break;
-    case 'SV':
-        throw 'Quantitative site-visit data are not supported';
-        break;
-    case 'WL':
-        throw 'Discrete groundwater-levels data are not supported';
-        break;
-    case 'QW':
-        throw 'Discrete water quality data are not supported';
-        break;
-    // these are the only valid "t" parameter values right now
-    case 'DV':
-    case 'UV':
-        break;
-    default:
-        throw 'Unknown "t" (data type) parameter value: "' + t + '"';
-    }
-
-    var text = text;
-
-    /**
-       @description Convert (legacy NWIS) nwts2rdb data type to
-                    AQUARIUS ComputationPeriodIdentifier.
-    */
-    this.toComputationPeriodIdentifier = function () {
-        switch(text) {
-        case 'DV':
-            return 'Daily';
-        default:
-            return undefined;
-        }
-    } // toComputationPeriodIdentifier
-
-} // DataType
-
-/**
    @description TimeSeriesIdentifier object prototype.
 */
 var LocationIdentifier = function (text) {
