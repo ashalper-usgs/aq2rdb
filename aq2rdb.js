@@ -98,6 +98,7 @@ function jsonParseErrorMessage(response, message) {
 
 /**
    @description LocationIdentifier object prototype.
+
    @class
 */
 var LocationIdentifier = function (text) {
@@ -563,30 +564,30 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
         row += '\t';
     });
 
-    // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-    // <sbarthol@usgs.gov> said:
-    //
-    // I think some of what used to be flags are now
-    // Qualifiers. Things like thereshold exceedances
-    // (high, very high, low, very low, rapid
-    // increace/decreast [sic], etc.). The users might
-    // want you to put something in that column for the
-    // Method and Grade sections of the response as well
+    /**
+       @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+
+       On Tue, Sep 29, 2015 at 10:57 AM:
+      
+       I think some of what used to be flags are now
+       Qualifiers. Things like thereshold [sic] exceedances [sic]
+       (high, very high, low, very low, rapid increace/decreast [sic],
+       etc.). The users might want you to put something in that column
+       for the Method and Grade sections of the response as well
+    */
     row += '\t' +
 
-    // TODO: There is outstanding mail to Wade Walker
-    // <walker@usgs.gov> about preserving the TYPE column (see also
-    // excerpt from Scott Bartholoma's mail below).
+    /**
+       @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
 
-    // On Tue, Sep 29, 2015 at 10:57 AM, Scott Bartholoma
-    // <sbarthol@usgs.gov> said:
-    //
-    // Type I would put in something like "R" for raw and
-    // "C" for corrected depending on which get method was
-    // used. That is similar to what C (computed) and E
-    // (Edited) meant for DV data in Adaps.  We don't
-    // explicitly have the Meas, Edit, and Comp UV types
-    // anymore, they are separate timeseries in AQUARIUS.
+       On Tue, Sep 29, 2015 at 10:57 AM:
+      
+       Type I would put in something like "R" for raw and "C" for
+       corrected depending on which get method was used. That is
+       similar to what C (computed) and E (Edited) meant for DV data
+       in Adaps.  We don't explicitly have the Meas, Edit, and Comp UV
+       types anymore, they are separate timeseries in AQUARIUS.
+    */
     '\tC\t' + qa + '\n';
 
     return row;
@@ -744,7 +745,9 @@ httpdispatcher.onGet(
             function (timeSeriesDescriptions, callback) {
                 switch (timeSeriesDescriptions.length) {
                 case 0:
-                    // TODO: error callback
+                    /**
+                       @todo error callback
+                    */
                     break;
                 case 1:
                     timeSeriesUniqueId =
@@ -825,10 +828,12 @@ httpdispatcher.onGet(
                                     timeSeriesDescriptions[0].UniqueId;
                             }
                             else {
-                                // TODO: we should probably defer
-                                // production of header and heading
-                                // until after this check.
-
+                                /**
+                                   @todo We should probably defer
+                                         production of header and
+                                         heading until after this
+                                         check.
+                                */
                                 // raise error
                                 callback(
                                     'More than 1 primary time ' +
@@ -867,8 +872,10 @@ httpdispatcher.onGet(
             function (messageBody, callback) {
                 var stationNm, tzCd, localTimeFg;
 
-                // TODO: here we're parsing RDB, which is messy, and
-                // would be nice to encapsulate.
+                /**
+                   @todo Here we're parsing RDB, which is messy, and
+                         would be nice to encapsulate.
+                */
                 try {
                     // parse (station_nm,tz_cd,local_time_fg) from RDB
                     // response
