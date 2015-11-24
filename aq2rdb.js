@@ -1178,8 +1178,10 @@ function handleRequest(request, response) {
         // put error message in an RDB comment line
         var statusMessage = '# ' + PACKAGE_NAME + ': ' + error;
 
-        // TODO: need to make "statusCode" value [1st writeHead()
-        // argument] more robust here
+        /**
+           @todo Make "statusCode" value [hard-coded, 1st writeHead()
+                 argument] more robust here.
+        */
         response.writeHead(200, statusMessage,
                            {'Content-Length': statusMessage.length,
                             'Content-Type': 'text/plain'});
@@ -1196,6 +1198,8 @@ var server = http.createServer(handleRequest);
    @description Start listening for requests.
 */ 
 server.listen(PORT, function () {
-    console.log(PACKAGE_NAME + ': Server listening on: http://localhost:' +
-                PORT.toString());
+    console.log(
+        PACKAGE_NAME + ': Server listening on: http://localhost:' +
+            PORT.toString()
+    );
 });
