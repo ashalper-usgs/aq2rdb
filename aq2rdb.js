@@ -98,6 +98,7 @@ function jsonParseErrorMessage(response, message) {
 
 /**
    @description LocationIdentifier object prototype.
+   @class
 */
 var LocationIdentifier = function (text) {
     var text = text;
@@ -145,50 +146,6 @@ var LocationIdentifier = function (text) {
     }
 
 } // LocationIdentifier
-
-/**
-   @description ISO 8601 "basic format" date prototype.
-   @see https://en.wikipedia.org/wiki/ISO_8601#General_principles
-*/
-var BasicFormat = function (text) {
-    var text = text;
-
-    /**
-       @description Convert basic format date to extended format date.
-    */
-    function basicToExtended(text) {
-        return text.substr(0, 4) + '-' + text.substr(4, 2) + '-' +
-            text.substr(6, 2);
-    }
-
-    // re-format as ISO "extended format" for Date.parse() purposes
-    var datestring = basicToExtended(text);
-
-    if (isNaN(Date.parse(datestring))) {
-        throw 'Could not parse "' + text + '"';
-    }
-
-    /**
-       @description Convert ISO basic format to combined extended
-                    format, referenced to a specified point type.
-    */
-    this.toCombinedExtendedFormat = function (pointType) {
-        switch (pointType) {
-        case 'S':
-            // second
-            return basicToExtended(text) + 'T00:00:00';
-        }
-    } // toCombinedExtendedFormat
-
-    /**
-       @description Return string representation of BasicFormat
-                    object.
-    */
-    this.toString = function () {
-        return text;
-    } // toString
-
-} // BasicFormat
 
 /**
    @description Call a REST Web service with a query; send response
