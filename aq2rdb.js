@@ -89,7 +89,7 @@ function handle(error, response) {
     response.writeHead(statusCode, statusMessage,
                        {'Content-Length': statusMessage.length,
                         'Content-Type': 'text/plain'});
-    response.write(statusMessage, 'ascii');
+    response.end(statusMessage, 'ascii');
     return;
 } // handle
 
@@ -204,20 +204,6 @@ var LocationIdentifier = function (text) {
 } // LocationIdentifier
 
 /**
-   @function Boilerplate to check for a required HTTP query field.
-   @param {object} field The value of the HTTP query field to check.
-   @param {string} name The name of the HTTP query field to check.
-   @param {function} Callback function to pass error message to, if
-          necessary.
-*/
-function assertRequired(field, name, callback) {
-    if (field === undefined) {
-        callback('Required field "' + name + '" not found');
-        return;
-    }
-} // assertRequired
-
-/**
    @function Call a REST Web service with an HTTP query; send response
              via a callback.
    @param {string} host Host part of HTTP query URL.
@@ -280,7 +266,7 @@ function httpQuery(host, path, field, callback) {
 function getAQToken(userName, password, callback) {
 
     if (userName === undefined) {
-        callback('Required field "userName" is missing');
+        callback('Required field "userName" not found');
         return;
     }
 
@@ -290,7 +276,7 @@ function getAQToken(userName, password, callback) {
     }
 
     if (password === undefined) {
-        callback('Required field "password" is missing');
+        callback('Required field "password" not found');
         return;
     }
 
@@ -717,7 +703,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     return row;
 } // dvTableRow
 
-function distill(timeSeriesDescriptions, callback) {
+function distill(timeSeriesDescriptions, locationIdentifier, callback) {
     var timeSeriesUniqueId;
 
     switch (timeSeriesDescriptions.length) {
@@ -873,9 +859,15 @@ httpdispatcher.onGet(
                     }
                 }
                 
-                assertRequired(locationIdentifier,
-                              'LocationIdentifier', callback);
-                assertRequired(parameter, 'Parameter', callback);
+                if (locationIdentifier === undefined) {
+                    callback('Required field "LocationIdentifier" not found');
+                    return;
+                }
+
+                if (field.Parameter === undefined) {
+                    callback('Required field "Parameter" not found');
+                    return;
+                }
 
                 callback(null); // proceed to next waterfall
             },
@@ -968,7 +960,10 @@ httpdispatcher.onGet(
                          related daily values.
             */
             function (timeSeriesDescriptions, callback) {
-                timeSeriesUniqueId = distill(timeSeriesDescriptions);
+                timeSeriesUniqueId =
+                    distill(
+                        timeSeriesDescriptions, locationIdentifier, callback
+                    );
                 callback(null);
             },
             /**
@@ -1253,9 +1248,15 @@ httpdispatcher.onGet(
                     }
                 }
 
-                assertRequired(locationIdentifier,
-                              'LocationIdentifier', callback);
-                assertRequired(parameter, 'Parameter', callback);
+                if (locationIdentifier === undefined) {
+                    callback('Required field "LocationIdentifier" not found');
+                    return;
+                }
+
+                if (field.Parameter === undefined) {
+                    callback('Required field "Parameter" not found');
+                    return;
+                }
 
                 callback(null); // proceed to next waterfall
             },
@@ -1343,7 +1344,6 @@ httpdispatcher.onGet(
             if (error) {
                 handle(error, response);
             }
-            response.end();
         }
         ); // async.waterfall
     }
@@ -1358,7 +1358,6 @@ function handleRequest(request, response) {
     }
     catch (error) {
         handle(error, response);
-        response.end();
     }
 }
 
