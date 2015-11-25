@@ -42,22 +42,33 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 
 /**
-   @function Consolidated error message writer. Writes message in a
-             single-line, RDB comment.
-   @param {object} response aq2rdb IncomingMessage object created by
-          http.Server.
-   @param {number} statusCode HTTP status code to send with message.
-   @param {string} message Message to respond with as RDB comment
-          line.
+   @function Error handler.
+   @param {object} error "Error" object.
 */ 
-function rdbMessage(response, statusCode, message) {
-    var statusMessage = '# ' + PACKAGE_NAME + ': ' + message;
+function handle(error, response) {
+    var statusMessage, statusCode;
+
+    if (error.code === 'ECONNREFUSED') {
+        statusMessage = '# ' + PACKAGE_NAME +
+            ': Connection error; a common cause of this ' +
+            'is GetAQToken being unreachable';
+        /**
+           @description "Bad Gateway"
+           @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+        */
+        statusCode = 502;
+    }
+    else {
+        statusMessage = '# ' + PACKAGE_NAME + ': ' + message;
+        statusCode = 400;       // TODO: need to change
+    }
 
     response.writeHead(statusCode, statusMessage,
                        {'Content-Length': statusMessage.length,
                         'Content-Type': 'text/plain'});
-    response.end(statusMessage);
-}
+    response.write(statusMessage, 'ascii');
+    return;
+} // handle
 
 /**
    @function Convert an ISO 8601 extended format, date string to RFC
@@ -107,11 +118,13 @@ function bind(field, value) {
    @param {string} message Error message to display in an RDB comment.
 */ 
 function jsonParseErrorMessage(response, message) {
-    rdbMessage(
-        response, 502, 
-        'While trying to parse a JSON response from ' +
-            'AQUARIUS: ' + message
-    );
+    var statusMessage = 'While trying to parse a JSON response ' +
+        'from AQUARIUS: ' + message;
+
+    response.writeHead(502, statusMessage,
+                       {'Content-Length': statusMessage.length,
+                        'Content-Type': 'text/plain'});
+    response.write(statusMessage, 'ascii');
 }
 
 /**
@@ -1169,9 +1182,7 @@ httpdispatcher.onGet(
         */
         function (error) {
             if (error) {
-                var statusMessage =
-                    '# ' + PACKAGE_NAME + ': ' + error;
-                response.write(statusMessage, 'ascii');
+                handle(error, response);
             }
             response.end();
         }
@@ -1185,8 +1196,7 @@ httpdispatcher.onGet(
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetUVTable',
     function (request, response) {
-        var field;
-        var token;
+        var field, token, locationIdentifier;
 
         /**
            @see https://github.com/caolan/async
@@ -1249,12 +1259,9 @@ httpdispatcher.onGet(
         */
         function (error) {
             if (error) {
-                rdbMessage(response, 400, error);
-                return;
+                handle(error, response);
             }
-            else {
-                response.end();
-            }
+            response.end();
         }
         ); // async.waterfall
     }
