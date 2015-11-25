@@ -60,7 +60,11 @@ function handle(error, response) {
     }
     else {
         statusMessage = '# ' + PACKAGE_NAME + ': ' + message;
-        statusCode = 400;       // TODO: need to change
+        /**
+           @default HTTP error status code.
+           @todo It would be nice to refine this. Too generic now.
+        */
+        statusCode = 404;
     }
 
     response.writeHead(statusCode, statusMessage,
@@ -1275,17 +1279,8 @@ function handleRequest(request, response) {
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
-        // put error message in an RDB comment line
-        var statusMessage = '# ' + PACKAGE_NAME + ': ' + error;
-
-        /**
-           @todo Make "statusCode" value [hard-coded, 1st writeHead()
-                 argument] more robust here.
-        */
-        response.writeHead(200, statusMessage,
-                           {'Content-Length': statusMessage.length,
-                            'Content-Type': 'text/plain'});
-        response.end(statusMessage, 'ascii');
+        handle(error, response);
+        response.end();
     }
 }
 
