@@ -69,6 +69,14 @@ function handle(error, response) {
         console.log(PACKAGE_NAME + ': ' +
                     error.toString().replace(/: (\w+)/, ': "$1"'));
     }
+    else if (typeof error === 'string') {
+        statusMessage = '# ' + PACKAGE_NAME + ': ' + error;
+        /**
+           @default HTTP error status code.
+           @todo It would be nice to refine this. Too generic now.
+        */
+        statusCode = 404;
+    }
     else {
         statusMessage = '# ' + PACKAGE_NAME + ': ' + error.message;
         /**
@@ -202,12 +210,12 @@ var LocationIdentifier = function (text) {
    @param {function} Callback function to pass error message to, if
           necessary.
 */
-function checkRequired(field, name, callback) {
+function assertRequired(field, name, callback) {
     if (field === undefined) {
         callback('Required field "' + name + '" not found');
         return;
     }
-} // checkRequired
+} // assertRequired
 
 /**
    @function Call a REST Web service with an HTTP query; send response
@@ -709,6 +717,102 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     return row;
 } // dvTableRow
 
+function distill(timeSeriesDescriptions, callback) {
+    var timeSeriesUniqueId;
+
+    switch (timeSeriesDescriptions.length) {
+    case 0:
+        /**
+           @todo error callback
+        */
+        break;
+    case 1:
+        timeSeriesUniqueId = timeSeriesDescriptions[0].UniqueId;
+        break;
+    default:
+        /**
+           @description Filter out set of primary time series.
+        */
+        async.filter(
+            timeSeriesDescriptions,
+            /**
+               @function Primary time series filter iterator function.
+            */
+            function (timeSeriesDescription, callback) {
+                /**
+                   @description Detect
+                                {"Name": "PRIMARY_FLAG",
+                                 "Value": "Primary"} in
+                                 TimeSeriesDescription.ExtendedAttributes
+                */
+                async.detect(
+                    timeSeriesDescription.ExtendedAttributes,
+                    /**
+                       @function Primary time series, async.detect
+                                 truth value function.
+                    */
+                    function (extendedAttribute, callback) {
+                        // if this time series description is
+                        // (hopefully) the (only) primary one
+                        if (extendedAttribute.Name === 'PRIMARY_FLAG'
+                            &&
+                            extendedAttribute.Value === 'Primary') {
+                            callback(true);
+                        }
+                        else {
+                            callback(false);
+                        }
+                    },
+                    /**
+                       @function Primary time series, async.detect
+                                 final function.
+                    */
+                    function (result) {
+                        // notify async.filter that we...
+                        if (result === undefined) {
+                            // ...did not find a primary time series
+                            // description
+                            callback(false);
+                        }
+                        else {
+                            // ...found a primary time series
+                            // description
+                            callback(true);
+                        }
+                    }
+                );
+            },
+            /**
+               @function Check arity of primary time series
+                         descriptions returned from AQUARIUS
+                         GetTimeSeriesDescriptionList.
+            */
+            function (primaryTimeSeriesDescriptions) {
+                // if there is 1-and-only-1 primary time
+                // series description
+                if (primaryTimeSeriesDescriptions.length === 1) {
+                    timeSeriesUniqueId =
+                        timeSeriesDescriptions[0].UniqueId;
+                }
+                else {
+                    /**
+                       @todo We should probably defer production of
+                             header and heading until after this
+                             check.
+                    */
+                    // raise error
+                    callback(
+                        'More than 1 primary time series found for "' +
+                            locationIdentifier.toString() + '"'
+                    );
+                }
+            }
+        ); // async.filter
+    } // switch (timeSeriesDescriptions.length)
+
+    return timeSeriesUniqueId;
+} // distill
+
 /**
    @description GetDVTable service request handler.
 */
@@ -769,9 +873,9 @@ httpdispatcher.onGet(
                     }
                 }
                 
-                checkRequired(locationIdentifier,
+                assertRequired(locationIdentifier,
                               'LocationIdentifier', callback);
-                checkRequired(parameter, 'Parameter', callback);
+                assertRequired(parameter, 'Parameter', callback);
 
                 callback(null); // proceed to next waterfall
             },
@@ -864,108 +968,7 @@ httpdispatcher.onGet(
                          related daily values.
             */
             function (timeSeriesDescriptions, callback) {
-                switch (timeSeriesDescriptions.length) {
-                case 0:
-                    /**
-                       @todo error callback
-                    */
-                    break;
-                case 1:
-                    timeSeriesUniqueId =
-                        timeSeriesDescriptions[0].UniqueId;
-                    break;
-                default:
-                    /**
-                       @description Filter out set of primary time
-                                    series.
-                    */
-                    async.filter(
-                        timeSeriesDescriptions,
-                        /**
-                           @function Primary time series filter
-                                     iterator function.
-                        */
-                        function (timeSeriesDescription, callback) {
-                            /**
-                               @description Detect
-                                            {"Name": "PRIMARY_FLAG",
-                                             "Value": "Primary"} in
-                                       TimeSeriesDescription.ExtendedAttributes
-                            */
-                            async.detect(
-                                timeSeriesDescription.ExtendedAttributes,
-                                /**
-                                   @function Primary time series,
-                                             async.detect truth value
-                                             function.
-                                */
-                                function (extendedAttribute, callback) {
-                                    // if this time series description
-                                    // is (hopefully) the (only)
-                                    // primary
-                                    if (extendedAttribute.Name ===
-                                        'PRIMARY_FLAG'
-                                        &&
-                                        extendedAttribute.Value ===
-                                        'Primary') {
-                                        callback(true);
-                                    }
-                                    else {
-                                        callback(false);
-                                    }
-                                },
-                                /**
-                                   @function Primary time series,
-                                             async.detect final
-                                             function.
-                                */
-                                function (result) {
-                                    // notify async.filter that we...
-                                    if (result === undefined) {
-                                        // ...did not find a primary
-                                        // time series description
-                                        callback(false);
-                                    }
-                                    else {
-                                        // ...found a primary time
-                                        // series description
-                                        callback(true);
-                                    }
-                                }
-                            );
-                        },
-                        /**
-                           @function Check arity of primary time
-                                     series descriptions returned from
-                                     AQUARIUS
-                                     GetTimeSeriesDescriptionList.
-                        */
-                        function (primaryTimeSeriesDescriptions) {
-                            // if there is 1-and-only-1 primary time
-                            // series description
-                            if (primaryTimeSeriesDescriptions.length ===
-                                1) {
-                                timeSeriesUniqueId =
-                                    timeSeriesDescriptions[0].UniqueId;
-                            }
-                            else {
-                                /**
-                                   @todo We should probably defer
-                                         production of header and
-                                         heading until after this
-                                         check.
-                                */
-                                // raise error
-                                callback(
-                                    'More than 1 primary time ' +
-                                        'series found for "' +
-                                        locationIdentifier.toString() +
-                                        '"'
-                                );
-                            }
-                        }
-                    ); // async.filter
-                } // switch (timeSeriesDescriptions.length)
+                timeSeriesUniqueId = distill(timeSeriesDescriptions);
                 callback(null);
             },
             /**
@@ -1210,7 +1213,7 @@ httpdispatcher.onGet(
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetUVTable',
     function (request, response) {
-        var field, token, locationIdentifier;
+        var field, token, locationIdentifier, parameter;
 
         /**
            @see https://github.com/caolan/async
@@ -1239,7 +1242,7 @@ httpdispatcher.onGet(
                     }
                     else if (name === 'LocationIdentifier') {
                         locationIdentifier =
-                            new LocationIdentifier(field[name]);
+                            new LocationIdentifier(field.LocationIdentifier);
                     }
                     else if (name.match(/^(Parameter|QueryFrom|QueryTo)$/)) {
                         // AQUARIUS fields
@@ -1250,9 +1253,9 @@ httpdispatcher.onGet(
                     }
                 }
 
-                checkRequired(locationIdentifier,
+                assertRequired(locationIdentifier,
                               'LocationIdentifier', callback);
-                checkRequired(parameter, 'Parameter', callback);
+                assertRequired(parameter, 'Parameter', callback);
 
                 callback(null); // proceed to next waterfall
             },
