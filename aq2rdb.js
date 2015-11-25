@@ -48,6 +48,9 @@ var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 function handle(error, response) {
     var statusMessage, statusCode;
 
+    /**
+       @see https://nodejs.org/api/errors.html#errors_error_code
+    */
     if (error.code === 'ECONNREFUSED') {
         statusMessage = '# ' + PACKAGE_NAME +
             ': Connection error; a common cause of this ' +
@@ -57,6 +60,14 @@ function handle(error, response) {
            @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
         */
         statusCode = 502;
+    }
+    else if (error instanceof ReferenceError) {
+        statusMessage =
+            '# ' + PACKAGE_NAME + ': There is an undefined ' +
+            'reference on the ' + PACKAGE_NAME + ' server';
+        statusCode = 500;
+        console.log(PACKAGE_NAME + ': ' +
+                    error.toString().replace(/: (\w+)/, ': "$1"'));
     }
     else {
         statusMessage = '# ' + PACKAGE_NAME + ': ' + error.message;
@@ -760,7 +771,6 @@ httpdispatcher.onGet(
                 
                 checkRequired(locationIdentifier,
                               'LocationIdentifier', callback);
-
                 checkRequired(parameter, 'Parameter', callback);
 
                 callback(null); // proceed to next waterfall
@@ -1210,6 +1220,11 @@ httpdispatcher.onGet(
                @description Parse fields and values in GetUVTable URL.
             */
             function (callback) {
+                /**
+                   @todo GetUVTable endpoint documentation page gets
+                         served here.
+                */
+
                 try {
                     field = url.parse(request.url, true).query;
                 }
@@ -1234,6 +1249,11 @@ httpdispatcher.onGet(
                         return;
                     }
                 }
+
+                checkRequired(locationIdentifier,
+                              'LocationIdentifier', callback);
+                checkRequired(parameter, 'Parameter', callback);
+
                 callback(null); // proceed to next waterfall
             },
             /**
