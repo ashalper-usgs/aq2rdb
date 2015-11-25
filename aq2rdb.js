@@ -59,7 +59,7 @@ function handle(error, response) {
         statusCode = 502;
     }
     else {
-        statusMessage = '# ' + PACKAGE_NAME + ': ' + message;
+        statusMessage = '# ' + PACKAGE_NAME + ': ' + error.message;
         /**
            @default HTTP error status code.
            @todo It would be nice to refine this. Too generic now.
@@ -1120,7 +1120,7 @@ httpdispatcher.onGet(
             },
             /**
                @function Query AQUARIUS GetTimeSeriesCorrectedData
-                            to get related daily values.
+                         to get related daily values.
             */
             function (callback) {
                 try {
@@ -1136,8 +1136,8 @@ httpdispatcher.onGet(
             },
             /**
                @function Parse AQUARIUS
-                            TimeSeriesDataServiceResponse received
-                            from GetTimeSeriesCorrectedData service.
+                         TimeSeriesDataServiceResponse received
+                         from GetTimeSeriesCorrectedData service.
             */
             function (messageBody, callback) {
                 var timeSeriesDataServiceResponse;
@@ -1223,7 +1223,8 @@ httpdispatcher.onGet(
                         // GetAQToken fields
                     }
                     else if (name === 'LocationIdentifier') {
-                        locationIdentifier = new LocationIdentifier(name);
+                        locationIdentifier =
+                            new LocationIdentifier(field[name]);
                     }
                     else if (name.match(/^(Parameter|QueryFrom|QueryTo)$/)) {
                         // AQUARIUS fields
@@ -1254,6 +1255,60 @@ httpdispatcher.onGet(
             },
             function (messageBody, callback) {
                 token = messageBody;
+                callback(null);
+            },
+            /**
+               @function Query AQUARIUS GetTimeSeriesDescriptionList
+                         service to get list of AQUARIUS, time series
+                         UniqueIds related to aq2rdb, GetUVTable
+                         location and parameter.
+               @param {function} callback async.waterfall() callback
+                      function.
+            */
+            function (callback) {
+                try {
+                    httpQuery(
+                        AQUARIUS_HOSTNAME,
+                        AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList',
+                        {token: token, format: 'json',
+                         LocationIdentifier: locationIdentifier.toString(),
+                         Parameter: field.Parameter,
+                         // semantics here are: "Unknown" => "Unit Values"
+                         ComputationIdentifier: 'Unknown',
+                         ExtendedFilters:
+                         '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
+                        callback
+                    );
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+            },
+            /**
+               @function Receive response from AQUARIUS
+                         GetTimeSeriesDescriptionList, then parse list
+                         of related TimeSeriesDescriptions to query
+                         AQUARIUS GetTimeSeriesCorrectedData service.
+               @param {string} messageBody Message body part of
+                      HTTP response from GetTimeSeriesDescriptionList.
+            */
+            function (messageBody, callback) {
+                var timeSeriesDescriptionListServiceResponse;
+
+                try {
+                    timeSeriesDescriptionListServiceResponse =
+                        JSON.parse(messageBody);
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+
+                callback(
+                 null,
+                 timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
+                );
             }
         ],
         /**
