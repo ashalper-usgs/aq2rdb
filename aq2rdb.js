@@ -812,6 +812,24 @@ function distill(timeSeriesDescriptions, locationIdentifier, callback) {
 } // distill
 
 /**
+   @function Parse AQUARIUS TimeSeriesDataServiceResponse received
+             from GetTimeSeriesCorrectedData service.
+*/
+function parseTimeSeriesDataServiceResponse(messageBody, callback) {
+    var timeSeriesDataServiceResponse;
+
+    try {
+        timeSeriesDataServiceResponse = JSON.parse(messageBody);
+    }
+    catch (error) {
+        callback(error);
+        return;
+    }
+
+    callback(null, timeSeriesDataServiceResponse);
+} // parsetimeSeriesDataServiceResponse
+
+/**
    @description GetDVTable service request handler.
 */
 httpdispatcher.onGet(
@@ -1154,25 +1172,11 @@ httpdispatcher.onGet(
                     return;
                 }
             },
-            /**
-               @function Parse AQUARIUS
-                         TimeSeriesDataServiceResponse received
-                         from GetTimeSeriesCorrectedData service.
-            */
-            function (messageBody, callback) {
-                var timeSeriesDataServiceResponse;
-
-                try {
-                    timeSeriesDataServiceResponse =
-                        JSON.parse(messageBody);
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                callback(null, timeSeriesDataServiceResponse);
-            },
+            // This function is defined at the global scope because it
+            // is required in more than one async.waterfall() call;
+            // see parseTimeSeriesDataServiceResponse initializer
+            // assignment above.
+            parseTimeSeriesDataServiceResponse,
             /**
                @function Write each RDB row to HTTP response.
             */
@@ -1375,7 +1379,33 @@ httpdispatcher.onGet(
                 callback(null, timeSeriesUniqueId);
             },
             function (timeSeriesUniqueId, callback) {
-                console.log('timeSeriesUniqueId: ' + timeSeriesUniqueId);
+                try {
+                    getTimeSeriesCorrectedData(
+                        token, timeSeriesUniqueId,
+                        field.QueryFrom, field.QueryTo, callback
+                    );
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+            },
+            parseTimeSeriesDataServiceResponse,
+            function (timeSeriesDataServiceResponse, callback) {
+                async.each(
+                    timeSeriesDataServiceResponse.Points,
+                    /**
+                       @description Write an RDB row for one time
+                                    series point.
+                    */
+                    function (point, callback) {
+                        response.write(
+                            point.Timestamp + '\t' +
+                                point.Value.Numeric + '\n'
+                        );
+                        callback(null);
+                    }
+                );
                 callback(null);
             }
         ],
