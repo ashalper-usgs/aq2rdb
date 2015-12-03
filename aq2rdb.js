@@ -1348,9 +1348,11 @@ httpdispatcher.onGet(
             },
             /**
                @function For each AQUARIUS time series description,
-                         ...TODO...
+                         weed out non-UV, and non-primary ones.
             */
             function (timeSeriesDescriptions, callback) {
+                var timeSeriesUniqueId;
+
                 async.filter(
                     timeSeriesDescriptions,
                     function (timeSeriesDescription, callback) {
@@ -1363,17 +1365,17 @@ httpdispatcher.onGet(
                         }
                     },
                     function (uvTimeSeriesDescriptions) {
-                        async.each(
-                            uvTimeSeriesDescriptions,
-                            function (uvTimeSeriesDescription, callback) {
-                                // TODO:
-                                console.log(
-                                    uvTimeSeriesDescription.Description
-                                );
-                            }
-                        );
+                        timeSeriesUniqueId =
+                            distill(
+                                uvTimeSeriesDescriptions,
+                                locationIdentifier, callback
+                            );
                     }
                 );
+                callback(null, timeSeriesUniqueId);
+            },
+            function (timeSeriesUniqueId, callback) {
+                console.log('timeSeriesUniqueId: ' + timeSeriesUniqueId);
                 callback(null);
             }
         ],
