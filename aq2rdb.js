@@ -1333,6 +1333,20 @@ httpdispatcher.onGet(
                  null,
                  timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
                 );
+            },
+            /**
+               @function For each AQUARIUS time series description,
+                         ...TODO...
+            */
+            function (timeSeriesDescriptions, callback) {
+                async.each(
+                    timeSeriesDescriptions,
+                    function (timeSeriesDescription, callback) {
+                        console.log(JSON.stringify(timeSeriesDescription));
+                        callback(null);
+                    }
+                );
+                callback(null);
             }
         ],
         /**
@@ -1344,6 +1358,7 @@ httpdispatcher.onGet(
             if (error) {
                 handle(error, response);
             }
+            response.end();
         }
         ); // async.waterfall
     }
