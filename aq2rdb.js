@@ -1339,11 +1339,27 @@ httpdispatcher.onGet(
                          ...TODO...
             */
             function (timeSeriesDescriptions, callback) {
-                async.each(
+                async.filter(
                     timeSeriesDescriptions,
                     function (timeSeriesDescription, callback) {
-                        console.log(JSON.stringify(timeSeriesDescription));
-                        callback(null);
+                        if (timeSeriesDescription.ComputationPeriodIdentifier
+                            === 'Unknown') {
+                            callback(true);
+                        }
+                        else {
+                            callback(false);
+                        }
+                    },
+                    function (uvTimeSeriesDescriptions) {
+                        async.each(
+                            uvTimeSeriesDescriptions,
+                            function (uvTimeSeriesDescription, callback) {
+                                // TODO:
+                                console.log(
+                                    uvTimeSeriesDescription.Description
+                                );
+                            }
+                        );
                     }
                 );
                 callback(null);
