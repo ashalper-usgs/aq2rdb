@@ -703,6 +703,18 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     return row;
 } // dvTableRow
 
+/**
+   @function Distill a set of time series descriptions into
+             (hopefully) one to query for a set of time series
+             date/value pairs.
+   @param {object} timeSeriesDescriptions An array of AQUARIUS
+                   TimeSeriesDescription objects.
+   @param {object} locationIdentifier A LocationIdentifier object.
+   @param {function} callback Callback function to call if/when
+                     one-and-only-one candidate TimeSeriesDescription
+                     object is found, or, to call with node-async,
+                     raise error convention.
+*/
 function distill(timeSeriesDescriptions, locationIdentifier, callback) {
     var timeSeriesUniqueId;
 
