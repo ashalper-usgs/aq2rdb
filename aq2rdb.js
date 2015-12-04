@@ -830,6 +830,58 @@ function parseTimeSeriesDataServiceResponse(messageBody, callback) {
 } // parsetimeSeriesDataServiceResponse
 
 /**
+   @function Query USGS Site Web Service.
+*/
+function requestSite(locationIdentifier, callback) {
+    try {
+        httpQuery(
+            'waterservices.usgs.gov', '/nwis/site/',
+            {format: 'rdb',
+             sites: locationIdentifier.toString(),
+             siteOutput: 'expanded'}, callback
+        );
+    }
+    catch (error) {
+        callback(error);
+    }
+    return;
+} // requestSite
+
+/**
+   @function Receive and parse response from USGS Site Web Service.
+*/
+function receiveSite(messageBody, callback) {
+    var site = new Object;
+
+    /**
+       @todo Here we're parsing RDB, which is messy, and would be nice
+             to encapsulate.
+    */
+    try {
+        // parse (station_nm,tz_cd,local_time_fg) from RDB
+        // response
+        var row = messageBody.split('\n');
+        // RDB column names
+        var columnName = row[row.length - 4].split('\t');
+        // site column values are in last row of table
+        var siteField = row[row.length - 2].split('\t');
+
+        // values that are used in the aq2rdb RDB header
+        site.stationNm =
+            siteField[columnName.indexOf('station_nm')];
+        site.tzCd = siteField[columnName.indexOf('tz_cd')];
+        site.localTimeFg =
+            siteField[columnName.indexOf('local_time_fg')];
+    }
+    catch (error) {
+        callback(error);
+        return;
+    }
+
+    callback(null, site);
+} // receiveSite
+
+/**
    @description GetDVTable service request handler.
 */
 httpdispatcher.onGet(
@@ -996,60 +1048,12 @@ httpdispatcher.onGet(
                     );
                 callback(null);
             },
-            /**
-               @function Query USGS Site Web Service.
-            */
-            function (callback) {
-                try {
-                    httpQuery(
-                        'waterservices.usgs.gov', '/nwis/site/',
-                        {format: 'rdb',
-                         sites: locationIdentifier.toString(),
-                         siteOutput: 'expanded'}, callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-            },
-            /**
-               @function Receive and parse response from USGS Site Web
-                         Service.
-            */
-            function (messageBody, callback) {
-                var stationNm, tzCd, localTimeFg;
-
-                /**
-                   @todo Here we're parsing RDB, which is messy, and
-                         would be nice to encapsulate.
-                */
-                try {
-                    // parse (station_nm,tz_cd,local_time_fg) from RDB
-                    // response
-                    var row = messageBody.split('\n');
-                    // RDB column names
-                    var columnName = row[row.length - 4].split('\t');
-                    // site column values are in last row of table
-                    var siteField = row[row.length - 2].split('\t');
-
-                    // values that are used in the aq2rdb RDB header
-                    stationNm =
-                        siteField[columnName.indexOf('station_nm')];
-                    tzCd = siteField[columnName.indexOf('tz_cd')];
-                    localTimeFg =
-                        siteField[columnName.indexOf('local_time_fg')];
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-                callback(null, stationNm, tzCd, localTimeFg);
-            },
+            requestSite(locationIdentifier, callback),
+            receiveSite(messageBody, callback),
             /**
                @function Write RDB header and heading.
             */
-            function (stationNm, tzCd, localTimeFg, callback) {
+            function (site, callback) {
                 async.series([
                     /**
                        @function Write HTTP response header.
@@ -1077,7 +1081,7 @@ httpdispatcher.onGet(
                         var header = rdbHeader(
                             locationIdentifier.agencyCode(),
                             locationIdentifier.siteNumber(),
-                            stationNm, tzCd, localTimeFg,
+                            site.stationNm, site.tzCd, site.localTimeFg,
                             field.SubLocationIdentifer,
                             {start: start, end: end}
                         );
@@ -1295,6 +1299,17 @@ httpdispatcher.onGet(
             },
             function (messageBody, callback) {
                 token = messageBody;
+                callback(null, locationIdentifier);
+            },
+            /**
+               @todo requestSite() and receiveSite() can be done in
+                     parallel with the requesting/receiving of time
+                     series descriptions below.
+            */
+            requestSite,
+            receiveSite,
+            function (site, callback) {
+                console.log(JSON.stringify(site));
                 callback(null);
             },
             /**
