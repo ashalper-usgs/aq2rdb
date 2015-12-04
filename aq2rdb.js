@@ -458,10 +458,7 @@ function getLocationData(token, locationIdentifier, callback) {
    @param {string} subLocationIdentifer Sublocation identifier.
    @param {object} range Time series query date range.
 */
-function rdbHeader(
-    agencyCode, siteNumber, stationName, timeZone, dstFlag,
-    subLocationIdentifer, range
-) {
+function rdbHeader(site, subLocationIdentifer, range) {
     // some convoluted syntax for "now"
     var retrieved = toBasicFormat((new Date()).toISOString());
 
@@ -543,10 +540,11 @@ function rdbHeader(
         ' UTC\n' +
         '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
         'EDITABLE=NO\n' +
-        '# //STATION AGENCY="' + agencyCode +
-        '" NUMBER="' + siteNumber + '       " ' +
-        'TIME_ZONE="' + timeZone + '" DST_FLAG=' + dstFlag + '\n' +
-        '# //STATION NAME="' + stationName + '"\n';
+        '# //STATION AGENCY="' + site.agencyCode +
+        '" NUMBER="' + site.number + '       " ' +
+        'TIME_ZONE="' + site.tzCode + '" DST_FLAG=' +
+        site.localTimeFlag + '\n' +
+        '# //STATION NAME="' + site.name + '"\n';
 
     /**
        @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
@@ -866,12 +864,12 @@ function receiveSite(messageBody, callback) {
         // site column values are in last row of table
         var siteField = row[row.length - 2].split('\t');
 
-        // values that are used in the aq2rdb RDB header
-        site.stationNm =
-            siteField[columnName.indexOf('station_nm')];
-        site.tzCd = siteField[columnName.indexOf('tz_cd')];
-        site.localTimeFg =
-            siteField[columnName.indexOf('local_time_fg')];
+        // the necessary site fields
+        site.agencyCode = siteField[columnName.indexOf('agency_cd')];
+        site.number = siteField[columnName.indexOf('site_no')];
+        site.name = siteField[columnName.indexOf('station_nm')];
+        site.tzCode = siteField[columnName.indexOf('tz_cd')];
+        site.localTimeFlag = siteField[columnName.indexOf('local_time_fg')];
     }
     catch (error) {
         callback(error);
@@ -1079,10 +1077,7 @@ httpdispatcher.onGet(
                         }
 
                         var header = rdbHeader(
-                            locationIdentifier.agencyCode(),
-                            locationIdentifier.siteNumber(),
-                            site.stationNm, site.tzCd, site.localTimeFg,
-                            field.SubLocationIdentifer,
+                            site, field.SubLocationIdentifer,
                             {start: start, end: end}
                         );
                         response.write(header, 'ascii');
@@ -1309,7 +1304,14 @@ httpdispatcher.onGet(
             requestSite,
             receiveSite,
             function (site, callback) {
-                console.log(JSON.stringify(site));
+                response.write(
+                    rdbHeader(
+                        site, undefined,
+                        {start: toNWISFormat(field.QueryFrom),
+                         end: toNWISFormat(field.QueryTo)}
+                    ),
+                    'ascii'
+                );
                 callback(null);
             },
             /**
