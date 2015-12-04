@@ -1433,6 +1433,7 @@ httpdispatcher.onGet(
                         response.write(
                             toNWISDateFormat(point.Timestamp) + '\t' +
                                 toNWISTimeFormat(point.Timestamp) + '\t' +
+                                point.Timestamp.match(/\D\d\d:\d\d$/) + '\t' +
                                 point.Value.Numeric + '\n'
                         );
                         callback(null);
