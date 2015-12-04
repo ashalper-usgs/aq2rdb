@@ -463,6 +463,8 @@ function getLocationData(token, locationIdentifier, callback) {
 
 /**
    @function Create RDB header block.
+   @param {string} fileType Type of time series data (e.g. "NWIS-I
+          DAILY-VALUES").
    @param {string} agencyCode Site agency code.
    @param {string} siteNumber Site number.
    @param {string} stationName Site name (a.k.a. station name).
@@ -471,7 +473,7 @@ function getLocationData(token, locationIdentifier, callback) {
    @param {string} subLocationIdentifer Sublocation identifier.
    @param {object} range Time series query date range.
 */
-function rdbHeader(site, subLocationIdentifer, range) {
+function rdbHeader(fileType, site, subLocationIdentifer, range) {
     // some convoluted syntax for "now"
     var retrieved = toBasicFormat((new Date()).toISOString());
 
@@ -543,7 +545,8 @@ function rdbHeader(site, subLocationIdentifer, range) {
           the logic for emulating this old ADAPS format likely would
           get messy in a hurry.
     */
-    var header = '# //UNITED STATES GEOLOGICAL SURVEY       ' +
+    var header =
+        '# //UNITED STATES GEOLOGICAL SURVEY       ' +
         'http://water.usgs.gov/\n' +
         '# //NATIONAL WATER INFORMATION SYSTEM     ' +
         'http://water.usgs.gov/data.html\n' +
@@ -551,8 +554,7 @@ function rdbHeader(site, subLocationIdentifer, range) {
         'PUBLISHED BY USGS\n' +
         '# //RETRIEVED: ' + retrieved.substr(0, retrieved.length - 1) +
         ' UTC\n' +
-        '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
-        'EDITABLE=NO\n' +
+        '# //FILE TYPE="' + fileType + '" ' + 'EDITABLE=NO\n' +
         '# //STATION AGENCY="' + site.agencyCode +
         '" NUMBER="' + site.number + '       " ' +
         'TIME_ZONE="' + site.tzCode + '" DST_FLAG=' +
@@ -1081,7 +1083,8 @@ httpdispatcher.onGet(
                         }
 
                         var header = rdbHeader(
-                            site, field.SubLocationIdentifer,
+                            'NWIS-I DAILY-VALUES', site,
+                            field.SubLocationIdentifer,
                             {start: start, end: end}
                         );
                         response.write(header, 'ascii');
@@ -1313,7 +1316,7 @@ httpdispatcher.onGet(
             function (site, callback) {
                 response.write(
                     rdbHeader(
-                        site, undefined,
+                        'NWIS-I UNIT-VALUES', site, undefined,
                         {start: toNWISDateFormat(field.QueryFrom),
                          end: toNWISDateFormat(field.QueryTo)}
                     ),
@@ -1430,11 +1433,19 @@ httpdispatcher.onGet(
                                     series point.
                     */
                     function (point, callback) {
+                        /**
+                           @todo Time zone code here needs to be
+                                 mapped to the NWIS time zone codes
+                                 (e.g. "MST", "MDT", "CST", "CDT",
+                                 etc.). Also need to find out what to
+                                 put in REMARK, FLAGS, and QA columns.
+                        */
                         response.write(
                             toNWISDateFormat(point.Timestamp) + '\t' +
                                 toNWISTimeFormat(point.Timestamp) + '\t' +
                                 point.Timestamp.match(/\D\d\d:\d\d$/) + '\t' +
-                                point.Value.Numeric + '\n'
+                                point.Value.Numeric + '\t' +
+                                point.Value.Numeric.toString().length + '\n'
                         );
                         callback(null);
                     }
