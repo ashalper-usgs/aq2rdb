@@ -108,7 +108,7 @@ function toBasicFormat(s) {
              common NWIS date type.
    @param {string} timestamp AQUARIUS Timestamp string to convert.
 */
-function toNWISFormat(timestamp) {
+function toNWISDateFormat(timestamp) {
     var date;
 
     try {
@@ -119,7 +119,7 @@ function toNWISFormat(timestamp) {
     }
 
     return timestamp.split('T')[0].replace(/-/g, '');
-} // toNWISFormat
+} // toNWISDateFormat
 
 /**
    @function Create a valid HTTP query field/value pair substring.
@@ -606,7 +606,7 @@ function rdbHeader(site, subLocationIdentifer, range) {
    @param {string} qa QA code.
 */
 function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
-    var row = toNWISFormat(timestamp) +
+    var row = toNWISDateFormat(timestamp) +
         // TIME column will always be empty for daily values
         '\t\t' + value + '\t';
 
@@ -1060,11 +1060,11 @@ httpdispatcher.onGet(
                         var start, end;
 
                         if (field.QueryFrom !== undefined) {
-                            start = toNWISFormat(field.QueryFrom);
+                            start = toNWISDateFormat(field.QueryFrom);
                         }
 
                         if (field.QueryTo !== undefined) {
-                            end = toNWISFormat(field.QueryTo);
+                            end = toNWISDateFormat(field.QueryTo);
                         }
 
                         var header = rdbHeader(
@@ -1301,8 +1301,8 @@ httpdispatcher.onGet(
                 response.write(
                     rdbHeader(
                         site, undefined,
-                        {start: toNWISFormat(field.QueryFrom),
-                         end: toNWISFormat(field.QueryTo)}
+                        {start: toNWISDateFormat(field.QueryFrom),
+                         end: toNWISDateFormat(field.QueryTo)}
                     ),
                     'ascii'
                 );
@@ -1418,7 +1418,7 @@ httpdispatcher.onGet(
                     */
                     function (point, callback) {
                         response.write(
-                            point.Timestamp + '\t' +
+                            toNWISDateFormat(point.Timestamp) + '\t' +
                                 point.Value.Numeric + '\n'
                         );
                         callback(null);
