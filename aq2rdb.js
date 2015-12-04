@@ -121,6 +121,19 @@ function toNWISDateFormat(timestamp) {
     return timestamp.split('T')[0].replace(/-/g, '');
 } // toNWISDateFormat
 
+function toNWISTimeFormat(timestamp) {
+    var date;
+
+    try {
+        date = new Date(timestamp);
+    }
+    catch (error) {
+        throw error;
+    }
+
+    return timestamp.split(/[T.]/)[1].replace(/:/g, '')
+} // toNWISTimeFormat
+
 /**
    @function Create a valid HTTP query field/value pair substring.
    @param {string} field An HTTP query field name.
@@ -1419,6 +1432,7 @@ httpdispatcher.onGet(
                     function (point, callback) {
                         response.write(
                             toNWISDateFormat(point.Timestamp) + '\t' +
+                                toNWISTimeFormat(point.Timestamp) + '\t' +
                                 point.Value.Numeric + '\n'
                         );
                         callback(null);
