@@ -595,15 +595,6 @@ function rdbHeader(site, subLocationIdentifer, range) {
 } // rdbHeader
 
 /**
-   @function Produce daily values, RDB table heading (which is
-             different than a header).
-*/
-function rdbHeading() {
-    return 'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
-        '8D\t6S\t16N\t1S\t32S\t1S\t1S\n';
-} // rdbHeading
-
-/**
    @function Create RDB, DV table row.
    @param {string} timestamp AQUARIUS timestamp string.
    @param {string} value Time series daily value.
@@ -1089,7 +1080,10 @@ httpdispatcher.onGet(
                                  response.
                     */
                     function (callback) {
-                        response.write(rdbHeading(), 'ascii');
+                        response.write(
+                            'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
+                                '8D\t6S\t16N\t1S\t32S\t1S\t1S\n', 'ascii'
+                        );
                         callback(null);
                     }
                 ]);
@@ -1311,6 +1305,13 @@ httpdispatcher.onGet(
                          end: toNWISFormat(field.QueryTo)}
                     ),
                     'ascii'
+                );
+                callback(null);
+            },
+            function (callback) {
+                response.write(
+                    'DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n' +
+                        '8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n', 'ascii'
                 );
                 callback(null);
             },
