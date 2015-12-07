@@ -885,6 +885,41 @@ function receiveSite(messageBody, callback) {
     callback(null, site);
 } // receiveSite
 
+httpdispatcher.onGet(
+    '/' + PACKAGE_NAME + '/GetTZ',
+    function (request, response) {
+        var field;
+
+        /**
+           @function Parse fields and values in GetTZ URL.
+        */
+
+        // if this is a documentation request
+        if (request.url === '/' + PACKAGE_NAME + '/GetTZ') {
+            // read and serve the documentation page
+            fs.readFile('doc/GetTZ.html', function (error, html) {
+                if (error) {
+                    callback(error);
+                    return;
+                }       
+                response.writeHeader(
+                    200, {"Content-Type": "text/html"}
+                );  
+                response.end(html);
+            });
+            return;
+        }
+
+        try {
+            field = url.parse(request.url, true).query;
+        }
+        catch (error) {
+            callback(error);
+            return;
+        }
+    }
+); // GetTZ
+
 /**
    @description GetDVTable service request handler.
 */
@@ -1324,6 +1359,13 @@ httpdispatcher.onGet(
                 );
                 callback(null);
             },
+            /**
+               @todo Query NWIS TZ table data here (probably via a
+                     self-referential Web service query as an interim
+                     measure), to find offset associated with
+                     site.tzCd, so we can reference UV times to "local
+                     time".
+            */
             function (callback) {
                 response.write(
                     'DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n' +
