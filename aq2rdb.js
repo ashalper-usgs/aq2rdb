@@ -16,6 +16,7 @@ var url = require('url');
 */
 var async = require('async');
 var fs = require('fs');
+var moment = require('moment-timezone');
 
 /**
    @description The aq2rdb Web service name.
@@ -1268,7 +1269,7 @@ httpdispatcher.onGet(
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetUVTable',
     function (request, response) {
-        var field, token, locationIdentifier, parameter;
+        var field, token, locationIdentifier, site, parameter;
 
         /**
            @see https://github.com/caolan/async
@@ -1348,7 +1349,8 @@ httpdispatcher.onGet(
             */
             requestSite,
             receiveSite,
-            function (site, callback) {
+            function (receivedSite, callback) {
+                site = receivedSite; // set global
                 response.write(
                     rdbHeader(
                         'NWIS-I UNIT-VALUES', site, undefined,
@@ -1475,17 +1477,41 @@ httpdispatcher.onGet(
                                     series point.
                     */
                     function (point, callback) {
-                        /**
-                           @todo Time zone code here needs to be
-                                 mapped to the NWIS time zone codes
-                                 (e.g. "MST", "MDT", "CST", "CDT",
-                                 etc.). Also need to find out what to
-                                 put in REMARK, FLAGS, and QA columns.
-                        */
+                        var d, tzCode;
+
+                        // if site's time series data is expressed in
+                        // local time
+                        if (site.localTimeFlag === 'Y') {
+                            try {
+                                /**
+                                   @todo Still need to reference
+                                         point.Timestamp to local time
+                                         here; this only computes the
+                                         time zone code, not the
+                                         correct time.
+                                */
+                                d = new Date(point.Timestamp);
+                                tzCode =
+                                    moment.tz.zone(site.tzCode).abbr(d);
+                            }
+                            catch (error) {
+                                callback(error);
+                            }
+                        }
+                        else if (site.localTimeFlag === 'N')
+                            // site's time series data is not
+                            // expressed in local time
+                            tzCode = site.tzCode;
+                        else
+                            callback(
+                                'Invalid local time flag "' +
+                                    site.localTimeFlag + '"'
+                            );
+
                         response.write(
                             toNWISDateFormat(point.Timestamp) + '\t' +
                                 toNWISTimeFormat(point.Timestamp) + '\t' +
-                                point.Timestamp.match(/\D\d\d:\d\d$/) + '\t' +
+                                tzCode + '\t' +
                                 point.Value.Numeric + '\t' +
                                 point.Value.Numeric.toString().length + '\n'
                         );
