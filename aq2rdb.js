@@ -43,6 +43,43 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 
 /**
+   @description A mapping of select NWIS time zone codes to IANA time
+                zone names. This is not a complete enumeration of the
+                time zones defined in the NWIS TZ table, but the time
+                zone abbreviations known (presently) to be related to
+                sites in NATDB.
+   @constant
+*/
+var tzName = Object();
+tzName['AFT'] =   {N: 'Asia/Kabul', Y: 'Asia/Kabul'};
+tzName['AKST'] =  {N: 'Etc/GMT-9',  Y: 'America/Anchorage'};
+tzName['AST'] =   {N: 'Etc/GMT-4',  Y: 'America/Glace_Bay'};
+tzName['AWST'] =  {N: 'Etc/GMT+4',  Y: 'Australia/Perth'};
+tzName['BT'] =    {N: 'Etc/GMT+3',  Y: 'Asia/Baghdad'};
+tzName['CST'] =   {N: 'Etc/GMT-6',  Y: 'America/Chicago'};
+tzName['DST'] =   {N: 'Etc/GMT+1',  Y: 'Etc/GMT+1'};
+tzName['EET'] =   {N: 'Etc/GMT+2',  Y: 'Europe/Athens'};
+tzName['EST'] =   {N: 'Etc/GMT-5',  Y: 'America/New_York'};
+tzName['GMT'] =   {N: 'Etc/GMT+0',  Y: 'Europe/London'};
+tzName['GST'] =   {N: 'Etc/GMT+10', Y: 'Pacific/Guam'};
+tzName['HST'] =   {N: 'Etc/GMT-10', Y: 'HST'};
+tzName['IDLE'] =  {N: 'Etc/GMT+12', Y: 'Etc/GMT+12'};
+tzName['JST'] =   {N: 'Etc/GMT+9',  Y: 'Asia/Tokyo'};
+tzName['MST'] =   {N: 'Etc/GMT-7',  Y: 'America/Denver'};
+tzName['NST'] =   {N:  undefined,   Y: 'America/St_Johns'};
+tzName['NZT'] =   {N: 'Etc/GMT+12', Y: 'NZ'};
+tzName['PST'] =   {N: 'Etc/GMT-8',  Y: 'America/Los_Angeles'};
+tzName['SAT'] =   {N:  undefined,   Y: 'Australia/Adelaide'};
+tzName['UTC'] =   {N: 'Etc/GMT+0',  Y: 'Etc/GMT+0'};
+tzName['WAST'] =  {N: 'Etc/GMT+7',  Y: 'Indian/Christmas'};
+tzName['WAT'] =   {N: 'Etc/GMT+1',  Y: 'Africa/Bangui'};
+tzName['ZP-11'] = {N: 'Etc/GMT-11', Y: 'Etc/GMT-11'};
+tzName['ZP11'] =  {N: 'Etc/GMT+11', Y: 'Etc/GMT+11'};
+tzName['ZP4'] =   {N: 'Etc/GMT+4',  Y: 'Etc/GMT+4'};
+tzName['ZP5'] =   {N: 'Etc/GMT+5',  Y: 'Etc/GMT+5'};
+tzName['ZP6'] =   {N: 'Etc/GMT+6',  Y: 'Etc/GMT+6'};
+
+/**
    @function Error handler.
    @param {object} error "Error" object.
 */ 
@@ -1477,41 +1514,29 @@ httpdispatcher.onGet(
                                     series point.
                     */
                     function (point, callback) {
-                        var d, tzCode;
+                        var d;
 
-                        // if site's time series data is expressed in
-                        // local time
-                        if (site.localTimeFlag === 'Y') {
-                            try {
-                                /**
-                                   @todo Still need to reference
-                                         point.Timestamp to local time
-                                         here; this only computes the
-                                         time zone code, not the
-                                         correct time.
-                                */
-                                d = new Date(point.Timestamp);
-                                tzCode =
-                                    moment.tz.zone(site.tzCode).abbr(d);
-                            }
-                            catch (error) {
-                                callback(error);
-                            }
+                        try {
+                            /**
+                               @todo Still need to reference
+                               point.Timestamp to local time
+                               here; this only computes the
+                               time zone code, not the
+                               correct time.
+                            */
+                            d = new Date(point.Timestamp);
                         }
-                        else if (site.localTimeFlag === 'N')
-                            // site's time series data is not
-                            // expressed in local time
-                            tzCode = site.tzCode;
-                        else
-                            callback(
-                                'Invalid local time flag "' +
-                                    site.localTimeFlag + '"'
-                            );
+                        catch (error) {
+                            callback(error);
+                            return;
+                        }
 
                         response.write(
                             toNWISDateFormat(point.Timestamp) + '\t' +
                                 toNWISTimeFormat(point.Timestamp) + '\t' +
-                                tzCode + '\t' +
+                                moment.tz.zone(
+                                    tzName[site.tzCode][site.localTimeFlag]
+                                ).abbr(d) + '\t' +
                                 point.Value.Numeric + '\t' +
                                 point.Value.Numeric.toString().length + '\n'
                         );
