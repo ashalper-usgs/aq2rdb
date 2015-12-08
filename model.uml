@@ -3,7 +3,6 @@
   <packageImport xmi:type="uml:PackageImport" xmi:id="_TEz1UGOfEeW6x4SviYVDbQ">
     <importedPackage xmi:type="uml:Model" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#_0"/>
   </packageImport>
-  <packagedElement xmi:type="uml:Activity" xmi:id="_S8tpQGOfEeW6x4SviYVDbQ" name="Activity1"/>
   <packagedElement xmi:type="uml:DataType" xmi:id="_17K6sGbVEeW2ybKigGMHUA" name="Object"/>
   <packagedElement xmi:type="uml:DataType" xmi:id="_EqLFwGbWEeW2ybKigGMHUA" name="Array"/>
   <packagedElement xmi:type="uml:Package" xmi:id="_EzMpcGbXEeW2ybKigGMHUA" name="http">
@@ -201,6 +200,34 @@
     <packagedElement xmi:type="uml:Dependency" xmi:id="_grz2YGeYEeWJu7PhhXLrqQ" name="StatisticalTimeRange.endTime" client="_wWGMsGeSEeWJu7PhhXLrqQ" supplier="_B0Kz0GeYEeWJu7PhhXLrqQ"/>
     <packagedElement xmi:type="uml:DataType" xmi:id="_p1940GeYEeWJu7PhhXLrqQ" name="DateTimeOffset"/>
     <packagedElement xmi:type="uml:Dependency" xmi:id="_uxO48GeYEeWJu7PhhXLrqQ" name="StatisticalDateTimeOffset.dateTimeOffset" client="_B0Kz0GeYEeWJu7PhhXLrqQ" supplier="_p1940GeYEeWJu7PhhXLrqQ"/>
+    <packagedElement xmi:type="uml:Interface" xmi:id="_0oCtYJ0kEeW0_5GYJNErLQ" name="GetUVTableEndpoint" isAbstract="true">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_CjjmAJ0lEeW0_5GYJNErLQ" name="userName" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_IDzigJ0lEeW0_5GYJNErLQ" name="password" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_NmfvAJ0lEeW0_5GYJNErLQ" name="LocationIdentifier" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_gXwOkJ0lEeW0_5GYJNErLQ" name="Parameter" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_1YYIsJ0lEeW0_5GYJNErLQ" name="QueryFrom" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_5byTwJ0lEeW0_5GYJNErLQ" name="QueryTo" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="_ApXUwJ0mEeW0_5GYJNErLQ" name="GetUVTableHeader" isAbstract="true">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_SperQJ0mEeW0_5GYJNErLQ" name="fileType" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_ZBR60J0mEeW0_5GYJNErLQ" name="site" type="_hvmq8J0oEeW0_5GYJNErLQ"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_uUcWcJ0mEeW0_5GYJNErLQ" name="subLocationIdentifer" type="_hhmHkGbXEeW2ybKigGMHUA">
+        <lowerValue xmi:type="uml:LiteralInteger" xmi:id="_84cLYJ0mEeW0_5GYJNErLQ"/>
+        <upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="_84cycJ0mEeW0_5GYJNErLQ" value="1"/>
+      </ownedAttribute>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_08pZgJ0mEeW0_5GYJNErLQ" name="range" type="_17K6sGbVEeW2ybKigGMHUA">
+        <lowerValue xmi:type="uml:LiteralInteger" xmi:id="_4cVMcJ0mEeW0_5GYJNErLQ"/>
+        <upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="_4cXBoJ0mEeW0_5GYJNErLQ" value="1"/>
+      </ownedAttribute>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="_hvmq8J0oEeW0_5GYJNErLQ" name="Site" isAbstract="true">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_UIgGoJ0pEeW0_5GYJNErLQ" name="agencyCode" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_nCiHsJ0pEeW0_5GYJNErLQ" name="number" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_7qDlUJ0pEeW0_5GYJNErLQ" name="name" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_taVXQJ0pEeW0_5GYJNErLQ" name="tzCode" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_yC42wJ0pEeW0_5GYJNErLQ" name="localTimeFlag" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_LLHfcJ0qEeW0_5GYJNErLQ" client="_ApXUwJ0mEeW0_5GYJNErLQ" supplier="_hvmq8J0oEeW0_5GYJNErLQ"/>
   </packagedElement>
   <packagedElement xmi:type="uml:Package" xmi:id="_dpt3EGbXEeW2ybKigGMHUA" name="JavaScript">
     <packagedElement xmi:type="uml:DataType" xmi:id="_hhmHkGbXEeW2ybKigGMHUA" name="String"/>
@@ -329,5 +356,45 @@
   </packagedElement>
   <packagedElement xmi:type="uml:Activity" xmi:id="_kJmOQHjjEeWSJsf5P-lLZw" name="GetDVTable" node="_4wSlcHjjEeWSJsf5P-lLZw">
     <node xmi:type="uml:InitialNode" xmi:id="_4wSlcHjjEeWSJsf5P-lLZw" name=""/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Activity" xmi:id="_0WuqAJ0bEeW0_5GYJNErLQ" name="httpdispatcher.onGet" node="_pDnsIJ0dEeW0_5GYJNErLQ _yJ0boJ0dEeW0_5GYJNErLQ">
+    <ownedBehavior xmi:type="uml:Activity" xmi:id="_67QcEJ0dEeW0_5GYJNErLQ" name="cb" node="_FpOaoJ0eEeW0_5GYJNErLQ _HOjZsJ0eEeW0_5GYJNErLQ _H7SucJ0fEeW0_5GYJNErLQ _bEDvEJ0fEeW0_5GYJNErLQ _kgZGoJ0fEeW0_5GYJNErLQ _uYU1EJ0fEeW0_5GYJNErLQ _E8MqoJ0gEeW0_5GYJNErLQ _XOWMUJ0gEeW0_5GYJNErLQ" group="_XOWMUJ0gEeW0_5GYJNErLQ">
+      <edge xmi:type="uml:ControlFlow" xmi:id="_MubGQJ0fEeW0_5GYJNErLQ" target="_bEDvEJ0fEeW0_5GYJNErLQ" source="_H7SucJ0fEeW0_5GYJNErLQ"/>
+      <edge xmi:type="uml:ControlFlow" xmi:id="_q5A1kJ0fEeW0_5GYJNErLQ" target="_kgZGoJ0fEeW0_5GYJNErLQ" source="_bEDvEJ0fEeW0_5GYJNErLQ"/>
+      <edge xmi:type="uml:ControlFlow" xmi:id="_x9haIJ0fEeW0_5GYJNErLQ" target="_uYU1EJ0fEeW0_5GYJNErLQ" source="_kgZGoJ0fEeW0_5GYJNErLQ"/>
+      <edge xmi:type="uml:ControlFlow" xmi:id="_IurdwJ0gEeW0_5GYJNErLQ" target="_E8MqoJ0gEeW0_5GYJNErLQ" source="_uYU1EJ0fEeW0_5GYJNErLQ"/>
+      <edge xmi:type="uml:ControlFlow" xmi:id="_ldJNUJ0gEeW0_5GYJNErLQ" target="_XOWMUJ0gEeW0_5GYJNErLQ" source="_E8MqoJ0gEeW0_5GYJNErLQ"/>
+      <structuredNode xmi:type="uml:SequenceNode" xmi:id="_XOWMUJ0gEeW0_5GYJNErLQ" name="async.waterfall" incoming="_ldJNUJ0gEeW0_5GYJNErLQ">
+        <executableNode xmi:type="uml:ValueSpecificationAction" xmi:id="_ChzPUJ0hEeW0_5GYJNErLQ" name="field assignment">
+          <result xmi:type="uml:OutputPin" xmi:id="_ChzPUZ0hEeW0_5GYJNErLQ" name="field"/>
+          <value xmi:type="uml:Expression" xmi:id="_ChzPUp0hEeW0_5GYJNErLQ" name="url.parse"/>
+        </executableNode>
+      </structuredNode>
+      <node xmi:type="uml:ActivityParameterNode" xmi:id="_FpOaoJ0eEeW0_5GYJNErLQ" name="request">
+        <upperBound xmi:type="uml:LiteralInteger" xmi:id="_FpPBsJ0eEeW0_5GYJNErLQ" value="1"/>
+      </node>
+      <node xmi:type="uml:ActivityParameterNode" xmi:id="_HOjZsJ0eEeW0_5GYJNErLQ" name="response">
+        <upperBound xmi:type="uml:LiteralInteger" xmi:id="_HOkAwJ0eEeW0_5GYJNErLQ" value="1"/>
+      </node>
+      <node xmi:type="uml:InitialNode" xmi:id="_H7SucJ0fEeW0_5GYJNErLQ" name="" outgoing="_MubGQJ0fEeW0_5GYJNErLQ"/>
+      <node xmi:type="uml:DataStoreNode" xmi:id="_bEDvEJ0fEeW0_5GYJNErLQ" name="field" incoming="_MubGQJ0fEeW0_5GYJNErLQ" outgoing="_q5A1kJ0fEeW0_5GYJNErLQ" type="_17K6sGbVEeW2ybKigGMHUA">
+        <upperBound xmi:type="uml:LiteralInteger" xmi:id="_bEEWIJ0fEeW0_5GYJNErLQ" value="1"/>
+      </node>
+      <node xmi:type="uml:DataStoreNode" xmi:id="_kgZGoJ0fEeW0_5GYJNErLQ" name="token" incoming="_q5A1kJ0fEeW0_5GYJNErLQ" outgoing="_x9haIJ0fEeW0_5GYJNErLQ" type="_hhmHkGbXEeW2ybKigGMHUA">
+        <upperBound xmi:type="uml:LiteralInteger" xmi:id="_kgZGoZ0fEeW0_5GYJNErLQ" value="1"/>
+      </node>
+      <node xmi:type="uml:DataStoreNode" xmi:id="_uYU1EJ0fEeW0_5GYJNErLQ" name="locationIdentifier" incoming="_x9haIJ0fEeW0_5GYJNErLQ" outgoing="_IurdwJ0gEeW0_5GYJNErLQ" type="_17K6sGbVEeW2ybKigGMHUA">
+        <upperBound xmi:type="uml:LiteralInteger" xmi:id="_uYVcIJ0fEeW0_5GYJNErLQ" value="1"/>
+      </node>
+      <node xmi:type="uml:DataStoreNode" xmi:id="_E8MqoJ0gEeW0_5GYJNErLQ" name="parameter" incoming="_IurdwJ0gEeW0_5GYJNErLQ" outgoing="_ldJNUJ0gEeW0_5GYJNErLQ" type="_hhmHkGbXEeW2ybKigGMHUA">
+        <upperBound xmi:type="uml:LiteralInteger" xmi:id="_E8NRsJ0gEeW0_5GYJNErLQ" value="1"/>
+      </node>
+    </ownedBehavior>
+    <node xmi:type="uml:ActivityParameterNode" xmi:id="_pDnsIJ0dEeW0_5GYJNErLQ" name="url">
+      <upperBound xmi:type="uml:LiteralInteger" xmi:id="_pDnsIZ0dEeW0_5GYJNErLQ" value="1"/>
+    </node>
+    <node xmi:type="uml:ActivityParameterNode" xmi:id="_yJ0boJ0dEeW0_5GYJNErLQ" name="cb">
+      <upperBound xmi:type="uml:LiteralInteger" xmi:id="_yJ1CsJ0dEeW0_5GYJNErLQ" value="1"/>
+    </node>
   </packagedElement>
 </uml:Model>
