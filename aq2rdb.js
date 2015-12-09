@@ -1135,7 +1135,7 @@ httpdispatcher.onGet(
                     distill(
                         timeSeriesDescriptions, locationIdentifier, callback
                     );
-                callback(null);
+                callback(null, locationIdentifier);
             },
             requestSite,
             receiveSite,
