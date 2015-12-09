@@ -44,10 +44,11 @@ var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 
 /**
    @description A mapping of select NWIS time zone codes to IANA time
-                zone names. This is not a complete enumeration of the
+                zone names (referenced by moment-timezone
+                module). This is not a complete enumeration of the
                 time zones defined in the NWIS TZ table, but the time
                 zone abbreviations known (presently) to be related to
-                sites in NATDB.
+                SITEFILE sites in NATDB.
    @constant
 */
 var tzName = Object();
@@ -1514,16 +1515,27 @@ httpdispatcher.onGet(
                                     series point.
                     */
                     function (point, callback) {
-                        var d;
+                        var name, m, d;
 
                         try {
-                            /**
-                               @todo Still need to reference
-                               point.Timestamp to local time
-                               here; this only computes the
-                               time zone code, not the
-                               correct time.
-                            */
+                            name = tzName[site.tzCode][site.localTimeFlag];
+                        }
+                        catch (error) {
+                            callback(
+                                'Could not derive IANA time zone ' +
+                                    'name from site\'s time spec.'
+                            );
+                            return;
+                        }
+
+                        m = moment.tz(point.Timestamp, name);
+
+                        /**
+                           @todo Seems like it should be possible to
+                                 factor this out by replacing with "m"
+                                 moment above.
+                        */
+                        try {
                             d = new Date(point.Timestamp);
                         }
                         catch (error) {
@@ -1532,11 +1544,9 @@ httpdispatcher.onGet(
                         }
 
                         response.write(
-                            toNWISDateFormat(point.Timestamp) + '\t' +
-                                toNWISTimeFormat(point.Timestamp) + '\t' +
-                                moment.tz.zone(
-                                    tzName[site.tzCode][site.localTimeFlag]
-                                ).abbr(d) + '\t' +
+                            m.format('YYYYMMDD') + '\t' +
+                                m.format('hhmmss') + '\t' +
+                                moment.tz.zone(name).abbr(d) + '\t' +
                                 point.Value.Numeric + '\t' +
                                 point.Value.Numeric.toString().length + '\n'
                         );
