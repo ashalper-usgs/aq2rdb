@@ -1528,6 +1528,12 @@ httpdispatcher.onGet(
                     function (point, callback) {
                         var name, m, d;
 
+			/**
+			   @description Use site's time offset
+			                spec. to derive the
+					appropriate IANA time zone
+					name.
+			*/
                         try {
                             name = tzName[site.tzCode][site.localTimeFlag];
                         }
@@ -1539,6 +1545,9 @@ httpdispatcher.onGet(
                             return;
                         }
 
+			/**
+			   @description moment object construction.
+			*/
                         m = moment.tz(point.Timestamp, name);
 
                         /**
