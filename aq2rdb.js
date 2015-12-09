@@ -770,7 +770,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
                      raise error convention.
 */
 function distill(timeSeriesDescriptions, locationIdentifier, callback) {
-    var timeSeriesUniqueId;
+    var timeSeriesDescription;
 
     switch (timeSeriesDescriptions.length) {
     case 0:
@@ -779,7 +779,7 @@ function distill(timeSeriesDescriptions, locationIdentifier, callback) {
         */
         break;
     case 1:
-        timeSeriesUniqueId = timeSeriesDescriptions[0].UniqueId;
+        timeSeriesDescription = timeSeriesDescriptions[0];
         break;
     default:
         /**
@@ -843,8 +843,7 @@ function distill(timeSeriesDescriptions, locationIdentifier, callback) {
                 // if there is 1-and-only-1 primary time
                 // series description
                 if (primaryTimeSeriesDescriptions.length === 1) {
-                    timeSeriesUniqueId =
-                        timeSeriesDescriptions[0].UniqueId;
+                    timeSeriesDescription = timeSeriesDescriptions[0];
                 }
                 else {
                     /**
@@ -862,7 +861,7 @@ function distill(timeSeriesDescriptions, locationIdentifier, callback) {
         ); // async.filter
     } // switch (timeSeriesDescriptions.length)
 
-    return timeSeriesUniqueId;
+    return timeSeriesDescription;
 } // distill
 
 /**
@@ -976,7 +975,7 @@ httpdispatcher.onGet(
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetDVTable',
     function (request, response) {
-        var field, token, locationIdentifier, timeSeriesUniqueId;
+        var field, token, locationIdentifier, timeSeriesDescription;
         var remarkCodes;
 
         /**
@@ -1131,7 +1130,7 @@ httpdispatcher.onGet(
                          related daily values.
             */
             function (timeSeriesDescriptions, callback) {
-                timeSeriesUniqueId =
+                timeSeriesDescription =
                     distill(
                         timeSeriesDescriptions, locationIdentifier, callback
                     );
@@ -1169,7 +1168,7 @@ httpdispatcher.onGet(
 
                         var header = rdbHeader(
                             'NWIS-I DAILY-VALUES', site,
-                            field.SubLocationIdentifer,
+                            timeSeriesDescription.SubLocationIdentifer,
                             {start: start, end: end}
                         );
                         response.write(header, 'ascii');
@@ -1257,7 +1256,7 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     getTimeSeriesCorrectedData(
-                        token, timeSeriesUniqueId,
+                        token, timeSeriesDescription.UniqueId,
                         field.QueryFrom, field.QueryTo, callback
                     );
                 }
@@ -1402,7 +1401,8 @@ httpdispatcher.onGet(
                 site = receivedSite; // set global
                 response.write(
                     rdbHeader(
-                        'NWIS-I UNIT-VALUES', site, undefined,
+                        'NWIS-I UNIT-VALUES', site,
+                        timeSeriesDescription.SubLocationIdentifer,
                         {start: toNWISDateFormat(field.QueryFrom),
                          end: toNWISDateFormat(field.QueryTo)}
                     ),
@@ -1482,7 +1482,7 @@ httpdispatcher.onGet(
                          weed out non-UV, and non-primary ones.
             */
             function (timeSeriesDescriptions, callback) {
-                var timeSeriesUniqueId;
+                var timeSeriesDescription;
 
                 async.filter(
                     timeSeriesDescriptions,
@@ -1496,19 +1496,19 @@ httpdispatcher.onGet(
                         }
                     },
                     function (uvTimeSeriesDescriptions) {
-                        timeSeriesUniqueId =
+                        timeSeriesDescription =
                             distill(
                                 uvTimeSeriesDescriptions,
                                 locationIdentifier, callback
                             );
                     }
                 );
-                callback(null, timeSeriesUniqueId);
+                callback(null, timeSeriesDescription.UniqueId);
             },
-            function (timeSeriesUniqueId, callback) {
+            function (uniqueId, callback) {
                 try {
                     getTimeSeriesCorrectedData(
-                        token, timeSeriesUniqueId,
+                        token, uniqueId,
                         field.QueryFrom, field.QueryTo, callback
                     );
                 }
