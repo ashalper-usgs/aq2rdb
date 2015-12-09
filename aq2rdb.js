@@ -64,15 +64,26 @@ tzName['EST'] =   {N: 'Etc/GMT-5',  Y: 'America/New_York'};
 tzName['GMT'] =   {N: 'Etc/GMT+0',  Y: 'Europe/London'};
 tzName['GST'] =   {N: 'Etc/GMT+10', Y: 'Pacific/Guam'};
 tzName['HST'] =   {N: 'Etc/GMT-10', Y: 'HST'};
+// NWIS "International Date Line, East"
 tzName['IDLE'] =  {N: 'Etc/GMT+12', Y: 'Etc/GMT+12'};
+// NWIS "International Date Line, West"
+tzName['IDLW'] =  {N: 'Etc/GMT-12', Y: 'Etc/GMT-12'};
 tzName['JST'] =   {N: 'Etc/GMT+9',  Y: 'Asia/Tokyo'};
 tzName['MST'] =   {N: 'Etc/GMT-7',  Y: 'America/Denver'};
+// moment-timezone has no support for UTC-03:30 (in the context of
+// winter), which would be the mapping of NWIS' (NST,N) [i.e.,
+// "Newfoundland Standard Time, local time not acknowledged"] SITEFILE
+// predicate...
 tzName['NST'] =   {N:  undefined,   Y: 'America/St_Johns'};
 tzName['NZT'] =   {N: 'Etc/GMT+12', Y: 'NZ'};
 tzName['PST'] =   {N: 'Etc/GMT-8',  Y: 'America/Los_Angeles'};
+// ...similarly, moment-timezone has no support for UTC+09:30 (in the
+// context of Southern Hemisphere winter), which would be the mapping
+// of NWIS' (SAT,N) [i.e., "South Australian Standard Time, local time
+// not acknowledged"]
 tzName['SAT'] =   {N:  undefined,   Y: 'Australia/Adelaide'};
 tzName['UTC'] =   {N: 'Etc/GMT+0',  Y: 'Etc/GMT+0'};
-tzName['WAST'] =  {N: 'Etc/GMT+7',  Y: 'Indian/Christmas'};
+tzName['WAST'] =  {N: 'Etc/GMT+7',  Y: 'Australia/Perth'};
 tzName['WAT'] =   {N: 'Etc/GMT+1',  Y: 'Africa/Bangui'};
 tzName['ZP-11'] = {N: 'Etc/GMT-11', Y: 'Etc/GMT-11'};
 tzName['ZP11'] =  {N: 'Etc/GMT+11', Y: 'Etc/GMT+11'};
