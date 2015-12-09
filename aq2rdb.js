@@ -1137,8 +1137,8 @@ httpdispatcher.onGet(
                     );
                 callback(null);
             },
-            requestSite(locationIdentifier, callback),
-            receiveSite(messageBody, callback),
+            requestSite,
+            receiveSite,
             /**
                @function Write RDB header and heading.
             */
