@@ -1524,7 +1524,7 @@ httpdispatcher.onGet(
                                     series point.
                     */
                     function (point, callback) {
-                        var name, m, d;
+                        var name, m, date, time, tz;
 
                         try {
                             name =
@@ -1540,8 +1540,35 @@ httpdispatcher.onGet(
 
                         m = moment.tz(point.Timestamp, name);
 
+                        // if this site's time offset predicate is
+                        // "Newfoundland Standard Time, local time not
+                        // acknowledged", and this date point falls
+                        // within the Newfoundland daylight saving
+                        // time interval (NDT)
+                        if (site.tzCode === 'NST' &&
+                            site.localTimeFlag === 'N' &&
+                            m.zoneAbbr() === 'NDT') {
+                            var t = new Date(point.Timestamp);
+                            // normalize time to UTC, then apply time
+                            // zone offset from UTC
+                            var utc =
+                                new Date(
+                                    t.toISOString().replace('Z', '+02:30')
+                                );
+                            var v = utc.toISOString().split(/[T.]/);
+
+                            date = v[0].replace('-', '');
+                            time = v[1].replace(':', '');
+                            tz = '-02:30';
+                        }
+                        else {
+                            date = m.format('YYYYMMDD');
+                            time = m.format('hhmmss');
+                            tz = m.format('z');
+                        }
+
                         response.write(
-                            m.format('YYYYMMDD\thhmmss\tz') + '\t' +
+                            date + '\t' + time + '\t' + tz + '\t' +
                                 point.Value.Numeric + '\t' +
                                 point.Value.Numeric.toString().length + '\n'
                         );
