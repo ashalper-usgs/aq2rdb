@@ -1399,15 +1399,6 @@ httpdispatcher.onGet(
             receiveSite,
             function (receivedSite, callback) {
                 site = receivedSite; // set global
-                response.write(
-                    rdbHeader(
-                        'NWIS-I UNIT-VALUES', site,
-                        timeSeriesDescription.SubLocationIdentifer,
-                        {start: toNWISDateFormat(field.QueryFrom),
-                         end: toNWISDateFormat(field.QueryTo)}
-                    ),
-                    'ascii'
-                );
                 callback(null);
             },
             /**
@@ -1417,13 +1408,6 @@ httpdispatcher.onGet(
                      site.tzCd, so we can reference UV times to "local
                      time".
             */
-            function (callback) {
-                response.write(
-                    'DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n' +
-                        '8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n', 'ascii'
-                );
-                callback(null);
-            },
             /**
                @function Query AQUARIUS GetTimeSeriesDescriptionList
                          service to get list of AQUARIUS, time series
@@ -1496,12 +1480,30 @@ httpdispatcher.onGet(
                         }
                     },
                     function (uvTimeSeriesDescriptions) {
-                        timeSeriesDescription =
-                            distill(
-                                uvTimeSeriesDescriptions,
-                                locationIdentifier, callback
-                            );
+                        timeSeriesDescription = distill(
+                            uvTimeSeriesDescriptions,
+                            locationIdentifier, callback
+                        );
                     }
+                );
+                callback(null, timeSeriesDescription);
+            },
+            function (timeSeriesDescription, callback) {
+                response.write(
+                    rdbHeader(
+                        'NWIS-I UNIT-VALUES', site,
+                        timeSeriesDescription.SubLocationIdentifer,
+                        {start: toNWISDateFormat(field.QueryFrom),
+                         end: toNWISDateFormat(field.QueryTo)}
+                    ),
+                    'ascii'
+                );
+                callback(null, timeSeriesDescription);
+            },
+            function (timeSeriesDescription, callback) {
+                response.write(
+                    'DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n' +
+                        '8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n', 'ascii'
                 );
                 callback(null, timeSeriesDescription.UniqueId);
             },
@@ -1529,35 +1531,34 @@ httpdispatcher.onGet(
                         var name, m, d;
 
                         try {
-                            name = tzName[site.tzCode][site.localTimeFlag];
+                            name =
+                                tzName[site.tzCode][site.localTimeFlag];
                         }
                         catch (error) {
                             callback(
                                 'Could not derive IANA time zone ' +
-                                    'name from site\'s time spec.'
+                                    'name from site\'s time offset spec.'
                             );
                             return;
                         }
 
                         m = moment.tz(point.Timestamp, name);
 
-                        /**
-                           @todo Seems like it should be possible to
-                                 factor this out by replacing with "m"
-                                 moment above.
-                        */
-                        try {
-                            d = new Date(point.Timestamp);
-                        }
-                        catch (error) {
-                            callback(error);
-                            return;
+                        // if the site's time offset spec. is
+                        // "Newfoundland Standard Time, daylight
+                        // saving time not acknowledged", and this
+                        // date point falls in summer (when DST would
+                        // be effective)
+                        if (site.tzCode === 'NST' &&
+                            site.localTimeFlag === 'N' &&
+                            m.zoneAbbr() === 'NDT') {
+                            // TODO: roll-our-own, Newfoundland Standard
+                            // Time, 1/2 hour offset in summer, by
+                            // subtracting 1 hour from d
                         }
 
                         response.write(
-                            m.format('YYYYMMDD') + '\t' +
-                                m.format('hhmmss') + '\t' +
-                                moment.tz.zone(name).abbr(d) + '\t' +
+                            m.format('YYYYMMDD\thhmmss\tz') + '\t' +
                                 point.Value.Numeric + '\t' +
                                 point.Value.Numeric.toString().length + '\n'
                         );
