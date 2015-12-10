@@ -70,6 +70,11 @@ tzName['IDLE'] =  {N: 'Etc/GMT+12', Y: 'Etc/GMT+12'};
 tzName['IDLW'] =  {N: 'Etc/GMT-12', Y: 'Etc/GMT-12'};
 tzName['JST'] =   {N: 'Etc/GMT+9',  Y: 'Asia/Tokyo'};
 tzName['MST'] =   {N: 'Etc/GMT-7',  Y: 'America/Denver'};
+/**
+   @todo For the NST and SAT exceptions below, it might be cleaner to
+         override the moment-timezone zoneAbbr() method (and others?)
+   @see http://momentjs.com/timezone/docs/#/using-timezones/formatting/
+*/
 // moment-timezone has no support for UTC-03:30 (in the context of
 // winter), which would be the mapping of NWIS' (NST,N) [i.e.,
 // "Newfoundland Standard Time, local time not acknowledged"] SITEFILE
@@ -154,32 +159,23 @@ function toBasicFormat(s) {
 }
 
 /**
-   @function Convert AQUARIUS TimeSeriesPoint.Timestamp data type to a
-             common NWIS date type.
+   @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to a
+             common NWIS date format.
    @param {string} timestamp AQUARIUS Timestamp string to convert.
 */
 function toNWISDateFormat(timestamp) {
-    var date;
-
-    try {
-        date = new Date(timestamp);
-    }
-    catch (error) {
-        throw error;
-    }
+    var date = new Date(timestamp);
 
     return timestamp.split('T')[0].replace(/-/g, '');
 } // toNWISDateFormat
 
+/**
+   @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to a
+             common NWIS time format.
+   @param {string} timestamp AQUARIUS Timestamp string to convert.
+*/
 function toNWISTimeFormat(timestamp) {
-    var date;
-
-    try {
-        date = new Date(timestamp);
-    }
-    catch (error) {
-        throw error;
-    }
+    var date = new Date(timestamp);
 
     return timestamp.split(/[T.]/)[1].replace(/:/g, '')
 } // toNWISTimeFormat
@@ -1543,19 +1539,6 @@ httpdispatcher.onGet(
                         }
 
                         m = moment.tz(point.Timestamp, name);
-
-                        // if the site's time offset spec. is
-                        // "Newfoundland Standard Time, daylight
-                        // saving time not acknowledged", and this
-                        // date point falls in summer (when DST would
-                        // be effective)
-                        if (site.tzCode === 'NST' &&
-                            site.localTimeFlag === 'N' &&
-                            m.zoneAbbr() === 'NDT') {
-                            // TODO: roll-our-own, Newfoundland Standard
-                            // Time, 1/2 hour offset in summer, by
-                            // subtracting 1 hour from d
-                        }
 
                         response.write(
                             m.format('YYYYMMDD\thhmmss\tz') + '\t' +
