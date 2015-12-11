@@ -7,4 +7,5 @@
 #
 #  Author - Andrew Halper <ashalper@usgs.gov>
 #
-npm install async httpdispatcher moment-timezone querystring
+echo "Installing prerequisite aq2rdb npm packages..."
+npm install async command-line-args httpdispatcher moment-timezone querystring
