@@ -70,13 +70,8 @@ tzName['IDLE'] =  {N: 'Etc/GMT+12', Y: 'Etc/GMT+12'};
 tzName['IDLW'] =  {N: 'Etc/GMT-12', Y: 'Etc/GMT-12'};
 tzName['JST'] =   {N: 'Etc/GMT+9',  Y: 'Asia/Tokyo'};
 tzName['MST'] =   {N: 'Etc/GMT-7',  Y: 'America/Denver'};
-/**
-   @todo For the NST and SAT exceptions below, it might be cleaner to
-         override the moment-timezone zoneAbbr() method (and others?)
-   @see http://momentjs.com/timezone/docs/#/using-timezones/formatting/
-*/
 // moment-timezone has no support for UTC-03:30 (in the context of
-// winter), which would be the mapping of NWIS' (NST,N) [i.e.,
+// summer), which would be the mapping of NWIS' (NST,N) [i.e.,
 // "Newfoundland Standard Time, local time not acknowledged"] SITEFILE
 // predicate...
 tzName['NST'] =   {N:  undefined,   Y: 'America/St_Johns'};
@@ -1540,6 +1535,13 @@ httpdispatcher.onGet(
 
                         m = moment.tz(point.Timestamp, name);
 
+                        /**
+                           @todo Try to generalize this conditional to
+                                 cover South Australian Standard Time
+                                 exception (see tzName declaration
+                                 above)?
+                        */
+
                         // if this site's time offset predicate is
                         // "Newfoundland Standard Time, local time not
                         // acknowledged", and this date point falls
@@ -1553,13 +1555,13 @@ httpdispatcher.onGet(
                             // zone offset from UTC
                             var utc =
                                 new Date(
-                                    t.toISOString().replace('Z', '+02:30')
+                                    t.toISOString().replace('Z', '+03:30')
                                 );
                             var v = utc.toISOString().split(/[T.]/);
 
                             date = v[0].replace('-', '');
                             time = v[1].replace(':', '');
-                            tz = '-02:30';
+                            tz = '-03:30';
                         }
                         else {
                             date = m.format('YYYYMMDD');
