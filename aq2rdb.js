@@ -8,6 +8,8 @@
  */
 
 'use strict';
+
+var commandLineArgs = require('command-line-args');
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
 var url = require('url');
@@ -25,12 +27,6 @@ var moment = require('moment-timezone');
 var PACKAGE_NAME = 'aq2rdb';
 
 /**
-   @description The port the aq2rdb service listens on.
-   @constant
-*/
-var PORT = 8081;
-
-/**
    @description AQUARIUS host.
    @constant
 */
@@ -41,6 +37,19 @@ var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
    @constant
 */
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
+
+/**
+   @description Domain of supported command line arguments.
+   @see https://www.npmjs.com/package/command-line-args#synopsis
+*/
+var cli = commandLineArgs([
+    {name: 'port', alias: 'p', type: Number, defaultValue: 8081}
+]);
+
+/**
+   @description Set of successfully parsed command line options.
+*/
+var options = cli.parse();
 
 /**
    @description A mapping of select NWIS time zone codes to IANA time
@@ -1630,9 +1639,9 @@ var server = http.createServer(handleRequest);
 /**
    @description Start listening for requests.
 */ 
-server.listen(PORT, function () {
+server.listen(options.port, function () {
     console.log(
         PACKAGE_NAME + ': Server listening on: http://localhost:' +
-            PORT.toString()
+            options.port.toString()
     );
 });
