@@ -856,6 +856,39 @@ function distill(timeSeriesDescriptions, locationIdentifier, callback) {
 } // distill
 
 /**
+   @function Patch up some obscure incompatibilities between NWIS's
+             site time offset predicate and IANA time zone data (used
+             by moment-timezone).
+*/
+function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
+    var m = moment.tz(timestamp, name);
+    var p = new Object();       // datetime point
+
+    // if this site's time offset predicate is "Newfoundland Standard
+    // Time, local time not acknowledged", and this date point falls
+    // within the Newfoundland daylight saving time interval (NDT)
+    if (tzCode === 'NST' && localTimeFlag === 'N' && m.zoneAbbr() === 'NDT') {
+        var t = new Date(point.Timestamp);
+        // normalize time to UTC, then apply time zone offset from UTC
+        var utc = new Date(t.toISOString().replace('Z', '+03:30'));
+        var v = utc.toISOString().split(/[T.]/);
+
+        // reformat ISO 8601 date/time to NWIS date/time format
+        p.date = v[0].replace('-', '');
+        p.time = v[1].replace(':', '');
+        p.tz = '-03:30';        // amend time zone code
+    }
+    else {
+        // use IANA data
+        p.date = m.format('YYYYMMDD');
+        p.time = m.format('hhmmss');
+        p.tz = m.format('z');
+    }
+
+    return p;
+} // nwisVersusIANA
+
+/**
    @function Parse AQUARIUS TimeSeriesDataServiceResponse received
              from GetTimeSeriesCorrectedData service.
 */
@@ -875,13 +908,14 @@ function parseTimeSeriesDataServiceResponse(messageBody, callback) {
 
 /**
    @function Query USGS Site Web Service.
+   @param {string} siteNo NWIS site number string.
 */
-function requestSite(locationIdentifier, callback) {
+function requestSite(siteNo, callback) {
     try {
         httpQuery(
             'waterservices.usgs.gov', '/nwis/site/',
             {format: 'rdb',
-             sites: locationIdentifier.toString(),
+             sites: siteNo,
              siteOutput: 'expanded'}, callback
         );
     }
@@ -893,6 +927,9 @@ function requestSite(locationIdentifier, callback) {
 
 /**
    @function Receive and parse response from USGS Site Web Service.
+   @param {string} messageBody Message body of HTTP response from USGS
+                   Site Web Service.
+   @param {function} callback Callback to call when complete.
 */
 function receiveSite(messageBody, callback) {
     var site = new Object;
@@ -1379,7 +1416,7 @@ httpdispatcher.onGet(
             },
             function (messageBody, callback) {
                 token = messageBody;
-                callback(null, locationIdentifier);
+                callback(null, locationIdentifier.toString());
             },
             /**
                @todo requestSite() and receiveSite() can be done in
@@ -1519,7 +1556,7 @@ httpdispatcher.onGet(
                                     series point.
                     */
                     function (point, callback) {
-                        var name, m, date, time, tz;
+                        var name, date, time, tz;
 
                         try {
                             name =
@@ -1533,44 +1570,15 @@ httpdispatcher.onGet(
                             return;
                         }
 
-                        m = moment.tz(point.Timestamp, name);
-
-                        /**
-                           @todo Try to generalize this conditional to
-                                 cover South Australian Standard Time
-                                 exception (see tzName declaration
-                                 above)?
-                        */
-
-                        // if this site's time offset predicate is
-                        // "Newfoundland Standard Time, local time not
-                        // acknowledged", and this date point falls
-                        // within the Newfoundland daylight saving
-                        // time interval (NDT)
-                        if (site.tzCode === 'NST' &&
-                            site.localTimeFlag === 'N' &&
-                            m.zoneAbbr() === 'NDT') {
-                            var t = new Date(point.Timestamp);
-                            // normalize time to UTC, then apply time
-                            // zone offset from UTC
-                            var utc =
-                                new Date(
-                                    t.toISOString().replace('Z', '+03:30')
-                                );
-                            var v = utc.toISOString().split(/[T.]/);
-
-                            date = v[0].replace('-', '');
-                            time = v[1].replace(':', '');
-                            tz = '-03:30';
-                        }
-                        else {
-                            date = m.format('YYYYMMDD');
-                            time = m.format('hhmmss');
-                            tz = m.format('z');
-                        }
+                        // correct some obscure time offset
+                        // incompatibility cases
+                        var p = nwisVersusIANA(
+                            point.Timestamp, name, site.tzCode,
+                            site.localTimeFlag
+                        );
 
                         response.write(
-                            date + '\t' + time + '\t' + tz + '\t' +
+                            p.date + '\t' + p.time + '\t' + p.tz + '\t' +
                                 point.Value.Numeric + '\t' +
                                 point.Value.Numeric.toString().length + '\n'
                         );
