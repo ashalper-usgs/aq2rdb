@@ -12,8 +12,17 @@ The `GetUVTable` service has a similar interface to `GetDVTable`, but serves mea
 ## Installing From Source
 Clone the aq2rdb repository on GitHub:
 
-    `git clone https://github.com/ashalper-usgs/aq2rdb.git`
+    git clone https://github.com/ashalper-usgs/aq2rdb.git
 
 Run the `npmbuild` script in the newly created source directory:
 
-    `sh npmbuild`
+    sh npmbuild
+    
+This script is safe to run repeatedly, even if you have some or all required npm packages already installed.
+
+## Running
+aq2rdb is started from the Node.js interpreter like this:
+
+    node aq2rdb.js -p port -t aquariusTokenHostname -w waterServicesHostname -a aquariusHostname
+
+where *port* is the TCP/IP port that aq2rdb will listen on for HTTP requests, *aquariusTokenHostname* is the host name of an aquarius-token server to query for AQUARIUS authentication tokens, *waterServicesHostname* is the host name of a USGS Web Services server to query for site data, and *aquariusHostname* is the host name of an AQUARIUS server to query for time series data.
