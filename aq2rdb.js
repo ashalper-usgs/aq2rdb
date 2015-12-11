@@ -71,17 +71,17 @@ tzName['IDLW'] =  {N: 'Etc/GMT-12', Y: 'Etc/GMT-12'};
 tzName['JST'] =   {N: 'Etc/GMT+9',  Y: 'Asia/Tokyo'};
 tzName['MST'] =   {N: 'Etc/GMT-7',  Y: 'America/Denver'};
 // moment-timezone has no support for UTC-03:30 (in the context of
-// summer), which would be the mapping of NWIS' (NST,N) [i.e.,
-// "Newfoundland Standard Time, local time not acknowledged"] SITEFILE
-// predicate...
-tzName['NST'] =   {N:  undefined,   Y: 'America/St_Johns'};
+// Northern Hemisphere summer), which would be the mapping of NWIS'
+// (NST,N) [i.e., "Newfoundland Standard Time, local time not
+// acknowledged"] SITEFILE predicate...
+tzName['NST'] =   {N: 'UTC-03:30',  Y: 'America/St_Johns'};
 tzName['NZT'] =   {N: 'Etc/GMT+12', Y: 'NZ'};
 tzName['PST'] =   {N: 'Etc/GMT-8',  Y: 'America/Los_Angeles'};
 // ...similarly, moment-timezone has no support for UTC+09:30 (in the
-// context of Southern Hemisphere winter), which would be the mapping
+// context of Southern Hemisphere summer), which would be the mapping
 // of NWIS' (SAT,N) [i.e., "South Australian Standard Time, local time
 // not acknowledged"]
-tzName['SAT'] =   {N:  undefined,   Y: 'Australia/Adelaide'};
+tzName['SAT'] =   {N: 'UTC+09:30',  Y: 'Australia/Adelaide'};
 tzName['UTC'] =   {N: 'Etc/GMT+0',  Y: 'Etc/GMT+0'};
 tzName['WAST'] =  {N: 'Etc/GMT+7',  Y: 'Australia/Perth'};
 tzName['WAT'] =   {N: 'Etc/GMT+1',  Y: 'Africa/Bangui'};
@@ -864,22 +864,29 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
     var m = moment.tz(timestamp, name);
     var p = new Object();       // datetime point
 
-    // if this site's time offset predicate is "Newfoundland Standard
-    // Time, local time not acknowledged", and this date point falls
-    // within the Newfoundland daylight saving time interval (NDT)
-    if (tzCode === 'NST' && localTimeFlag === 'N' && m.zoneAbbr() === 'NDT') {
+    // if this site's time offset predicate is "local time not
+    // acknowledged", and observes Newfoundland Standard Time or South
+    // Australian Standard Time, and date point is within the
+    // associated, effective daylight saving time interval
+    if (localTimeFlag === 'N' &&
+        (tzCode === 'NST' && m.zoneAbbr() === 'NDT' ||
+         tzCode === 'SAT' && m.zoneAbbr() === 'ACDT')) {
         var t = new Date(point.Timestamp);
         // normalize time to UTC, then apply time zone offset from UTC
-        var utc = new Date(t.toISOString().replace('Z', '+03:30'));
+        var offset = name.replace('UTC', '');
+        var invertedOffset =
+            offset.replace('+', '-') || offset.replace('-', '+');
+        var utc = new Date(t.toISOString().replace('Z', invertedOffset));
         var v = utc.toISOString().split(/[T.]/);
 
         // reformat ISO 8601 date/time to NWIS date/time format
         p.date = v[0].replace('-', '');
         p.time = v[1].replace(':', '');
-        p.tz = '-03:30';        // amend time zone code
+        // use (non-IANA) name as time zone abbreviation
+        p.tz = name;
     }
     else {
-        // use IANA data
+        // use IANA time zone data
         p.date = m.format('YYYYMMDD');
         p.time = m.format('hhmmss');
         p.tz = m.format('z');
