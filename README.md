@@ -8,3 +8,12 @@ Presently, aq2rdb provides two Web service "endpoints": `GetDVTable` and `GetUVT
 The `GetDVTable` service serves site-referenced, derived statistical "daily values" from AQUARIUS for a given measurement parameter. `GetDVTable` accepts a set of HTTP query field/value pairs, and will respond with an RDB file (a TSV file with some additional specific conventions) containing any daily values found.
 
 The `GetUVTable` service has a similar interface to `GetDVTable`, but serves measured "unit values" (a.k.a. "raw values") instead.
+
+## Installing From Source
+Clone the aq2rdb repository on GitHub:
+
+    `git clone https://github.com/ashalper-usgs/aq2rdb.git`
+
+Run the `npmbuild` script in the newly created source directory:
+
+    `sh npmbuild`
