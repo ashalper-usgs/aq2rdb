@@ -27,12 +27,6 @@ var moment = require('moment-timezone');
 var PACKAGE_NAME = 'aq2rdb';
 
 /**
-   @description AQUARIUS host.
-   @constant
-*/
-var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
-
-/**
    @description AQUARIUS Web services path prefix.
    @constant
 */
@@ -43,7 +37,10 @@ var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
    @see https://www.npmjs.com/package/command-line-args#synopsis
 */
 var cli = commandLineArgs([
-    {name: 'port', alias: 'p', type: Number, defaultValue: 8081}
+    {name: 'port', alias: 'p', type: Number, defaultValue: 8081},
+    {name: 'aquariusHostname', alias: 'a', type: String},
+    {name: 'aquariusTokenHostname', alias: 't', type: String},
+    {name: 'waterServicesHostname', alias: 'w', type: String}
 ]);
 
 /**
@@ -374,10 +371,10 @@ function getAQToken(userName, password, callback) {
         bind('userName', userName) +
         bind('password', password) +
         bind('uriString',
-             'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
+             'http://' + options.aquariusHostname + '/AQUARIUS/');
     var request = http.request({
-        host: 'cidasdqaasaq2rd.cr.usgs.gov',
-        port: '8080',
+        host: options.aquariusTokenHostname,
+        port: '8080',           // TODO: make a CLI option
         path: path
     }, getAQTokenCallback);
 
@@ -445,7 +442,7 @@ function getTimeSeriesCorrectedData(
         bind('QueryFrom', queryFrom) + bind('QueryTo', queryTo);
 
     var request = http.request({
-        host: AQUARIUS_HOSTNAME,
+        host: options.aquariusHostname,
         path: path
     }, getTimeSeriesCorrectedDataCallback);
 
@@ -495,7 +492,7 @@ function getLocationData(token, locationIdentifier, callback) {
         bind('LocationIdentifier', locationIdentifier);
 
     var request = http.request({
-        host: AQUARIUS_HOSTNAME,
+        host: options.aquariusHostname,
         path: path                
     }, getLocationDataCallback);
 
@@ -929,7 +926,7 @@ function parseTimeSeriesDataServiceResponse(messageBody, callback) {
 function requestSite(siteNo, callback) {
     try {
         httpQuery(
-            'waterservices.usgs.gov', '/nwis/site/',
+            options.waterServicesHostname, '/nwis/site/',
             {format: 'rdb',
              sites: siteNo,
              siteOutput: 'expanded'}, callback
@@ -1126,7 +1123,7 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     httpQuery(
-                        AQUARIUS_HOSTNAME,
+                        options.aquariusHostname,
                         AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList',
                         {token: token, format: 'json',
                          LocationIdentifier: locationIdentifier.toString(),
@@ -1243,7 +1240,7 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     httpQuery(
-                        AQUARIUS_HOSTNAME,
+                        options.aquariusHostname,
                         AQUARIUS_PREFIX + 'GetQualifierList/',
                         {token: token,
                          format: 'json'}, callback
@@ -1273,7 +1270,7 @@ httpdispatcher.onGet(
                 if (qualifierListServiceResponse === undefined) {
                     callback(
                         'Could not get remark codes from http://' +
-                            AQUARIUS_HOSTNAME + AQUARIUS_PREFIX +
+                            options.aquariusHostname + AQUARIUS_PREFIX +
                             'GetQualifierList/'
                     );
                     return;
@@ -1463,7 +1460,7 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     httpQuery(
-                        AQUARIUS_HOSTNAME,
+                        options.aquariusHostname,
                         AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList',
                         {token: token, format: 'json',
                          LocationIdentifier: locationIdentifier.toString(),
