@@ -150,14 +150,19 @@ function handle(error, response) {
 } // handle
 
 /**
-   @function Convert an ISO 8601 extended format, date string to RFC
-             3339 basic format.
-   @param {string} s ISO 8601 date string to convert.
-   @see https://tools.ietf.org/html/rfc3339
+   @description Public functions.
 */
-function toBasicFormat(s) {
-    return s.replace('T', ' ').replace(/\.\d*/, '');
-}
+module.exports = {
+    /**
+       @function Convert an ISO 8601 extended format, date string to
+                 RFC 3339 basic format.
+       @param {string} s ISO 8601 date string to convert.
+       @see https://tools.ietf.org/html/rfc3339
+    */
+    toBasicFormat: function (s) {
+	return s.replace('T', ' ').replace(/\.\d*/, '');
+    }
+};
 
 /**
    @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to a
@@ -1669,3 +1674,9 @@ server.listen(options.port, function () {
             options.port.toString()
     );
 });
+
+if (process.env.NODE_ENV === 'test') {
+    module.exports._private = {
+	handle: handle
+    };
+}
