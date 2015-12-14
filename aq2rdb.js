@@ -1676,6 +1676,11 @@ server.listen(options.port, function () {
     );
 });
 
+/**
+   @description Export module's private functions to test harness
+                only.
+   @see http://engineering.clever.com/2014/07/29/testing-private-functions-in-javascript-modules/
+*/
 if (process.env.NODE_ENV === 'test') {
     module.exports._private = {
         handle: handle,
