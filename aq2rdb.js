@@ -398,6 +398,32 @@ function getAQToken(userName, password, callback) {
 } // getAQToken
 
 /**
+   @function Check for documentation request, and serve documentation
+             if appropriate.
+   @param {string} url Endpoint URL.
+   @param {string} name Endpoint name.
+   @param {object} response Response object.
+   @param {function} callback Callback function to call when complete.
+*/
+function docRequest(url, name, response, callback) {
+    // if this is a documentation request
+    if (url === '/' + PACKAGE_NAME + '/' + name) {
+        // read and serve the documentation page
+        fs.readFile('doc/' + name + '.html', function (error, html) {
+            if (error) {
+                callback(error);
+                return true;
+            }       
+            response.writeHeader(200, {"Content-Type": "text/html"});  
+            response.end(html);
+        });
+        return true;
+    }
+    else
+        return false;
+} // docRequest
+
+/**
    @function Call AQUARIUS GetTimeSeriesCorrectedData Web service.
    @param {string} token AQUARIUS authentication token.
    @param {string} timeSeriesUniqueId AQUARIUS
@@ -1024,25 +1050,17 @@ httpdispatcher.onGet(
         */
         async.waterfall([
             /**
+               @description Check for documentation request.
+            */
+            function (callback) {
+                if (docRequest(request.url, 'GetDVTable', response, callback))
+                    return;
+		callback(null);
+            },
+            /**
                @function Parse fields and values in GetDVTable URL.
             */
             function (callback) {
-                // if this is a documentation request
-                if (request.url === '/' + PACKAGE_NAME + '/GetDVTable') {
-                    // read and serve the documentation page
-                    fs.readFile('doc/GetDVTable.html', function (error, html) {
-                        if (error) {
-                            callback(error);
-                            return;
-                        }       
-                        response.writeHeader(
-                            200, {"Content-Type": "text/html"}
-                        );  
-                        response.end(html);
-                    });
-                    return;
-                }
-
                 try {
                     field = url.parse(request.url, true).query;
                 }
@@ -1365,14 +1383,17 @@ httpdispatcher.onGet(
         */
         async.waterfall([
             /**
+               @description Check for documentation request.
+            */
+            function (callback) {
+                if (docRequest(request.url, 'GetUVTable', response, callback))
+                    return;
+		callback(null);
+            },
+            /**
                @description Parse fields and values in GetUVTable URL.
             */
             function (callback) {
-                /**
-                   @todo GetUVTable endpoint documentation page gets
-                         served here.
-                */
-
                 try {
                     field = url.parse(request.url, true).query;
                 }
