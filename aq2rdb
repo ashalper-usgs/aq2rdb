@@ -1,0 +1,9 @@
+#! /bin/bash
+#
+# aq2rdb        This starts aq2rdb.
+#
+# description: Starts aq2rdb Web service.
+
+# We run the entire init script as nodejs.
+
+/usr/bin/sudo -u nodejs -H -- /usr/bin/node /opt/nodejs/aq2rdb.js "$@"

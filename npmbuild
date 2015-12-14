@@ -1,0 +1,11 @@
+#! /bin/sh
+#
+#  File - npmbuild
+#
+#  Purpose - Install prerequisite npm packages (see
+#            https://www.npmjs.com/) for aq2rdb.
+#
+#  Author - Andrew Halper <ashalper@usgs.gov>
+#
+echo "Installing prerequisite aq2rdb npm packages..."
+npm install async command-line-args httpdispatcher moment-timezone querystring

@@ -8,6 +8,8 @@
  */
 
 'use strict';
+
+var commandLineArgs = require('command-line-args');
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
 var url = require('url');
@@ -25,22 +27,26 @@ var moment = require('moment-timezone');
 var PACKAGE_NAME = 'aq2rdb';
 
 /**
-   @description The port the aq2rdb service listens on.
-   @constant
-*/
-var PORT = 8081;
-
-/**
-   @description AQUARIUS host.
-   @constant
-*/
-var AQUARIUS_HOSTNAME = 'nwists.usgs.gov';
-
-/**
    @description AQUARIUS Web services path prefix.
    @constant
 */
 var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
+
+/**
+   @description Domain of supported command line arguments.
+   @see https://www.npmjs.com/package/command-line-args#synopsis
+*/
+var cli = commandLineArgs([
+    {name: 'port', alias: 'p', type: Number, defaultValue: 8081},
+    {name: 'aquariusHostname', alias: 'a', type: String},
+    {name: 'aquariusTokenHostname', alias: 't', type: String},
+    {name: 'waterServicesHostname', alias: 'w', type: String}
+]);
+
+/**
+   @description Set of successfully parsed command line options.
+*/
+var options = cli.parse();
 
 /**
    @description A mapping of select NWIS time zone codes to IANA time
@@ -71,17 +77,17 @@ tzName['IDLW'] =  {N: 'Etc/GMT-12', Y: 'Etc/GMT-12'};
 tzName['JST'] =   {N: 'Etc/GMT+9',  Y: 'Asia/Tokyo'};
 tzName['MST'] =   {N: 'Etc/GMT-7',  Y: 'America/Denver'};
 // moment-timezone has no support for UTC-03:30 (in the context of
-// winter), which would be the mapping of NWIS' (NST,N) [i.e.,
-// "Newfoundland Standard Time, local time not acknowledged"] SITEFILE
-// predicate...
-tzName['NST'] =   {N:  undefined,   Y: 'America/St_Johns'};
+// Northern Hemisphere summer), which would be the mapping of NWIS'
+// (NST,N) [i.e., "Newfoundland Standard Time, local time not
+// acknowledged"] SITEFILE predicate...
+tzName['NST'] =   {N: 'UTC-03:30',  Y: 'America/St_Johns'};
 tzName['NZT'] =   {N: 'Etc/GMT+12', Y: 'NZ'};
 tzName['PST'] =   {N: 'Etc/GMT-8',  Y: 'America/Los_Angeles'};
 // ...similarly, moment-timezone has no support for UTC+09:30 (in the
-// context of Southern Hemisphere winter), which would be the mapping
+// context of Southern Hemisphere summer), which would be the mapping
 // of NWIS' (SAT,N) [i.e., "South Australian Standard Time, local time
 // not acknowledged"]
-tzName['SAT'] =   {N:  undefined,   Y: 'Australia/Adelaide'};
+tzName['SAT'] =   {N: 'UTC+09:30',  Y: 'Australia/Adelaide'};
 tzName['UTC'] =   {N: 'Etc/GMT+0',  Y: 'Etc/GMT+0'};
 tzName['WAST'] =  {N: 'Etc/GMT+7',  Y: 'Australia/Perth'};
 tzName['WAT'] =   {N: 'Etc/GMT+1',  Y: 'Africa/Bangui'};
@@ -154,32 +160,23 @@ function toBasicFormat(s) {
 }
 
 /**
-   @function Convert AQUARIUS TimeSeriesPoint.Timestamp data type to a
-             common NWIS date type.
+   @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to a
+             common NWIS date format.
    @param {string} timestamp AQUARIUS Timestamp string to convert.
 */
 function toNWISDateFormat(timestamp) {
-    var date;
-
-    try {
-        date = new Date(timestamp);
-    }
-    catch (error) {
-        throw error;
-    }
+    var date = new Date(timestamp);
 
     return timestamp.split('T')[0].replace(/-/g, '');
 } // toNWISDateFormat
 
+/**
+   @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to a
+             common NWIS time format.
+   @param {string} timestamp AQUARIUS Timestamp string to convert.
+*/
 function toNWISTimeFormat(timestamp) {
-    var date;
-
-    try {
-        date = new Date(timestamp);
-    }
-    catch (error) {
-        throw error;
-    }
+    var date = new Date(timestamp);
 
     return timestamp.split(/[T.]/)[1].replace(/:/g, '')
 } // toNWISTimeFormat
@@ -374,10 +371,10 @@ function getAQToken(userName, password, callback) {
         bind('userName', userName) +
         bind('password', password) +
         bind('uriString',
-             'http://' + AQUARIUS_HOSTNAME + '/AQUARIUS/');
+             'http://' + options.aquariusHostname + '/AQUARIUS/');
     var request = http.request({
-        host: 'cidasdqaasaq2rd.cr.usgs.gov',
-        port: '8080',
+        host: options.aquariusTokenHostname,
+        port: '8080',           // TODO: make a CLI option
         path: path
     }, getAQTokenCallback);
 
@@ -399,6 +396,32 @@ function getAQToken(userName, password, callback) {
 
     request.end();
 } // getAQToken
+
+/**
+   @function Check for documentation request, and serve documentation
+             if appropriate.
+   @param {string} url Endpoint URL.
+   @param {string} name Endpoint name.
+   @param {object} response Response object.
+   @param {function} callback Callback function to call when complete.
+*/
+function docRequest(url, name, response, callback) {
+    // if this is a documentation request
+    if (url === '/' + PACKAGE_NAME + '/' + name) {
+        // read and serve the documentation page
+        fs.readFile('doc/' + name + '.html', function (error, html) {
+            if (error) {
+                callback(error);
+                return true;
+            }       
+            response.writeHeader(200, {"Content-Type": "text/html"});  
+            response.end(html);
+        });
+        return true;
+    }
+    else
+        return false;
+} // docRequest
 
 /**
    @function Call AQUARIUS GetTimeSeriesCorrectedData Web service.
@@ -445,7 +468,7 @@ function getTimeSeriesCorrectedData(
         bind('QueryFrom', queryFrom) + bind('QueryTo', queryTo);
 
     var request = http.request({
-        host: AQUARIUS_HOSTNAME,
+        host: options.aquariusHostname,
         path: path
     }, getTimeSeriesCorrectedDataCallback);
 
@@ -495,7 +518,7 @@ function getLocationData(token, locationIdentifier, callback) {
         bind('LocationIdentifier', locationIdentifier);
 
     var request = http.request({
-        host: AQUARIUS_HOSTNAME,
+        host: options.aquariusHostname,
         path: path                
     }, getLocationDataCallback);
 
@@ -865,6 +888,46 @@ function distill(timeSeriesDescriptions, locationIdentifier, callback) {
 } // distill
 
 /**
+   @function Patch up some obscure incompatibilities between NWIS's
+             site time offset predicate and IANA time zone data (used
+             by moment-timezone).
+*/
+function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
+    var m = moment.tz(timestamp, name);
+    var p = new Object();       // datetime point
+
+    // if this site's time offset predicate is "local time not
+    // acknowledged", and observes Newfoundland Standard Time or South
+    // Australian Standard Time, and date point is within the
+    // associated, effective daylight saving time interval
+    if (localTimeFlag === 'N' &&
+        (tzCode === 'NST' && m.zoneAbbr() === 'NDT' ||
+         tzCode === 'SAT' && m.zoneAbbr() === 'ACDT')) {
+        var t = new Date(point.Timestamp);
+        // normalize time to UTC, then apply time zone offset from UTC
+        var offset = name.replace('UTC', '');
+        var invertedOffset =
+            offset.replace('+', '-') || offset.replace('-', '+');
+        var utc = new Date(t.toISOString().replace('Z', invertedOffset));
+        var v = utc.toISOString().split(/[T.]/);
+
+        // reformat ISO 8601 date/time to NWIS date/time format
+        p.date = v[0].replace('-', '');
+        p.time = v[1].replace(':', '');
+        // use (non-IANA) name as time zone abbreviation
+        p.tz = name;
+    }
+    else {
+        // use IANA time zone data
+        p.date = m.format('YYYYMMDD');
+        p.time = m.format('hhmmss');
+        p.tz = m.format('z');
+    }
+
+    return p;
+} // nwisVersusIANA
+
+/**
    @function Parse AQUARIUS TimeSeriesDataServiceResponse received
              from GetTimeSeriesCorrectedData service.
 */
@@ -884,13 +947,14 @@ function parseTimeSeriesDataServiceResponse(messageBody, callback) {
 
 /**
    @function Query USGS Site Web Service.
+   @param {string} siteNo NWIS site number string.
 */
-function requestSite(locationIdentifier, callback) {
+function requestSite(siteNo, callback) {
     try {
         httpQuery(
-            'waterservices.usgs.gov', '/nwis/site/',
+            options.waterServicesHostname, '/nwis/site/',
             {format: 'rdb',
-             sites: locationIdentifier.toString(),
+             sites: siteNo,
              siteOutput: 'expanded'}, callback
         );
     }
@@ -902,6 +966,9 @@ function requestSite(locationIdentifier, callback) {
 
 /**
    @function Receive and parse response from USGS Site Web Service.
+   @param {string} messageBody Message body of HTTP response from USGS
+                   Site Web Service.
+   @param {function} callback Callback to call when complete.
 */
 function receiveSite(messageBody, callback) {
     var site = new Object;
@@ -983,25 +1050,17 @@ httpdispatcher.onGet(
         */
         async.waterfall([
             /**
+               @description Check for documentation request.
+            */
+            function (callback) {
+                if (docRequest(request.url, 'GetDVTable', response, callback))
+                    return;
+		callback(null);
+            },
+            /**
                @function Parse fields and values in GetDVTable URL.
             */
             function (callback) {
-                // if this is a documentation request
-                if (request.url === '/' + PACKAGE_NAME + '/GetDVTable') {
-                    // read and serve the documentation page
-                    fs.readFile('doc/GetDVTable.html', function (error, html) {
-                        if (error) {
-                            callback(error);
-                            return;
-                        }       
-                        response.writeHeader(
-                            200, {"Content-Type": "text/html"}
-                        );  
-                        response.end(html);
-                    });
-                    return;
-                }
-
                 try {
                     field = url.parse(request.url, true).query;
                 }
@@ -1082,7 +1141,7 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     httpQuery(
-                        AQUARIUS_HOSTNAME,
+                        options.aquariusHostname,
                         AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList',
                         {token: token, format: 'json',
                          LocationIdentifier: locationIdentifier.toString(),
@@ -1199,7 +1258,7 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     httpQuery(
-                        AQUARIUS_HOSTNAME,
+                        options.aquariusHostname,
                         AQUARIUS_PREFIX + 'GetQualifierList/',
                         {token: token,
                          format: 'json'}, callback
@@ -1229,7 +1288,7 @@ httpdispatcher.onGet(
                 if (qualifierListServiceResponse === undefined) {
                     callback(
                         'Could not get remark codes from http://' +
-                            AQUARIUS_HOSTNAME + AQUARIUS_PREFIX +
+                            options.aquariusHostname + AQUARIUS_PREFIX +
                             'GetQualifierList/'
                     );
                     return;
@@ -1324,14 +1383,17 @@ httpdispatcher.onGet(
         */
         async.waterfall([
             /**
+               @description Check for documentation request.
+            */
+            function (callback) {
+                if (docRequest(request.url, 'GetUVTable', response, callback))
+                    return;
+		callback(null);
+            },
+            /**
                @description Parse fields and values in GetUVTable URL.
             */
             function (callback) {
-                /**
-                   @todo GetUVTable endpoint documentation page gets
-                         served here.
-                */
-
                 try {
                     field = url.parse(request.url, true).query;
                 }
@@ -1388,7 +1450,7 @@ httpdispatcher.onGet(
             },
             function (messageBody, callback) {
                 token = messageBody;
-                callback(null, locationIdentifier);
+                callback(null, locationIdentifier.toString());
             },
             /**
                @todo requestSite() and receiveSite() can be done in
@@ -1399,15 +1461,6 @@ httpdispatcher.onGet(
             receiveSite,
             function (receivedSite, callback) {
                 site = receivedSite; // set global
-                response.write(
-                    rdbHeader(
-                        'NWIS-I UNIT-VALUES', site,
-                        timeSeriesDescription.SubLocationIdentifer,
-                        {start: toNWISDateFormat(field.QueryFrom),
-                         end: toNWISDateFormat(field.QueryTo)}
-                    ),
-                    'ascii'
-                );
                 callback(null);
             },
             /**
@@ -1417,13 +1470,6 @@ httpdispatcher.onGet(
                      site.tzCd, so we can reference UV times to "local
                      time".
             */
-            function (callback) {
-                response.write(
-                    'DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n' +
-                        '8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n', 'ascii'
-                );
-                callback(null);
-            },
             /**
                @function Query AQUARIUS GetTimeSeriesDescriptionList
                          service to get list of AQUARIUS, time series
@@ -1435,7 +1481,7 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     httpQuery(
-                        AQUARIUS_HOSTNAME,
+                        options.aquariusHostname,
                         AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList',
                         {token: token, format: 'json',
                          LocationIdentifier: locationIdentifier.toString(),
@@ -1496,12 +1542,30 @@ httpdispatcher.onGet(
                         }
                     },
                     function (uvTimeSeriesDescriptions) {
-                        timeSeriesDescription =
-                            distill(
-                                uvTimeSeriesDescriptions,
-                                locationIdentifier, callback
-                            );
+                        timeSeriesDescription = distill(
+                            uvTimeSeriesDescriptions,
+                            locationIdentifier, callback
+                        );
                     }
+                );
+                callback(null, timeSeriesDescription);
+            },
+            function (timeSeriesDescription, callback) {
+                response.write(
+                    rdbHeader(
+                        'NWIS-I UNIT-VALUES', site,
+                        timeSeriesDescription.SubLocationIdentifer,
+                        {start: toNWISDateFormat(field.QueryFrom),
+                         end: toNWISDateFormat(field.QueryTo)}
+                    ),
+                    'ascii'
+                );
+                callback(null, timeSeriesDescription);
+            },
+            function (timeSeriesDescription, callback) {
+                response.write(
+                    'DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n' +
+                        '8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n', 'ascii'
                 );
                 callback(null, timeSeriesDescription.UniqueId);
             },
@@ -1526,7 +1590,7 @@ httpdispatcher.onGet(
                                     series point.
                     */
                     function (point, callback) {
-                        var name, m, d;
+                        var name, date, time, tz;
 
 			/**
 			   @description Use site's time offset
@@ -1535,38 +1599,26 @@ httpdispatcher.onGet(
 					name.
 			*/
                         try {
-                            name = tzName[site.tzCode][site.localTimeFlag];
+                            name =
+                                tzName[site.tzCode][site.localTimeFlag];
                         }
                         catch (error) {
                             callback(
                                 'Could not derive IANA time zone ' +
-                                    'name from site\'s time spec.'
+                                    'name from site\'s time offset spec.'
                             );
                             return;
                         }
 
-			/**
-			   @description moment object construction.
-			*/
-                        m = moment.tz(point.Timestamp, name);
-
-                        /**
-                           @todo Seems like it should be possible to
-                                 factor this out by replacing with "m"
-                                 moment above.
-                        */
-                        try {
-                            d = new Date(point.Timestamp);
-                        }
-                        catch (error) {
-                            callback(error);
-                            return;
-                        }
+                        // correct some obscure time offset
+                        // incompatibility cases
+                        var p = nwisVersusIANA(
+                            point.Timestamp, name, site.tzCode,
+                            site.localTimeFlag
+                        );
 
                         response.write(
-                            m.format('YYYYMMDD') + '\t' +
-                                m.format('hhmmss') + '\t' +
-                                moment.tz.zone(name).abbr(d) + '\t' +
+                            p.date + '\t' + p.time + '\t' + p.tz + '\t' +
                                 point.Value.Numeric + '\t' +
                                 point.Value.Numeric.toString().length + '\n'
                         );
@@ -1611,9 +1663,9 @@ var server = http.createServer(handleRequest);
 /**
    @description Start listening for requests.
 */ 
-server.listen(PORT, function () {
+server.listen(options.port, function () {
     console.log(
         PACKAGE_NAME + ': Server listening on: http://localhost:' +
-            PORT.toString()
+            options.port.toString()
     );
 });

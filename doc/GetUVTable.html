@@ -3,7 +3,7 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <title>aq2rdb: GetDVTable</title>
+    <title>aq2rdb: GetUVTable</title>
     <style type="text/css">
       /*<![CDATA[*/
         body  {
@@ -170,7 +170,7 @@
 
     <div class="operation">
       <div>
-        <h2>GetDVTable</h2>
+        <h2>GetUVTable</h2>
 	<!-- TODO: convert to div(s): -->
         <table class="routes" summary="A list of routes for this Web service.">
           <caption>
@@ -179,7 +179,7 @@
           <tbody>
             <tr>
               <th>GET</th>
-              <th>/GetDVTable</th>
+              <th>/GetUVTable</th>
               <td></td>
               <td></td>
             </tr>
@@ -187,9 +187,9 @@
         </table>
 
         <table class="params"
-               summary="GetDVTable Web service, formal parameters.">
+               summary="GetUVTable Web service, formal parameters.">
           <caption>
-            <b>GetDVTable</b> Request Parameters:
+            <b>GetUVTable</b> Request Parameters:
           </caption>
 
           <thead>
@@ -263,14 +263,14 @@
 
 	<div style="width: 56em;">
         <div>
-          <b>GetDVTable</b> Response:
+          <b>GetUVTable</b> Response:
         </div>
         <p>
-          The GetDVTable response, when successful, returns
+          The GetUVTable response, when successful, returns
 an <a href="http://pubs.usgs.gov/of/2003/ofr03123/6.4rdb_format.pdf">RDB</a>
 file (MIME content type &ldquo;text/plain&rdquo;). The RDB file begins
 with a sequence of RDB comment lines, forming a &ldquo;header
-block&rdquo;, which contain additional data relevant to all daily
+block&rdquo;, which contain additional data relevant to all unit
 values in the subsequent table.
         </p>
 
@@ -285,7 +285,7 @@ values in the subsequent table.
 # //NATIONAL WATER INFORMATION SYSTEM     http://water.usgs.gov/data.html<br/>
 # //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS<br/>
 # //RETRIEVED: 2015-11-16 20:54:43Z<br/>
-# //FILE TYPE=&quot;NWIS-I DAILY-VALUES&quot; EDITABLE=NO<br/>
+# //FILE TYPE=&quot;NWIS-I UNIT-VALUES&quot; EDITABLE=NO<br/>
 # //STATION AGENCY=&quot;USGS&quot; NUMBER=&quot;01010000       &quot; TIME_ZONE=&quot;EST&quot; DST_FLAG=Y<br/>
 # //STATION NAME=&quot;St. John River at Ninemile Bridge, Maine&quot;<br/>
 # //RANGE START=&quot;19960101&quot; END=&quot;19970101&quot;<br/>
@@ -297,7 +297,7 @@ values in the subsequent table.
 	(&ldquo;Z&rdquo; is the U.S. military time zone abbreviation
 	for the &plusmn;00:00 time offset), as it would not be accurate for
 	aq2rdb to attempt to detect the local time zone of the Web
-	service client requesting the daily values file.</p>
+	service client requesting the unit values file.</p>
 
 	<p>The remaining header block fields are a subset of those
 	output by the
@@ -307,7 +307,7 @@ values in the subsequent table.
 	<p>The columns included in the RDB table are:</p>
 	</div>
         <table class="params"
-               summary="GetDVTable Web service, response fields.">
+               summary="GetUVTable Web service, response fields.">
 
           <thead>
             <tr>
@@ -325,7 +325,7 @@ values in the subsequent table.
               <td>RDB column</td>
               <td>8D</td>
               <td>Yes</td>
-              <td>Daily value date.</td>
+              <td>Unit value date.</td>
             </tr>
             
             <tr>
@@ -333,7 +333,7 @@ values in the subsequent table.
               <td>RDB column</td>
               <td>6S</td>
               <td>No</td>
-              <td>Daily value time.</td>
+              <td>Unit value time.</td>
             </tr>
 
             <tr>
@@ -341,7 +341,7 @@ values in the subsequent table.
               <td>RDB column</td>
               <td>16N</td>
               <td>No</td>
-              <td>Daily value.</td>
+              <td>Unit value.</td>
             </tr>
 
             <tr>
