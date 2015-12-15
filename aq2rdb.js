@@ -438,6 +438,7 @@ var LocationIdentifier = function (text) {
 function httpQuery(host, path, field, callback) {
     /**
        @description Handle response from GetLocationData.
+       @callback
     */
     function httpQueryCallback(response) {
         var messageBody = '';
@@ -510,6 +511,7 @@ function getAQToken(userName, password, callback) {
 
     /**
        @description GetAQToken service response callback.
+       @callback
     */
     function getAQTokenCallback(response) {
         var messageBody = '';
@@ -609,6 +611,7 @@ function getTimeSeriesCorrectedData(
 ) {
     /**
        @description Handle response from GetTimeSeriesCorrectedData.
+       @callback
     */
     function getTimeSeriesCorrectedDataCallback(response) {
         var messageBody = '';
@@ -660,6 +663,7 @@ function getTimeSeriesCorrectedData(
 function getLocationData(token, locationIdentifier, callback) {
     /**
        @description Handle response from GetLocationData.
+       @callback
     */
     function getLocationDataCallback(response) {
         var messageBody = '';
@@ -832,6 +836,7 @@ function distill(timeSeriesDescriptions, locationIdentifier, callback) {
             timeSeriesDescriptions,
             /**
                @function Primary time series filter iterator function.
+               @callback
             */
             function (timeSeriesDescription, callback) {
                 /**
@@ -845,6 +850,7 @@ function distill(timeSeriesDescriptions, locationIdentifier, callback) {
                     /**
                        @function Primary time series, async.detect
                                  truth value function.
+                       @callback
                     */
                     function (extendedAttribute, callback) {
                         // if this time series description is
@@ -861,6 +867,7 @@ function distill(timeSeriesDescriptions, locationIdentifier, callback) {
                     /**
                        @function Primary time series, async.detect
                                  final function.
+                       @callback
                     */
                     function (result) {
                         // notify async.filter that we...
@@ -881,6 +888,7 @@ function distill(timeSeriesDescriptions, locationIdentifier, callback) {
                @function Check arity of primary time series
                          descriptions returned from AQUARIUS
                          GetTimeSeriesDescriptionList.
+               @callback
             */
             function (primaryTimeSeriesDescriptions) {
                 // if there is 1-and-only-1 primary time
@@ -970,6 +978,7 @@ function parseTimeSeriesDataServiceResponse(messageBody, callback) {
 /**
    @function Query USGS Site Web Service.
    @private
+   @callback
    @param {string} siteNo NWIS site number string.
 */
 function requestSite(siteNo, callback) {
@@ -990,6 +999,7 @@ function requestSite(siteNo, callback) {
 /**
    @function Receive and parse response from USGS Site Web Service.
    @private
+   @callback
    @param {string} messageBody Message body of HTTP response from USGS
                    Site Web Service.
    @param {function} callback Callback to call when complete.
@@ -1030,6 +1040,9 @@ function receiveSite(messageBody, callback) {
 */
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetDVTable',
+    /**
+       @callback
+    */
     function (request, response) {
         var field, token, locationIdentifier, timeSeriesDescription;
         var remarkCodes;
@@ -1039,7 +1052,8 @@ httpdispatcher.onGet(
         */
         async.waterfall([
             /**
-               @description Check for documentation request.
+               @function Check for documentation request.
+               @callback
             */
             function (callback) {
                 if (docRequest(request.url, 'GetDVTable', response, callback))
@@ -1048,6 +1062,7 @@ httpdispatcher.onGet(
             },
             /**
                @function Parse fields and values in GetDVTable URL.
+               @callback
             */
             function (callback) {
                 try {
@@ -1092,6 +1107,7 @@ httpdispatcher.onGet(
             /**
                @function Get AQUARIUS authentication token from
                          GetAQToken service.
+               @callback
             */
             function (callback) {
                 try {
@@ -1110,6 +1126,7 @@ httpdispatcher.onGet(
             /**
                @function Receive AQUARIUS authentication token from
                          GetAQToken service.
+               @callback
                @param {string} messageBody Message body of response
                       from GetAQToken.
                @param {function} callback async.waterfall() callback
@@ -1124,6 +1141,7 @@ httpdispatcher.onGet(
                          service to get list of AQUARIUS, time series
                          UniqueIds related to aq2rdb, GetDVTable
                          location and parameter.
+               @callback
                @param {function} callback async.waterfall() callback
                       function.
             */
@@ -1152,6 +1170,7 @@ httpdispatcher.onGet(
                          GetTimeSeriesDescriptionList, then parse list
                          of related TimeSeriesDescriptions to query
                          AQUARIUS GetTimeSeriesCorrectedData service.
+               @callback
                @param {string} messageBody Message body part of
                       HTTP response from GetTimeSeriesDescriptionList.
             */
@@ -1176,6 +1195,7 @@ httpdispatcher.onGet(
                @function For each AQUARIUS time series description,
                          query GetTimeSeriesCorrectedData to get
                          related daily values.
+               @callback
             */
             function (timeSeriesDescriptions, callback) {
                 timeSeriesDescription =
@@ -1188,11 +1208,13 @@ httpdispatcher.onGet(
             receiveSite,
             /**
                @function Write RDB header and heading.
+               @callback
             */
             function (site, callback) {
                 async.series([
                     /**
                        @function Write HTTP response header.
+                       @callback
                     */
                     function (callback) {
                         response.writeHead(
@@ -1202,6 +1224,7 @@ httpdispatcher.onGet(
                     },
                     /**
                        @function Write RDB header to HTTP response.
+                       @callback
                     */
                     function (callback) {
                         var start, end;
@@ -1226,6 +1249,7 @@ httpdispatcher.onGet(
                        @function Write RDB heading (a different thing
                                  than RDB header, above) to HTTP
                                  response.
+                       @callback
                     */
                     function (callback) {
                         response.write(
@@ -1239,7 +1263,7 @@ httpdispatcher.onGet(
             },
             /**
                @function Request remark codes from AQUARIUS.
-
+               @callback
                @todo This is fairly kludgey, because remark codes
                      might not be required for every DV interval; try
                      to nest in a conditional eventually.
@@ -1260,6 +1284,7 @@ httpdispatcher.onGet(
             },
             /**
                @function Receive remark codes from AQUARIUS.
+               @callback
             */
             function (messageBody, callback) {
                 var qualifierListServiceResponse;
@@ -1287,6 +1312,9 @@ httpdispatcher.onGet(
                 remarkCodes = new Array();
                 async.each(
                     qualifierListServiceResponse.Qualifiers,
+                    /**
+                       @callback
+                    */
                     function (qualifierMetadata, callback) {
                         remarkCodes[qualifierMetadata.Identifier] =
                             qualifierMetadata.Code;
@@ -1300,6 +1328,7 @@ httpdispatcher.onGet(
             /**
                @function Query AQUARIUS GetTimeSeriesCorrectedData
                          to get related daily values.
+               @callback
             */
             function (callback) {
                 try {
@@ -1320,6 +1349,7 @@ httpdispatcher.onGet(
             parseTimeSeriesDataServiceResponse,
             /**
                @function Write each RDB row to HTTP response.
+               @callback
             */
             function (timeSeriesDataServiceResponse, callback) {
                 async.each(
@@ -1327,6 +1357,7 @@ httpdispatcher.onGet(
                     /**
                        @description Write an RDB row for one time series
                                     point.
+                       @callback
                     */
                     function (timeSeriesPoint, callback) {
                         response.write(
@@ -1348,6 +1379,7 @@ httpdispatcher.onGet(
            @description node-async error handler function for
                         outer-most, GetDVTable async.waterfall
                         function.
+           @callback
         */
         function (error) {
             if (error) {
@@ -1364,6 +1396,9 @@ httpdispatcher.onGet(
 */
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetUVTable',
+    /**
+       @callback
+    */
     function (request, response) {
         var field, token, locationIdentifier, site, parameter;
 
@@ -1373,6 +1408,7 @@ httpdispatcher.onGet(
         async.waterfall([
             /**
                @description Check for documentation request.
+               @callback
             */
             function (callback) {
                 if (docRequest(request.url, 'GetUVTable', response, callback))
@@ -1381,6 +1417,7 @@ httpdispatcher.onGet(
             },
             /**
                @description Parse fields and values in GetUVTable URL.
+               @callback
             */
             function (callback) {
                 try {
@@ -1423,6 +1460,7 @@ httpdispatcher.onGet(
             /**
                @description Get AQUARIUS authentication token from
                             GetAQToken service.
+               @callback
             */
             function (callback) {
                 try {
@@ -1437,6 +1475,9 @@ httpdispatcher.onGet(
                 // no callback here, because it is passed to
                 // getAQToken(), and called from there if successful
             },
+            /**
+               @callback
+            */
             function (messageBody, callback) {
                 token = messageBody;
                 callback(null, locationIdentifier.toString());
@@ -1464,6 +1505,7 @@ httpdispatcher.onGet(
                          service to get list of AQUARIUS, time series
                          UniqueIds related to aq2rdb, GetUVTable
                          location and parameter.
+               @callback
                @param {function} callback async.waterfall() callback
                       function.
             */
@@ -1492,6 +1534,7 @@ httpdispatcher.onGet(
                          GetTimeSeriesDescriptionList, then parse list
                          of related TimeSeriesDescriptions to query
                          AQUARIUS GetTimeSeriesCorrectedData service.
+               @callback
                @param {string} messageBody Message body part of
                       HTTP response from GetTimeSeriesDescriptionList.
             */
@@ -1515,6 +1558,7 @@ httpdispatcher.onGet(
             /**
                @function For each AQUARIUS time series description,
                          weed out non-UV, and non-primary ones.
+               @callback
             */
             function (timeSeriesDescriptions, callback) {
                 var timeSeriesDescription;
@@ -1539,6 +1583,9 @@ httpdispatcher.onGet(
                 );
                 callback(null, timeSeriesDescription);
             },
+            /**
+               @callback
+            */
             function (timeSeriesDescription, callback) {
                 response.write(
                     rdbHeader(
@@ -1551,6 +1598,9 @@ httpdispatcher.onGet(
                 );
                 callback(null, timeSeriesDescription);
             },
+            /**
+               @callback
+            */
             function (timeSeriesDescription, callback) {
                 response.write(
                     'DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n' +
@@ -1558,6 +1608,9 @@ httpdispatcher.onGet(
                 );
                 callback(null, timeSeriesDescription.UniqueId);
             },
+            /**
+               @callback
+            */
             function (uniqueId, callback) {
                 try {
                     getTimeSeriesCorrectedData(
@@ -1571,12 +1624,16 @@ httpdispatcher.onGet(
                 }
             },
             parseTimeSeriesDataServiceResponse,
+            /**
+               @callback
+            */
             function (timeSeriesDataServiceResponse, callback) {
                 async.each(
                     timeSeriesDataServiceResponse.Points,
                     /**
                        @description Write an RDB row for one time
                                     series point.
+                       @callback
                     */
                     function (point, callback) {
                         var name, date, time, tz;
@@ -1621,6 +1678,7 @@ httpdispatcher.onGet(
            @description node-async error handler function for
                         outer-most, GetUVTable async.waterfall
                         function.
+           @callback
         */
         function (error) {
             if (error) {
