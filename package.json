@@ -1,0 +1,32 @@
+{
+    "author": {
+        "name": "Andrew Halper",
+        "email": "ashalper@usgs.gov"
+    },
+    "dependencies": {
+        "async": ">=1.5.0",
+        "command-line-args": ">=2.1.3",
+        "httpdispatcher": ">=0.4.0",
+        "moment-timezone": ">=0.4.1"
+    },
+    "description": "USGS-variant, RDB output from AQUARIUS.",
+    "devDependencies": {
+        "mocha": ">=2.3.4",
+    },
+    "keywords": [
+        "AQUARIUS",
+        "NWIS",
+        "RDB",
+        "nwts2rdb",
+        "time-series"
+    ],
+    "main": "aq2rdb.js",
+    "name": "aq2rdb",
+    "repository": {
+        "url": "git://github.com/ashalper-usgs/aq2rdb.git",
+        "type": "git"
+    },
+    "version": "0.3",
+    "readme": "README.md",
+    "homepage": "https://github.com/ashalper-usgs/aq2rdb#readme"
+}
