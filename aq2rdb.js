@@ -152,7 +152,7 @@ function handle(error, response) {
 /**
    @description Public functions.
 */
-module.exports = {
+var aq2rdb = module.exports = {
     /**
        @function Convert an ISO 8601 extended format, date string to
                  RFC 3339 basic format.
@@ -203,7 +203,7 @@ module.exports = {
     */
     rdbHeader: function (fileType, site, subLocationIdentifer, range) {
         // some convoluted syntax for "now"
-        var retrieved = toBasicFormat((new Date()).toISOString());
+        var retrieved = aq2rdb.toBasicFormat((new Date()).toISOString());
     
         /**
            @author <a href="mailto:bdgarner@usgs.gov">Bradley Garner</a>
@@ -717,7 +717,7 @@ function getLocationData(token, locationIdentifier, callback) {
    @param {string} qa QA code.
 */
 function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
-    var row = toNWISDateFormat(timestamp) +
+    var row = aq2rdb.toNWISDateFormat(timestamp) +
         // TIME column will always be empty for daily values
         '\t\t' + value + '\t';
 
@@ -1230,14 +1230,14 @@ httpdispatcher.onGet(
                         var start, end;
 
                         if (field.QueryFrom !== undefined) {
-                            start = toNWISDateFormat(field.QueryFrom);
+                            start = aq2rdb.toNWISDateFormat(field.QueryFrom);
                         }
 
                         if (field.QueryTo !== undefined) {
-                            end = toNWISDateFormat(field.QueryTo);
+                            end = aq2rdb.toNWISDateFormat(field.QueryTo);
                         }
 
-                        var header = rdbHeader(
+                        var header = aq2rdb.rdbHeader(
                             'NWIS-I DAILY-VALUES', site,
                             timeSeriesDescription.SubLocationIdentifer,
                             {start: start, end: end}
@@ -1588,11 +1588,11 @@ httpdispatcher.onGet(
             */
             function (timeSeriesDescription, callback) {
                 response.write(
-                    rdbHeader(
+                    aq2rdb.rdbHeader(
                         'NWIS-I UNIT-VALUES', site,
                         timeSeriesDescription.SubLocationIdentifer,
-                        {start: toNWISDateFormat(field.QueryFrom),
-                         end: toNWISDateFormat(field.QueryTo)}
+                        {start: aq2rdb.toNWISDateFormat(field.QueryFrom),
+                         end: aq2rdb.toNWISDateFormat(field.QueryTo)}
                     ),
                     'ascii'
                 );
