@@ -156,6 +156,7 @@ module.exports = {
     /**
        @function Convert an ISO 8601 extended format, date string to
                  RFC 3339 basic format.
+       @public
        @param {string} s ISO 8601 date string to convert.
        @see https://tools.ietf.org/html/rfc3339
     */
@@ -166,6 +167,7 @@ module.exports = {
     /**
        @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to
                  a common NWIS date format.
+       @public
        @param {string} timestamp AQUARIUS Timestamp string to convert.
     */
     toNWISDateFormat: function (timestamp) {
@@ -177,6 +179,7 @@ module.exports = {
     /**
        @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to
                  a common NWIS time format.
+       @public
        @param {string} timestamp AQUARIUS Timestamp string to convert.
     */
     toNWISTimeFormat: function (timestamp) {
@@ -187,6 +190,7 @@ module.exports = {
 
     /**
        @function Create RDB header block.
+       @public
        @param {string} fileType Type of time series data (e.g. "NWIS-I
               DAILY-VALUES").
        @param {string} agencyCode Site agency code.
@@ -337,6 +341,7 @@ module.exports = {
 
 /**
    @function Create a valid HTTP query field/value pair substring.
+   @private
    @param {string} field An HTTP query field name.
    @param {string} value An HTTP query field value.
    @see https://en.wikipedia.org/wiki/Uniform_Resource_Locator#Syntax
@@ -350,6 +355,7 @@ function bind(field, value) {
 
 /**
    @function Error messager for JSON parse errors.
+   @private
    @param {object} response aq2rdb IncomingMessage object created by
           http.Server.
    @param {string} message Error message to display in an RDB comment.
@@ -367,6 +373,7 @@ function jsonParseErrorMessage(response, message) {
 /**
    @description LocationIdentifier object prototype.
    @class
+   @private
 */
 var LocationIdentifier = function (text) {
     var text = text;
@@ -420,6 +427,7 @@ var LocationIdentifier = function (text) {
 /**
    @function Call a REST Web service with an HTTP query; send response
              via a callback.
+   @private
    @param {string} host Host part of HTTP query URL.
    @param {string} path Path part of HTTP query URL.
    @param {object} field An array of attribute-value pairs to bind in
@@ -472,6 +480,7 @@ function httpQuery(host, path, field, callback) {
 /**
    @function Call GetAQToken service to get AQUARIUS authentication
              token.
+   @private
    @param {string} userName AQUARIUS user name.
    @param {string} password AQUARIUS password.
    @param {function} callback Callback function to call if/when
@@ -554,6 +563,7 @@ function getAQToken(userName, password, callback) {
 /**
    @function Check for documentation request, and serve documentation
              if appropriate.
+   @private
    @param {string} url Endpoint URL.
    @param {string} name Endpoint name.
    @param {object} response Response object.
@@ -579,6 +589,7 @@ function docRequest(url, name, response, callback) {
 
 /**
    @function Call AQUARIUS GetTimeSeriesCorrectedData Web service.
+   @private
    @param {string} token AQUARIUS authentication token.
    @param {string} timeSeriesUniqueId AQUARIUS
           GetTimeSeriesCorrectedData service
@@ -640,6 +651,7 @@ function getTimeSeriesCorrectedData(
 
 /**
    @function Call AQUARIUS GetLocationData Web service.
+   @private
    @param {string} token AQUARIUS authentication token.
    @param {string} locationIdentifier AQUARIUS location identifier.
    @param {function} callback Callback function to call if/when
@@ -690,6 +702,7 @@ function getLocationData(token, locationIdentifier, callback) {
 
 /**
    @function Create RDB, DV table row.
+   @private
    @param {string} timestamp AQUARIUS timestamp string.
    @param {string} value Time series daily value.
    @param {object} qualifiers AQUARIUS
@@ -790,6 +803,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
    @function Distill a set of time series descriptions into
              (hopefully) one to query for a set of time series
              date/value pairs.
+   @private
    @param {object} timeSeriesDescriptions An array of AQUARIUS
                    TimeSeriesDescription objects.
    @param {object} locationIdentifier A LocationIdentifier object.
@@ -897,6 +911,7 @@ function distill(timeSeriesDescriptions, locationIdentifier, callback) {
    @function Patch up some obscure incompatibilities between NWIS's
              site time offset predicate and IANA time zone data (used
              by moment-timezone).
+   @private
 */
 function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
     var m = moment.tz(timestamp, name);
@@ -936,6 +951,7 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
 /**
    @function Parse AQUARIUS TimeSeriesDataServiceResponse received
              from GetTimeSeriesCorrectedData service.
+   @private
 */
 function parseTimeSeriesDataServiceResponse(messageBody, callback) {
     var timeSeriesDataServiceResponse;
@@ -953,6 +969,7 @@ function parseTimeSeriesDataServiceResponse(messageBody, callback) {
 
 /**
    @function Query USGS Site Web Service.
+   @private
    @param {string} siteNo NWIS site number string.
 */
 function requestSite(siteNo, callback) {
@@ -972,6 +989,7 @@ function requestSite(siteNo, callback) {
 
 /**
    @function Receive and parse response from USGS Site Web Service.
+   @private
    @param {string} messageBody Message body of HTTP response from USGS
                    Site Web Service.
    @param {function} callback Callback to call when complete.
@@ -1006,41 +1024,6 @@ function receiveSite(messageBody, callback) {
 
     callback(null, site);
 } // receiveSite
-
-httpdispatcher.onGet(
-    '/' + PACKAGE_NAME + '/GetTZ',
-    function (request, response) {
-        var field;
-
-        /**
-           @function Parse fields and values in GetTZ URL.
-        */
-
-        // if this is a documentation request
-        if (request.url === '/' + PACKAGE_NAME + '/GetTZ') {
-            // read and serve the documentation page
-            fs.readFile('doc/GetTZ.html', function (error, html) {
-                if (error) {
-                    callback(error);
-                    return;
-                }       
-                response.writeHeader(
-                    200, {"Content-Type": "text/html"}
-                );  
-                response.end(html);
-            });
-            return;
-        }
-
-        try {
-            field = url.parse(request.url, true).query;
-        }
-        catch (error) {
-            callback(error);
-            return;
-        }
-    }
-); // GetTZ
 
 /**
    @description GetDVTable service request handler.
