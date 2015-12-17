@@ -9,9 +9,55 @@
 'use strict';
 
 var assert = require('assert');
+var tmp = require('temporary');
+var fs = require('fs');
 var aq2rdb = require('../aq2rdb.js');
-    
+
 describe('Array', function() {
+    describe('#rdbHeader()', function () {
+        var reference, rdbHeaderFile, rdbHeader;
+        
+        /**
+           @description Make a temporary file containing an aq2rdb RDB
+                        header block, for comparison purposes.
+           @see http://mochajs.org/#hooks
+        */
+        before(function() {
+            reference = fs.readFileSync('USGS-01010000.rdb');
+            rdbHeaderFile = new tmp.File();
+
+            rdbHeaderFile.open('w');
+            rdbHeaderFile.writeFileSync(
+                aq2rdb.rdbHeader(
+                    'NWIS-I UNIT-VALUES',
+                    {agencyCode: 'USGS', number: '01010000',
+                     name: 'St. John River at Ninemile Bridge, Maine',
+                     tzCode: 'EST', localTimeFlag: 'Y'},
+                    undefined,  // subLocationIdentifer
+                    {start: '19951231', end: '19961231'}
+                )
+            );
+
+            rdbHeader = rdbHeaderFile.readFileSync();
+        });
+        describe('#rdbHeader()', function () {
+            /**
+               @todo Re-write to ignore datetime in "//RETRIEVED"
+               field.
+            */
+            it('should return equal', function () {
+                assert.equal(reference, rdbHeader);
+            });
+        });
+        /**
+           @description Clean up temporary file created in before()
+                        call.
+           @see http://mochajs.org/#hooks
+        */
+        after(function() {
+            rdbHeaderFile.unlinkSync();
+        });
+    });
     describe('#toBasicFormat()', function () {
         it('should return "1969-02-18 07:30:00"', function () {
             assert.equal(
