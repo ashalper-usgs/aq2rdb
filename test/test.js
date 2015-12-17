@@ -11,6 +11,7 @@
 var assert = require('assert');
 var tmp = require('temporary');
 var fs = require('fs');
+var diff = require('diff');
 var aq2rdb = require('../aq2rdb.js');
 
 describe('Array', function() {
@@ -23,7 +24,7 @@ describe('Array', function() {
            @see http://mochajs.org/#hooks
         */
         before(function() {
-            reference = fs.readFileSync('USGS-01010000.rdb');
+            reference = fs.readFileSync('USGS-01010000.rdb', 'ascii');
             rdbHeaderFile = new tmp.File();
 
             rdbHeaderFile.open('w');
@@ -37,18 +38,34 @@ describe('Array', function() {
                     {start: '19951231', end: '19961231'}
                 )
             );
+            rdbHeader = fs.readFileSync(rdbHeaderFile.path, 'ascii');
+        });
 
-            rdbHeader = rdbHeaderFile.readFileSync();
-        });
-        describe('#rdbHeader()', function () {
-            /**
-               @todo Re-write to ignore datetime in "//RETRIEVED"
-               field.
-            */
-            it('should return equal', function () {
-                assert.equal(reference, rdbHeader);
+        it('should return "true"', function () {
+            var results = diff.diffLines(reference, rdbHeader);
+            var retrieved =
+                /^# \/\/RETRIEVED: \d{4}-\d\d-\d\d \d\d:\d\d:\d\d UTC$/;
+            var added = false, removed = false;
+
+            results.forEach(function (part) {
+                if (part.added === true &&
+                    part.value.match(retrieved) !== null) {
+                    added = true;
+                }
+                if (part.removed === true &&
+                    part.value.match(retrieved) !== null) {
+                    removed = true;
+                }
             });
+
+            // check some properties of the diff to work around
+            // datetimes in RETRIEVED field being (correctly)
+            // different
+            assert.equal(4, results.length);
+            assert.equal(false, added);
+            assert.equal(false, removed);
         });
+
         /**
            @description Clean up temporary file created in before()
                         call.
