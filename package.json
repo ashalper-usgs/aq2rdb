@@ -19,7 +19,7 @@
     },
     "devDependencies": {
         "mocha": ">=2.3.4",
-        "prettydiff": ">=1.16.2",
+        "diff": ">=2.2.1",
         "temporary": ">=0.0.8"
     },
     "keywords": [
