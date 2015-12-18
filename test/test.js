@@ -1,5 +1,5 @@
 /**
- * @fileOverview Unit test for aq2rdb.
+ * @fileOverview Unit tests for aq2rdb.
  *
  * @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
  *
@@ -8,10 +8,19 @@
 
 'use strict';
 
+/**
+   @description You're running the test, so you must want the Node.js
+                environment to be "test", at least as long as the test
+                is running.
+   @see http://stackoverflow.com/questions/11104028/process-env-node-env-is-undefined
+*/
+process.env.NODE_ENV = 'test';
+
 var assert = require('assert');
 var tmp = require('temporary');
 var fs = require('fs');
 var diff = require('diff');
+var expect = require('chai').expect;
 var aq2rdb = require('../aq2rdb.js');
 
 describe('Array', function() {
@@ -41,7 +50,7 @@ describe('Array', function() {
             rdbHeader = fs.readFileSync(rdbHeaderFile.path, 'ascii');
         });
 
-        it('should return "true"', function () {
+        it('should be true', function () {
             var results = diff.diffLines(reference, rdbHeader);
             var retrieved =
                 /^# \/\/RETRIEVED: \d{4}-\d\d-\d\d \d\d:\d\d:\d\d UTC$/;
@@ -58,7 +67,7 @@ describe('Array', function() {
                 }
             });
 
-            // check some properties of the diff to work around
+            // check some properties of the RDB diff to work around
             // datetimes in RETRIEVED field being (correctly)
             // different
             assert.equal(4, results.length);
@@ -97,6 +106,28 @@ describe('Array', function() {
                 '073000',
                 aq2rdb.toNWISTimeFormat('1969-02-18T07:30:00.000')
             );
+        });
+    });
+    describe('#receiveSite()', function () {
+        var messageBody =
+            fs.readFileSync('USGS-Site-Web-Service.rdb', 'ascii');
+        var referenceSite = {
+            agencyCode: 'USGS', number: '01010000',
+            name: 'St. John River at Ninemile Bridge, Maine',
+            tzCode: 'EST', localTimeFlag: 'Y'
+        };
+        var testSite;
+
+        // send RDB file as string to receiveSite(), using callback to
+        // set results to testSite, so Chai can compare it with
+        // reference site below
+        aq2rdb._private.receiveSite(
+            messageBody,
+            function (error, site) {testSite = site;}
+        );
+
+        it('should be true', function () {
+            expect(referenceSite).to.deep.equal(testSite);
         });
     });
 });
