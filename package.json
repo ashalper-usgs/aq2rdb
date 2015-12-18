@@ -18,8 +18,9 @@
         "moment-timezone": ">=0.4.1"
     },
     "devDependencies": {
-        "mocha": ">=2.3.4",
+        "chai": ">=3.4.1",
         "diff": ">=2.2.1",
+        "mocha": ">=2.3.4",
         "temporary": ">=0.0.8"
     },
     "keywords": [
