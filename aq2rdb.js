@@ -185,7 +185,18 @@ var aq2rdb = module.exports = {
     toNWISTimeFormat: function (timestamp) {
         var date = new Date(timestamp);
 
-        return timestamp.split(/[T.]/)[1].replace(/:/g, '')
+        return timestamp.split(/[T.]/)[1].replace(/:/g, '');
+    },
+
+    /**
+       @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to
+                 a common NWIS datetime format.
+       @public
+       @param {string} timestamp AQUARIUS Timestamp string to convert.
+    */
+    toNWISDatetimeFormat: function (timestamp) {
+        return aq2rdb.toNWISDateFormat(timestamp) +
+            aq2rdb.toNWISTimeFormat(timestamp);
     },
 
     /**
@@ -1591,8 +1602,8 @@ httpdispatcher.onGet(
                     aq2rdb.rdbHeader(
                         'NWIS-I UNIT-VALUES', site,
                         timeSeriesDescription.SubLocationIdentifer,
-                        {start: aq2rdb.toNWISDateFormat(field.QueryFrom),
-                         end: aq2rdb.toNWISDateFormat(field.QueryTo)}
+                        {start: aq2rdb.toNWISDatetimeFormat(field.QueryFrom),
+                         end: aq2rdb.toNWISDatetimeFormat(field.QueryTo)}
                     ),
                     'ascii'
                 );
