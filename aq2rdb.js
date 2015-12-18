@@ -1528,7 +1528,8 @@ httpdispatcher.onGet(
                         {token: token, format: 'json',
                          LocationIdentifier: locationIdentifier.toString(),
                          Parameter: field.Parameter,
-                         // semantics here are: "Unknown" => "Unit Values"
+                         // AQUARIUS semantics here appear to be:
+                         // "Unknown" => "Unit Values"
                          ComputationIdentifier: 'Unknown',
                          ExtendedFilters:
                          '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
