@@ -37,9 +37,21 @@ var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
    @see https://www.npmjs.com/package/command-line-args#synopsis
 */
 var cli = commandLineArgs([
+    /**
+       @description TCP/IP port that aq2rdb will listen on.
+    */
     {name: 'port', alias: 'p', type: Number, defaultValue: 8081},
+    /**
+       @description DNS name of AQUARIUS Web service host.
+    */
     {name: 'aquariusHostname', alias: 'a', type: String},
+    /**
+       @description DNS name of aquarius-token Web service host.
+    */
     {name: 'aquariusTokenHostname', alias: 't', type: String},
+    /**
+       @description DNS name of USGS Water Services Web service host.
+    */
     {name: 'waterServicesHostname', alias: 'w', type: String}
 ]);
 
