@@ -17,13 +17,33 @@
 process.env.NODE_ENV = 'test';
 
 var assert = require('assert');
-var tmp = require('temporary');
-var fs = require('fs');
 var diff = require('diff');
 var expect = require('chai').expect;
+var fs = require('fs');
+var http = require('http');
+var sinon = require('sinon');
+var tmp = require('temporary');
+
 var aq2rdb = require('../aq2rdb.js');
 
 describe('Array', function() {
+    describe(
+        '#handle()', function () {
+            it('should handle correctly', function () {
+                var mockResponse = sinon.mock({
+                    writeHead: function (statusCode, headers) {},
+                    write: function (body) {},
+                    end: function () {}
+                });
+
+                mockResponse.expects('writeHead').once();
+                mockResponse.expects('end').once();
+                aq2rdb._private.handle(
+                    {code: 'ECONNREFUSED'}, mockResponse.object
+                );
+            });
+        }
+    );
     describe('#rdbHeader()', function () {
         var reference, rdbHeaderFile, rdbHeader;
         
