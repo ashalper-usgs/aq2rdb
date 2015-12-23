@@ -29,8 +29,10 @@ var aq2rdb = require('../aq2rdb.js');
 describe('Array', function() {
     describe(
         '#handle()', function () {
-            it('should handle correctly', function () {
-                var mockResponse = sinon.mock({
+            var mockResponse;
+
+            beforeEach(function() {
+                mockResponse = sinon.mock({
                     writeHead: function (statusCode, headers) {},
                     write: function (body) {},
                     end: function () {}
@@ -38,8 +40,27 @@ describe('Array', function() {
 
                 mockResponse.expects('writeHead').once();
                 mockResponse.expects('end').once();
+            });
+
+            it('should handle ECONNREFUSED correctly', function () {
                 aq2rdb._private.handle(
                     {code: 'ECONNREFUSED'}, mockResponse.object
+                );
+            });
+            it('should handle ReferenceErrors correctly', function () {
+                aq2rdb._private.handle(
+                    (new ReferenceError), mockResponse.object
+                );
+            });
+            it('should handle errors typed as "string" correctly', function () {
+                aq2rdb._private.handle(
+                    'It seems there was an error', mockResponse.object
+                );
+            });
+            it('should handle all other errors correctly', function () {
+                aq2rdb._private.handle(
+                    {message: 'It seems there was an error'},
+                    mockResponse.object
                 );
             });
         }
