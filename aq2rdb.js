@@ -13,6 +13,7 @@ var commandLineArgs = require('command-line-args');
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
 var url = require('url');
+var querystring = require('querystring');
 /**
    @see https://github.com/caolan/async
 */
@@ -37,9 +38,21 @@ var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
    @see https://www.npmjs.com/package/command-line-args#synopsis
 */
 var cli = commandLineArgs([
+    /**
+       @description TCP/IP port that aq2rdb will listen on.
+    */
     {name: 'port', alias: 'p', type: Number, defaultValue: 8081},
+    /**
+       @description DNS name of AQUARIUS Web service host.
+    */
     {name: 'aquariusHostname', alias: 'a', type: String},
+    /**
+       @description DNS name of aquarius-token Web service host.
+    */
     {name: 'aquariusTokenHostname', alias: 't', type: String},
+    /**
+       @description DNS name of USGS Water Services Web service host.
+    */
     {name: 'waterServicesHostname', alias: 'w', type: String}
 ]);
 
@@ -185,7 +198,18 @@ var aq2rdb = module.exports = {
     toNWISTimeFormat: function (timestamp) {
         var date = new Date(timestamp);
 
-        return timestamp.split(/[T.]/)[1].replace(/:/g, '')
+        return timestamp.split(/[T.]/)[1].replace(/:/g, '');
+    },
+
+    /**
+       @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to
+                 a common NWIS datetime format.
+       @public
+       @param {string} timestamp AQUARIUS Timestamp string to convert.
+    */
+    toNWISDatetimeFormat: function (timestamp) {
+        return aq2rdb.toNWISDateFormat(timestamp) +
+            aq2rdb.toNWISTimeFormat(timestamp);
     },
 
     /**
@@ -340,20 +364,6 @@ var aq2rdb = module.exports = {
 }; // public functions
 
 /**
-   @function Create a valid HTTP query field/value pair substring.
-   @private
-   @param {string} field An HTTP query field name.
-   @param {string} value An HTTP query field value.
-   @see https://en.wikipedia.org/wiki/Uniform_Resource_Locator#Syntax
-*/ 
-function bind(field, value) {
-    if (value === undefined) {
-        return '';
-    }
-    return '&' + field + '=' + value;
-}
-
-/**
    @function Error messager for JSON parse errors.
    @private
    @param {object} response aq2rdb IncomingMessage object created by
@@ -435,7 +445,7 @@ var LocationIdentifier = function (text) {
    @param {function} callback Callback function to call if/when
           response from Web service is received.
 */
-function httpQuery(host, path, field, callback) {
+function httpQuery(host, path, obj, callback) {
     /**
        @description Handle response from GetLocationData.
        @callback
@@ -456,11 +466,7 @@ function httpQuery(host, path, field, callback) {
         });
     }
     
-    path += '?';                // HTTP query string separator
-    // bind HTTP query, field/value pairs
-    for (var name in field) {
-        path += bind(name, field[name]);
-    }
+    path += '?' + querystring.stringify(obj);
 
     var request = http.request({
         host: host,
@@ -533,10 +539,11 @@ function getAQToken(userName, password, callback) {
                     authentication token needed for AQUARIUS API.
     */
     var path = '/services/GetAQToken?' +
-        bind('userName', userName) +
-        bind('password', password) +
-        bind('uriString',
-             'http://' + options.aquariusHostname + '/AQUARIUS/');
+        querystring.stringify(
+            {userName: userName, password: password,
+             uriString: 'http://' + options.aquariusHostname + '/AQUARIUS/'}
+        );
+
     var request = http.request({
         host: options.aquariusTokenHostname,
         port: '8080',           // TODO: make a CLI option
@@ -631,9 +638,11 @@ function getTimeSeriesCorrectedData(
     } // getTimeSeriesCorrectedDataCallback
 
     var path = AQUARIUS_PREFIX + 'GetTimeSeriesCorrectedData?' +
-        bind('token', token) + bind('format', 'json') +
-        bind('TimeSeriesUniqueId', timeSeriesUniqueId) +
-        bind('QueryFrom', queryFrom) + bind('QueryTo', queryTo);
+        querystring.stringify(
+            {token: token, format: 'json',
+             TimeSeriesUniqueId: timeSeriesUniqueId,
+             QueryFrom: queryFrom, QueryTo: queryTo}
+        );
 
     var request = http.request({
         host: options.aquariusHostname,
@@ -681,11 +690,11 @@ function getLocationData(token, locationIdentifier, callback) {
         });
     }
     
-    var path = AQUARIUS_PREFIX +
-        'GetLocationData?' +
-        bind('token', token) +
-        bind('format', 'json') +
-        bind('LocationIdentifier', locationIdentifier);
+    var path = AQUARIUS_PREFIX + 'GetLocationData?' +
+        querystring.stringify(
+            {token: token, format: 'json',
+             LocationIdentifier: locationIdentifier}
+        );
 
     var request = http.request({
         host: options.aquariusHostname,
@@ -1146,17 +1155,22 @@ httpdispatcher.onGet(
                       function.
             */
             function (callback) {
+                var obj =
+                    {token: token, format: 'json',
+                     LocationIdentifier: locationIdentifier.toString(),
+                     Parameter: field.Parameter,
+                     ComputationPeriodIdentifier: 'Daily',
+                     ExtendedFilters:
+                     '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'};
+
+                if (field.ComputationIdentifier !== undefined)
+                    obj.ComputationIdentifier = field.ComputationIdentifier;
+                
                 try {
                     httpQuery(
                         options.aquariusHostname,
                         AQUARIUS_PREFIX + 'GetTimeSeriesDescriptionList',
-                        {token: token, format: 'json',
-                         LocationIdentifier: locationIdentifier.toString(),
-                         Parameter: field.Parameter,
-                         ComputationIdentifier: field.ComputationIdentifier,
-                         ComputationPeriodIdentifier: 'Daily',
-                         ExtendedFilters:
-                         '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
+                        obj,
                         callback
                     );
                 }
@@ -1517,7 +1531,8 @@ httpdispatcher.onGet(
                         {token: token, format: 'json',
                          LocationIdentifier: locationIdentifier.toString(),
                          Parameter: field.Parameter,
-                         // semantics here are: "Unknown" => "Unit Values"
+                         // AQUARIUS semantics here appear to be:
+                         // "Unknown" => "Unit Values"
                          ComputationIdentifier: 'Unknown',
                          ExtendedFilters:
                          '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
@@ -1591,8 +1606,8 @@ httpdispatcher.onGet(
                     aq2rdb.rdbHeader(
                         'NWIS-I UNIT-VALUES', site,
                         timeSeriesDescription.SubLocationIdentifer,
-                        {start: aq2rdb.toNWISDateFormat(field.QueryFrom),
-                         end: aq2rdb.toNWISDateFormat(field.QueryTo)}
+                        {start: aq2rdb.toNWISDatetimeFormat(field.QueryFrom),
+                         end: aq2rdb.toNWISDatetimeFormat(field.QueryTo)}
                     ),
                     'ascii'
                 );
@@ -1725,7 +1740,6 @@ server.listen(options.port, function () {
 if (process.env.NODE_ENV === 'test') {
     module.exports._private = {
         handle: handle,
-        bind: bind,
         jsonParseErrorMessage: jsonParseErrorMessage,
         httpQuery: httpQuery,
         getAQToken: getAQToken,
