@@ -224,7 +224,9 @@ else
         oflag=TRUE
         outpath="$OPTARG"
         ;;
-      # z) NWIS logical database number: now obsolete
+      z)
+        echo "$0: warning: the nwts2rdb \"-z\" option is not used" >& 2
+        ;;
       t)
         tflag=TRUE
         datatyp="${OPTARG^^}"   # convert to upper case
