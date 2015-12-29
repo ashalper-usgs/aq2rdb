@@ -11,6 +11,14 @@
 #            Jim Cornwall <jcorn@usgs.gov> (nwts2rdb.c)
 #
 
+rdb_out ()
+{
+  echo "rdb_out_ ($ctlpath,$multiple,$outpath,$dbnum,";
+  echo "          $datatyp,$rndsup,$wyflag,$cflag,$vflag,$hydra,";
+  echo "          $agency,$station,$ddpm,$loc_nu,$stat,$transport_cd,";
+  echo "          $begdat,$enddat,$loc_tz_cd,$titlline);";
+} # rdb_out
+
 # Usage statement.
 nwts2rdb_usage ()
 {
@@ -193,19 +201,6 @@ eflag=FALSE
 lflag=FALSE
 fflag=FALSE
 xflag=FALSE
-olen=0
-tlen=0
-alen=0
-nlen=0
-dplen=0
-slen=0
-ylen=0
-ilen=0
-blen=0
-elen=0
-llen=0
-xlen=0
-flen=0
 
 status=0
 
@@ -390,130 +385,71 @@ fi
 if [ "$status" != 0 ]; then
   nwts2rdb_usage
 else
-  # get the length of the output file pathname
-  if [ "$oflag" = TRUE ]; then
-    olen=${#outpath}
-  else
-    olen=1
+  if [ "$oflag" != TRUE ]; then
     outpath="$oblank"
   fi
 
-  # set data type to blank if not supplied
   if [ "$tflag" != TRUE ]; then
-    tlen=1
     datatyp="$tblank"
   fi
 
-  # get the length of the agency code
-  if [ "$aflag" = TRUE ]; then
-    alen=${#agency}
-  else
-    alen=1
-    agency=ablank
+  if [ "$aflag" != TRUE ]; then
+    agency="$ablank"
   fi
 
-  # get the length of the station number
-  if [ "$nflag" = TRUE ]; then
-    nlen=${#station}
-  else
-    nlen=1
-    station=nblank
+  if [ "$nflag" != TRUE ]; then
+    station="$nblank"
   fi
 
-  # get the length of the DD id
-  # put it in the ddpm variable
+  # put DD ID in the ddpm variable
   if [ "$dflag" = TRUE ]; then
-    dplen=${#ddid}
     ddpm="$ddid"
   # get the length of the parm code
   # put it in the ddpm variable prefixed with "P"
   elif [ "$pflag" = TRUE ]; then
-    dplen=`expr ${#parm} + 1`
     ddpm="P$parm"
   # Neither -d or -p was specified
   # construct a blank string
   else
-    dplen=1
     ddpm="$dblank"
   fi
 
-  # get the length of the stat code (or other secondary identifier)
-  if [ "$sflag" = TRUE ]; then
-    slen=${#stat}
-  else
-    slen=1
+  if [ "$sflag" != TRUE ]; then
     stat="$sblank"
   fi
 
-  # get the length of the transport code
-  if [ "$yflag" = TRUE ]; then
-    ylen=${#transport_cd}
-  else
-    ylen=1
+  if [ "$yflag" != TRUE ]; then
     transport_cd="$yblank"
   fi
 
-  # get the length of the title line
-  if [ "$iflag" = TRUE ]; then
-    ilen=${#titlline}
-  else
-    ilen=1
+  if [ "$iflag" != TRUE ]; then
     titlline="$iblank"
   fi
 
-  # get the length of the begin date/time)
-  if [ "$bflag" = TRUE ]; then
-    blen=${#begdat}
-  else
-    blen=1
+  if [ "$bflag" != TRUE ]; then
     begdat="$bblank"
   fi
 
-  # get the length of the end date/time
-  if [ "$eflag" = TRUE ]; then
-    elen=${#enddat}
-  else
-    elen=1
+  if [ "$eflag" != TRUE ]; then
     enddat="$eblank"
   fi
 
-  # get the length of the time zone code
-  if [ "$lflag" = TRUE ]; then
-    llen=${#loc_tz_cd}
-  else
-    llen=3
+  if [ "$lflag" != TRUE ]; then
     loc_tz_cd="$lblank"
   fi
 
-  # get the length of the location number
-  if [ "$xflag" = TRUE ]; then
-    xlen=${#loc_nu}
-  else
-    xlen=1
+  if [ "$xflag" != TRUE ]; then
     loc_nu="$xblank"
   fi
 
-  # get the length of the control file pathname
-  if [ "$fflag" = TRUE ]; then
-    flen=${#ctlpath}
-  else
-    flen=1
+  if [ "$fflag" != TRUE ]; then
     ctlpath="$fblank"
   fi
 
-  # call the fortran routine to finish
-  #    status=nwf_rdb_out_ (ctlpath,&multiple,outpath,dbnum,
-  #                      datatyp,&rndsup,&wyflag,&cflag,&vflag,&hydra,
-  #                      agency,station,ddpm,loc_nu,stat,transport_cd,
-  #                      begdat,enddat,loc_tz_cd,titlline,
-  #                      flen,1,olen,zlen,tlen,1,1,1,1,1,alen,nlen,dplen,
-  #                      xlen,slen,ylen,blen,elen,llen,ilen);
-  echo "nwf_rdb_out_ ($ctlpath,$multiple,$outpath,$dbnum,"
-  echo "              $datatyp,$rndsup,$wyflag,$cflag,$vflag,$hydra,"
-  echo "              $agency,$station,$ddpm,$loc_nu,$stat,$transport_cd,"
-  echo "              $begdat,$enddat,$loc_tz_cd,$titlline,"
-  echo "              $flen,1,$olen,$tlen,1,1,1,1,1,$alen,$nlen,$dplen,"
-  echo "              $xlen,$slen,$ylen,$blen,$elen,$llen,$ilen);"
+  rdb_out $ctlpath $multiple $outpath $dbnum \
+    $datatyp $rndsup $wyflag $cflag $vflag $hydra \
+    $agency $station $ddpm $loc_nu $stat $transport_cd \
+    $begdat $enddat $loc_tz_cd $titlline
 
   # if Hydra mode, write the temp filename to the named pipe
   if [ "$hydra" = 'Y' ]; then
