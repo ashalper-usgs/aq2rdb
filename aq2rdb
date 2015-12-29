@@ -13,10 +13,29 @@
 
 rdb_out ()
 {
-  echo "rdb_out ($ctlpath, $multiple, $outpath,";
-  echo "         $datatyp, $rndsup, $wyflag, $cflag, $vflag, $hydra,";
-  echo "         $agency, $station, $ddpm, $loc_nu, $stat, $transport_cd,";
-  echo "         $begdat, $enddat, $loc_tz_cd, $titlline);";
+  ctlpath=$1; shift;
+  multiple=$1; shift;
+  outpath=$1; shift;
+  datatyp=$1; shift;
+  rndsup=$1; shift;
+  wyflag=$1; shift;
+  cflag=$1; shift;
+  vflag=$1; shift;
+  hydra=$1; shift;
+  agency=$1; shift;
+  station=$1; shift;
+  ddpm=$1; shift;
+  loc_nu=$1; shift;
+  stat=$1; shift;
+  transport_cd=$1; shift;
+  begdat=$1; shift;
+  enddat=$1; shift;
+  loc_tz_cd=$1; shift;
+  titlline=$1
+  
+  # TODO: going to need conditionals or a loop to omit empty
+  # parameters from HTTP query here
+  curl -g "http://$host/aq2rdb?t=$datatyp&a=$agency&s=$station"
 } # rdb_out
 
 # Usage statement.
