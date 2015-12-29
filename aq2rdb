@@ -92,7 +92,6 @@ nwts2rdb_usage ()
   echo "     If -c is present and daily-values are being output, only computed" >& 2
   echo "           daily values will be retrieved." >& 2
   echo "           For other types combine date and time in a single column" >& 2
-  echo "     If -z is omitted, defaults to database 1" >& 2
   echo "     If -y is present, it is ignored unless Measured Unit-Values" >& 2
   echo "           are specified as arguments or selected in the prompting." >& 2
   echo "           If omitted, defaults to preferred input." >& 2
@@ -104,7 +103,6 @@ nwts2rdb_usage ()
   echo "       aq2rdb -fctlfile" >& 2
   echo "              -ooutfile" >& 2
   echo "              -m (write multiple files)" >& 2
-  echo "              -zdbnum" >& 2
   echo "              -l loctzcd (time zone code or \"LOC\")" >& 2
   echo "              -r (rounding suppression)" >& 2
   echo "              -c (Output COMPUTED daily values only (DV))" >& 2
@@ -126,7 +124,6 @@ nwts2rdb_usage ()
   echo "           If unit-values are being output, date and time" >& 2
   echo "           are combined into a single datetime column." >& 2
   echo "           This option is ignored if the datatype is not dv or uv." >& 2
-  echo "     If -z is omitted, defaults to database 1" >& 2
   echo "     If -y is present, it is ignored except for rows in the" >& 2
   echo "           control file specifying Measured Unit-Values." >& 2
   echo "           If omitted, defaults to preferred input." >& 2
@@ -206,6 +203,8 @@ status=0
 
 # display usage if no arguments
 if [ "$#" -le 1 ]; then
+  # strange, non-zero exit status numbers are an artifact of NWIS C
+  # source
   status=119
 else
   # get command line arguments
@@ -307,13 +306,13 @@ else
     if [ "$hydra" = Y ]; then
       # date and time must be separate
       cflag='N'
-      # only -z, -a, -o, -b, and -e can be specified if -h is specified
+      # only -a, -o, -b, and -e can be specified if -h is specified
       if [ "$dflag" = TRUE -o "$fflag" = TRUE -o "$iflag" = TRUE -o
            "$nflag" = TRUE -o "$pflag" = TRUE -o "$sflag" = TRUE -o
            "$tflag" = TRUE -o "$yflag" = TRUE -o "$xflag" = TRUE -o
            "$wyflag" = Y -o "$cflag" = Y -o "$multiple" = Y ]; then
         echo >& 2
-        echo "If -h is specified, only -a, -b, -e, -l, -r, -o, and -z can also be specified" >& 2
+        echo "If -h is specified, only -a, -b, -e, -l, -r, and -o can also be specified" >& 2
         status=120
       # both -b and -e must be specified 
       # date/time range comes from hydra
@@ -347,10 +346,10 @@ else
       fi
     fi
     # if a control file is supplied, all arguments are ignored except
-    # -z (database number), -r (suppress rounding), -l (local time zone),
-    # -m (multiple file output), and -o (output file).  If -o is not 
-    # supplied, -m cannot also be supplied - (can't do multiple files if 
-    # everything is going to stdout - one file by definition) 
+    # -r (suppress rounding), -l (local time zone), -m (multiple file
+    # output), and -o (output file).  If -o is not supplied, -m cannot
+    # also be supplied - (can't do multiple files if everything is
+    # going to stdout - one file by definition)
     if [ "$fflag" = TRUE -a "$multiple" = Y -a "$oflag" = FALSE ]; then
         echo >& 2
         echo "If -f and -m is specified, -o must also be specified." >& 2
