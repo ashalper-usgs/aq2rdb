@@ -13,10 +13,10 @@
 
 rdb_out ()
 {
-  echo "rdb_out_ ($ctlpath,$multiple,$outpath,$dbnum,";
-  echo "          $datatyp,$rndsup,$wyflag,$cflag,$vflag,$hydra,";
-  echo "          $agency,$station,$ddpm,$loc_nu,$stat,$transport_cd,";
-  echo "          $begdat,$enddat,$loc_tz_cd,$titlline);";
+  echo "rdb_out ($ctlpath, $multiple, $outpath,";
+  echo "         $datatyp, $rndsup, $wyflag, $cflag, $vflag, $hydra,";
+  echo "         $agency, $station, $ddpm, $loc_nu, $stat, $transport_cd,";
+  echo "         $begdat, $enddat, $loc_tz_cd, $titlline);";
 } # rdb_out
 
 # Usage statement.
@@ -64,7 +64,7 @@ nwts2rdb_usage ()
   echo "              -c For type \"dv\", Output COMPUTED daily values only" >& 2
   echo "                 For other types except pseudo-UV retrievals," >& 2
   echo "                 combine date and time in a single column" >& 2
-  echo "              -v Make dates and times verbose (excel friendly)" >& 2
+  echo "              -v Make dates and times verbose (Excel friendly)" >& 2
   echo "              -y transport_cd (Measured Unit-Values only)" >& 2
   echo "                  A (ADR), C (CHA), F (FIL), G (EDL), O (OBS)," >& 2
   echo "                  P (TEL), R (RAD), S (DCP), U (UNS), or Z (BAK)" >& 2
@@ -147,10 +147,11 @@ nwts2rdb_usage ()
   echo >& 2
 } # nwts2rdb_usage
 
+# possibly unnecessary initializations here are artifacts of NWIS C
+# source translation
 error=0
 ddpm=""
 outpath=""
-dbnum=""
 datatyp=""
 agency=""
 station=""
@@ -315,7 +316,7 @@ else
         echo "If -h is specified, only -a, -b, -e, -l, -r, and -o can also be specified" >& 2
         status=120
       # both -b and -e must be specified 
-      # date/time range comes from hydra
+      # date/time range comes from Hydra
       elif [ "$bflag" = FALSE -o "$eflag" = FALSE ]; then
         echo >& 2
         echo "If -h is specified, both -b and -e must be specified." >& 2
@@ -445,7 +446,7 @@ else
     ctlpath="$fblank"
   fi
 
-  rdb_out $ctlpath $multiple $outpath $dbnum \
+  rdb_out $ctlpath $multiple $outpath \
     $datatyp $rndsup $wyflag $cflag $vflag $hydra \
     $agency $station $ddpm $loc_nu $stat $transport_cd \
     $begdat $enddat $loc_tz_cd $titlline
