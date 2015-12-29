@@ -13,29 +13,9 @@
 
 rdb_out ()
 {
-  ctlpath=$1; shift;
-  multiple=$1; shift;
-  outpath=$1; shift;
-  datatyp=$1; shift;
-  rndsup=$1; shift;
-  wyflag=$1; shift;
-  cflag=$1; shift;
-  vflag=$1; shift;
-  hydra=$1; shift;
-  agency=$1; shift;
-  station=$1; shift;
-  ddpm=$1; shift;
-  loc_nu=$1; shift;
-  stat=$1; shift;
-  transport_cd=$1; shift;
-  begdat=$1; shift;
-  enddat=$1; shift;
-  loc_tz_cd=$1; shift;
-  titlline=$1
-  
-  # TODO: going to need conditionals or a loop to omit empty
-  # parameters from HTTP query here
-  curl -g "http://$host/aq2rdb?t=$datatyp&a=$agency&s=$station"
+  # TODO:
+  echo curl -g \
+  "http://$host/aq2rdb?${datatyp:+t=$datatyp}${agency:+&a=$agency}${station:+&s=$station}${station:+&s=$station}${parm:+&p=$parm}${stat:+&s=$stat}${begdat:+&b=$begdat}${enddat:+&e=$enddat}"
 } # rdb_out
 
 # Usage statement.
@@ -99,7 +79,7 @@ nwts2rdb_usage ()
   echo "           \"qw\" requires -t, -n, -s, -b, -e, and -p" >& 2
   echo "     If -o is present, no other arguments are required, and the program" >& 2
   echo "           will use ADAPS routines to prompt for them." >& 2
-  echo "     If -p is present, -d cannot be present.  The parameter code is" >& 2
+  echo "     If -p is present, -d cannot be present. The parameter code is" >& 2
   echo "           used to find the PRIMARY DD for that parameter." >& 2
   echo "     If -a is omitted, defaults to agency \"USGS\"" >& 2
   echo "     If -l is omitted, it will default to \"LOC\"" >& 2
@@ -158,7 +138,7 @@ nwts2rdb_usage ()
   echo "     All columns must be present, and all columns must also be populated" >& 2
   echo "     (not blank and not null), except that DDID is not used (may be blank" >& 2
   echo "     or null) when DATATYPE is \"ms\" or \"pk\" and SUBTYPE is not used " >& 2
-  echo "     when DATATYPE is \"dc\", or \"sv\".  It does not matter in what " >& 2
+  echo "     when DATATYPE is \"dc\", or \"sv\". It does not matter in what " >& 2
   echo "     order the columns appear in the control file." >& 2
   echo >& 2
   echo "     The control file option cannot be used with pseudo-UV retrievals (all" >& 2
@@ -166,13 +146,15 @@ nwts2rdb_usage ()
   echo >& 2
 } # nwts2rdb_usage
 
+# host of aq2rdb Web service
+host=localhost:8081
+
 # possibly unnecessary initializations here are artifacts of NWIS C
 # source translation
 error=0
 ddpm=""
 outpath=""
 datatyp=""
-agency=""
 station=""
 ddid=""
 parm=""
@@ -190,20 +172,8 @@ cflag=''
 vflag=''
 multiple=''
 hydra=''
-oblank=" "
-zblank="1"
-tblank=" "
-ablank=" "
-nblank=" "
-dblank=" "
-sblank=" "
-yblank=" "
-iblank=" "
-bblank=" "
-eblank=" "
 lblank="LOC"
 xblank="0"
-fblank=" "
 oflag=FALSE
 tflag=FALSE
 aflag=FALSE
@@ -244,7 +214,7 @@ else
         outpath="$OPTARG"
         ;;
       z)
-        echo "$0: warning: the nwts2rdb \"-z\" option is not used" >& 2
+        echo "$0: warning: the nwts2rdb \"-z\" option is no longer used" >& 2
         ;;
       t)
         tflag=TRUE
@@ -285,7 +255,7 @@ else
       x)
         xflag=TRUE
         loc_nu="$OPTARG"
-        ;; # TODO: There wasn't a "break;" here in nwts2rdb. Possible bug?
+        ;; # TODO: There wasn't a "break;" here in nwts2rdb.c. Possible bug?
       r)
         rndsup='Y'
         ;;
@@ -369,7 +339,7 @@ else
     fi
     # if a control file is supplied, all arguments are ignored except
     # -r (suppress rounding), -l (local time zone), -m (multiple file
-    # output), and -o (output file).  If -o is not supplied, -m cannot
+    # output), and -o (output file). If -o is not supplied, -m cannot
     # also be supplied - (can't do multiple files if everything is
     # going to stdout - one file by definition)
     if [ "$fflag" = TRUE -a "$multiple" = Y -a "$oflag" = FALSE ]; then
@@ -389,11 +359,17 @@ else
     # prompts would be mixed in with the rdb output which would make
     # things difficult for a pipeline.
     elif [ "$fflag" != TRUE -a "$oflag" != TRUE -a \
-           \( "$tflag" != TRUE -o "$nflag" != TRUE -o "$bflag" != TRUE -o "$eflag" != TRUE -o \
-             \( \( "$datatyp" != DC -a "$datatyp" != SV \) -a "$sflag" != TRUE \) -o \
-                 \( "$datatyp" = QW -a "$pflag" != TRUE \) -o \
-                   \( \( "$datatyp" != MS -a "$datatyp" != PK -a \
-                       "$datatyp" != WL \) -a "$dflag" != TRUE -a "$pflag" != TRUE \) \) ]; then
+           \( \
+              "$tflag" != TRUE -o "$nflag" != TRUE -o \
+              "$bflag" != TRUE -o "$eflag" != TRUE -o \
+              \( \( "$datatyp" != DC -a "$datatyp" != SV \) -a \
+                 "$sflag" != TRUE \) -o \
+              \( "$datatyp" = QW -a "$pflag" != TRUE \) -o \
+                 \( \( "$datatyp" != MS -a "$datatyp" != PK -a \
+                       "$datatyp" != WL \) -a "$dflag" != TRUE -a \
+                    "$pflag" != TRUE \) \
+           \) ]; then
+      
       echo >& 2 
       echo "If the -o argument is omitted, then all of -t, -n, -b, -e," >& 2
       echo "and -s if datatype is not \"dc\", or \"sv\"" >& 2
@@ -406,55 +382,6 @@ fi
 if [ "$status" != 0 ]; then
   nwts2rdb_usage
 else
-  if [ "$oflag" != TRUE ]; then
-    outpath="$oblank"
-  fi
-
-  if [ "$tflag" != TRUE ]; then
-    datatyp="$tblank"
-  fi
-
-  if [ "$aflag" != TRUE ]; then
-    agency="$ablank"
-  fi
-
-  if [ "$nflag" != TRUE ]; then
-    station="$nblank"
-  fi
-
-  # put DD ID in the ddpm variable
-  if [ "$dflag" = TRUE ]; then
-    ddpm="$ddid"
-  # get the length of the parm code
-  # put it in the ddpm variable prefixed with "P"
-  elif [ "$pflag" = TRUE ]; then
-    ddpm="P$parm"
-  # Neither -d or -p was specified
-  # construct a blank string
-  else
-    ddpm="$dblank"
-  fi
-
-  if [ "$sflag" != TRUE ]; then
-    stat="$sblank"
-  fi
-
-  if [ "$yflag" != TRUE ]; then
-    transport_cd="$yblank"
-  fi
-
-  if [ "$iflag" != TRUE ]; then
-    titlline="$iblank"
-  fi
-
-  if [ "$bflag" != TRUE ]; then
-    begdat="$bblank"
-  fi
-
-  if [ "$eflag" != TRUE ]; then
-    enddat="$eblank"
-  fi
-
   if [ "$lflag" != TRUE ]; then
     loc_tz_cd="$lblank"
   fi
@@ -463,15 +390,8 @@ else
     loc_nu="$xblank"
   fi
 
-  if [ "$fflag" != TRUE ]; then
-    ctlpath="$fblank"
-  fi
-
-  rdb_out $ctlpath $multiple $outpath \
-    $datatyp $rndsup $wyflag $cflag $vflag $hydra \
-    $agency $station $ddpm $loc_nu $stat $transport_cd \
-    $begdat $enddat $loc_tz_cd $titlline
-
+  rdb_out
+  
   # if Hydra mode, write the temp filename to the named pipe
   if [ "$hydra" = 'Y' ]; then
     # Open the pipe for writing
