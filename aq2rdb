@@ -11,6 +11,10 @@
 #            Jim Cornwall <jcorn@usgs.gov> (nwts2rdb.c)
 #
 
+# TODO: if we wanted to be clever, we could translate the usage
+# statement below to HTML, and use something like "lynx -dump ..." to
+# reference it from the aq2rdb server.
+
 # Usage statement.
 nwts2rdb_usage ()
 {
@@ -140,20 +144,12 @@ nwts2rdb_usage ()
 } # nwts2rdb_usage
 
 # host of aq2rdb Web service
-host=localhost:8081
+host=cidasdqaasaq2rd:8081
 
 # possibly unnecessary initializations here are artifacts of NWIS C
 # source translation
 error=0
 loc_nu="0"
-ctlpath=""
-transport_cd=""
-titlline=""
-wyflag=''
-cflag=''
-vflag=''
-multiple=''
-hydra=''
 lblank="LOC"
 oflag=FALSE
 tflag=FALSE
@@ -367,7 +363,7 @@ else
     loc_tz_cd="$lblank"
   fi
 
-  echo curl -g \
+  curl -g \
   "http://$host/aq2rdb?${datatyp:+t=$datatyp}${agency:+&a=$agency}${station:+&s=$station}${station:+&s=$station}${parm:+&p=$parm}${stat:+&s=$stat}${begdat:+&b=$begdat}${enddat:+&e=$enddat}"
   
   # if Hydra mode, write the temp filename to the named pipe
