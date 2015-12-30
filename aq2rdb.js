@@ -1045,7 +1045,7 @@ function receiveSite(messageBody, callback) {
 } // receiveSite
 
 /**
-   @description GetDVTable service request handler.
+   @description GetDVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetDVTable',
@@ -1406,7 +1406,7 @@ httpdispatcher.onGet(
 ); // GetDVTable
 
 /**
-   @description GetUVTable service request handler.
+   @description GetUVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
     '/' + PACKAGE_NAME + '/GetUVTable',
@@ -1704,6 +1704,18 @@ httpdispatcher.onGet(
         ); // async.waterfall
     }
 ); // GetUVTable
+
+/**
+   @description aq2rdb endpoint service request handler.
+*/
+httpdispatcher.onGet(
+    '/' + PACKAGE_NAME,
+    /**
+       @callback
+    */
+    function (request, response) {
+    }
+); // aq2rdb
 
 /**
    @description Service dispatcher.
