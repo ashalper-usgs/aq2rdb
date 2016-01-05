@@ -1,0 +1,44 @@
+{
+  "name": "aq2rdb",
+  "version": "1.0.0",
+  "description": "USGS-variant, RDB output from AQUARIUS.",
+  "main": "aq2rdb.js",
+  "directories": {
+    "doc": "doc",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashalper-usgs/aq2rdb.git"
+  },
+  "keywords": [
+    "ADAPS",
+    "NWIS",
+    "RDB",
+    "USGS",
+    "nwts2rdb",
+    "time-series"
+  ],
+  "author": "Andrew Halper",
+  "email": "ashalper@usgs.gov",
+  "license": "USGS",
+  "bugs": {
+    "url": "https://github.com/ashalper-usgs/aq2rdb/issues"
+  },
+  "homepage": "https://github.com/ashalper-usgs/aq2rdb#readme",
+  "dependencies": {
+    "async": "^1.5.1",
+    "command-line-args": "^2.1.4",
+    "httpdispatcher": "^0.4.0",
+    "moment-timezone": "^0.5.0"
+  },
+  "devDependencies": {
+    "chai": "^3.4.1",
+    "mocha": "^2.3.4",
+    "sinon": "^1.17.2",
+    "temporary": "0.0.8"
+  }
+}
