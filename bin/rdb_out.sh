@@ -342,90 +342,94 @@ rdb_out ()
             fi
         fi
 
-#        !  check for completeness
-#        IF (rtagny .EQ. ' ' .OR. sid .EQ. ' ' .OR.
-#    *         (datatyp .NE. 'DC'. AND. datatyp .NE. 'SV' .AND.
-#    *          datatyp .NE. 'WL' .AND. datatyp .NE. 'QW' .AND.
-#    *          stat .EQ. ' ') .OR.
-#    *        begdtm .EQ. ' ' .OR. enddtm .EQ. ' ' .OR.
-#    *         (datatyp .NE. 'MS' .AND. datatyp .NE. 'PK' .AND.
-#    *          datatyp .NE. 'WL' .AND. datatyp .NE. 'QW' .AND. 
-#    *          ddid .EQ. ' ')
-#    *        ) THEN
-#           CALL s_date (cdate, ctime)
+        # check for completeness
+        if [ "$rtagny" = ' ' -o "$sid" = ' ' -o
+             \( "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
+                "$datatyp" != 'WL' -a "$datatyp" != 'QW' -a
+                "$stat" = ' ' \) -o \
+             "$begdtm" = ' ' -o "$enddtm" = ' ' -o
+             \( "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
+           "$datatyp" != 'WL' -a "$datatyp" != 'QW' -a 
+           "$ddid" = ' ' \)
+          ]; then
+            s_date "$cdate" "$ctime"
 #           WRITE (0,2030) cdate, ctime, nline
 #2030        FORMAT (A8, 1X, A6, 1X, 'Incomplete row (missing items)',
 #    *              ' on line ', I5, '.')
-#           GOTO 9
-#        END IF
+            goto 9
+        fi
 
-#        !  zero pad stat code IF type is DV
-#        IF (datatyp .EQ. 'DV') THEN
-#           CALL s_jstrrt (stat, 5)
+        #  zero pad stat code IF type is DV
+        if [ "$datatyp" = 'DV' ]; then
+            s_jstrrt "$stat" 5
 #           DO I = 1,5
 #              IF (stat(i:i).EQ.' ') stat(i:i) = '0'
 #           END DO
-#        END IF
+        fi
 
-#        IF (first) THEN
-#           savetyp = datatyp                 ! save first data type
-#           mssav = stat(1:1)
-#           first = .false.
-#           CALL s_lgid                       ! get user id and number
-#           CALL s_ndget                      ! get node data
-#           CALL s_ggrp                       ! get groups (for security)
-#           IF (.NOT. multiple) THEN          ! open output file
-#              IF (outpath .EQ. ' ') THEN
-#                 funit = 6
-#              ELSE
-#                 IF (len(outpath) .gt. 128) THEN
-#                    irc = nwc_rdb_cfil (three, ctlfile, rtagny, sid,
-#    *                           ddid, stat, bctdtm, ectdtm, nline) 
-#                    GOTO 998
-#                 END IF
-#                 rdbfile = outpath(1:len(outpath))
-#                 CALL s_file (' ', rdbfile, ' ', 'unknown', 'write',
-#    *                         0, 1, ipu, funit, irc, *7)
-#7                 IF (irc .NE. 0) THEN
-#                    irc = nwc_rdb_cfil (three, ctlfile, rtagny, sid, 
-#    *                           ddid, stat, bctdtm, ectdtm, nline)
-#                    GOTO 999
-#                 END IF
-#              END IF
-#           END IF
-#        END IF
+        if [ $first ]; then
+            savetyp="$datatyp"  # save first data type
+            mssav=${stat:0:1}
+            first=false
+            s_lgid                       # get user id and number
+            s_ndget                      # get node data
+            s_ggrp                       # get groups (for security)
+            if [ ! $multiple ]; then
+                # open output file
+                if [ "$outpath" = ' ' ]; then
+                    funit=6
+                else
+                    if [ ${#outpath} -gt 128 ]; then
+                        rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" \
+                            "$ddid" "$stat" "$bctdtm" "$ectdtm" "$nline"
+                        irc=$?
+                        goto 998
+                    fi
+                    rdbfile="$outpath"
+                    s_file ' ' "$rdbfile" ' ' 'unknown' 'write' \
+                        0 1 "$ipu" "$funit" "$irc" *7
+#7
+                    if [ $irc -ne 0 ]; then
+                        rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" \
+                           "$ddid" "$stat" "$bctdtm" "$ectdtm" "$nline"
+                        irc=$?
+                        goto 999
+                    fi
+                fi
+            fi
+        fi
 
-#        IF multiple not specified, all requests must
-#        be the same data type as the first one
+        # if "multiple" not specified, all requests must
+        # be the same data type as the first one
 
-#        IF (.NOT. multiple) THEN
+        if [ ! $multiple ]; then
 
-#           IF (datatyp .NE. savetyp) THEN
-#              CALL s_date (cdate, ctime)
+            if [ "$datatyp" != "$savetyp" ]; then
+                s_date "$cdate" "$ctime"
 #              WRITE (0,2040) cdate, ctime, datatyp, savetyp, nline
 #2040           FORMAT (A8, 1X, A6, 1X, 'Datatype of "', A,
 #    *            '" not the same as the first request datatype of "',
 #    *            A,'" on line ',I5,'.')
-#              GOTO 9
-#           END IF
+                goto 9
+            fi
 
-#           IF (datatyp .EQ. 'MS' .AND. stat(1:1) .NE. mssav) THEN
-#              !  can't mix types of CSG measurements
-#              CALL s_date (cdate,ctime)
+            if [ "$datatyp" = 'MS' -a ${stat:0:1} != "$mssav" ]; then
+                # can't mix types of CSG measurements
+                s_date "$cdate" "$ctime"
 #              WRITE (0,2050) cdate,ctime,stat(1:1),mssav,nline
 #2050           FORMAT (A8,1X,A6,1X,'Measurement type of "',A,
 #    *              '" not compatible with the first ',
 #    *              'measurement type of "',
 #    *              A,'" on line ',I5,'.')
-#              GOTO 9
-#           END IF
-#        END IF
+                goto 9
+            fi
+        fi
 
-#        !  convert water years to date or datetime if -w specified
-#        CALL nw_rdb_fill_beg_dtm (wyflag, bctdtm, begdtm)
-#        CALL nw_rdb_fill_end_dtm (wyflag, ectdtm, enddtm)
+        # convert water years to date or datetime if -w specified
+        rdb_fill_beg_dtm "$wyflag" "$bctdtm" "$begdtm"
+        rdb_fill_end_dtm "$wyflag" "$ectdtm" "$enddtm"
 
-#        if multiple, open a new output file - outpath is a prefix
+        # if multiple, open a new output file - outpath is a prefix
 
 #        IF (multiple) THEN             ! close previously open file
 #           IF (funit .GE. 0 .AND. funit .NE. 6)
