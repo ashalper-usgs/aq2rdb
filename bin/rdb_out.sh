@@ -766,114 +766,117 @@ rdb_out ()
 
         # further processing depends on data type
 
-#        IF (datatyp .EQ. 'DV') THEN       ! convert stat to 5 characters
-#           IF (instat(1:len(instat)).EQ.' ') THEN
-#              needstrt = .true.
-#              sopt(8:8) = '1'
-#           ELSE
-#              IF (len(instat).gt.5) THEN
-#                 stat = instat(1:5)
-#              ELSE
-#                 stat = instat(1:len(instat))
-#              END IF
-#              CALL s_jstrrt (stat,5)
+        if [ "$datatyp" = 'DV' ]; then # convert stat to 5 characters
+            if [ "$instat" = ' ' ]; then
+		needstrt=true
+		sopt=${sopt:0:7}1${sopt:8}
+            else
+		if [ ${#instat} -gt 5 ]; then
+                    stat=${instat:0:5}
+		else
+                    stat="$instat"
+		fi
+		s_jstrrt "$stat" 5
 #              DO I = 1,5
 #                 IF (stat(i:i) .EQ. ' ') stat(i:i) = '0'
 #              END DO
-#           END IF
-#        END IF
+	    fi
+	fi
 
-#        IF (datatyp .EQ. 'DV' .OR. datatyp .EQ. 'DC' .OR.
-#    *       datatyp .EQ. 'SV' .OR. datatyp .EQ. 'PK') THEN
+        if [ "$datatyp" = 'DV' -o "$datatyp" = 'DC' -o
+	     "$datatyp" = 'SV' -o "$datatyp" = 'PK' ]; then
 
-#           !  convert dates to 8 characters
-#           IF (begdat(1:len(begdat)) .EQ. ' '.or.
-#    *          enddat(1:len(enddat)) .EQ. ' ') THEN
-#              needstrt = .true.
-#              IF (wyflag) THEN
-#                 sopt(9:9) = '4'
-#              ELSE
-#                 sopt(10:10) = '3'
-#              END IF
-#           ELSE
-#              CALL nw_rdb_fill_beg_date (wyflag, begdat, begdate)
-#              CALL nw_rdb_fill_end_date (wyflag, enddat, enddate)
-#           END IF
+	    # convert dates to 8 characters
+            if [ "$begdat" = ' ' -o
+		 "$enddat" = ' ' ]; then
+		needstrt=true
+		if [ $wyflag ]; then
+		    sopt=${sopt:0:8}4${sopt:9}
+		else
+		    sopt=${sopt:0:9}3${sopt:10}
+		fi
+            else
+		rdb_fill_beg_date "$wyflag" "$begdat" "$begdate"
+		rdb_fill_end_date "$wyflag" "$enddat" "$enddate"
+	    fi
 
-#        END IF
+	fi
 
-#        IF (datatyp .EQ. 'UV') THEN
+        if [ "$datatyp" = 'UV' ]; then
 
-#           IF (.NOT. hydra) THEN        ! get UV type
-#              uvtyp = instat(1:1)
-#              IF (uvtyp .EQ. 'm') uvtyp = 'M'
-#              IF (uvtyp .EQ. 'n') uvtyp = 'N'
-#              IF (uvtyp .EQ. 'e') uvtyp = 'E'
-#              IF (uvtyp .EQ. 'r') uvtyp = 'R'
-#              IF (uvtyp .EQ. 's') uvtyp = 'S'
-#              IF (uvtyp .EQ. 'c') uvtyp = 'C'
-#              IF (uvtyp .NE. 'M' .AND. uvtyp .NE. 'N' .AND. 
-#    *             uvtyp .NE. 'E' .AND. uvtyp .NE. 'R' .AND. 
-#    *             uvtyp .NE. 'S' .AND. uvtyp .NE. 'C') THEN
-#                 uvtyp_prompted = .TRUE.
-#50                uvtyp = ' '
-#                 CALL s_qryc (
-#    *                 'Unit values type (M, N, E, R, S, or C): ',
-#    *                 ' ', 0, 0, 1, 1, uvtyp, *50)
-#                 IF (uvtyp .EQ. 'm') uvtyp = 'M'
-#                 IF (uvtyp .EQ. 'n') uvtyp = 'N'
-#                 IF (uvtyp .EQ. 'e') uvtyp = 'E'
-#                 IF (uvtyp .EQ. 'r') uvtyp = 'R'
-#                 IF (uvtyp .EQ. 's') uvtyp = 'S'
-#                 IF (uvtyp .EQ. 'c') uvtyp = 'C'
-#                 IF (uvtyp .NE. 'M' .AND. uvtyp .NE. 'N' .AND.
-#    *                uvtyp .NE. 'E' .AND. uvtyp .NE. 'R' .AND.
-#    *                uvtyp .NE. 'S' .AND. uvtyp .NE. 'C') CALL s_bada (
-#    *                 'Please answer "M", "N", "E", "R", "S", or "C".',
-#    *                 *50)
-#              END IF
-#           END IF
+            if [ ! $hydra ]; then # get UV type
+		uvtyp=${instat:0:1}
+		if [ "$uvtyp" = 'm' ]; then uvtyp='M'; fi
+		if [ "$uvtyp" = 'n' ]; then uvtyp='N'; fi
+		if [ "$uvtyp" = 'e' ]; then uvtyp='E'; fi
+		if [ "$uvtyp" = 'r' ]; then uvtyp='R'; fi
+		if [ "$uvtyp" = 's' ]; then uvtyp='S'; fi
+		if [ "$uvtyp" = 'c' ]; then uvtyp='C'; fi
+		if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a 
+		     "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a 
+		     "$uvtyp" != 'S' -a "$uvtyp" != 'C' ]; then
+		    uvtyp_prompted=true
+#50                
+		    uvtyp=' '
+		    s_qryc \
+			'Unit values type (M, N, E, R, S, or C): ' \
+			' ' 0 0 1 1 uvtyp *50 # <- TODO: translate F77
+		    if [ "$uvtyp" = 'm' ]; then uvtyp='M'; fi
+		    if [ "$uvtyp" = 'n']; then uvtyp='N'; fi
+		    if [ "$uvtyp" = 'e']; then uvtyp='E'; fi
+		    if [ "$uvtyp" = 'r']; then uvtyp='R'; fi
+		    if [ "$uvtyp" = 's']; then uvtyp='S'; fi
+		    if [ "$uvtyp" = 'c']; then uvtyp='C'; fi
+		    if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a
+			    "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a
+			    "$uvtyp" != 'S' -a "$uvtyp" != 'C' ]; then
+			s_bada \
+			    'Please answer "M", "N", "E", "R", "S", or "C".' \
+			    *50		# <- TODO: translate F77
+		    fi
+		fi
+	    fi
 
-#           !  convert date/times to 14 characters
-#           IF (begdat(1:len(begdat)) .EQ. ' ' .or.
-#    *          enddat(1:len(enddat)) .EQ. ' ') THEN
-#              needstrt = .true.
-#              IF (wyflag) THEN
-#                 sopt(9:9) = '4'
-#              ELSE
-#                 sopt(10:10) = '3'
-#              END IF
-#           ELSE
-#              CALL nw_rdb_fill_beg_dtm (wyflag, begdat, begdtm)
-#              CALL nw_rdb_fill_end_dtm (wyflag, enddat, enddtm)
-#           END IF
+	    # convert date/times to 14 characters
+	    if [ "$begdat" = ' ' -o
+		 "$enddat" = ' ' ]; then
+		needstrt=true
+		if [ $wyflag ]; then
+		    sopt=${sopt:0:8}4${sopt:9}
+		else
+		    sopt=${sopt:0:9}3${sopt:10}
+		fi
+            else
+		rdb_fill_beg_dtm "$wyflag" "$begdat" "$begdtm"
+		rdb_fill_end_dtm "$wyflag" "$enddat" "$enddtm"
+	    fi
 
-#        END IF
+	fi
 
 #        If hydra mode for UV data, set time zone code that in effect
 #        for the first date for this station
 
-#        IF (hydra .AND. datatyp .NE. 'UV') THEN
-#           IF (.NOT. nw_key_get_zone_dst (rtdbnum, rtagny, sid,
-#    *                                    tz_cd, local_time_fg)) THEN
-#              loc_tz_cd = 'UTC'          ! default to UTC
-#           ELSE
-#              IF (.NOT. nw_get_dflt_tzcd (tz_cd, local_time_fg,
-#    *                                     begdtm(1:8), loc_tz_cd)) THEN
-#                 loc_tz_cd = 'UTC'       ! default to UTC
-#              END IF
-#           END IF
-#        END IF
+        if [ $hydra -a "$datatyp" != 'UV' ]; then
+            if [ ! eval key_get_zone_dst "$rtdbnum" "$rtagny" "$sid"
+			"$tz_cd" "$local_time_fg" ]; then
+		loc_tz_cd='UTC'	# default to UTC
+            else
+		if [ ! eval get_dflt_tzcd "$tz_cd" "local_time_fg"
+			${begdtm:0:8} "$loc_tz_cd" ]; then
+		    loc_tz_cd='UTC'       # default to UTC
+		fi
+            fi
+	fi
 
-#        IF (datatyp .EQ. 'MS') THEN       ! get MS type
-#           mstyp = instat(1:1)
+#        if [ datatyp .EQ. 'MS') THEN       # get MS type
+#           mstyp=instat(1:1)
 #           CALL nwc_upcase (mstyp)
 
-#           IF (mstyp .NE. 'C' .AND. mstyp .NE. 'M' .AND. 
+#           if [ mstyp .NE. 'C' .AND. mstyp .NE. 'M' .AND. 
 #    *          mstyp .NE. 'D' .AND. mstyp .NE. 'G' .AND.
 #    *          mstyp .NE. '1' .AND. mstyp .NE. '2' .AND. 
 #    *          mstyp .NE. '3') THEN
-#45             mstyp = ' '
+#45             mstyp=' '
 
 #              PRINT 1234
 #1234           FORMAT (/,'Measurement file retrieval type -',/,
@@ -888,46 +891,46 @@ rdb_out ()
 #              CALL s_qryc ('|Enter C, M, D, G, or 1 to 3: ',
 #    *                      ' ', 0, 0, 1, 1, mstyp, *45)
 #              CALL nwc_upcase (mstyp)
-#              IF (mstyp .NE. 'C' .AND. mstyp .NE. 'M' .AND. 
+#              if [ mstyp .NE. 'C' .AND. mstyp .NE. 'M' .AND. 
 #    *             mstyp .NE. 'D' .AND. mstyp .NE. 'G' .AND. 
 #    *             mstyp .NE. '1' .AND. mstyp .NE. '2' .AND. 
 #    *             mstyp .NE. '3')      CALL s_bada (
 #    *                 'Please answer "C", "M", "G", or "1" to "3".',
 #    *                 *45)
-#           END IF
+#           fi
 
-#           IF (begdat(1:len(begdat)) .EQ. ' ' .OR.
+#           if [ begdat(1:len(begdat)) .EQ. ' ' .OR.
 #    *          enddat(1:len(enddat)) .EQ. ' ') THEN
-#              needstrt = .true.
-#              IF (wyflag) THEN
-#                 sopt(9:9) = '4'
+#              needstrt=.true.
+#              if [ wyflag) THEN
+#                 sopt(9:9)='4'
 #              ELSE
-#                 sopt(10:10) = '3'
-#              END IF
+#                 sopt(10:10)='3'
+#              fi
 
 #           ELSE
 
-#              IF (mstyp .GE. '1' .AND. mstyp .LE. '3') THEN
-#                 !  doing pseudo-uv, convert date/times to 14 characters
+#              if [ mstyp .GE. '1' .AND. mstyp .LE. '3') THEN
+#                 #  doing pseudo-uv, convert date/times to 14 characters
 #                 CALL nw_rdb_fill_beg_dtm (wyflag, begdat, begdtm)
 #                 CALL nw_rdb_fill_end_dtm (wyflag, enddat, enddtm)
 #              ELSE
-#                 !  convert dates to 8 characters
+#                 #  convert dates to 8 characters
 #                 CALL nw_rdb_fill_beg_date (wyflag, begdat, begdate)
 #                 CALL nw_rdb_fill_end_date (wyflag, enddat, enddate)
-#              END IF
-#           END IF
-#        END IF
+#              fi
+#           fi
+#        fi
 
-#        IF (datatyp .EQ. 'VT') THEN     ! get VT type
-#           vttyp = instat(1:1)
+#        if [ datatyp .EQ. 'VT') THEN     # get VT type
+#           vttyp=instat(1:1)
 #           CALL nwc_upcase (vttyp)
 
-#           IF (vttyp .NE. 'P' .AND. vttyp .NE. 'R' .AND.
+#           if [ vttyp .NE. 'P' .AND. vttyp .NE. 'R' .AND.
 #    *          vttyp .NE. 'A' .AND. vttyp .NE. 'M' .AND.
 #    *          vttyp .NE. 'F') THEN
 
-#55             vttyp = 'A'
+#55             vttyp='A'
 
 #              PRINT 1235
 #1235           FORMAT (/,'SiteVisit Pseudo UV readings ',
@@ -944,141 +947,141 @@ rdb_out ()
 #              CALL s_qryc ('|Enter P, R, A, M, or F (<CR> = A):',
 #    *                      ' ', 0, 1, 1, 1, vttyp, *55)
 #              CALL nwc_upcase (vttyp)
-#              IF (vttyp .NE. 'P' .AND. vttyp .NE. 'R' .AND.
+#              if [ vttyp .NE. 'P' .AND. vttyp .NE. 'R' .AND.
 #    *             vttyp .NE. 'A' .AND. vttyp .NE. 'M' .AND.
 #    *             vttyp .NE. 'F')    CALL s_bada (
 #    *                     'Please answer "P", "R", "A", "M" or "F".',
 #    *                     *55)
 
-#           END IF
+#           fi
 
-#           !  See if we have the date range
-#           IF (begdat(1:len(begdat)) .EQ. ' ' .OR.
+#           #  See if we have the date range
+#           if [ begdat(1:len(begdat)) .EQ. ' ' .OR.
 #    *          enddat(1:len(enddat)) .EQ. ' ') THEN
-#              needstrt = .TRUE.
-#              IF (wyflag) THEN
+#              needstrt=.TRUE.
+#              if [ wyflag) THEN
 #                 sopt(9:9) = '4'
 #              ELSE
 #                 sopt(10:10) = '3'
-#              END IF
-#           END IF
+#              fi
+#           fi
 
-#           !  Doing pseudo-uv, convert date/times to 14 characters
+#           #  Doing pseudo-uv, convert date/times to 14 characters
 #           CALL nw_rdb_fill_beg_dtm (wyflag, begdat, begdtm)
 #           CALL nw_rdb_fill_end_dtm (wyflag, enddat, enddtm)
 
-#        END IF
+#        fi
 
-#        IF (datatyp .EQ. 'PK') THEN       ! get pk type
+#        if [ datatyp .EQ. 'PK') THEN       # get pk type
 
-#           pktyp = instat(1:1)
-#           IF (pktyp .EQ. 'f') pktyp = 'F'
-#           IF (pktyp .EQ. 'p') pktyp = 'P'
-#           IF (pktyp .EQ. 'b') pktyp = 'B'
+#           pktyp=instat(1:1)
+#           if [ pktyp .EQ. 'f') pktyp = 'F'
+#           if [ pktyp .EQ. 'p') pktyp = 'P'
+#           if [ pktyp .EQ. 'b') pktyp = 'B'
 
-#           IF (pktyp .NE. 'F' .AND. pktyp .NE. 'P' .AND. 
+#           if [ pktyp .NE. 'F' .AND. pktyp .NE. 'P' .AND. 
 #    *          pktyp .NE. 'B') THEN
-#46             pktyp = ' '
+#46             pktyp=' '
 #              CALL s_qryc ('Peak flow file retrieval type -' //
 #    *              '|Full peaks only (F),' //
 #    *              '|Partial peaks only (P),' //
 #    *              '|Both Full and Partial peaks (B) - ' //
 #    *              '|Please enter F, P, or B: ',' ',0,0,1,1,
 #    *              pktyp, *46)
-#              IF (pktyp .EQ. 'f') pktyp = 'F'
-#              IF (pktyp .EQ. 'p') pktyp = 'P'
-#              IF (pktyp .EQ. 'b') pktyp = 'B'
-#              IF (pktyp .NE. 'F' .AND. pktyp .NE. 'P' .AND. 
+#              if [ pktyp .EQ. 'f') pktyp='F'
+#              if [ pktyp .EQ. 'p') pktyp='P'
+#              if [ pktyp .EQ. 'b') pktyp='B'
+#              if [ pktyp .NE. 'F' .AND. pktyp .NE. 'P' .AND. 
 #    *             pktyp .NE. 'B')    CALL s_bada (
 #    *                     'Please answer "F", "P",  or "B".', *46)
-#           END IF
+#           fi
 
-#        END IF
+#        fi
 
-#        IF (datatyp .EQ. 'WL') THEN
-#          wltyp = instat(1:1)
-#           IF (.NOT. (wltyp .GE. '1' .AND. wltyp .LE. '3')) wltyp = ' '
-#           !  convert date/times to 14 characters
-#           IF (begdat(1:len(begdat)) .EQ. ' ' .OR.
+#        if [ datatyp .EQ. 'WL') THEN
+#          wltyp=instat(1:1)
+#           if [ .NOT. (wltyp .GE. '1' .AND. wltyp .LE. '3')) wltyp=' '
+#           #  convert date/times to 14 characters
+#           if [ begdat(1:len(begdat)) .EQ. ' ' .OR.
 #    *          enddat(1:len(enddat)) .EQ. ' ') THEN
-#              needstrt = .true.
-#              sopt(5:5) = '1'
-#              IF (wyflag) THEN
+#              needstrt=.true.
+#              sopt(5:5)='1'
+#              if [ wyflag) THEN
 #                 sopt(9:9) = '4'
 #              ELSE
 #                 sopt(10:10) = '3'
-#              END IF
+#              fi
 #           ELSE
 #              CALL nw_rdb_fill_beg_dtm (wyflag, begdat, begdtm)
 #              CALL nw_rdb_fill_end_dtm (wyflag, enddat, enddtm)
-#           END IF
-#        END IF
+#           fi
+#        fi
 
 #        IF (datatyp .EQ. 'QW') THEN
-#           qwparm = ' '
+#           qwparm=' '
 #           IF (len(inddid) .GE. 2) THEN
-#              qwparm = inddid(2:len(inddid))
-#           END IF
-#           qwmeth = instat(1:len(instat))
-#           !  convert date/times to 14 characters
+#              qwparm=inddid(2:len(inddid))
+#           fi
+#           qwmeth=instat(1:len(instat))
+#           #  convert date/times to 14 characters
 #           IF (begdat(1:len(begdat)) .EQ. ' ' .OR.
 #    *          enddat(1:len(enddat)) .EQ. ' ') THEN
-#              needstrt = .true.
+#              needstrt=.true.
 #              sopt(5:5) = '1'
 #              IF (wyflag) THEN
 #                 sopt(9:9) = '4'
 #              ELSE
 #                 sopt(10:10) = '3'
-#              END IF
+#              fi
 #           ELSE
 #              CALL nw_rdb_fill_beg_dtm (wyflag, begdat, begdtm)
 #              CALL nw_rdb_fill_end_dtm (wyflag, enddat, enddtm)
-#           END IF
-#        END IF
+#           fi
+#        fi
 
-#        IF (NEEDSTRT) THEN                      ! call s_strt if needed
-#           CALL S_MDUS (NW_OPRW, IRC, *998)     ! get USER info 
+#        IF (NEEDSTRT) THEN                      # call s_strt if needed
+#           CALL S_MDUS (NW_OPRW, IRC, *998)     # get USER info 
 #           IF (IRC .NE. 0) THEN
 #              WRITE (0,2110)
 #2110           FORMAT (/,'Unable to open ADAPS User file - Aborting.',/)
 #              GO TO 998
-#           END IF
-#           CALL S_LGID                          ! get user info 
+#           fi
+#           CALL S_LGID                          # get user info 
 #           CALL S_MDUS (NW_READ,IRC,*998)
-#           IF (IRC .EQ. 0) THEN                 ! save the user info
+#           IF (IRC .EQ. 0) THEN                 # save the user info
 #              DO I  =  1, 91
 #                 HOLDBUFF(I)  =  USBUFF(I)
 #              END DO
 
 #              IF (SOPT(5:5) .EQ. '1' .OR. SOPT(5:5) .EQ. '2') THEN
-#                 AGENCY  =  RTAGNY
-#                 IF (INSTNID(1:LEN(INSTNID)) .NE. ' ') STNID  =  SID
-#              END IF
-#              CALL S_MDUS (NW_UPDT, IRC, *998)  ! save modified user info
-#           END IF
+#                 AGENCY = RTAGNY
+#                 IF (INSTNID(1:LEN(INSTNID)) .NE. ' ') STNID = SID
+#              fi
+#              CALL S_MDUS (NW_UPDT, IRC, *998)  # save modified user info
+#           fi
 
-#           ! call start routine
-#           prgid = 'NWTS2RDB'
+#           # call start routine
+#           prgid='NWTS2RDB'
 #           IF (titlline  .EQ. ' ') THEN
-#              prgdes = 'TIME-SERIES TO RDB OUTPUT'
+#              prgdes='TIME-SERIES TO RDB OUTPUT'
 #           ELSE
 #              IF (nwf_strlen(titlline) .GT. 80) THEN
-#                 prgdes = titlline(1:80)
+#                 prgdes=titlline(1:80)
 #              ELSE
-#                 prgdes = titlline(1:nwf_strlen(titlline))
-#              END IF
-#           END IF
-#           rdonly = 1
+#                 prgdes=titlline(1:nwf_strlen(titlline))
+#              fi
+#           fi
+#           rdonly=1
 #123         CALL s_strt (sopt, *998)
 #           sopt(1:1) = '2'
 
 #           IF (sopt(5:5) .EQ. '1' .OR. sopt(5:5) .EQ. '2') THEN
-#              rtagny = agency              ! get agency
-#              sid = stnid                  ! get stn ID
+#              rtagny=agency              # get agency
+#              sid=stnid                  # get stn ID
 #              IF (sopt(5:5) .EQ. '2') THEN
-#                 ddid = usddid             ! and DD number
-#              END IF
-#           END IF
+#                 ddid=usddid             # and DD number
+#              fi
+#           fi
 
 #           IF (ddid .EQ. ' ') THEN
 #              IF (parm .NE. ' ' .AND. datatyp .NE. 'VT') THEN
@@ -1087,88 +1090,88 @@ rdb_out ()
 #                 IF (irc .NE. 0) THEN
 #                    WRITE (0,2120) rtagny, sid, parm
 #                    GOTO 999
-#                 END IF
-#              END IF
-#           END IF
+#                 fi
+#              fi
+#           fi
 
-#           !  stat code
-#           IF (sopt(8:8) .EQ. '1') stat = statcd
+#           #  stat code
+#           IF (sopt(8:8) .EQ. '1') stat=statcd
 
-#           !  data type
+#           #  data type
 #           IF (sopt(12:12) .EQ. '2') THEN
-#              uvtyp_prompted = .TRUE.
+#              uvtyp_prompted=.TRUE.
 #              IF (usdtyp .EQ. 'D') THEN
-#                 datatyp = 'DV'
-#                 cflag = .FALSE.
+#                 datatyp='DV'
+#                 cflag=.FALSE.
 #              ELSE IF (usdtyp .EQ. 'V') THEN
-#                 datatyp = 'DV'
-#                 cflag = .TRUE.
+#                 datatyp='DV'
+#                 cflag=.TRUE.
 #              ELSE IF (usdtyp .EQ. 'U') THEN
-#                 datatyp = 'UV'
-#                 uvtyp = 'M'
+#                 datatyp='UV'
+#                 uvtyp='M'
 #              ELSE IF (usdtyp .EQ. 'N') THEN
-#                 datatyp = 'UV'
-#                 uvtyp = 'N'
+#                 datatyp='UV'
+#                 uvtyp='N'
 #              ELSE IF (usdtyp .EQ. 'E') THEN
-#                 datatyp = 'UV'
-#                 uvtyp = 'E'
+#                 datatyp='UV'
+#                 uvtyp='E'
 #              ELSE IF (usdtyp .EQ. 'R') THEN
-#                 datatyp = 'UV'
-#                 uvtyp = 'R'
+#                 datatyp='UV'
+#                 uvtyp='R'
 #              ELSE IF (usdtyp .EQ. 'S') THEN
-#                 datatyp = 'UV'
-#                 uvtyp = 'S'
+#                 datatyp='UV'
+#                 uvtyp='S'
 #              ELSE IF (usdtyp .EQ. 'C') THEN
-#                 datatyp = 'UV'
-#                 uvtyp = 'C'
+#                 datatyp='UV'
+#                 uvtyp='C'
 #              ELSE IF (usdtyp .EQ. 'M') THEN
-#                 datatyp = 'MS'
+#                 datatyp='MS'
 #              ELSE IF (usdtyp .EQ. 'X') THEN
-#                 datatyp = 'VT'
+#                 datatyp='VT'
 #              ELSE IF (usdtyp .EQ. 'L') THEN
-#                 datatyp = 'WL'
+#                 datatyp='WL'
 #              ELSE IF (usdtyp .EQ. 'Q') THEN
-#                 datatyp = 'QW'
-#              END IF
-#           END IF
+#                 datatyp='QW'
+#              fi
+#           fi
 
-#           !  date range for water years
+#           #  date range for water years
 #           IF (sopt(9:9) .EQ. '4') THEN
 #              IF (usyear .EQ. '9999') THEN
-#                 begdtm = '00000000000000'
-#                 begdate = '00000000'
+#                 begdtm='00000000000000'
+#                 begdate='00000000'
 #              ELSE
 #                 READ (usyear,1010) iyr
 #1010              FORMAT (I4)
 #                 WRITE (usdate,2140) iyr-1,10,01
 #2140              FORMAT (I4.4,2I2.2)
-#                 begdtm = usdate // '000000'
-#                 begdate = usdate
-#              END IF
+#                 begdtm=usdate // '000000'
+#                 begdate=usdate
+#              fi
 #              IF (ueyear .EQ. '9999') THEN
-#                 enddtm = '99999999999999'
-#                 enddate = '99999999'
+#                 enddtm='99999999999999'
+#                 enddate='99999999'
 #              ELSE
 #                 READ (ueyear,1010) iyr
 #                 WRITE (uedate,2140) iyr,9,30
-#                 enddtm = uedate // '235959'
-#                 enddate = uedate
-#              END IF
-#           END IF
+#                 enddtm=uedate // '235959'
+#                 enddate=uedate
+#              fi
+#           fi
 
-#           !  date range
+#           #  date range
 #           IF (sopt(10:10) .EQ. '3') THEN
-#                 begdate = usdate
-#                 enddate = uedate
-#                 begdtm = usdate // '000000'
+#                 begdate=usdate
+#                 enddate=uedate
+#                 begdtm=usdate // '000000'
 #                 IF (uedate .EQ. '99999999') THEN
-#                    enddtm = '99999999999999'
+#                    enddtm='99999999999999'
 #                 ELSE
-#                    enddtm = uedate // '235959'
-#                 END IF
-#           END IF
+#                    enddtm=uedate // '235959'
+#                 fi
+#           fi
 
-#           !  Restore contents of user buffer
+#           #  Restore contents of user buffer
 #           IF (IRC .EQ. 0) THEN
 #              DO I  =  1, 91
 #                 USBUFF(I)  =  HOLDBUFF(I)
@@ -1178,15 +1181,15 @@ rdb_out ()
 
 #        ELSE
 
-#           CALL s_lgid                 ! get user id and number
-#           CALL s_ndget                ! get node data
-#           CALL s_ggrp                 ! get groups (for security)
-#           CALL sen_dbop (rtdbnum)     ! open Midas files
-#           !  count program (counted by S_STRT above if needed)
+#           CALL s_lgid                 # get user id and number
+#           CALL s_ndget                # get node data
+#           CALL s_ggrp                 # get groups (for security)
+#           CALL sen_dbop (rtdbnum)     # open Midas files
+#           #  count program (counted by S_STRT above if needed)
 #           IF (.NOT. nw_db_save_program_info ('NWTS2RDB')) THEN
-#              CONTINUE       ! ignore errors, we don't care if not counted
-#           END IF
-#           !  get PRIMARY DD that goes with parm if parm supplied
+#              CONTINUE       # ignore errors, we don't care if not counted
+#           fi
+#           #  get PRIMARY DD that goes with parm if parm supplied
 #           IF (parm .NE. ' ' .AND. datatyp .NE. 'VT') THEN
 #              CALL nwf_get_prdd (rtdbnum, rtagny, sid, parm, ddid, irc)
 #              IF (irc .NE. 0) THEN
@@ -1194,12 +1197,12 @@ rdb_out ()
 #2120              FORMAT (/,'No PRIMARY DD for station "',A5,A15,
 #    *                 '", parm "',A5,'".  Aborting.',/)
 #                 GOTO 999
-#              END IF
-#           END IF
+#              fi
+#           fi
 
-#        END IF
+#        fi
 
-#        !  retrieving measured uvs and transport_cd not supplied, prompt for it
+#        #  retrieving measured uvs and transport_cd not supplied, prompt for it
 #        IF (uvtyp_prompted. AND. datatyp .EQ. 'UV' .AND.
 #    *        (uvtyp .EQ. 'M' .OR. uvtyp .EQ. 'N') .AND.
 #    *        transport_cd .EQ. ' ') THEN
@@ -1211,25 +1214,25 @@ rdb_out ()
 #2150           FORMAT (/,'No MEASURED UV data for station "',A5,A15,
 #    *              '", DD "',A4,'".  Aborting.',/)
 #              GOTO 999
-#           END IF
-#        END IF
+#           fi
+#        fi
 
-#        !  Open output file
+#        #  Open output file
 #        IF (outpath .EQ. ' ') THEN
-#           funit = 6
+#           funit=6
 #        ELSE
 #           IF (len(outpath) .gt. 128) GOTO 998
-#           rdbfile = outpath(1:len(outpath))
+#           rdbfile=outpath(1:len(outpath))
 #           CALL s_file (' ', rdbfile, ' ', 'unknown', 'write', 0, 1,
 #    *                  ipu, funit, irc, *90)
 #90          IF (irc .NE. 0) THEN
 #              WRITE (0,2130) rdbfile(1:nwf_strlen(rdbfile))
 #2130           FORMAT (/,'Error ',I5,' opening output file:',/,3X,A,/)
 #              GOTO 999
-#           END IF
-#        END IF
+#           fi
+#        fi
 
-#        !  get data and output to files
+#        #  get data and output to files
 
 #        IF (datatyp .EQ. 'DV') THEN
 
@@ -1239,12 +1242,12 @@ rdb_out ()
 
 #        ELSE IF (datatyp .EQ. 'UV') THEN
 
-#           IF (uvtyp .EQ. 'M') inguvtyp = 'meas'
-#           IF (uvtyp .EQ. 'N') inguvtyp = 'msar'
-#           IF (uvtyp .EQ. 'E') inguvtyp = 'edit'
-#           IF (uvtyp .EQ. 'R') inguvtyp = 'corr'
-#           IF (uvtyp .EQ. 'S') inguvtyp = 'shift'
-#           IF (uvtyp .EQ. 'C') inguvtyp = 'da'
+#           IF (uvtyp .EQ. 'M') inguvtyp='meas'
+#           IF (uvtyp .EQ. 'N') inguvtyp='msar'
+#           IF (uvtyp .EQ. 'E') inguvtyp='edit'
+#           IF (uvtyp .EQ. 'R') inguvtyp='corr'
+#           IF (uvtyp .EQ. 'S') inguvtyp='shift'
+#           IF (uvtyp .EQ. 'C') inguvtyp='da'
 
 #           CALL fuvrdbout (funit, .false., rtdbnum, rndsup, cflag,
 #    *                      vflag, addkey, rtagny, sid, ddid, inguvtyp, 
@@ -1262,18 +1265,18 @@ rdb_out ()
 #              CALL fmsrdbout (funit, rtdbnum, rndsup, addkey, cflag,
 #    *                         vflag, rtagny, sid, mstyp, begdate,  
 #    *                         enddate, irc)
-#           END IF
+#           fi
 
 #        ELSE IF (datatyp .EQ. 'VT') THEN
 
-#           !  Get parm and loc number from DD IF not specified in arguments
+#           #  Get parm and loc number from DD IF not specified in arguments
 #           IF (inddid(1:1) .NE. 'P' .OR. inlocnu .EQ. ' ') THEN
 #              IF (.NOT. nw_db_key_get_dd_parm_loc (rtdbnum, rtagny, 
 #    *                                              sid, ddid, parm,
 #    *                                              loc_nu)) GOTO 997
 #           ELSE
-#              loc_nu = nwc_atoi(inlocnu)
-#           END IF
+#              loc_nu=nwc_atoi(inlocnu)
+#           fi
 
 #           CALL fvtrdbout_hydra (funit, rndsup, rtagny, sid, parm,
 #    *                            loc_nu, begdtm, enddtm, loc_tz_cd,
@@ -1297,37 +1300,37 @@ rdb_out ()
 
 #        ELSE IF (datatyp .EQ. 'WL') Then
 
-#           IF (hydra) wltyp = ' '
+#           IF (hydra) wltyp=' '
 #           CALL fwlrdbout_hydra (funit, rndsup, rtagny, sid, begdtm,
 #    *                            enddtm, loc_tz_cd, wltyp, irc)
 
 #        ELSE IF (datatyp .EQ. 'QW') THEN
 
 #           IF (hydra) THEN
-#              qwparm = ' '
-#              qwmeth = ' '
-#           END IF
+#              qwparm=' '
+#              qwmeth=' '
+#           fi
 #           CALL fqwrdbout_hydra (funit, rndsup, rtagny, sid, begdtm,
 #    *                            enddtm, loc_tz_cd, qwparm, qwmeth,
 #    *                            irc)
-#        END IF
+#        fi
 
-#     END IF
+#     fi
 fi
 
-#     !  close files and exit
+#     #  close files and exit
 #997   CALL s_mclos
 #     CALL s_sclose (funit, 'keep')
 #     CALL nw_disconnect
 #     GOTO 999
 
-#     !  bad return (do a generic error message)
-#998   irc = 3
+#     #  bad return (do a generic error message)
+#998   irc=3
 #     CALL nw_error_handler (irc,'nwf_rdb_out','error',
 #    *     'doing something','something bad happened')
 
-#     !  Good return
-#999   nwf_rdb_out = irc
+#     #  Good return
+#999   nwf_rdb_out=irc
 #     RETURN
 #     END
 } # rdb_out
