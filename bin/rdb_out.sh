@@ -2,7 +2,8 @@
 #
 # Purpose -- Top-level routine for outputting RDB format data
 #
-# Authors -- Andrew Halper <ashalper@usgs.gov>
+# Authors -- Andrew Halper <ashalper@usgs.gov> (Bourne Shell
+#            translation of nwf_rdb_out.f)
 #            Scott D. Bartholoma <sbarthol@usgs.gov>
 #            Jim Cornwall <jcorn@usgs.gov>
 #
@@ -431,173 +432,173 @@ rdb_out ()
 
         # if multiple, open a new output file - outpath is a prefix
 
-#        IF (multiple) THEN             ! close previously open file
-#           IF (funit .GE. 0 .AND. funit .NE. 6)
-#    *           CALL s_sclose (funit, 'keep')
-#           !  open a new file
-#           rdbfile = outpath(1:nwf_strlen(outpath)) //
-#    *           '.' // datatyp // '.' //
-#    *           rtagny(1:nwf_strlen(rtagny)) // '.' //
-#    *           sid(1:nwf_strlen(sid))
-#           rdblen = nwf_strlen(outpath)+5+
-#    *           nwf_strlen(rtagny)+nwf_strlen(sid)
-#           IF (datatyp .NE. 'MS' .AND. datatyp .NE. 'PK' .AND.
-#    *           datatyp .NE. 'WL' .AND. datatyp .NE. 'QW') THEN
-#              lddid = ddid
-#              CALL s_jstrlf(lddid,4)
-#              rdbfile = rdbfile(1:rdblen) // '.' //
-#    *              lddid(1:nwf_strlen(lddid))
-#              rdblen = rdblen + 1 + nwf_strlen(lddid)
-#           END IF
-#           IF (datatyp .NE. 'DC' .AND. datatyp .NE. 'SV' .AND.
-#    *           datatyp .NE. 'WL' .AND. datatyp .NE. 'QW') THEN
-#              rdbfile = rdbfile(1:rdblen) // '.' //
-#    *              stat(1:nwf_strlen(stat))
-#              rdblen = rdblen + 1 + nwf_strlen(stat)
-#           END IF
-#           rdbfile = rdbfile(1:rdblen) // '.' //
-#    *           begdtm(1:8) // '.rdb'
-#           rdblen = rdblen + 13
-#           CALL s_file (' ', rdbfile, ' ', 'unknown', 'write',
-#    *           0, 1, ipu, funit, irc, *8)
-#8           IF (irc .NE. 0) THEN
-#              CALL s_date (cdate, ctime)
+        if [ "$multiple" ]; then
+            # close previously open file
+            if [ $funit -ge 0 -a $funit -ne 6 ]; then
+                s_sclose $funit 'keep'
+            fi
+            # open a new file
+            rdbfile="$outpath.$datatyp.$rtagny.$sid"
+            rdblen=`expr ${#outpath} + 5 + ${#rtagny} + ${#sid}`
+            if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
+                 "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
+                lddid="$ddid"
+                s_jstrlf "$lddid" 4
+                rdbfile="$rdbfile.$lddid"
+                rdblen=`expr $rdblen + 1 + ${#lddid}`
+            fi
+            if [ "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
+                 "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
+                rdbfile="$rdbfile.$stat"
+                rdblen=`expr $rdblen + 1 + ${#stat}`
+            fi
+            rdbfile="$rdbfile.${begdtm:0:7}.rdb"
+            rdblen=`expr $rdblen + 13`
+            # TODO: translate "*8" from Fortran below
+            s_file ' ' "$rdbfile" ' ' 'unknown' 'write' \
+                0, 1, $ipu $funit $irc *8
+#8
+            if [ $irc -ne 0 ]; then
+                s_date "$cdate" "$ctime"
 #              WRITE (0,2060) cdate, ctime, irc, nline,
 #    *                        rdbfile(1:rdblen)
 #2060           FORMAT (A8, 1X, A6, 1X, 'Error ', I5,
 #    *                 ' opening output file for line ',
 #    *                 I5, '.', /, 16X, A)
-#              irc = nwc_rdb_cfil (three, ctlfile, rtagny, sid, ddid, 
-#    *                             stat,bctdtm, ectdtm, nline)
-#              CALL s_mclos
-#              GOTO 999
-#           END IF
-#           CALL s_date (cdate, ctime)
+                irc=rdb_cfil $three "$ctlfile" "$rtagny" "$sid" "$ddid" \
+                    "$stat" "$bctdtm" "$ectdtm" $nline
+                s_mclos
+                goto 999
+            fi
+            s_date "$cdate" "$ctime"
 #           WRITE (0,2070) cdate, ctime, rdbfile(1:rdblen)
 #2070        FORMAT (A8, 1X, A6, 1X, 'Writing file ', A)
-#        END IF
+        fi
 
 #        check DD for a P in column 1 - indicated parm code for PR DD search
 
-#        IF (ddid(1:1) .EQ. 'p' .or. ddid(1:1) .EQ. 'P') THEN
-#           parm = ddid(2:6)
-#           CALL s_jstrrt (parm, 5)
+        if [ ${ddid:0:1} = 'p' -o ${ddid:0:1} = 'P' ]; then
+            parm=${ddid:1:5}
+            s_jstrrt "$parm" 5
 #           DO I = 1,5
 #              IF (parm(i:i) .EQ. ' ') parm(i:i) = '0'
 #           END DO
-#           CALL nwf_get_prdd (rtdbnum, rtagny, sid, parm, ddid, irc)
-#           IF (irc .NE. 0) THEN
-#              CALL s_date (cdate, ctime)
+            get_prdd $rtdbnum "$rtagny" "$sid" "$parm" "$ddid" $irc
+            if [ $irc -ne 0 ]; then
+                s_date "$cdate" "$ctime"
 #              WRITE (0,2035) cdate, ctime, rtagny, sid, parm, nline
 #2035           FORMAT (A8, 1X, A6, 1X, 'No PRIMARY DD for station "', 
 #    *                 A5, A15, '", parm "', A5, '" on line ', I5, '.')
-#              GOTO 9
-#           END IF
-#        ELSE         ! right justify DDID to 4 characters
-#           IF (datatyp .NE. 'MS' .AND. datatyp .NE. 'PK' .AND.
-#    *          datatyp .NE. 'WL' .AND. datatyp .NE. 'QW') THEN
-#              CALL s_jstrrt (ddid,4)
-#           END IF
-#        END IF
+                goto 9
+            fi
+        else
+            # right justify DDID to 4 characters
+            if [ datatyp .NE. 'MS' .AND. datatyp .NE. 'PK' .AND.
+                    datatyp .NE. 'WL' .AND. datatyp .NE. 'QW' ]; then
+              s_jstrrt "$ddid" 4
+            fi
+        fi
 
-#        !  process the request
-#        IF (datatyp .EQ. 'DV') THEN
+        # process the request
+        if [ "$datatyp" = 'DV' ]; then
 
-#           CALL fdvrdbout (funit, .false., rndsup, addkey, vflag, 
-#    *                      cflag, rtagny, sid, ddid, stat, 
-#    *                      begdtm, enddtm, irc)
+            fdvrdbout $funit false $rndsup "$addkey" "$vflag" \
+                "$cflag" "$rtagny" "$sid" "$ddid" "$stat" \
+                "$begdtm" "$enddtm" $irc
 
-#        ELSE IF (datatyp .EQ. 'UV') THEN
+        elif [ "$datatyp" = 'UV' ]; then
 
-#           uvtyp = stat(1:1)
-#           IF (uvtyp .NE. 'M' .AND. uvtyp .NE. 'N' .AND. uvtyp .NE. 'E'
-#    *          .AND. uvtyp .NE. 'R' .AND. uvtyp .NE. 'S' .AND. 
-#    *          uvtyp .NE. 'C') THEN
-#              CALL s_date (cdate, ctime)
+            uvtyp=${stat:0:1}
+            if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a "$uvtyp" != 'E'
+                 -a "$uvtyp" != 'R' -a "$uvtyp" != 'S' -a 
+                 "$uvtyp" != 'C' ]; then
+                s_date "$cdate" "$ctime"
 #              WRITE (0,2080) cdate, ctime, uvtyp, nline
 #2080           FORMAT (A8, 1X, A6, 1X, 'Invalid unit-values type "', 
 #    *                 A1, '" on line ', I5,'.')
-#           ELSE
-#              IF (uvtyp .EQ. 'M') inguvtyp = 'meas'
-#              IF (uvtyp .EQ. 'N') inguvtyp = 'msar'
-#              IF (uvtyp .EQ. 'E') inguvtyp = 'edit'
-#              IF (uvtyp .EQ. 'R') inguvtyp = 'corr'
-#              IF (uvtyp .EQ. 'S') inguvtyp = 'shift'
-#              IF (uvtyp .EQ. 'C') inguvtyp = 'da'
-#              CALL fuvrdbout (funit, .false., rtdbnum, rndsup, cflag,
-#    *                         vflag, addkey, rtagny, sid, ddid,  
-#    *                         inguvtyp, sensor_type_id, transport_cd,
-#    *                          begdtm, enddtm, loc_tz_cd, irc)
-#           END IF
+            else
+                if [ "$uvtyp" = 'M' ]; then inguvtyp='meas'; fi
+                if [ "$uvtyp" = 'N' ]; then inguvtyp='msar'; fi
+                if [ "$uvtyp" = 'E' ]; then inguvtyp='edit'; fi
+                if [ "$uvtyp" = 'R' ]; then inguvtyp='corr'; fi
+                if [ "$uvtyp" = 'S' ]; then inguvtyp='shift'; fi
+                if [ "$uvtyp" = 'C' ]; then inguvtyp='da'; fi
+                fuvrdbout $funit false $rtdbnum "$rndsup" "$cflag" \
+                    "$vflag" "$addkey" "$rtagny" "$sid" "$ddid" \
+                    "$inguvtyp" $sensor_type_id "$transport_cd" \
+                    "$begdtm" "$enddtm" "$loc_tz_cd" $irc
+            fi
 
-#        ELSE IF (datatyp .EQ. 'MS') THEN
+        elif [ "$datatyp" = 'MS' ]; then
 
-#           mstyp = stat(1:1)
+            mstyp=${stat:0:1}
 
-#           Only standard meas types allowed when working from a control file
-#           Pseudo-UV Types 1 through 3 are only good from the command line or in hydra mode
+            # Only standard meas types allowed when working from a control file
+            # Pseudo-UV Types 1 through 3 are only good from the
+            # command line or in hydra mode
 
-#           IF (mstyp .NE. 'C' .AND. mstyp .NE. 'M' .AND.
-#    *          mstyp .NE. 'D' .AND. mstyp .NE. 'G') THEN 
-#              CALL s_date (cdate, ctime)
+            if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a
+                 "$mstyp" != 'D' -a "$mstyp" != 'G' ]; then 
+                s_date "$cdate" "$ctime"
 #              WRITE (0,2090) cdate, ctime, mstyp, nline
 #2090           FORMAT (A8, 1X, A6, 1X,
 #    *                 'Invalid measurement file type "', A1,
 #    *                 '" on line ', I5, '.')
-#           ELSE
+            else
 
-#              CALL fmsrdbout (funit, rtdbnum, rndsup, addkey, cflag,
-#    *                         vflag, rtagny, sid, mstyp, begdtm, 
-#    *                         enddtm, irc)
+                fmsrdbout $funit $rtdbnum "$rndsup" "$addkey" "$cflag" \
+                    "$vflag" "$rtagny" "$sid" "$mstyp" "$begdtm" \
+                    "$enddtm" $irc
 
-#           END IF
-#           
-#        ELSE IF (datatyp .EQ. 'PK') THEN
-#                
-#           pktyp = stat(1:1)
-#           IF (pktyp .NE. 'F' .AND. pktyp .NE. 'P' .AND.
-#    &          pktyp .NE. 'B') THEN
-#              CALL s_date (cdate, ctime)
+            fi
+
+        elif [ "$datatyp" = 'PK' ]; then
+
+            pktyp=${stat:0:1}
+            if [ "$pktyp" != 'F' -a "$pktyp" != 'P' -a
+                 "$pktyp" != 'B' ]; then
+                s_date "$cdate" "$ctime"
 #              WRITE (0,2100) cdate, ctime, pktyp, nline
 #2100           FORMAT (A8,1X,A6,1X,'Invalid peak flow file type "',A1,
 #    *              '" on line ',I5,'.')
-#           ELSE
+            else
 
-#              CALL fpkrdbout (funit, rndsup, addkey, cflag, vflag, 
-#    *                         rtagny, sid, pktyp, begdtm, enddtm, irc)
+                fpkrdbout $funit "$rndsup" "$addkey" "$cflag" "$vflag" \
+                    "$rtagny" "$sid" "$pktyp" "$begdtm" "$enddtm" $irc
 
-#           END IF
+            fi
 #           
-#        ELSE IF (datatyp .EQ. 'DC') THEN
+        elif [ "$datatyp" = 'DC' ]; then
 
-#           CALL fdcrdbout (funit, rndsup, addkey, cflag, vflag, 
-#    *                      rtagny, sid, ddid, begdtm, enddtm, 
-#    *                      loc_tz_cd, irc)
-#           
-#        ELSE IF (datatyp .EQ. 'SV') THEN
-#                
-#           CALL fsvrdbout (funit, rndsup, addkey, cflag, vflag, 
-#    *                      rtagny, sid, ddid, begdtm, enddtm, 
-#    *                      loc_tz_cd, irc)
-#           
-#        END IF
+            fdcrdbout $funit "$rndsup" "$addkey" "$cflag" "$vflag" \
+                "$rtagny" "$sid" "$ddid" "$begdtm" "$enddtm" \
+                "$loc_tz_cd" $irc
 
-#        !  get next line from control file
-#9        irc = nwc_rdb_cfil (two, datatyp, rtagny, sid, ddid, stat,
-#    *                       bctdtm, ectdtm, nline)
-#        GOTO 6
+        elif [ "$datatyp" = 'SV' ]; then
 
-#     ELSE       ! Not a control file
+            fsvrdbout $funit "$rndsup" "$addkey" "$cflag" "$vflag" \
+                     "$rtagny" "$sid" "$ddid" "$begdtm" "$enddtm" \
+                     "$loc_tz_cd" $irc
+     
+        fi
 
-#        sopt = '10000000000000000000000000000000'      ! init control argument
-#        if (len(intyp).gt.2) then
-#           datatyp = intyp(1:2)     
-#        else
-#           datatyp = intyp(1:len(intyp))
-#        end if
-#        
-#                      ! check data type
-#        CALL s_upcase (datatyp,2)
+        # get next line from control file
+#9        
+        irc=rdb_cfil $two "$datatyp" "$rtagny" "$sid" "$ddid" "$stat" \
+            "$bctdtm" "$ectdtm" $nline
+        goto 6
+
+    else                        # Not a control file
+
+        sopt='10000000000000000000000000000000' # init control argument
+        if [ ${#intyp} -gt 2 ]; then
+            datatyp=${intyp:0:1}
+        else
+            datatyp="$intyp"
+        fi
+
+        # check data type
+        datatyp=${${datatyp:0:1}^^}
 
 #        IF (hydra) THEN
 #           needstrt = .true.
