@@ -452,7 +452,7 @@ rdb_out ()
                 rdbfile="$rdbfile.$stat"
                 rdblen=`expr $rdblen + 1 + ${#stat}`
             fi
-            rdbfile="$rdbfile.${begdtm:0:7}.rdb"
+            rdbfile="$rdbfile.${begdtm:0:8}.rdb"
             rdblen=`expr $rdblen + 13`
             # TODO: translate "*8" from Fortran below
             s_file ' ' "$rdbfile" ' ' 'unknown' 'write' \
@@ -592,174 +592,179 @@ rdb_out ()
 
         sopt='10000000000000000000000000000000' # init control argument
         if [ ${#intyp} -gt 2 ]; then
-            datatyp=${intyp:0:1}
+            datatyp=${intyp:0:2}
         else
             datatyp="$intyp"
         fi
 
         # check data type
-        datatyp=${${datatyp:0:1}^^}
+        datatyp=${$datatyp^^}
 
-#        IF (hydra) THEN
-#           needstrt = .true.
-#           sopt(8:8) = '1'
-#           sopt(12:12) = '2'
-#           IF (datatyp .NE. 'DV' .AND. datatyp .NE. 'UV' .AND.
-#    *          datatyp .NE. 'MS' .AND. datatyp .NE. 'WL' .AND.
-#    *          datatyp .NE. 'QW')   datatyp = 'UV'
+        if [ "$hydra" ]; then
+            needstrt=true
+            sopt="${sopt:0:7}1${sopt:8}"
+            sopt="${sopt:0:11}2${sopt:12}"
+            if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
+                 "$datatyp" != 'MS' -a "$datatyp" != 'WL' -a
+                 "$datatyp" != 'QW']; then datatyp='UV'; fi
 
-#           ! convert dates to 8 characters
-#           CALL nw_rdb_fill_beg_date (wyflag,begdat,begdate)
-#           CALL nw_rdb_fill_end_date (wyflag,enddat,enddate)
+            # convert dates to 8 characters
+            rdb_fill_beg_date "$wyflag" "$begdat" "$begdate"
+            rdb_fill_end_date "$wyflag" "$enddat" "$enddate"
 
-#           ! convert date/times to 14 characters
-#           CALL nw_rdb_fill_beg_dtm (wyflag,begdat,begdtm)
-#           CALL nw_rdb_fill_end_dtm (wyflag,enddat,enddtm)
+            # convert date/times to 14 characters
+            rdb_fill_beg_dtm "$wyflag" "$begdat" "$begdtm"
+            rdb_fill_end_dtm "$wyflag" "$enddat" "$enddtm"
 
-#        ELSE
+        else
 
-#           IF (cflag) THEN   ! Data type VT is pseudo-UV, no combining of date time possible
+            if [ "$cflag" ]; then
+                # Data type VT is pseudo-UV, no combining of date time
+                # possible
 
-#              IF (datatyp .NE. 'DV' .AND. datatyp .NE. 'UV' .AND.
-#    *             datatyp .NE. 'DC' .AND. datatyp .NE. 'SV' .AND.
-#    *             datatyp .NE. 'MS' .AND. datatyp .NE. 'PK' .AND. 
-#    *             datatyp .NE. 'WL' .AND. datatyp .NE. 'QW') THEN
-#   
-#11                datatyp = ' '
-#                 PRINT *,'Valid data types are:'
-#                 PRINT *,'   DV - Daily Values'
-#                 PRINT *,'   UV - Unit Values'
-#                 PRINT *,'   MS - Discharge Measurements'
-#                 PRINT *,'   PK - Peak Flows'
-#                 PRINT *,'   DC - Data Corrections'
-#                 PRINT *,'   SV - Variable Shift'
-#                 PRINT *,'   WL - Water Levels from GWSI'
-#                 PRINT *,'   QW - QW Data From QWDATA'
-#                 CALL s_qryc ('Enter desired data type: ',' ',0,0,2,2,
-#    *                         datatyp,*11)
-#                 CALL s_upcase (datatyp,2)
-#                 IF (datatyp .NE. 'DV' .AND. datatyp .NE. 'UV' .AND.
-#    *                datatyp .NE. 'DC' .AND. datatyp .NE. 'SV' .AND.
-#    *                datatyp .NE. 'MS' .AND. datatyp .NE. 'PK' .AND. 
-#    *                datatyp .NE. 'WL' .AND. datatyp .NE. 'QW') 
-#    *                       CALL s_bada ('Please answer ' //
-#    *                       '"DV", "UV", "MS", "PK", "DC", "ST",' // 
-#    *                       ' "SV", "WL" or "QW".', *11) 
+                if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
+                     "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
+                     "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a 
+                     "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
 
-#              END IF
+#11
+                    datatyp=' '
+                    echo 'Valid data types are:'
+                    echo '   DV - Daily Values'
+                    echo '   UV - Unit Values'
+                    echo '   MS - Discharge Measurements'
+                    echo '   PK - Peak Flows'
+                    echo '   DC - Data Corrections'
+                    echo '   SV - Variable Shift'
+                    echo '   WL - Water Levels from GWSI'
+                    echo '   QW - QW Data From QWDATA'
+                    s_qryc 'Enter desired data type: ' ' ' 0 0 2 2 \
+                        "$datatyp" *11 # <- TODO: translate Fortran
+                    datatyp=${$datatyp^^}
 
-#           ELSE
+                    if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
+                         "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
+                         "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a 
+                         "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
+                      s_bada 'Please answer ' \
+                          '"DV", "UV", "MS", "PK", "DC", "ST",' \ 
+                      ' "SV", "WL" or "QW".' *11 # <- TODO: translate Fortran
+                    fi
+                fi
 
-#              IF (datatyp .NE. 'DV' .AND. datatyp .NE. 'UV' .AND.
-#    *             datatyp .NE. 'DC' .AND. datatyp .NE. 'SV' .AND.
-#    *             datatyp .NE. 'MS' .AND. datatyp .NE. 'VT' .AND.
-#    *             datatyp .NE. 'PK' .AND. datatyp .NE. 'WL' .AND.
-#    *             datatyp .NE. 'QW') THEN
+            else
 
-#12                datatyp = ' '
-#                 PRINT *,'Valid data types are:'
-#                 PRINT *,'   DV - Daily Values'
-#                 PRINT *,'   UV - Unit Values'
-#                 PRINT *,'   MS - Discharge Measurements'
-#                 PRINT *,'   VT - Site Visit Readings'
-#                 PRINT *,'   PK - Peak Flows'
-#                 PRINT *,'   DC - Data Corrections'
-#                 PRINT *,'   SV - Variable Shift'
-#                 PRINT *,'   WL - Water Levels from GWSI'
-#                 PRINT *,'   QW - QW Data From QWDATA'
-#                 CALL s_qryc ('Enter desired data type: ',' ',0,0,2,2,
-#    *                 datatyp,*12)
-#                 CALL s_upcase (datatyp,2)
-#                 IF (datatyp .NE. 'DV' .AND. datatyp .NE. 'UV' .AND.
-#    *                datatyp .NE. 'DC' .AND. datatyp .NE. 'SV' .AND.
-#    *                datatyp .NE. 'MS' .AND. datatyp .NE. 'VT' .AND.
-#    *                datatyp .NE. 'PK' .AND. datatyp .NE. 'WL' .AND.
-#    *                datatyp .NE. 'QW')
-#    *                 CALL s_bada ('Please answer ' //
-#    *                 '"DV", "UV", "MS", "VT", "PK", "DC", "ST",' // 
-#    *                 ' "SV", "WL" or "QW".',
-#    *                 *12)
+                if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
+                     "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
+                     "$datatyp" != 'MS' -a "$datatyp" != 'VT' -a
+                     "$datatyp" != 'PK' -a "$datatyp" != 'WL' -a
+                     "$datatyp" != 'QW' ]; then
 
-#              END IF
+#12
+                    datatyp=' '
+                    echo 'Valid data types are:'
+                    echo '   DV - Daily Values'
+                    echo '   UV - Unit Values'
+                    echo '   MS - Discharge Measurements'
+                    echo '   VT - Site Visit Readings'
+                    echo '   PK - Peak Flows'
+                    echo '   DC - Data Corrections'
+                    echo '   SV - Variable Shift'
+                    echo '   WL - Water Levels from GWSI'
+                    echo '   QW - QW Data From QWDATA'
+                    s_qryc 'Enter desired data type: ' ' ' 0 0 2 2 \
+                        "$datatyp" *12 # <- TODO: translate Fortran (GOTO?)
+                    datatyp=${$datatyp^^}
+                    if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
+                         "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
+                         "$datatyp" != 'MS' -a "$datatyp" != 'VT' -a
+                         "$datatyp" != 'PK' -a "$datatyp" != 'WL' -a
+                         "$datatyp" != 'QW' ]; then
+                        s_bada 'Please answer ' \
+                            '"DV", "UV", "MS", "VT", "PK", "DC", "ST",' \ 
+                        ' "SV", "WL" or "QW".' *12 # <- TODO: translate F77
+                    fi
+                fi
 
-#           END IF
+            fi
 
-#        END IF
+        fi
 
-#        !  convert agency to 5 characters - default to USGS
-#        IF (inagny(1:len(inagny)) .EQ. ' ') THEN
-#           rtagny = 'USGS'
-#        ELSE
-#           IF (len(inagny) .GT. 5) THEN
-#              rtagny = inagny(1:5)
-#           ELSE
-#              rtagny = inagny(1:len(inagny))
-#           END IF
-#           CALL s_jstrlf (rtagny,5)
-#        END IF
+        # convert agency to 5 characters - default to USGS
+        if [ "$inagny" = ' ' ]; then
+            rtagny='USGS'
+        else
+            if [ ${#inagny} -gt 5 ]; then
+                rtagny=${inagny:0:5}
+            else
+                rtagny="$inagny"
+            fi
+            s_jstrlf "$rtagny" 5
+        fi
 
-#        !  convert station to 15 characters
-#        IF (instnid(1:len(instnid)) .EQ. ' ') THEN
-#           needstrt = .true.
-#           IF (datatyp .EQ. 'MS' .OR. datatyp .EQ. 'PK' .OR.
-#    *          datatyp .EQ. 'WL' .OR. datatyp .EQ. 'QW') THEN
-#              sopt(5:5) = '1'
-#           ELSE
-#              sopt(5:5) = '2'
-#           END IF
-#        ELSE
-#           IF (len(instnid) .GT. 15) THEN
-#              sid = instnid(1:15)
-#           ELSE
-#              sid = instnid(1:len(instnid))
-#           END IF
-#           CALL s_jstrlf (sid, 15)
-#        END IF
+        # convert station to 15 characters
+        if [ "$instnid" = ' ' ]; then
+            needstrt=true
+            if [ "$datatyp" = 'MS' -o "$datatyp" = 'PK' -o
+                 "$datatyp" = 'WL' -o "$datatyp" = 'QW' ]; then
+                sopt="${sopt:0:4}1${sopt:5}"
+            else
+                sopt="${sopt:0:4}2${sopt:5}"
+            fi
+        else
+            if [ ${#instnid} -gt 15 ]; then
+                sid=${instnid:0:15}
+            else
+                sid="$instnid"
+            fi
+            s_jstrlf "$sid" 15
+        fi
 
 #        DD is ignored for data types MS, PR, WL, and QW
 
-#        IF (datatyp .NE. 'MS' .AND. datatyp .NE. 'PK' .AND.
-#    *       datatyp .NE. 'WL' .AND. datatyp .NE. 'QW') THEN
+        if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
+             "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
 
-#           ! If type is VT, DDID is only needed IF parm and loc number are not specified
-#           IF ((datatyp .NE. 'VT' .AND. inddid(1:len(inddid)) .EQ. ' ')
-#    *              .OR.
-#    *          (datatyp .EQ. 'VT' .AND. inddid(1:len(inddid)) .EQ. ' ' 
-#    *            .AND. (inddid(1:1) .NE. 'P' .OR. inlocnu .EQ. ' ') )
-#    *                                                   ) THEN
-#              needstrt = .true.
-#              sopt(5:5) = '2'
+            # If type is VT, DDID is only needed IF parm and loc
+            # number are not specified
+            if [ \( datatyp != 'VT' -a "$inddid" = ' ' \) \
+                 -o
+                 \( datatyp = 'VT' -a "$inddid" = ' ' \
+                    -a \( ${inddid:0:1} != 'P' -o "$inlocnu" = ' ' \) \) \
+               ]; then
+                needstrt=true
+                sopt="${sopt:0:4}2${sopt:5}"
+            else
 
-#           ELSE
-
-#              ! If ddid starts with "P", it is a parameter code, fill to 5 digits
-#              IF (inddid(1:1) .EQ. 'p' .OR. inddid(1:1) .EQ. 'P') THEN
-#                 IF (len(inddid) .GT. 6) THEN
-#                    parm = inddid(2:6)
-#                 ELSE
-#                    parm = inddid(2:len(inddid))
-#                 END IF
-#                 CALL s_jstrrt (parm, 5)
+                # If ddid starts with "P", it is a parameter code,
+                # fill to 5 digits
+                if [ ${inddid:0:1} = 'p' -o ${inddid:0:1} = 'P' ]; then
+                    if [ ${#inddid} -gt 6 ]; then
+                        parm=${inddid:1:5}
+                    else
+                        parm=${inddid:1}
+                    fi
+                    s_jstrrt "$parm" 5
 #                 DO I = 1,5
 #                    IF (parm(i:i) .EQ. ' ') parm(i:i) = '0'
 #                 END DO
-#              ELSE
-#                 parm = ' '
-#                 !  convert ddid to 4 characters
-#                 IF (len(inddid) .gt. 4) THEN
-#                    ddid = inddid(1:4)
-#                 ELSE
-#                    ddid = inddid(1:len(inddid))
-#                 END IF
-#                 CALL s_jstrrt (ddid, 4)
+                else
+                    parm=' '
+                    # convert ddid to 4 characters
+                    if [ ${#inddid} -gt 4 ]; then
+                        ddid=${inddid:0:4}
+                    else
+                        ddid="$inddid"
+                    fi
+                    s_jstrrt ddid 4
 
-#              END IF
+                fi
 
-#           END IF
+            fi
 
-#        END IF
+        fi
 
-#        further processing depends on data type
+        # further processing depends on data type
 
 #        IF (datatyp .EQ. 'DV') THEN       ! convert stat to 5 characters
 #           IF (instat(1:len(instat)).EQ.' ') THEN
