@@ -1,0 +1,383 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>aq2rdb</title>
+    <style type="text/css">
+      /*<![CDATA[*/
+        body  {
+            background-color:white;
+            color:#000000;
+            font-family: "Helvetica Neue", Helvetica, Verdana, Arial;
+            margin: 0;
+            font-size: 13px;
+        }
+        a#logo {
+            position: absolute;
+            top: 8px;
+            right: 5px;
+            width: 120px;
+            height: 30px;
+            background-repeat: no-repeat;
+            background-image: url(data:image/png;base64,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);
+        }
+        h1 {
+            color: #FFF;
+            font-size: 26px;
+            font-weight: normal;
+            margin: 0;
+            padding: 0 0 0 15px;
+
+            line-height: 48px;
+            min-height: 48px;
+                border-radius: 0px;
+                border-bottom: 1px solid #191e23;
+                background: #2c3742; /* Old browsers */
+                background: -moz-linear-gradient(top,  #2c3742 0%, #28303a 100%); /* FF3.6+ */
+                background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,#2c3742), color-stop(100%,#28303a)); /* Chrome,Safari4+ */
+                background: -webkit-linear-gradient(top,  #2c3742 0%,#28303a 100%); /* Chrome10+,Safari5.1+ */
+                background: -o-linear-gradient(top,  #2c3742 0%,#28303a 100%); /* Opera 11.10+ */
+                background: -ms-linear-gradient(top,  #2c3742 0%,#28303a 100%); /* IE10+ */
+                background: linear-gradient(to bottom,  #2c3742 0%,#28303a 100%); /* W3C */
+                filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#2c3742', endColorstr='#28303a',GradientType=0 ); /* IE6-9 */
+        }
+        h2 {
+                margin: 25px 0 20px 0;
+            color: #29323D;
+            font-family: 'Open Sans', sans-serif;
+            font-size: 24px;
+        }
+        h3 {
+            color: #29323D;
+            font-size: 18px;
+            font-family: 'Open Sans', sans-serif;
+        }
+        a {
+            color: #428bca;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        a:hover, a:focus {
+            color: #2a6496;
+            text-decoration: underline;
+        }
+        ul {
+            margin: 10px 0 0 10px;
+                        padding: 0 0 0 10px;
+        }
+        li {
+                        clear: left;
+            margin-top: 10px;
+        }
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+            margin: 0 0 20px 0;
+        }
+                table, tr, th, td {
+            border: none;
+                }
+        .operations, .operation {
+            padding: 0 0 0 15px;
+        }
+        /* All Operations */
+                .operations table {
+                        margin-left: 1.5em;
+                }
+                .operations th {
+            text-align: left;
+            font-weight: normal;
+            line-height: 18px;
+                        min-width: 27em;
+            white-space: nowrap;
+                }
+        /* Single Operation */
+                .operations td {
+            font-size: 12px;
+            line-height: 18px;
+            font-weight: bold;
+            color: #CCC;
+                        padding-left: 1.5em;
+                    vertical-align: top;
+                }
+        .operation caption {
+            text-align: left;
+            font-size: 14px;
+            padding: 10px 0;
+            white-space: nowrap;
+        }
+        .operation tbody th {
+            text-align: left;
+        }
+        .operation thead th {
+            text-align: left;
+            text-transform: uppercase;
+        }
+        .operation th, .operation td {
+            padding: 5px 15px;
+                    vertical-align: top;
+        }
+        .operation h4 {
+            margin: 10px 0;
+            padding: 0;
+        }
+        .operation li {
+            margin: 0;
+        }
+        .example {
+                padding-left: 15px;
+        }
+        .example h3 { 
+                color:#000000;
+                margin: 10px 0 0 -15px;
+        }
+        .example pre {
+                background-color: #E5E5CC;
+                border: 1px solid #F0F0E0;
+                font-family: Courier New;
+                font-size: 15px;
+                padding: 5px;
+                margin-right: 15px;
+                white-space: pre-wrap;
+            overflow:auto;
+        }
+        .example .value {
+                color: blue;
+        }    
+        .call-info {
+            margin: 0 0 20px 0;
+        }
+                #desc{
+                        margin: 0;
+                        padding: 0 0 15px 15px;
+                        font-size: 16px;
+                }
+                #desc P {
+                        margin: 5px 0;
+                        padding: 0;
+                        line-height: 20px;
+                        color: #444;
+                }
+  /*]]>*/
+    </style>
+  </head>
+
+  <body>
+    <a id="logo" href="http://usgs.gov" title="USGS"></a>
+
+    <h1>aq2rdb</h1>
+
+    <div class="operation">
+      <div>
+        <h2>GetDVTable</h2>
+	<!-- TODO: convert to div(s): -->
+        <table class="routes" summary="A list of routes for this Web service.">
+          <caption>
+            The following routes are available for this service:
+          </caption>
+          <tbody>
+            <tr>
+              <th>GET</th>
+              <th>/GetDVTable</th>
+              <td></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <table class="params"
+               summary="GetDVTable Web service, formal parameters.">
+          <caption>
+            <b>GetDVTable</b> Request Parameters:
+          </caption>
+
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Parameter</th>
+              <th>Data Type</th>
+              <th>Required</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr>
+              <td>userName</td>
+              <td>query</td>
+              <td>string</td>
+              <td>Yes</td>
+              <td>AQUARIUS user name.</td>
+            </tr>
+
+            <tr>
+              <td>password</td>
+              <td>query</td>
+              <td>string</td>
+              <td>Yes</td>
+              <td>AQUARIUS password.</td>
+            </tr>
+
+            <tr>
+              <td>LocationIdentifier</td>
+              <td>query</td>
+              <td>string</td>
+              <td>Yes</td>
+              <td><a href="http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDescriptionServiceRequest">AQUARIUS location identifier.</a></td>
+            </tr>
+
+            <tr>
+              <td>Parameter</td>
+              <td>query</td>
+              <td>string</td>
+              <td>No</td>
+              <td><a href="http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDescriptionServiceRequest">AQUARIUS parameter.</a></td>
+            </tr>
+
+            <tr>
+              <td>ComputationIdentifier</td>
+              <td>query</td>
+              <td>string</td>
+              <td>No</td>
+              <td><a href="http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDescriptionServiceRequest">AQUARIUS computation identifier.</a></td>
+            </tr>
+            
+            <tr>
+              <td>QueryFrom</td>
+              <td>query</td>
+              <td><a href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a> time string</td>
+              <td>No</td>
+              <td><a href="http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDataCorrectedServiceRequest">AQUARIUS start datetime.</a></td>
+            </tr>
+
+            <tr>
+              <td>QueryTo</td>
+              <td>query</td>
+              <td><a href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a> time string</td>
+              <td>No</td>
+              <td><a href="http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDataCorrectedServiceRequest">AQUARIUS end datetime.</a></td>
+            </tr>
+          </tbody>
+        </table>
+
+	<div style="width: 56em;">
+        <div>
+          <b>GetDVTable</b> Response:
+        </div>
+        <p>
+          The GetDVTable response, when successful, returns
+an <a href="http://pubs.usgs.gov/of/2003/ofr03123/6.4rdb_format.pdf">RDB</a>
+file (MIME content type &ldquo;text/plain&rdquo;). The RDB file begins
+with a sequence of RDB comment lines, forming a &ldquo;header
+block&rdquo;, which contain additional data relevant to all daily
+values in the subsequent table.
+        </p>
+
+	<p>If unsuccessful, aq2rdb will attempt to respond with an
+	error message included in a single RDB comment line.</p>
+
+	<p>An example header block, is:</p>
+
+	<p style="padding-left: 2em;">
+	<code>
+# //UNITED STATES GEOLOGICAL SURVEY       http://water.usgs.gov/<br/>
+# //NATIONAL WATER INFORMATION SYSTEM     http://water.usgs.gov/data.html<br/>
+# //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS<br/>
+# //RETRIEVED: 2015-11-16 20:54:43Z<br/>
+# //FILE TYPE=&quot;NWIS-I DAILY-VALUES&quot; EDITABLE=NO<br/>
+# //STATION AGENCY=&quot;USGS&quot; NUMBER=&quot;01010000       &quot; TIME_ZONE=&quot;EST&quot; DST_FLAG=Y<br/>
+# //STATION NAME=&quot;St. John River at Ninemile Bridge, Maine&quot;<br/>
+# //RANGE START=&quot;19960101&quot; END=&quot;19970101&quot;<br/>
+	</code>
+	</p>
+	<p>The <code>RETRIEVED</code> field contains the time that the
+	aq2rdb query was made. Please note that unlike nwts2rdb,
+	the <code>RETRIEVED</code> time is always expressed in UTC
+	(&ldquo;Z&rdquo; is the U.S. military time zone abbreviation
+	for the &plusmn;00:00 time offset), as it would not be accurate for
+	aq2rdb to attempt to detect the local time zone of the Web
+	service client requesting the daily values file.</p>
+
+	<p>The remaining header block fields are a subset of those
+	output by the
+	NWIS <a href="http://nwis.usgs.gov/nwisdocs5_1/adaps/5.command_line.pdf#53">nwts2rdb
+	program</a>.</p>
+
+	<p>The columns included in the RDB table are:</p>
+	</div>
+        <table class="params"
+               summary="GetDVTable Web service, response fields.">
+
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Parameter</th>
+              <th>Data Type</th>
+              <th>Required</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr>
+              <td>DATE</td>
+              <td>RDB column</td>
+              <td>8D</td>
+              <td>Yes</td>
+              <td>Daily value date.</td>
+            </tr>
+            
+            <tr>
+              <td>TIME</td>
+              <td>RDB column</td>
+              <td>6S</td>
+              <td>No</td>
+              <td>Daily value time.</td>
+            </tr>
+
+            <tr>
+              <td>VALUE</td>
+              <td>RDB column</td>
+              <td>16N</td>
+              <td>No</td>
+              <td>Daily value.</td>
+            </tr>
+
+            <tr>
+              <td>REMARK</td>
+              <td>RDB column</td>
+              <td>1S</td>
+              <td>No</td>
+              <td>Remark code.</td>
+            </tr>
+
+            <tr>
+              <td>FLAGS</td>
+              <td>RDB column</td>
+              <td>32S</td>
+              <td>No</td>
+              <td>Flags.</td>
+            </tr>
+
+            <tr>
+              <td>TYPE</td>
+              <td>RDB column</td>
+              <td>1S</td>
+              <td>No</td>
+              <td>Type.</td>
+            </tr>
+
+            <tr>
+              <td>QA</td>
+              <td>RDB column</td>
+              <td>1S</td>
+              <td>No</td>
+              <td>QA.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
