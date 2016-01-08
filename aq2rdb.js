@@ -1714,6 +1714,24 @@ httpdispatcher.onGet(
        @callback
     */
     function (request, response) {
+        async.waterfall([
+            /**
+               @description Check for documentation request.
+               @callback
+            */
+            function (callback) {
+                if (url === '/' + PACKAGE_NAME) {
+                    return;
+		}
+                callback(null);
+            },
+            /**
+               @description
+               @callback
+            */
+            function (callback) {
+	    }
+	]); // async.waterfall
     }
 ); // aq2rdb
 
