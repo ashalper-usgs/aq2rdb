@@ -423,6 +423,7 @@
   </packagedElement>
   <packagedElement xmi:type="uml:ExecutionEnvironment" xmi:id="_JR7xILSgEeW_hbWU8NPbcA" name=".usgs.gov">
     <nestedClassifier xmi:type="uml:Node" xmi:id="_Yz8_cLSeEeW_hbWU8NPbcA" name="HTTP client"/>
+    <nestedClassifier xmi:type="uml:Node" xmi:id="_5LbgILYqEeWSb-BnuzDP_Q" name="USGS Site Web Service"/>
   </packagedElement>
   <packagedElement xmi:type="uml:ExecutionEnvironment" xmi:id="_cRxNULSiEeW_hbWU8NPbcA" name="AWS">
     <nestedClassifier xmi:type="uml:ExecutionEnvironment" xmi:id="_NRYpQLSgEeW_hbWU8NPbcA" name="EC2?">
@@ -433,10 +434,25 @@
         <ownedAttribute xmi:type="uml:Property" xmi:id="_EQLZYLSeEeW_hbWU8NPbcA" name="aquarius" type="_AsB9MLSeEeW_hbWU8NPbcA" association="_EQIWELSeEeW_hbWU8NPbcA"/>
         <ownedAttribute xmi:type="uml:Property" xmi:id="_Iv67IbSeEeW_hbWU8NPbcA" name="aquarius-token" type="_8ZslULSdEeW_hbWU8NPbcA" association="_Iv6UELSeEeW_hbWU8NPbcA"/>
         <ownedAttribute xmi:type="uml:Property" xmi:id="_odI607SeEeW_hbWU8NPbcA" name="http client" type="_Yz8_cLSeEeW_hbWU8NPbcA" association="_odI60LSeEeW_hbWU8NPbcA"/>
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_G2YpsLYqEeWSb-BnuzDP_Q" name="nwis-ra" type="_9Ypj8LYpEeWSb-BnuzDP_Q" association="_G2WNcLYqEeWSb-BnuzDP_Q"/>
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_KQqiwrYrEeWSb-BnuzDP_Q" name="usgs site web service" type="_5LbgILYqEeWSb-BnuzDP_Q" association="_KQp7sLYrEeWSb-BnuzDP_Q"/>
       </nestedClassifier>
       <nestedClassifier xmi:type="uml:Node" xmi:id="_8ZslULSdEeW_hbWU8NPbcA" name="aquarius-token">
         <ownedAttribute xmi:type="uml:Property" xmi:id="_KN_bo7SeEeW_hbWU8NPbcA" name="aquarius" type="_AsB9MLSeEeW_hbWU8NPbcA" association="_KN_boLSeEeW_hbWU8NPbcA"/>
       </nestedClassifier>
     </nestedClassifier>
+    <nestedClassifier xmi:type="uml:Node" xmi:id="_9Ypj8LYpEeWSb-BnuzDP_Q" name="NWIS-RA"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:CommunicationPath" xmi:id="_G2WNcLYqEeWSb-BnuzDP_Q" memberEnd="_G2YpsLYqEeWSb-BnuzDP_Q _G2YpsbYqEeWSb-BnuzDP_Q">
+    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_G2YCoLYqEeWSb-BnuzDP_Q" source="org.eclipse.papyrus">
+      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_G2YCobYqEeWSb-BnuzDP_Q" key="nature" value="UML_Nature"/>
+    </eAnnotations>
+    <ownedEnd xmi:type="uml:Property" xmi:id="_G2YpsbYqEeWSb-BnuzDP_Q" name="aq2rdb" type="_q77G4LSdEeW_hbWU8NPbcA" association="_G2WNcLYqEeWSb-BnuzDP_Q"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:CommunicationPath" xmi:id="_KQp7sLYrEeWSb-BnuzDP_Q" memberEnd="_KQqiwrYrEeWSb-BnuzDP_Q _KQrJ0LYrEeWSb-BnuzDP_Q">
+    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_KQqiwLYrEeWSb-BnuzDP_Q" source="org.eclipse.papyrus">
+      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_KQqiwbYrEeWSb-BnuzDP_Q" key="nature" value="UML_Nature"/>
+    </eAnnotations>
+    <ownedEnd xmi:type="uml:Property" xmi:id="_KQrJ0LYrEeWSb-BnuzDP_Q" name="aq2rdb" type="_q77G4LSdEeW_hbWU8NPbcA" association="_KQp7sLYrEeWSb-BnuzDP_Q"/>
   </packagedElement>
 </uml:Model>
