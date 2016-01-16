@@ -7,6 +7,31 @@
 #            Scott D. Bartholoma <sbarthol@usgs.gov>
 #            Jim Cornwall <jcorn@usgs.gov>
 #
+
+rdb_out_goto ()
+{
+    case $1 in
+        997)
+            # close files and exit
+            s_mclos
+            s_sclose $funit 'keep'
+            disconnect
+            rdb_out_goto 999
+            ;;
+        998)
+            # bad return (do a generic error message)
+            irc=3
+            error_handler $irc 'rdb_out' 'error' \
+                'doing something' 'something bad happened'
+            ;;
+        999)
+            # Good return
+            nwf_rdb_out=$irc
+            exit 0
+            ;;
+    esac
+} # rdb_out_goto
+
 rdb_out ()
 {
     ctlpath=$1; shift;
@@ -240,15 +265,15 @@ rdb_out ()
     # TODO: this is the former database connection subroutine. Check
     # if aq2rdb service is alive instead?
 
-#     IF (.NOT. nw_write_log_entry(1)) THEN
-#        CALL nw_write_error(6)
-#        irc = nw_get_error_number()
-#        GOTO 999
-#     END IF
+    #     IF (.NOT. nw_write_log_entry(1)) THEN
+    #        CALL nw_write_error(6)
+    #        irc = nw_get_error_number()
+    #        GOTO 999
+    #     END IF
 
     # set control file path
     if [ ${#ctlpath} -gt 128 ]; then
-        goto 998                # TODO
+        rdb_out_goto 998
     fi
     ctlfile="$ctlpath"
 
@@ -291,7 +316,7 @@ rdb_out ()
         irc=$?
 #5
         if [ $irc -ne 0 ]; then
-            goto 999
+            rdb_out_goto 999
         fi
         s_date "$cdate" "$ctime"
 #        WRITE (0,2010) cdate, ctime, ctlfile(1:nwf_strlen(ctlfile))
@@ -317,7 +342,7 @@ rdb_out ()
                 fi
                 irc=0
             fi
-            goto 999
+            rdb_out_goto 999
         fi
 
         # check data type
@@ -384,7 +409,7 @@ rdb_out ()
                         rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" \
                             "$ddid" "$stat" "$bctdtm" "$ectdtm" "$nline"
                         irc=$?
-                        goto 998
+                        rdb_out_goto 998
                     fi
                     rdbfile="$outpath"
                     s_file ' ' "$rdbfile" ' ' 'unknown' 'write' \
@@ -394,7 +419,7 @@ rdb_out ()
                         rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" \
                            "$ddid" "$stat" "$bctdtm" "$ectdtm" "$nline"
                         irc=$?
-                        goto 999
+                        rdb_out_goto 999
                     fi
                 fi
             fi
@@ -468,7 +493,7 @@ rdb_out ()
                 irc=rdb_cfil $three "$ctlfile" "$rtagny" "$sid" "$ddid" \
                     "$stat" "$bctdtm" "$ectdtm" $nline
                 s_mclos
-                goto 999
+                rdb_out_goto 999
             fi
             s_date "$cdate" "$ctime"
 #           WRITE (0,2070) cdate, ctime, rdbfile(1:rdblen)
@@ -493,8 +518,8 @@ rdb_out ()
             fi
         else
             # right justify DDID to 4 characters
-            if [ datatyp .NE. 'MS' .AND. datatyp .NE. 'PK' .AND.
-                    datatyp .NE. 'WL' .AND. datatyp .NE. 'QW' ]; then
+            if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
+                 "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
               s_jstrrt "$ddid" 4
             fi
         fi
@@ -768,569 +793,547 @@ rdb_out ()
 
         if [ "$datatyp" = 'DV' ]; then # convert stat to 5 characters
             if [ "$instat" = ' ' ]; then
-		needstrt=true
-		sopt=${sopt:0:7}1${sopt:8}
+                needstrt=true
+                sopt=${sopt:0:7}1${sopt:8}
             else
-		if [ ${#instat} -gt 5 ]; then
+                if [ ${#instat} -gt 5 ]; then
                     stat=${instat:0:5}
-		else
+                else
                     stat="$instat"
-		fi
-		s_jstrrt "$stat" 5
+                fi
+                s_jstrrt "$stat" 5
 #              DO I = 1,5
 #                 IF (stat(i:i) .EQ. ' ') stat(i:i) = '0'
 #              END DO
-	    fi
-	fi
+            fi
+        fi
 
         if [ "$datatyp" = 'DV' -o "$datatyp" = 'DC' -o
-	     "$datatyp" = 'SV' -o "$datatyp" = 'PK' ]; then
+             "$datatyp" = 'SV' -o "$datatyp" = 'PK' ]; then
 
-	    # convert dates to 8 characters
+            # convert dates to 8 characters
             if [ "$begdat" = ' ' -o
-		 "$enddat" = ' ' ]; then
-		needstrt=true
-		if [ $wyflag ]; then
-		    sopt=${sopt:0:8}4${sopt:9}
-		else
-		    sopt=${sopt:0:9}3${sopt:10}
-		fi
+                 "$enddat" = ' ' ]; then
+                needstrt=true
+                if [ $wyflag ]; then
+                    sopt=${sopt:0:8}4${sopt:9}
+                else
+                    sopt=${sopt:0:9}3${sopt:10}
+                fi
             else
-		rdb_fill_beg_date "$wyflag" "$begdat" "$begdate"
-		rdb_fill_end_date "$wyflag" "$enddat" "$enddate"
-	    fi
+                rdb_fill_beg_date "$wyflag" "$begdat" "$begdate"
+                rdb_fill_end_date "$wyflag" "$enddat" "$enddate"
+            fi
 
-	fi
+        fi
 
         if [ "$datatyp" = 'UV' ]; then
 
             if [ ! $hydra ]; then # get UV type
-		uvtyp=${instat:0:1}
-		if [ "$uvtyp" = 'm' ]; then uvtyp='M'; fi
-		if [ "$uvtyp" = 'n' ]; then uvtyp='N'; fi
-		if [ "$uvtyp" = 'e' ]; then uvtyp='E'; fi
-		if [ "$uvtyp" = 'r' ]; then uvtyp='R'; fi
-		if [ "$uvtyp" = 's' ]; then uvtyp='S'; fi
-		if [ "$uvtyp" = 'c' ]; then uvtyp='C'; fi
-		if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a 
-		     "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a 
-		     "$uvtyp" != 'S' -a "$uvtyp" != 'C' ]; then
-		    uvtyp_prompted=true
+                uvtyp=${instat:0:1}
+                if [ "$uvtyp" = 'm' ]; then uvtyp='M'; fi
+                if [ "$uvtyp" = 'n' ]; then uvtyp='N'; fi
+                if [ "$uvtyp" = 'e' ]; then uvtyp='E'; fi
+                if [ "$uvtyp" = 'r' ]; then uvtyp='R'; fi
+                if [ "$uvtyp" = 's' ]; then uvtyp='S'; fi
+                if [ "$uvtyp" = 'c' ]; then uvtyp='C'; fi
+                if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a 
+                     "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a 
+                     "$uvtyp" != 'S' -a "$uvtyp" != 'C' ]; then
+                    uvtyp_prompted=true
 #50                
-		    uvtyp=' '
-		    s_qryc \
-			'Unit values type (M, N, E, R, S, or C): ' \
-			' ' 0 0 1 1 uvtyp *50 # <- TODO: translate F77
-		    if [ "$uvtyp" = 'm' ]; then uvtyp='M'; fi
-		    if [ "$uvtyp" = 'n']; then uvtyp='N'; fi
-		    if [ "$uvtyp" = 'e']; then uvtyp='E'; fi
-		    if [ "$uvtyp" = 'r']; then uvtyp='R'; fi
-		    if [ "$uvtyp" = 's']; then uvtyp='S'; fi
-		    if [ "$uvtyp" = 'c']; then uvtyp='C'; fi
-		    if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a
-			    "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a
-			    "$uvtyp" != 'S' -a "$uvtyp" != 'C' ]; then
-			s_bada \
-			    'Please answer "M", "N", "E", "R", "S", or "C".' \
-			    *50		# <- TODO: translate F77
-		    fi
-		fi
-	    fi
+                    uvtyp=' '
+                    s_qryc \
+                        'Unit values type (M, N, E, R, S, or C): ' \
+                        ' ' 0 0 1 1 uvtyp *50 # <- TODO: translate F77
+                    if [ "$uvtyp" = 'm' ]; then uvtyp='M'; fi
+                    if [ "$uvtyp" = 'n']; then uvtyp='N'; fi
+                    if [ "$uvtyp" = 'e']; then uvtyp='E'; fi
+                    if [ "$uvtyp" = 'r']; then uvtyp='R'; fi
+                    if [ "$uvtyp" = 's']; then uvtyp='S'; fi
+                    if [ "$uvtyp" = 'c']; then uvtyp='C'; fi
+                    if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a
+                            "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a
+                            "$uvtyp" != 'S' -a "$uvtyp" != 'C' ]; then
+                        s_bada \
+                            'Please answer "M", "N", "E", "R", "S", or "C".' \
+                            *50         # <- TODO: translate F77
+                    fi
+                fi
+            fi
 
-	    # convert date/times to 14 characters
-	    if [ "$begdat" = ' ' -o
-		 "$enddat" = ' ' ]; then
-		needstrt=true
-		if [ $wyflag ]; then
-		    sopt=${sopt:0:8}4${sopt:9}
-		else
-		    sopt=${sopt:0:9}3${sopt:10}
-		fi
+            # convert date/times to 14 characters
+            if [ "$begdat" = ' ' -o
+                 "$enddat" = ' ' ]; then
+                needstrt=true
+                if [ $wyflag ]; then
+                    sopt=${sopt:0:8}4${sopt:9}
+                else
+                    sopt=${sopt:0:9}3${sopt:10}
+                fi
             else
-		rdb_fill_beg_dtm "$wyflag" "$begdat" "$begdtm"
-		rdb_fill_end_dtm "$wyflag" "$enddat" "$enddtm"
-	    fi
+                rdb_fill_beg_dtm "$wyflag" "$begdat" "$begdtm"
+                rdb_fill_end_dtm "$wyflag" "$enddat" "$enddtm"
+            fi
 
-	fi
+        fi
 
-#        If hydra mode for UV data, set time zone code that in effect
+#        If Hydra mode for UV data, set time zone code that in effect
 #        for the first date for this station
 
         if [ $hydra -a "$datatyp" != 'UV' ]; then
             if [ ! eval key_get_zone_dst "$rtdbnum" "$rtagny" "$sid"
-			"$tz_cd" "$local_time_fg" ]; then
-		loc_tz_cd='UTC'	# default to UTC
+                        "$tz_cd" "$local_time_fg" ]; then
+                loc_tz_cd='UTC' # default to UTC
             else
-		if [ ! eval get_dflt_tzcd "$tz_cd" "local_time_fg"
-			${begdtm:0:8} "$loc_tz_cd" ]; then
-		    loc_tz_cd='UTC'       # default to UTC
-		fi
+                if [ ! eval get_dflt_tzcd "$tz_cd" "local_time_fg"
+                        ${begdtm:0:8} "$loc_tz_cd" ]; then
+                    loc_tz_cd='UTC'       # default to UTC
+                fi
             fi
-	fi
+        fi
 
-#        if [ datatyp .EQ. 'MS') THEN       # get MS type
-#           mstyp=instat(1:1)
-#           CALL nwc_upcase (mstyp)
+        if [ "$datatyp" = 'MS' ]; then # get MS type
+            mstyp=${instat:0:1}
+            mstyp=${$mstyp^^}
 
-#           if [ mstyp .NE. 'C' .AND. mstyp .NE. 'M' .AND. 
-#    *          mstyp .NE. 'D' .AND. mstyp .NE. 'G' .AND.
-#    *          mstyp .NE. '1' .AND. mstyp .NE. '2' .AND. 
-#    *          mstyp .NE. '3') THEN
-#45             mstyp=' '
+            if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a 
+                 "$mstyp" != 'D' -a "$mstyp" != 'G' -a
+                 "$mstyp" != '1' -a "$mstyp" != '2' -a 
+                 "$mstyp" != '3' ]; then
+                mstyp=' '
+            fi
+#45
+            echo 'Measurement file retrieval type -'
+            echo '  C - Crest Stage Gage measurements,'
+            echo '  M - Discharge Measurements,'
+            echo '  D - Detailed Discharge Measurements,'
+            echo '  G - Gage Inspections,'
+            echo '  1 - Pseudo UV, measurement discharge,'
+            echo '  2 - Pseudo UV, measurement stage, or'
+            echo '  3 - Pseudo UV, mean index velocity'
 
-#              PRINT 1234
-#1234           FORMAT (/,'Measurement file retrieval type -',/,
-#    *              '  C - Crest Stage Gage measurements,',/,
-#    *              '  M - Discharge Measurements,',/,
-#    *              '  D - Detailed Discharge Measurements,',/,
-#    *              '  G - Gage Inspections,',/,
-#    *              '  1 - Pseudo UV, measurement discharge,',/,
-#    *              '  2 - Pseudo UV, measurement stage, or',/,
-#    *              '  3 - Pseudo UV, mean index velocity')
+            s_qryc '|Enter C, M, D, G, or 1 to 3: ' \
+                ' ' 0 0 1 1 "$mstyp" *45 # <- TODO translate F77 GOTO?
+            mstyp=${$mstyp^^}
+            if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a 
+                 "$mstyp" != 'D' -a "$mstyp" != 'G' -a 
+                 "$mstyp" != '1' -a "$mstyp" != '2' -a 
+                 "$mstyp" != '3' ]; then s_bada \
+                    'Please answer "C", "M", "G", or "1" to "3".' \
+                    *45; fi
+        fi
 
-#              CALL s_qryc ('|Enter C, M, D, G, or 1 to 3: ',
-#    *                      ' ', 0, 0, 1, 1, mstyp, *45)
-#              CALL nwc_upcase (mstyp)
-#              if [ mstyp .NE. 'C' .AND. mstyp .NE. 'M' .AND. 
-#    *             mstyp .NE. 'D' .AND. mstyp .NE. 'G' .AND. 
-#    *             mstyp .NE. '1' .AND. mstyp .NE. '2' .AND. 
-#    *             mstyp .NE. '3')      CALL s_bada (
-#    *                 'Please answer "C", "M", "G", or "1" to "3".',
-#    *                 *45)
-#           fi
+        if [ "$begdat" = ' ' -o "$enddat" = ' ' ]; then
+            needstrt=true
+            if [ $wyflag ]; then
+                sopt="${sopt:0:8}4${sopt:9}"
+            else
+                sopt="${sopt:0:9}3${sopt:10}"
+            fi
 
-#           if [ begdat(1:len(begdat)) .EQ. ' ' .OR.
-#    *          enddat(1:len(enddat)) .EQ. ' ') THEN
-#              needstrt=.true.
-#              if [ wyflag) THEN
-#                 sopt(9:9)='4'
-#              ELSE
-#                 sopt(10:10)='3'
-#              fi
+        else
 
-#           ELSE
+            if [ "$mstyp" >= '1' -a "$mstyp" <= '3' ]; then
+                # doing pseudo-uv, convert date/times to 14 characters
+                rdb_fill_beg_dtm "$wyflag" "$begdat" "$begdtm"
+                rdb_fill_end_dtm "$wyflag" "$enddat" "$enddtm"
+              else
+                # convert dates to 8 characters
+                rdb_fill_beg_date "$wyflag" "$begdat" "$begdate"
+                rdb_fill_end_date "$wyflag" "$enddat" "$enddate"
+            fi
+        fi
+    fi
 
-#              if [ mstyp .GE. '1' .AND. mstyp .LE. '3') THEN
-#                 #  doing pseudo-uv, convert date/times to 14 characters
-#                 CALL nw_rdb_fill_beg_dtm (wyflag, begdat, begdtm)
-#                 CALL nw_rdb_fill_end_dtm (wyflag, enddat, enddtm)
-#              ELSE
-#                 #  convert dates to 8 characters
-#                 CALL nw_rdb_fill_beg_date (wyflag, begdat, begdate)
-#                 CALL nw_rdb_fill_end_date (wyflag, enddat, enddate)
-#              fi
-#           fi
-#        fi
+    if [ "$datatyp" = 'VT' ]; then # get VT type
+        vttyp="${instat:0:1}"
+        vttyp=${$vttyp^^}
 
-#        if [ datatyp .EQ. 'VT') THEN     # get VT type
-#           vttyp=instat(1:1)
-#           CALL nwc_upcase (vttyp)
+        if [ "$vttyp" != 'P' -a "$vttyp" != 'R' -a
+             "$vttyp" != 'A' -a "$vttyp" != 'M' -a
+             "$vttyp" != 'F' ]; then
 
-#           if [ vttyp .NE. 'P' .AND. vttyp .NE. 'R' .AND.
-#    *          vttyp .NE. 'A' .AND. vttyp .NE. 'M' .AND.
-#    *          vttyp .NE. 'F') THEN
+            vttyp='A'
 
-#55             vttyp='A'
+            echo 'SiteVisit Pseudo UV readings retrieval type -'
+            echo '  P - Retrieve sensor insp. primary reference readings'
+            echo '  R - Retrieve sensor insp. primary recorder readings'
+            echo '  A - Retrieve sensor insp. all readings'
+            echo '  M - Retrieve QW monitor readings'
+            echo '  F - Retrieve QW field meter readings'
 
-#              PRINT 1235
-#1235           FORMAT (/,'SiteVisit Pseudo UV readings ',
-#    *              'retrieval type -',/,
-#    *              '  P - Retrieve sensor insp. ',
-#    *              'primary reference readings',/,
-#    *              '  R - Retrieve sensor insp. ',
-#    *              'primary recorder readings',/,
-#    *              '  A - Retrieve sensor insp. ',
-#    *              'all readings',/,
-#    *              '  M - Retrieve QW monitor readings',/,
-#    *              '  F - Retrieve QW field meter readings')
+            s_qryc '|Enter P, R, A, M, or F (<CR> = A):' \
+                ' ' 0 1 1 1 "$vttyp" *55 # <- TODO: translate F77
+            vttyp=${$vttyp^^}
+            if [ "$vttyp" != 'P' -a "$vttyp" != 'R' -a
+                    "$vttyp" != 'A' -a "$vttyp" != 'M' -a
+                    "$vttyp" != 'F' ]; then
+                s_bada \
+                    'Please answer "P", "R", "A", "M" or "F".' \
+                    *55         # <- TODO: translate F77
+            fi
 
-#              CALL s_qryc ('|Enter P, R, A, M, or F (<CR> = A):',
-#    *                      ' ', 0, 1, 1, 1, vttyp, *55)
-#              CALL nwc_upcase (vttyp)
-#              if [ vttyp .NE. 'P' .AND. vttyp .NE. 'R' .AND.
-#    *             vttyp .NE. 'A' .AND. vttyp .NE. 'M' .AND.
-#    *             vttyp .NE. 'F')    CALL s_bada (
-#    *                     'Please answer "P", "R", "A", "M" or "F".',
-#    *                     *55)
+        fi
 
-#           fi
+        #  See if we have the date range
+        if [ "$begdat" = ' ' -o "$enddat" = ' ' ]; then
+            needstrt=true
+            if [ $wyflag ]; then
+                sopt="${sopt:0:8}4${sopt:9}"
+            else
+                sopt="${sopt:0:9}3${sopt:10}"
+            fi
+        fi
 
-#           #  See if we have the date range
-#           if [ begdat(1:len(begdat)) .EQ. ' ' .OR.
-#    *          enddat(1:len(enddat)) .EQ. ' ') THEN
-#              needstrt=.TRUE.
-#              if [ wyflag) THEN
-#                 sopt(9:9) = '4'
-#              ELSE
-#                 sopt(10:10) = '3'
-#              fi
-#           fi
+        #  Doing pseudo-uv, convert date/times to 14 characters
+        rdb_fill_beg_dtm "$wyflag" "$begdat" "$begdtm"
+        rdb_fill_end_dtm "$wyflag" "$enddat" "$enddtm"
 
-#           #  Doing pseudo-uv, convert date/times to 14 characters
-#           CALL nw_rdb_fill_beg_dtm (wyflag, begdat, begdtm)
-#           CALL nw_rdb_fill_end_dtm (wyflag, enddat, enddtm)
+    fi
 
-#        fi
+    if [ "$datatyp" = 'PK' ]; then # get PK type
 
-#        if [ datatyp .EQ. 'PK') THEN       # get pk type
+        pktyp="${instat:0:1}"
+        if [ "$pktyp" = 'f' ]; then pktyp='F'; fi
+        if [ "$pktyp" = 'p' ]; then pktyp='P'; fi
+        if [ "$pktyp" = 'b' ]; then pktyp='B'; fi
 
-#           pktyp=instat(1:1)
-#           if [ pktyp .EQ. 'f') pktyp = 'F'
-#           if [ pktyp .EQ. 'p') pktyp = 'P'
-#           if [ pktyp .EQ. 'b') pktyp = 'B'
+        if [ "$pktyp" != 'F' -a "$pktyp" != 'P' -a "$pktyp" != 'B' ]; then
+#46
+            pktyp=' '
+            s_qryc 'Peak flow file retrieval type -'\
+            '|Full peaks only (F),'\
+            '|Partial peaks only (P),'\
+            '|Both Full and Partial peaks (B) - '\
+            '|Please enter F, P, or B: ' ' ' 0 0 1 1\
+            "$pktyp" *46 # <- TODO: translate F77 loop
+            if [ "$pktyp" = 'f' ]; then pktyp='F'; fi
+            if [ "$pktyp" = 'p' ]; then pktyp='P'; fi
+            if [ "$pktyp" = 'b' ]; then pktyp='B'; fi
+            if [ "$pktyp" != 'F' -a "$pktyp" != 'P' -a "$pktyp" != 'B' ]; then
+                s_bada \
+                    'Please answer "F", "P",  or "B".' *46 # <- TODO: tranlate
+            fi
 
-#           if [ pktyp .NE. 'F' .AND. pktyp .NE. 'P' .AND. 
-#    *          pktyp .NE. 'B') THEN
-#46             pktyp=' '
-#              CALL s_qryc ('Peak flow file retrieval type -' //
-#    *              '|Full peaks only (F),' //
-#    *              '|Partial peaks only (P),' //
-#    *              '|Both Full and Partial peaks (B) - ' //
-#    *              '|Please enter F, P, or B: ',' ',0,0,1,1,
-#    *              pktyp, *46)
-#              if [ pktyp .EQ. 'f') pktyp='F'
-#              if [ pktyp .EQ. 'p') pktyp='P'
-#              if [ pktyp .EQ. 'b') pktyp='B'
-#              if [ pktyp .NE. 'F' .AND. pktyp .NE. 'P' .AND. 
-#    *             pktyp .NE. 'B')    CALL s_bada (
-#    *                     'Please answer "F", "P",  or "B".', *46)
-#           fi
+    fi
 
-#        fi
+        if [ "$datatyp" = 'WL' ]; then
+            wltyp="${instat:0:1}"
+            if [ ! \( "$wltyp" >= '1' -a "$wltyp" <= '3' \) ]; then
+                wltyp=' '
+            fi
+            #  convert date/times to 14 characters
+            if [ "$begdat" = ' ' -o "$enddat" = ' ' ]; then
+                needstrt=true
+                sopt="${sopt:0:4}1${sopt:5}"
+                if [ $wyflag ]; then
+                    sopt="${sopt:0:8}4${sopt:9}"
+                else
+                    sopt="${sopt:0:9}3${sopt:10}"
+                fi
+            else
+                rdb_fill_beg_dtm "$wyflag" "$begdat" "$begdtm"
+                rdb_fill_end_dtm "$wyflag" "$enddat" "$enddtm"
+            fi
+        fi
 
-#        if [ datatyp .EQ. 'WL') THEN
-#          wltyp=instat(1:1)
-#           if [ .NOT. (wltyp .GE. '1' .AND. wltyp .LE. '3')) wltyp=' '
-#           #  convert date/times to 14 characters
-#           if [ begdat(1:len(begdat)) .EQ. ' ' .OR.
-#    *          enddat(1:len(enddat)) .EQ. ' ') THEN
-#              needstrt=.true.
-#              sopt(5:5)='1'
-#              if [ wyflag) THEN
-#                 sopt(9:9) = '4'
-#              ELSE
-#                 sopt(10:10) = '3'
-#              fi
-#           ELSE
-#              CALL nw_rdb_fill_beg_dtm (wyflag, begdat, begdtm)
-#              CALL nw_rdb_fill_end_dtm (wyflag, enddat, enddtm)
-#           fi
-#        fi
+        if [ "$datatyp" = 'QW' ]; then
+            qwparm=' '
+           if [ ${#inddid} -ge 2 ]; then
+               qwparm="${inddid:1}"
+           fi
+           qwmeth="$instat"
+           # convert date/times to 14 characters
+           if [ "$begdat" = ' ' -o "$enddat" = ' ' ]; then
+               needstrt=true
+               sopt="${sopt:0:4}1${sopt:5}"
+               if [ $wyflag ]; then
+                   sopt="${sopt:0:8}4${sopt:9}"
+               else
+                   sopt="${sopt:0:9}3${sopt:10}"
+               fi
+           else
+               rdb_fill_beg_dtm "$wyflag" "$begdat" "$begdtm"
+               rdb_fill_end_dtm "$wyflag" "$enddat" "$enddtm"
+           fi
+        fi
 
-#        IF (datatyp .EQ. 'QW') THEN
-#           qwparm=' '
-#           IF (len(inddid) .GE. 2) THEN
-#              qwparm=inddid(2:len(inddid))
-#           fi
-#           qwmeth=instat(1:len(instat))
-#           #  convert date/times to 14 characters
-#           IF (begdat(1:len(begdat)) .EQ. ' ' .OR.
-#    *          enddat(1:len(enddat)) .EQ. ' ') THEN
-#              needstrt=.true.
-#              sopt(5:5) = '1'
-#              IF (wyflag) THEN
-#                 sopt(9:9) = '4'
-#              ELSE
-#                 sopt(10:10) = '3'
-#              fi
-#           ELSE
-#              CALL nw_rdb_fill_beg_dtm (wyflag, begdat, begdtm)
-#              CALL nw_rdb_fill_end_dtm (wyflag, enddat, enddtm)
-#           fi
-#        fi
-
-#        IF (NEEDSTRT) THEN                      # call s_strt if needed
-#           CALL S_MDUS (NW_OPRW, IRC, *998)     # get USER info 
-#           IF (IRC .NE. 0) THEN
-#              WRITE (0,2110)
-#2110           FORMAT (/,'Unable to open ADAPS User file - Aborting.',/)
-#              GO TO 998
-#           fi
-#           CALL S_LGID                          # get user info 
-#           CALL S_MDUS (NW_READ,IRC,*998)
-#           IF (IRC .EQ. 0) THEN                 # save the user info
+        if [ $needstrt ]; then  # call s_strt if needed
+            # TODO: translate F77
+            s_mdus nw_oprw, irc, *998 # get USER info 
+            if [ $irc -ne 0 ]; then
+                echo 'Unable to open ADAPS User file - Aborting.'
+              rdb_out_goto 998          # <- TODO
+            fi
+            s_lgid          # get user info 
+            s_mdus nw_read,irc *998 # <- TODO: translate F77
+            if [ $irc -eq 0 ]; then # save the user info
 #              DO I  =  1, 91
 #                 HOLDBUFF(I)  =  USBUFF(I)
 #              END DO
 
-#              IF (SOPT(5:5) .EQ. '1' .OR. SOPT(5:5) .EQ. '2') THEN
-#                 AGENCY = RTAGNY
-#                 IF (INSTNID(1:LEN(INSTNID)) .NE. ' ') STNID = SID
-#              fi
-#              CALL S_MDUS (NW_UPDT, IRC, *998)  # save modified user info
-#           fi
+                if [ "${sopt:4:1}" = '1' -o "${sopt:4:1}" = '2' ]; then
+                    agency="$rtagny"
+                    if [ "$instnid" != ' ' ]; then stnid="$sid"; fi
+                fi
+                # TODO: translate F77
+                s_mdus nw_updt irc *998  # save modified user info
+            fi
 
-#           # call start routine
-#           prgid='NWTS2RDB'
-#           IF (titlline  .EQ. ' ') THEN
-#              prgdes='TIME-SERIES TO RDB OUTPUT'
-#           ELSE
-#              IF (nwf_strlen(titlline) .GT. 80) THEN
-#                 prgdes=titlline(1:80)
-#              ELSE
-#                 prgdes=titlline(1:nwf_strlen(titlline))
-#              fi
-#           fi
-#           rdonly=1
-#123         CALL s_strt (sopt, *998)
-#           sopt(1:1) = '2'
+            # call start routine
+            prgid='aq2rdb'
+            if [ "$titlline" = ' ' ]; then
+                prgdes='TIME-SERIES TO RDB OUTPUT'
+            else
+                if [ ${#titlline} -gt 80 ]; then
+                    prgdes="${titlline:0:80}"
+                else
+                    prgdes="$titlline"
+              fi
+            fi
+            rdonly=1
+#123
+            s_strt "$sopt" *998 # <- TODO: translate F77
+            sopt="2${sopt:1}"
 
-#           IF (sopt(5:5) .EQ. '1' .OR. sopt(5:5) .EQ. '2') THEN
-#              rtagny=agency              # get agency
-#              sid=stnid                  # get stn ID
-#              IF (sopt(5:5) .EQ. '2') THEN
-#                 ddid=usddid             # and DD number
-#              fi
-#           fi
+            if [ "${sopt:4:1}" = '1' -o "${sopt:4:1}" = '2' ]; then
+                rtagny="$agency" # get agency
+                sid="$stnid"     # get stn ID
+                if [ "${sopt:4:1}" = '2' ]; then
+                    ddid="$usddid" # and DD number
+                fi
+            fi
 
-#           IF (ddid .EQ. ' ') THEN
-#              IF (parm .NE. ' ' .AND. datatyp .NE. 'VT') THEN
-#                 CALL nwf_get_prdd (rtdbnum, rtagny, sid, parm, ddid,
-#    &                               irc)
-#                 IF (irc .NE. 0) THEN
+           if [ "$ddid" = ' ' ]; then
+               if [ "$parm" != ' ' -a "$datatyp" != 'VT' ]; then
+                 get_prdd "$rtdbnum" "$rtagny" sid "$parm" ddid irc
+                 if [ $irc -ne 0 ]; then
 #                    WRITE (0,2120) rtagny, sid, parm
-#                    GOTO 999
-#                 fi
-#              fi
-#           fi
+                     rdb_out_goto 999   # <- TODO
+                 fi
+               fi
+           fi
 
-#           #  stat code
-#           IF (sopt(8:8) .EQ. '1') stat=statcd
+           # stat code
+           if [ "${sopt:7:1}" = '1' ]; then stat="$statcd"; fi
 
-#           #  data type
-#           IF (sopt(12:12) .EQ. '2') THEN
-#              uvtyp_prompted=.TRUE.
-#              IF (usdtyp .EQ. 'D') THEN
-#                 datatyp='DV'
-#                 cflag=.FALSE.
-#              ELSE IF (usdtyp .EQ. 'V') THEN
-#                 datatyp='DV'
-#                 cflag=.TRUE.
-#              ELSE IF (usdtyp .EQ. 'U') THEN
-#                 datatyp='UV'
-#                 uvtyp='M'
-#              ELSE IF (usdtyp .EQ. 'N') THEN
-#                 datatyp='UV'
-#                 uvtyp='N'
-#              ELSE IF (usdtyp .EQ. 'E') THEN
-#                 datatyp='UV'
-#                 uvtyp='E'
-#              ELSE IF (usdtyp .EQ. 'R') THEN
-#                 datatyp='UV'
-#                 uvtyp='R'
-#              ELSE IF (usdtyp .EQ. 'S') THEN
-#                 datatyp='UV'
-#                 uvtyp='S'
-#              ELSE IF (usdtyp .EQ. 'C') THEN
-#                 datatyp='UV'
-#                 uvtyp='C'
-#              ELSE IF (usdtyp .EQ. 'M') THEN
-#                 datatyp='MS'
-#              ELSE IF (usdtyp .EQ. 'X') THEN
-#                 datatyp='VT'
-#              ELSE IF (usdtyp .EQ. 'L') THEN
-#                 datatyp='WL'
-#              ELSE IF (usdtyp .EQ. 'Q') THEN
-#                 datatyp='QW'
-#              fi
-#           fi
+           # data type
+           if [ "${sopt:11:1}" = '2' ]; then
+               uvtyp_prompted=true
+               if [ usdtyp = 'D' ]; then
+                   datatyp='DV'
+                   cflag=false
+               elif [ "$usdtyp" = 'V' ]; then
+                   datatyp='DV'
+                   cflag=true
+               elif [ "$usdtyp" = 'U' ]; then
+                   datatyp='UV'
+                   uvtyp='M'
+               elif [ "$usdtyp" = 'N' ]; then
+                   datatyp='UV'
+                   uvtyp='N'
+               elif [ "$usdtyp" = 'E' ]; then
+                   datatyp='UV'
+                   uvtyp='E'
+               elif [ "$usdtyp" = 'R' ]; then
+                   datatyp='UV'
+                   uvtyp='R'
+               elif [ "$usdtyp" = 'S' ]; then
+                   datatyp='UV'
+                   uvtyp='S'
+               elif [ "$usdtyp" = 'C' ]; then
+                   datatyp='UV'
+                   uvtyp='C'
+               elif [ "$usdtyp" = 'M' ]; then
+                   datatyp='MS'
+               elif [ "$usdtyp" = 'X' ]; then
+                   datatyp='VT'
+               elif [ "$usdtyp" = 'L' ]; then
+                   datatyp='WL'
+               elif [ "$usdtyp" = 'Q' ]; then
+                   datatyp='QW'
+               fi
+           fi
 
-#           #  date range for water years
-#           IF (sopt(9:9) .EQ. '4') THEN
-#              IF (usyear .EQ. '9999') THEN
-#                 begdtm='00000000000000'
-#                 begdate='00000000'
-#              ELSE
+           # date range for water years
+           if [ "${sopt:8:1}" = '4' ]; then
+               if [ "$usyear" = '9999' ]; then
+                   begdtm='00000000000000'
+                   begdate='00000000'
+               else
+                   # TODO:
 #                 READ (usyear,1010) iyr
 #1010              FORMAT (I4)
 #                 WRITE (usdate,2140) iyr-1,10,01
 #2140              FORMAT (I4.4,2I2.2)
-#                 begdtm=usdate // '000000'
-#                 begdate=usdate
-#              fi
-#              IF (ueyear .EQ. '9999') THEN
-#                 enddtm='99999999999999'
-#                 enddate='99999999'
-#              ELSE
+                   begdtm="$usdate"000000
+                   begdate="$usdate"
+               fi
+               if [ "$ueyear" = '9999' ]; then
+                   enddtm='99999999999999'
+                   enddate='99999999'
+               else
 #                 READ (ueyear,1010) iyr
 #                 WRITE (uedate,2140) iyr,9,30
-#                 enddtm=uedate // '235959'
-#                 enddate=uedate
-#              fi
-#           fi
+                   enddtm="$uedate"235959
+                   enddate="$uedate"
+               fi
+           fi
 
-#           #  date range
-#           IF (sopt(10:10) .EQ. '3') THEN
-#                 begdate=usdate
-#                 enddate=uedate
-#                 begdtm=usdate // '000000'
-#                 IF (uedate .EQ. '99999999') THEN
-#                    enddtm='99999999999999'
-#                 ELSE
-#                    enddtm=uedate // '235959'
-#                 fi
-#           fi
+           # date range
+           if [ "${sopt:9:1}" = '3' ]; then
+               begdate="$usdate"
+               enddate="$uedate"
+               begdtm="$usdate"000000
+               if [ "$uedate" = '99999999' ]; then
+                   enddtm='99999999999999'
+               else
+                   enddtm="$uedate"235959
+               fi
+           fi
 
 #           #  Restore contents of user buffer
-#           IF (IRC .EQ. 0) THEN
+           if [ $irc -eq 0 ]; then
 #              DO I  =  1, 91
 #                 USBUFF(I)  =  HOLDBUFF(I)
 #              END DO
-#              CALL S_MDUS (NW_UPDT, IRC, *998)
-#           ENDIF
+              s_mdus nw_updt $irc *998 # <- TODO
+           fi
 
-#        ELSE
+        else
 
-#           CALL s_lgid                 # get user id and number
-#           CALL s_ndget                # get node data
-#           CALL s_ggrp                 # get groups (for security)
-#           CALL sen_dbop (rtdbnum)     # open Midas files
-#           #  count program (counted by S_STRT above if needed)
-#           IF (.NOT. nw_db_save_program_info ('NWTS2RDB')) THEN
-#              CONTINUE       # ignore errors, we don't care if not counted
-#           fi
-#           #  get PRIMARY DD that goes with parm if parm supplied
-#           IF (parm .NE. ' ' .AND. datatyp .NE. 'VT') THEN
-#              CALL nwf_get_prdd (rtdbnum, rtagny, sid, parm, ddid, irc)
-#              IF (irc .NE. 0) THEN
+            s_lgid                # get user id and number
+            s_ndget               # get node data
+            s_ggrp                # get groups (for security)
+            sen_dbop "$rtdbnum" # open Midas files
+            #  count program (counted by S_STRT above if needed)
+            db_save_program_info 'aq2rdb'
+            # get PRIMARY DD that goes with parm if parm supplied
+            if [ "$parm" != ' ' -a "$datatyp" != 'VT' ]; then
+                get_prdd "$rtdbnum" "$rtagny" "$sid" "$parm" "$ddid" $irc
+                if [ $irc -ne 0 ]; then
 #                 WRITE (0,2120) rtagny, sid, parm
 #2120              FORMAT (/,'No PRIMARY DD for station "',A5,A15,
 #    *                 '", parm "',A5,'".  Aborting.',/)
-#                 GOTO 999
-#              fi
-#           fi
+                 rdb_out_goto 999       # <- TODO
+                fi
+            fi
 
-#        fi
+        fi
 
-#        #  retrieving measured uvs and transport_cd not supplied, prompt for it
-#        IF (uvtyp_prompted. AND. datatyp .EQ. 'UV' .AND.
-#    *        (uvtyp .EQ. 'M' .OR. uvtyp .EQ. 'N') .AND.
-#    *        transport_cd .EQ. ' ') THEN
-#           CALL nw_query_meas_uv_type (rtagny, sid, ddid, begdtm,
-#    &                                  enddtm, loc_tz_cd, transport_cd,
-#    &                                  sensor_type_id, *998)
-#           IF (transport_cd .EQ. ' ') THEN
-#              WRITE (0,2150) rtagny, sid, ddid
-#2150           FORMAT (/,'No MEASURED UV data for station "',A5,A15,
-#    *              '", DD "',A4,'".  Aborting.',/)
-#              GOTO 999
-#           fi
-#        fi
+        # retrieving measured UVs and transport_cd not supplied, prompt for it
+        if [ $uvtyp_prompted -a "$datatyp" = 'UV' -a
+             \( "$uvtyp" = 'M' -o "$uvtyp" = 'N' \) -a
+             "$transport_cd" = ' ' ]; then
+            query_meas_uv_type "$rtagny" "$sid" "$ddid" "$begdtm" \
+                "$enddtm" "$loc_tz_cd" "$transport_cd" \
+                "$sensor_type_id" *998 # <- TODO translate F77
+            if [ "$transport_cd" = ' ' ]; then
+                echo "No MEASURED UV data for station \"$rtagny$sid\"" \
+                    ", DD \"$ddid\". Aborting."
+                rdb_out_goto 999        # <- TODO
+            fi
+        fi
 
-#        #  Open output file
-#        IF (outpath .EQ. ' ') THEN
-#           funit=6
-#        ELSE
-#           IF (len(outpath) .gt. 128) GOTO 998
-#           rdbfile=outpath(1:len(outpath))
-#           CALL s_file (' ', rdbfile, ' ', 'unknown', 'write', 0, 1,
-#    *                  ipu, funit, irc, *90)
-#90          IF (irc .NE. 0) THEN
-#              WRITE (0,2130) rdbfile(1:nwf_strlen(rdbfile))
-#2130           FORMAT (/,'Error ',I5,' opening output file:',/,3X,A,/)
-#              GOTO 999
-#           fi
-#        fi
+        #  Open output file
+        if [ "$outpath" = ' ' ]; then
+            funit=6
+        else
+            if [ ${#outpath} -gt 128 ]; then rdb_out_goto 998; fi
+            rdbfile="$outpath"
+            s_file ' ' "$rdbfile" ' ' 'unknown' 'write' 0 1 \
+                $ipu $funit $irc *90 # <- TODO translate F77
+#90
+            if [ $irc -ne 0 ]; then
+                echo "Error opening output file:"
+                echo "   $rdbfile"
+                rdb_out_goto 999
+            fi
+        fi
 
-#        #  get data and output to files
+        # get data and output to files
 
-#        IF (datatyp .EQ. 'DV') THEN
+        if [ "$datatyp" = 'DV' ]; then
 
-#           CALL fdvrdbout (funit, .false., rndsup, addkey, vflag,
-#    &                      cflag, rtagny, sid, ddid, stat, 
-#    *                      begdate, enddate, irc)
+            fdvrdbout $funit false $rndsup $addkey $vflag \
+                $cflag "$rtagny" "$sid" "$ddid" "$stat" \
+                "$begdate" "$enddate" $irc
 
-#        ELSE IF (datatyp .EQ. 'UV') THEN
+        elif [ "$datatyp" = 'UV' ]; then
 
-#           IF (uvtyp .EQ. 'M') inguvtyp='meas'
-#           IF (uvtyp .EQ. 'N') inguvtyp='msar'
-#           IF (uvtyp .EQ. 'E') inguvtyp='edit'
-#           IF (uvtyp .EQ. 'R') inguvtyp='corr'
-#           IF (uvtyp .EQ. 'S') inguvtyp='shift'
-#           IF (uvtyp .EQ. 'C') inguvtyp='da'
+            if [ uvtyp = 'M' ]; then inguvtyp='meas'; fi
+            if [ uvtyp = 'N' ]; then inguvtyp='msar'; fi
+            if [ uvtyp = 'E' ]; then inguvtyp='edit'; fi
+            if [ uvtyp = 'R' ]; then inguvtyp='corr'; fi
+            if [ uvtyp = 'S' ]; then inguvtyp='shift'; fi
+            if [ uvtyp = 'C' ]; then inguvtyp='da'; fi
 
-#           CALL fuvrdbout (funit, .false., rtdbnum, rndsup, cflag,
-#    *                      vflag, addkey, rtagny, sid, ddid, inguvtyp, 
-#    *                      sensor_type_id, transport_cd, begdtm, 
-#    *                      enddtm, loc_tz_cd, irc)
+            fuvrdbout $funit false "$rtdbnum" $rndsup $cflag \
+                $vflag $addkey "$rtagny" "$sid" "$ddid" "$inguvtyp" \
+                "$sensor_type_id" "$transport_cd" "$begdtm" \
+                "$enddtm" "$loc_tz_cd" $irc
 
-#        ELSE IF (datatyp .EQ. 'MS') THEN
+        elif [ "$datatyp" = 'MS' ]; then
 
-#           IF (hydra .OR. (mstyp .GE. '1' .AND. mstyp .LE. '3')) THEN
-#              IF (hydra) mstyp = ' '
-#              CALL fmsrdbout_hydra (funit, rndsup, rtagny, sid,
-#    *                               begdtm, enddtm, loc_tz_cd, 
-#    *                               mstyp, irc)
-#           ELSE
-#              CALL fmsrdbout (funit, rtdbnum, rndsup, addkey, cflag,
-#    *                         vflag, rtagny, sid, mstyp, begdate,  
-#    *                         enddate, irc)
-#           fi
+            if [ $hydra -o \( "$mstyp" >= '1' -a "$mstyp" <= '3' \) ]; then
+                if [ $hydra ]; then mstyp=' '; fi
+                fmsrdbout_hydra $funit $rndsup "$rtagny" "$sid" \
+                    "$begdtm" "$enddtm" "$loc_tz_cd" \
+                    "$mstyp" $irc
+            else
+                fmsrdbout $funit "$rtdbnum" $rndsup $addkey $cflag \
+                    $vflag "$rtagny" "$sid" "$mstyp" "$begdate" \
+                    "$enddate" $irc
+            fi
 
-#        ELSE IF (datatyp .EQ. 'VT') THEN
+        elif [ "$datatyp" = 'VT' ]; then
 
-#           #  Get parm and loc number from DD IF not specified in arguments
-#           IF (inddid(1:1) .NE. 'P' .OR. inlocnu .EQ. ' ') THEN
-#              IF (.NOT. nw_db_key_get_dd_parm_loc (rtdbnum, rtagny, 
-#    *                                              sid, ddid, parm,
-#    *                                              loc_nu)) GOTO 997
-#           ELSE
-#              loc_nu=nwc_atoi(inlocnu)
-#           fi
+            # Get parm and loc number from DD IF not specified in arguments
+            if [ "${inddid:0:1}" != 'P' -o "$inlocnu" = ' ' ]; then
+                if [ ! db_key_get_dd_parm_loc "$rtdbnum" "$rtagny" 
+                                             "$sid" "$ddid" "$parm"
+                                             "$loc_nu" ]; then goto 997; fi
+            else
+              loc_nu=nwc_atoi "$inlocnu"
+            fi
 
-#           CALL fvtrdbout_hydra (funit, rndsup, rtagny, sid, parm,
-#    *                            loc_nu, begdtm, enddtm, loc_tz_cd,
-#    *                            vttyp, irc)
+            fvtrdbout_hydra $funit $rndsup "$rtagny" "$sid" "$parm" \
+                "$loc_nu" "$begdtm" "$enddtm" "$loc_tz_cd" \
+                "$vttyp" $irc
 
-#        ELSE IF (datatyp .EQ. 'PK') THEN
-#           CALL fpkrdbout (funit, rndsup, addkey, cflag, vflag, 
-#    &                      rtagny, sid, pktyp, begdate, enddate, irc) 
+        elif [ "$datatyp" = 'PK' ]; then
+            fpkrdbout $funit $rndsup $addkey $cflag $vflag \
+                "$rtagny" "$sid" "$pktyp" "$begdate" "$enddate" $irc
 
-#        ELSE IF (datatyp .EQ. 'DC') THEN
+        elif [ "$datatyp" = 'DC' ]; then
 
-#           CALL fdcrdbout (funit, rndsup, addkey, cflag, vflag,
-#    *                      rtagny, sid, ddid, begdate, enddate, 
-#    *                      loc_tz_cd, irc)
+            fdcrdbout $funit $rndsup $addkey $cflag $vflag \
+                "$rtagny" "$sid" "$ddid" "$begdate" "$enddate" \
+                "$loc_tz_cd" $irc
 
-#        ELSE IF (datatyp .EQ. 'SV') THEN
+        elif [ "$datatyp" = 'SV' ]; then
 
-#           CALL fsvrdbout (funit, rndsup, addkey, cflag, vflag,
-#    *                      rtagny, sid, ddid, begdate, enddate, 
-#    *                      loc_tz_cd, irc)
+            fsvrdbout $funit $rndsup $addkey $cflag $vflag \
+                "$rtagny" "$sid" "$ddid" "$begdate" "$enddate" \
+                "$loc_tz_cd" $irc
 
-#        ELSE IF (datatyp .EQ. 'WL') Then
+        elif [ "$datatyp" = 'WL' ]; then
 
-#           IF (hydra) wltyp=' '
-#           CALL fwlrdbout_hydra (funit, rndsup, rtagny, sid, begdtm,
-#    *                            enddtm, loc_tz_cd, wltyp, irc)
+            if [ $hydra ]; then wltyp=' '; fi
+            fwlrdbout_hydra $funit $rndsup "$rtagny" "$sid" "$begdtm" \
+                "$enddtm" "$loc_tz_cd" "$wltyp" $irc
 
-#        ELSE IF (datatyp .EQ. 'QW') THEN
+        elif [ "$datatyp" = 'QW' ]; then
 
-#           IF (hydra) THEN
-#              qwparm=' '
-#              qwmeth=' '
-#           fi
-#           CALL fqwrdbout_hydra (funit, rndsup, rtagny, sid, begdtm,
-#    *                            enddtm, loc_tz_cd, qwparm, qwmeth,
-#    *                            irc)
-#        fi
+            if [ $hydra ]; then
+                qwparm=' '
+                qwmeth=' '
+            fi
+            fqwrdbout_hydra $funit $rndsup "$rtagny" "$sid" "$begdtm" \
+                "$enddtm" "$loc_tz_cd" "$qwparm" "$qwmeth" \
+                $irc
+        fi
+    fi
 
-#     fi
-fi
-
-#     #  close files and exit
-#997   CALL s_mclos
-#     CALL s_sclose (funit, 'keep')
-#     CALL nw_disconnect
-#     GOTO 999
-
-#     #  bad return (do a generic error message)
-#998   irc=3
-#     CALL nw_error_handler (irc,'nwf_rdb_out','error',
-#    *     'doing something','something bad happened')
-
-#     #  Good return
-#999   nwf_rdb_out=irc
-#     RETURN
-#     END
 } # rdb_out
