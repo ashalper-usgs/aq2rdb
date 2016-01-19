@@ -321,7 +321,7 @@ rdb_out ()
         s_date "$cdate" "$ctime"
         echo "$cdate $ctime Processing control file: $ctlfile"
 
-        #  get a line from the file
+        # get a line from the file
         first=true
         rdb_cfil "$two" "$datatyp" "$rtagny" "$sid" "$ddid" "$stat" \
             "$bctdtm" "$ectdtm" $nline
@@ -381,12 +381,10 @@ rdb_out ()
             goto 9
         fi
 
-        #  zero pad stat code IF type is DV
+        # zero pad stat code IF type is DV
         if [ "$datatyp" = 'DV' ]; then
             s_jstrrt "$stat" 5
-#           DO I = 1,5
-#              IF (stat(i:i).EQ.' ') stat(i:i) = '0'
-#           END DO
+            stat=`echo $stat | tr ' ' '0'`
         fi
 
         if [ $first ]; then
@@ -491,14 +489,13 @@ rdb_out ()
             echo "$cdate $ctime Writing file $rdbfile"
         fi
 
-#        check DD for a P in column 1 - indicated parm code for PR DD search
+        # check DD for a P in column 1 - indicated parm code for PR DD
+        # search
 
         if [ ${ddid:0:1} = 'p' -o ${ddid:0:1} = 'P' ]; then
             parm=${ddid:1:5}
             s_jstrrt "$parm" 5
-#           DO I = 1,5
-#              IF (parm(i:i) .EQ. ' ') parm(i:i) = '0'
-#           END DO
+            parm=`echo $parm | tr ' ' '0'`
             get_prdd $rtdbnum "$rtagny" "$sid" "$parm" "$ddid" $irc
             if [ $irc -ne 0 ]; then
                 s_date "$cdate" "$ctime"
@@ -574,7 +571,7 @@ rdb_out ()
                 fpkrdbout $funit "$rndsup" "$addkey" "$cflag" "$vflag" \
                     "$rtagny" "$sid" "$pktyp" "$begdtm" "$enddtm" $irc
             fi
-#           
+
         elif [ "$datatyp" = 'DC' ]; then
 
             fdcrdbout $funit "$rndsup" "$addkey" "$cflag" "$vflag" \
@@ -727,7 +724,7 @@ rdb_out ()
             s_jstrlf "$sid" 15
         fi
 
-#        DD is ignored for data types MS, PR, WL, and QW
+        # DD is ignored for data types MS, PR, WL, and QW
 
         if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
              "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
@@ -752,9 +749,7 @@ rdb_out ()
                         parm=${inddid:1}
                     fi
                     s_jstrrt "$parm" 5
-#                 DO I = 1,5
-#                    IF (parm(i:i) .EQ. ' ') parm(i:i) = '0'
-#                 END DO
+                    parm=`echo $parm | tr ' ' '0'`
                 else
                     parm=' '
                     # convert ddid to 4 characters
@@ -784,9 +779,7 @@ rdb_out ()
                     stat="$instat"
                 fi
                 s_jstrrt "$stat" 5
-#              DO I = 1,5
-#                 IF (stat(i:i) .EQ. ' ') stat(i:i) = '0'
-#              END DO
+                stat=`echo $stat | tr ' ' '0'`
             fi
         fi
 
@@ -794,8 +787,7 @@ rdb_out ()
              "$datatyp" = 'SV' -o "$datatyp" = 'PK' ]; then
 
             # convert dates to 8 characters
-            if [ "$begdat" = ' ' -o
-                 "$enddat" = ' ' ]; then
+            if [ "$begdat" = ' ' -o "$enddat" = ' ' ]; then
                 needstrt=true
                 if [ $wyflag ]; then
                     sopt=${sopt:0:8}4${sopt:9}
@@ -835,8 +827,8 @@ rdb_out ()
                     if [ "$uvtyp" = 's']; then uvtyp='S'; fi
                     if [ "$uvtyp" = 'c']; then uvtyp='C'; fi
                     if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a
-                            "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a
-                            "$uvtyp" != 'S' -a "$uvtyp" != 'C' ]; then
+                         "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a
+                         "$uvtyp" != 'S' -a "$uvtyp" != 'C' ]; then
                         s_bada \
                             'Please answer "M", "N", "E", "R", "S", or "C".' \
                             *50         # <- TODO: translate F77
@@ -860,8 +852,8 @@ rdb_out ()
 
         fi
 
-#        If Hydra mode for UV data, set time zone code that in effect
-#        for the first date for this station
+        # If Hydra mode for UV data, set time zone code that in effect
+        # for the first date for this station
 
         if [ $hydra -a "$datatyp" != 'UV' ]; then
             if [ ! eval key_get_zone_dst "$rtdbnum" "$rtagny" "$sid"
@@ -869,7 +861,7 @@ rdb_out ()
                 loc_tz_cd='UTC' # default to UTC
             else
                 if [ ! eval get_dflt_tzcd "$tz_cd" "local_time_fg"
-                        ${begdtm:0:8} "$loc_tz_cd" ]; then
+                     ${begdtm:0:8} "$loc_tz_cd" ]; then
                     loc_tz_cd='UTC'       # default to UTC
                 fi
             fi
@@ -913,7 +905,6 @@ rdb_out ()
             else
                 sopt="${sopt:0:9}3${sopt:10}"
             fi
-
         else
 
             if [ "$mstyp" >= '1' -a "$mstyp" <= '3' ]; then
@@ -958,7 +949,7 @@ rdb_out ()
 
         fi
 
-        #  See if we have the date range
+        # See if we have the date range
         if [ "$begdat" = ' ' -o "$enddat" = ' ' ]; then
             needstrt=true
             if [ $wyflag ]; then
@@ -968,7 +959,7 @@ rdb_out ()
             fi
         fi
 
-        #  Doing pseudo-uv, convert date/times to 14 characters
+        # Doing pseudo-uv, convert date/times to 14 characters
         rdb_fill_beg_dtm "$wyflag" "$begdat" "$begdtm"
         rdb_fill_end_dtm "$wyflag" "$enddat" "$enddtm"
 
@@ -1005,7 +996,7 @@ rdb_out ()
             if [ ! \( "$wltyp" >= '1' -a "$wltyp" <= '3' \) ]; then
                 wltyp=' '
             fi
-            #  convert date/times to 14 characters
+            # convert date/times to 14 characters
             if [ "$begdat" = ' ' -o "$enddat" = ' ' ]; then
                 needstrt=true
                 sopt="${sopt:0:4}1${sopt:5}"
@@ -1051,10 +1042,7 @@ rdb_out ()
             s_lgid          # get user info 
             s_mdus nw_read,irc *998 # <- TODO: translate F77
             if [ $irc -eq 0 ]; then # save the user info
-#              DO I  =  1, 91
-#                 HOLDBUFF(I)  =  USBUFF(I)
-#              END DO
-
+                holdbuff="$usbuff"
                 if [ "${sopt:4:1}" = '1' -o "${sopt:4:1}" = '2' ]; then
                     agency="$rtagny"
                     if [ "$instnid" != ' ' ]; then stnid="$sid"; fi
@@ -1091,7 +1079,7 @@ rdb_out ()
                if [ "$parm" != ' ' -a "$datatyp" != 'VT' ]; then
                  get_prdd "$rtdbnum" "$rtagny" sid "$parm" ddid irc
                  if [ $irc -ne 0 ]; then
-#                    WRITE (0,2120) rtagny, sid, parm
+                     echo "$rtagny$sid$parm"
                      rdb_out_goto 999   # <- TODO
                  fi
                fi
@@ -1175,11 +1163,9 @@ rdb_out ()
                fi
            fi
 
-#           #  Restore contents of user buffer
+           # Restore contents of user buffer
            if [ $irc -eq 0 ]; then
-#              DO I  =  1, 91
-#                 USBUFF(I)  =  HOLDBUFF(I)
-#              END DO
+               usbuff="$holdbuff"
               s_mdus nw_updt $irc *998 # <- TODO
            fi
 
@@ -1189,7 +1175,7 @@ rdb_out ()
             s_ndget               # get node data
             s_ggrp                # get groups (for security)
             sen_dbop "$rtdbnum" # open Midas files
-            #  count program (counted by S_STRT above if needed)
+            # count program (counted by S_STRT above if needed)
             db_save_program_info 'aq2rdb'
             # get PRIMARY DD that goes with parm if parm supplied
             if [ "$parm" != ' ' -a "$datatyp" != 'VT' ]; then
@@ -1207,7 +1193,8 @@ rdb_out ()
 
         fi
 
-        # retrieving measured UVs and transport_cd not supplied, prompt for it
+        # retrieving measured UVs and transport_cd not supplied,
+        # prompt for it
         if [ $uvtyp_prompted -a "$datatyp" = 'UV' -a
              \( "$uvtyp" = 'M' -o "$uvtyp" = 'N' \) -a
              "$transport_cd" = ' ' ]; then
@@ -1221,7 +1208,7 @@ rdb_out ()
             fi
         fi
 
-        #  Open output file
+        # Open output file
         if [ "$outpath" = ' ' ]; then
             funit=6
         else
@@ -1274,7 +1261,8 @@ rdb_out ()
 
         elif [ "$datatyp" = 'VT' ]; then
 
-            # Get parm and loc number from DD IF not specified in arguments
+            # Get parm and loc number from DD IF not specified in
+            # arguments
             if [ "${inddid:0:1}" != 'P' -o "$inlocnu" = ' ' ]; then
                 if [ ! db_key_get_dd_parm_loc "$rtdbnum" "$rtagny" 
                                              "$sid" "$ddid" "$parm"
