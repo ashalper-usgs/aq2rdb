@@ -11,7 +11,9 @@
 #            Jim Cornwall <jcorn@usgs.gov> (nwts2rdb.c)
 #
 
-source rdb_out.sh
+# use installed library if present; source tree version otherwise
+[ -r /usr/local/bin/rdb_out.sh ] && source /usr/local/bin/rdb_out.sh || \
+[ -r ../bin/rdb_out.sh ] && source ../bin/rdb_out.sh
 
 # Usage statement.
 nwts2rdb_usage ()
