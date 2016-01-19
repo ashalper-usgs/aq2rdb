@@ -87,8 +87,13 @@ rdb_out ()
     # check to see if Web service is up
     curl -m 4 "http://$host/aq2rdb" > /dev/null 2>&1
     if [ $? -ne 0 ]; then
-        write_error 6
-        irc=get_error_number
+        # see NWIS's watstore/library/error_lib/nw_write_error.f if
+        # needed; Fortran-legacy-code heavy:
+
+        # write_error 6
+
+        # TODO:
+        # irc=get_error_number
         rdb_out_goto 999
     fi
 
