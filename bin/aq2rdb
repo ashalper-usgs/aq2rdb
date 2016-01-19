@@ -232,9 +232,9 @@ else
       x)
         xflag=TRUE
         loc_nu="$OPTARG"
-	# weirdness to literally emulate nwts2rdb C code
+        # weirdness to literally emulate nwts2rdb C code
         rndsup='Y'
-	;;
+        ;;
       r)
         rndsup='Y'
         ;;
@@ -366,7 +366,7 @@ else
   fi
 
   # query aq2rdb endpoint with curl
-  curl -g \
+  curl -g -m 4 \
   "http://$host/aq2rdb?${datatyp:+t=$datatyp}${agency:+&a=$agency}${station:+&s=$station}${station:+&s=$station}${parm:+&p=$parm}${stat:+&s=$stat}${begdat:+&b=$begdat}${enddat:+&e=$enddat}"
 
   # if Hydra mode, write the temp filename to the named pipe
