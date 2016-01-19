@@ -84,14 +84,13 @@ rdb_out ()
         sensor_type_id=0
     fi
 
-    # TODO: this is the former database connection subroutine. Check
-    # if aq2rdb service is alive here instead?
-
-    #     IF (.NOT. nw_write_log_entry(1)) THEN
-    #        CALL nw_write_error(6)
-    #        irc = nw_get_error_number()
-    #        GOTO 999
-    #     END IF
+    # check to see if Web service is up
+    curl -m 4 "http://$host/aq2rdb" > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        write_error 6
+        irc=get_error_number
+        rdb_out_goto 999
+    fi
 
     # set control file path
     if [ ${#ctlpath} -gt 128 ]; then
