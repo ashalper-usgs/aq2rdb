@@ -73,7 +73,7 @@ rdb_out ()
         loc_tz_cd='LOC'
     fi
 
-    if [ "$intrans" = ' ']; then
+    if [ "$intrans" = ' ' ]; then
         transport_cd=' '
         # TODO:
 #        sensor_type_id = NW_NI4
