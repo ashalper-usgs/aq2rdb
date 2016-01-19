@@ -54,194 +54,14 @@ rdb_out ()
     in_loc_tz_cd=$1; shift;
     titlline=$1;
 
-# @brief Top-level routine for outputting rdb format data
-# @note Module Type: INTEGER*4 FUNCTION
-# @author Scott D. Bartholoma
-# @date   July 17, 1997
-# @param CTLPATH      (inp - C*(*)) control file path/name
-# @param INMULTIPLE   (inp - C*(*)) Y/N flag to do multiple ratings
-# @param OUTPATH      (inp - C*(*)) output file path/name
-# @param INTYP        (inp - C*(*)) rating type
-# @param INRNDSUP     (inp - C*(*)) Y/N flag for rounding-suppressed
-# @param INWYFLAG     (inp - C*(*)) Y/N flag for water-year
-# @param INCFLAG      (inp - C*(*)) Y/N flag for Computed DVs/Combined Datetimes (UVs)
-# @param INVFLAG      (inp - C*(*)) Y/N flag for verbose dates and times
-# @param INHYDRA      (inp - C*(*)) Y/N flag if handling data for Hydra
-# @param INAGNY       (inp - C*(*)) agency code
-# @param INSTNID      (inp - C*(*)) station number
-# @param INDDID       (inp - C*(*)) DD number
-# @param INLOCNU      (inp - C*(*)) Location number
-# @param INSTAT       (inp - C*(*)) Statistics code
-# @param INTRANS      (inp - C*(*)) UV Transport code
-# @param BEGDAT       (inp - C*(*)) begin date
-# @param ENDDAT       (inp - C*(*)) end date
-# @param IN_LOC_TZ_CD (inp - C*(*)) time zone code
-# @param TITLLINE     (inp - C*(*)) title line (text)
-# @param f77_len_CTLPATH      (inp) Length of CTLPATH
-# @param f77_len_INMULTIPLE   (inp) Length of INMULTIPLE
-# @param f77_len_OUTPATH      (inp) Length of OUTPATH
-# @param f77_len_INTYP        (inp) Length of INTYP
-# @param f77_len_INRNDSUP     (inp) Length of INRNDSUP
-# @param f77_len_INWYFLAG     (inp) Length of INWYFLAG
-# @param f77_len_INCFLAG      (inp) Length of INCFLAG
-# @param f77_len_INVFLAG      (inp) Length of INVFLAG
-# @param f77_len_INHYDRA      (inp) Length of INHYDRA
-# @param f77_len_INAGNY       (inp) Length of INAGNY
-# @param f77_len_INSTNID      (inp) Length of INSTNID
-# @param f77_len_INDDID       (inp) Length of INDDID
-# @param f77_len_INLOCNU      (inp) Length of INLOCNU
-# @param f77_len_INSTAT       (inp) Length of INSTAT
-# @param f77_len_INTRANS      (inp) Length of INTRANS
-# @param f77_len_BEGDAT       (inp) Length of BEGDAT
-# @param f77_len_ENDDAT       (inp) Length of ENDDAT
-# @param f77_len_IN_LOC_TZ_CD (inp) Length of IN_LOC_TZ_CD
-# @param f77_len_TITLLINE     (inp) Length of TITLLINE
-# @return (Integer*4) returns the error code from modules called (0 IF all OK)
-# @par Purpose:
-# @verbatim
-# Top-level routine for outputting rdb format data
-# Uses S_STRT IF needed to get missing keys for the retrieval
-# @endverbatim
-
-# **********************************************************************
-# * ARGUMENT DECLARATIONS
-# **********************************************************************
-
-#     CHARACTER ctlpath*(*),
-#    *          inmultiple*(*),
-#    *          outpath*(*),
-#    *          intyp*(*),
-#    *          inrndsup*(*),
-#    *          inwyflag*(*),
-#    *          incflag*(*),
-#    *          invflag*(*),
-#    *          inhydra*(*),
-#    *          inagny*(*),
-#    *          instnid*(*),
-#    *          inddid*(*),
-#    *          inlocnu*(*),
-#    *          instat*(*),
-#    *          intrans*(*),
-#    *          begdat*(*),
-#    *          enddat*(*),
-#    *          in_loc_tz_cd*(*),
-#    *          titlline*(*)
-
-# **********************************************************************
-# * FUNCTION DECLARATIONS
-# **********************************************************************
-
-#     INTEGER nwf_strlen,
-#    *        nwc_rdb_cfil,
-#    *        nw_get_error_number,
-#    *        nwc_atoi
-
-#     LOGICAL nw_write_log_entry,
-#    *        nw_key_get_zone_dst,
-#    *        nw_get_dflt_tzcd,
-#    *        nw_db_save_program_info,
-#    *        nw_db_key_get_dd_parm_loc
-
-# **********************************************************************
-# * EXTERNAL SUBROUTINES OR FUNCTIONS
-# **********************************************************************
-
-#     EXTERNAL nwf_strlen,
-#    *         nwc_rdb_cfil,
-#    *         nw_write_log_entry,
-#    *         nw_get_error_number,
-#    *         nw_key_get_zone_dst,
-#    *         nw_get_dflt_tzcd,
-#    *         nw_db_save_program_info
-
-# **********************************************************************
-# * INTRINSIC FUNCTIONS
-# **********************************************************************
-
-#     INTRINSIC len
-
-# **********************************************************************
-# * INCLUDE FILES
-# **********************************************************************
-
-#     INCLUDE 'program_id.ins'
-#     INCLUDE 'adaps_keys.ins'
-#     INCLUDE 'user_data.ins'
-#     INCLUDE 'ins.dbdata'
-
-# **********************************************************************
-# * LOCAL VARIABLE DECLARATIONS
-# **********************************************************************
-
-#     CHARACTER datatyp*2,
-#    *          savetyp*2,
-#    *          sopt*32,
-#    *          ctlfile*128,
-#    *          rdbfile*128,
-#    *          rtagny*5,
-#    *          sid*15,
-#    *          ddid*6,
-#    *          lddid*6,
-#    *          parm*5,
-#    *          stat*5,
-#    *          transport_cd*1,
-#    *          uvtyp*1,
-#    *          inguvtyp*6,
-#    *          mstyp*1,
-#    *          mssav*1,
-#    *          vttyp*1,
-#    *          wltyp*1,
-#    *          meth_cd*5,
-#    *          pktyp*1,
-#    *          qwparm*5,
-#    *          qwmeth*5,
-#    *          begdate*8,
-#    *          enddate*8,
-#    *          begdtm*14,
-#    *          enddtm*14,
-#    *          bctdtm*14,
-#    *          ectdtm*14,
-#    *          cdate*8,
-#    *          ctime*6,
-#    *          tz_cd*6,
-#    *          loc_tz_cd*6,
-#    *          local_time_fg*1
-
-#     INTEGER loc_nu,
-#    *        funit,
-#    *        rdblen,
-#    *        ipu,
-#    *        irc,
-#    *        nline,
-#    *        sensor_type_id,
-#    *        one,
-#    *        two,
-#    *        three,
-#    *        iyr,
-#    *        i
-
-#     INTEGER USBUFF(91),
-#    &        HOLDBUFF(91)     ! restored old code from rev 1.5
-
-#     LOGICAL needstrt,
-#    *        multiple,
-#    *        rndsup,
-#    *        wyflag,
-#    *        cflag,
-#    *        vflag,
-#    *        hydra,
-#    *        first,
-#    *        addkey,
-#    *        uvtyp_prompted
-
-# **********************************************************************
-# * INITIALIZATIONS
-# **********************************************************************
+    # **********************************************************************
+    # * INITIALIZATIONS
+    # **********************************************************************
 
     one=1; two=2; three=3;
 
-# XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-#     initialize
+    # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+    #     initialize
 
     needstrt=false
     uvtyp_prompted=false
@@ -255,15 +75,17 @@ rdb_out ()
 
     if [ "$intrans" = ' ']; then
         transport_cd=' '
+        # TODO:
 #        sensor_type_id = NW_NI4
     else
         transport_cd="$intrans"
+        # TODO:
 #        CALL s_upcase (transport_cd,1)
         sensor_type_id=0
     fi
 
     # TODO: this is the former database connection subroutine. Check
-    # if aq2rdb service is alive instead?
+    # if aq2rdb service is alive here instead?
 
     #     IF (.NOT. nw_write_log_entry(1)) THEN
     #        CALL nw_write_error(6)
@@ -327,270 +149,274 @@ rdb_out ()
             "$bctdtm" "$ectdtm" $nline
         irc=$?
 
-#6        
-        if [ $irc -ne 0 ]; then
-            rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" "$ddid" \
-                "$stat" "$bctdtm" "$ectdtm" $nline
-            irc=$?
+        # weird control structure here is an artifact of
+        # cautiously literal translation from Fortran 77
+        until false; do
+            if [ $irc -ne 0 ]; then
+                rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" "$ddid" \
+                    "$stat" "$bctdtm" "$ectdtm" $nline
+                irc=$?
 
-            # end of control file
-            if [ "$first" != true ]; then
-                s_mclos         # close things down and exit cleanly
-                if [ $funit -ge 0 -a $funit -ne 6 ]; then
-                    s_sclose $funit 'keep'
+                # end of control file
+                if [ "$first" != true ]; then
+                    s_mclos         # close things down and exit cleanly
+                    if [ $funit -ge 0 -a $funit -ne 6 ]; then
+                        s_sclose $funit 'keep'
+                    fi
+                    irc=0
                 fi
-                irc=0
+                rdb_out_goto 999
             fi
-            rdb_out_goto 999
-        fi
 
-        # check data type
-        if [ $hydra ]; then
-            if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
-                 "$datatyp" != 'MS' -a "$datatyp" != 'WL' -a
-                 "$datatyp" != 'QW' ]; then
-                s_date "$cdate" "$ctime"
-                echo "$cdate $ctime Invalid HYDRA data type" \
-                    "\"$datatyp\" on line $nline."
-                goto 9
-            fi
-        else
-            if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
-                 "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
-                 "$datatyp" != 'MS' -a "$datatyp" != 'PK' ]; then
-                s_date "$cdate" "$ctime"
-                echo "$cdate $ctime Invalid data type \"$datatyp\" " \
-                    "on line $nline."
-                goto 9
-            fi
-        fi
-
-        # check for completeness
-        if [ "$rtagny" = ' ' -o "$sid" = ' ' -o
-             \( "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
-                "$datatyp" != 'WL' -a "$datatyp" != 'QW' -a
-                "$stat" = ' ' \) -o \
-             "$begdtm" = ' ' -o "$enddtm" = ' ' -o
-             \( "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
-           "$datatyp" != 'WL' -a "$datatyp" != 'QW' -a 
-           "$ddid" = ' ' \)
-          ]; then
-            s_date "$cdate" "$ctime"
-            echo "$cdate $ctime Incomplete row (missing items) on " \
-                "line $nline."
-            goto 9
-        fi
-
-        # zero pad stat code IF type is DV
-        if [ "$datatyp" = 'DV' ]; then
-            s_jstrrt "$stat" 5
-            stat=`echo $stat | tr ' ' '0'`
-        fi
-
-        if [ $first ]; then
-            savetyp="$datatyp"  # save first data type
-            mssav=${stat:0:1}
-            first=false
-            s_lgid                       # get user id and number
-            s_ndget                      # get node data
-            s_ggrp                       # get groups (for security)
-            if [ ! $multiple ]; then
-                # open output file
-                if [ "$outpath" = ' ' ]; then
-                    funit=6
-                else
-                    if [ ${#outpath} -gt 128 ]; then
-                        rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" \
-                            "$ddid" "$stat" "$bctdtm" "$ectdtm" $nline
-                        irc=$?
-                        rdb_out_goto 998
-                    fi
-                    rdbfile="$outpath"
-                    s_file ' ' "$rdbfile" ' ' 'unknown' 'write' \
-                        0 1 "$ipu" "$funit" $irc *7
-#7
-                    if [ $irc -ne 0 ]; then
-                        rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" \
-                           "$ddid" "$stat" "$bctdtm" "$ectdtm" $nline
-                        irc=$?
-                        rdb_out_goto 999
-                    fi
+            # check data type
+            if [ $hydra ]; then
+                if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
+                     "$datatyp" != 'MS' -a "$datatyp" != 'WL' -a
+                     "$datatyp" != 'QW' ]; then
+                    s_date "$cdate" "$ctime"
+                    echo "$cdate $ctime Invalid HYDRA data type" \
+                        "\"$datatyp\" on line $nline."
+                    goto 9
+                fi
+            else
+                if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
+                        "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
+                        "$datatyp" != 'MS' -a "$datatyp" != 'PK' ]; then
+                    s_date "$cdate" "$ctime"
+                    echo "$cdate $ctime Invalid data type \"$datatyp\" " \
+                        "on line $nline."
+                    goto 9
                 fi
             fi
-        fi
 
-        # if "multiple" not specified, all requests must
-        # be the same data type as the first one
-
-        if [ ! $multiple ]; then
-
-            if [ "$datatyp" != "$savetyp" ]; then
+            # check for completeness
+            if [ "$rtagny" = ' ' -o "$sid" = ' ' -o
+                    \( "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
+                        "$datatyp" != 'WL' -a "$datatyp" != 'QW' -a
+                        "$stat" = ' ' \) -o \
+                            "$begdtm" = ' ' -o "$enddtm" = ' ' -o
+                        \( "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
+                            "$datatyp" != 'WL' -a "$datatyp" != 'QW' -a 
+                            "$ddid" = ' ' \)
+                ]; then
                 s_date "$cdate" "$ctime"
-                echo "$cdate $ctime Datatype of \"$datatyp\" not " \
-                    "the same as the first request datatype " \
-                    "of \"$savetyp\" on line $nline."
-                goto 9
-            fi
-
-            if [ "$datatyp" = 'MS' -a ${stat:0:1} != "$mssav" ]; then
-                # can't mix types of CSG measurements
-                s_date "$cdate" "$ctime"
-                echo "$cdate $ctime Measurement type of " \
-                    "\"${stat:0:1}\" not compatible with the " \
-                    "first measurement type of \"$mssav\" on " \
+                echo "$cdate $ctime Incomplete row (missing items) on " \
                     "line $nline."
                 goto 9
             fi
-        fi
 
-        # convert water years to date or datetime if -w specified
-        rdb_fill_beg_dtm "$wyflag" "$bctdtm" "$begdtm"
-        rdb_fill_end_dtm "$wyflag" "$ectdtm" "$enddtm"
+            # zero pad stat code IF type is DV
+            if [ "$datatyp" = 'DV' ]; then
+                s_jstrrt "$stat" 5
+                stat=`echo $stat | tr ' ' '0'`
+            fi
 
-        # if multiple, open a new output file - outpath is a prefix
+            if [ $first ]; then
+                savetyp="$datatyp"  # save first data type
+                mssav=${stat:0:1}
+                first=false
+                s_lgid                       # get user id and number
+                s_ndget                      # get node data
+                s_ggrp                       # get groups (for security)
+                if [ ! $multiple ]; then
+                    # open output file
+                    if [ "$outpath" = ' ' ]; then
+                        funit=6
+                    else
+                        if [ ${#outpath} -gt 128 ]; then
+                            rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" \
+                                "$ddid" "$stat" "$bctdtm" "$ectdtm" $nline
+                            irc=$?
+                            rdb_out_goto 998
+                        fi
+                        rdbfile="$outpath"
+                        s_file ' ' "$rdbfile" ' ' 'unknown' 'write' \
+                            0 1 "$ipu" "$funit" $irc *7
+                        #7
+                        if [ $irc -ne 0 ]; then
+                            rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" \
+                                "$ddid" "$stat" "$bctdtm" "$ectdtm" $nline
+                            irc=$?
+                            rdb_out_goto 999
+                        fi
+                    fi
+                fi
+            fi
 
-        if [ "$multiple" ]; then
-            # close previously open file
-            if [ $funit -ge 0 -a $funit -ne 6 ]; then
-                s_sclose $funit 'keep'
+            # if "multiple" not specified, all requests must
+            # be the same data type as the first one
+
+            if [ ! $multiple ]; then
+
+                if [ "$datatyp" != "$savetyp" ]; then
+                    s_date "$cdate" "$ctime"
+                    echo "$cdate $ctime Datatype of \"$datatyp\" not " \
+                        "the same as the first request datatype " \
+                        "of \"$savetyp\" on line $nline."
+                    goto 9
+                fi
+
+                if [ "$datatyp" = 'MS' -a ${stat:0:1} != "$mssav" ]; then
+                    # can't mix types of CSG measurements
+                    s_date "$cdate" "$ctime"
+                    echo "$cdate $ctime Measurement type of " \
+                        "\"${stat:0:1}\" not compatible with the " \
+                        "first measurement type of \"$mssav\" on " \
+                        "line $nline."
+                    goto 9
+                fi
             fi
-            # open a new file
-            rdbfile="$outpath.$datatyp.$rtagny.$sid"
-            rdblen=`expr ${#outpath} + 5 + ${#rtagny} + ${#sid}`
-            if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
-                 "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
-                lddid="$ddid"
-                s_jstrlf "$lddid" 4
-                rdbfile="$rdbfile.$lddid"
-                rdblen=`expr $rdblen + 1 + ${#lddid}`
-            fi
-            if [ "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
-                 "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
-                rdbfile="$rdbfile.$stat"
-                rdblen=`expr $rdblen + 1 + ${#stat}`
-            fi
-            rdbfile="$rdbfile.${begdtm:0:8}.rdb"
-            rdblen=`expr $rdblen + 13`
-            # TODO: translate "*8" from Fortran below
-            s_file ' ' "$rdbfile" ' ' 'unknown' 'write' \
-                0, 1, $ipu $funit $irc *8
-#8
-            if [ $irc -ne 0 ]; then
+
+            # convert water years to date or datetime if -w specified
+            rdb_fill_beg_dtm "$wyflag" "$bctdtm" "$begdtm"
+            rdb_fill_end_dtm "$wyflag" "$ectdtm" "$enddtm"
+
+            # if multiple, open a new output file - outpath is a prefix
+
+            if [ "$multiple" ]; then
+                # close previously open file
+                if [ $funit -ge 0 -a $funit -ne 6 ]; then
+                    s_sclose $funit 'keep'
+                fi
+                # open a new file
+                rdbfile="$outpath.$datatyp.$rtagny.$sid"
+                rdblen=`expr ${#outpath} + 5 + ${#rtagny} + ${#sid}`
+                if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
+                        "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
+                    lddid="$ddid"
+                    s_jstrlf "$lddid" 4
+                    rdbfile="$rdbfile.$lddid"
+                    rdblen=`expr $rdblen + 1 + ${#lddid}`
+                fi
+                if [ "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
+                        "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
+                    rdbfile="$rdbfile.$stat"
+                    rdblen=`expr $rdblen + 1 + ${#stat}`
+                fi
+                rdbfile="$rdbfile.${begdtm:0:8}.rdb"
+                rdblen=`expr $rdblen + 13`
+                # TODO: translate "*8" from Fortran below
+                s_file ' ' "$rdbfile" ' ' 'unknown' 'write' \
+                    0, 1, $ipu $funit $irc *8
+                #8
+                if [ $irc -ne 0 ]; then
+                    s_date "$cdate" "$ctime"
+                    echo "$cdate $ctime Error $irc opening output file " \
+                        "for line $nline."
+                    echo "                $rdbfile"
+                    irc=rdb_cfil $three "$ctlfile" "$rtagny" "$sid" "$ddid" \
+                        "$stat" "$bctdtm" "$ectdtm" $nline
+                    s_mclos
+                    rdb_out_goto 999
+                fi
                 s_date "$cdate" "$ctime"
-                echo "$cdate $ctime Error $irc opening output file " \
-                    "for line $nline."
-                echo "                $rdbfile"
-                irc=rdb_cfil $three "$ctlfile" "$rtagny" "$sid" "$ddid" \
-                    "$stat" "$bctdtm" "$ectdtm" $nline
-                s_mclos
-                rdb_out_goto 999
+                echo "$cdate $ctime Writing file $rdbfile"
             fi
-            s_date "$cdate" "$ctime"
-            echo "$cdate $ctime Writing file $rdbfile"
-        fi
 
-        # check DD for a P in column 1 - indicated parm code for PR DD
-        # search
+            # check DD for a P in column 1 - indicated parm code for PR DD
+            # search
 
-        if [ ${ddid:0:1} = 'p' -o ${ddid:0:1} = 'P' ]; then
-            parm=${ddid:1:5}
-            s_jstrrt "$parm" 5
-            parm=`echo $parm | tr ' ' '0'`
-            get_prdd $rtdbnum "$rtagny" "$sid" "$parm" "$ddid" $irc
-            if [ $irc -ne 0 ]; then
-                s_date "$cdate" "$ctime"
-                echo "$cdate $ctime No PRIMARY DD for station " \
-                    "\"$rtagny $sid\", parm \"$parm\" on line $nline."
-                goto 9
-            fi
-        else
-            # right justify DDID to 4 characters
-            if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
-                 "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
-              s_jstrrt "$ddid" 4
-            fi
-        fi
-
-        # process the request
-        if [ "$datatyp" = 'DV' ]; then
-
-            fdvrdbout $funit false $rndsup "$addkey" "$vflag" \
-                "$cflag" "$rtagny" "$sid" "$ddid" "$stat" \
-                "$begdtm" "$enddtm" $irc
-
-        elif [ "$datatyp" = 'UV' ]; then
-
-            uvtyp=${stat:0:1}
-            if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a "$uvtyp" != 'E'
-                 -a "$uvtyp" != 'R' -a "$uvtyp" != 'S' -a 
-                 "$uvtyp" != 'C' ]; then
-                s_date "$cdate" "$ctime"
-                echo "$cdate $ctime Invalid unit-values type " \
-                    "\"$uvtyp\" on line $nline."
+            if [ ${ddid:0:1} = 'p' -o ${ddid:0:1} = 'P' ]; then
+                parm=${ddid:1:5}
+                s_jstrrt "$parm" 5
+                parm=`echo $parm | tr ' ' '0'`
+                get_prdd $rtdbnum "$rtagny" "$sid" "$parm" "$ddid" $irc
+                if [ $irc -ne 0 ]; then
+                    s_date "$cdate" "$ctime"
+                    echo "$cdate $ctime No PRIMARY DD for station " \
+                        "\"$rtagny $sid\", parm \"$parm\" on line $nline."
+                    goto 9
+                fi
             else
-                if [ "$uvtyp" = 'M' ]; then inguvtyp='meas'; fi
-                if [ "$uvtyp" = 'N' ]; then inguvtyp='msar'; fi
-                if [ "$uvtyp" = 'E' ]; then inguvtyp='edit'; fi
-                if [ "$uvtyp" = 'R' ]; then inguvtyp='corr'; fi
-                if [ "$uvtyp" = 'S' ]; then inguvtyp='shift'; fi
-                if [ "$uvtyp" = 'C' ]; then inguvtyp='da'; fi
-                fuvrdbout $funit false $rtdbnum "$rndsup" "$cflag" \
-                    "$vflag" "$addkey" "$rtagny" "$sid" "$ddid" \
-                    "$inguvtyp" $sensor_type_id "$transport_cd" \
-                    "$begdtm" "$enddtm" "$loc_tz_cd" $irc
+                # right justify DDID to 4 characters
+                if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
+                        "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
+                    s_jstrrt "$ddid" 4
+                fi
             fi
 
-        elif [ "$datatyp" = 'MS' ]; then
+            # process the request
+            if [ "$datatyp" = 'DV' ]; then
 
-            mstyp=${stat:0:1}
+                fdvrdbout $funit false $rndsup "$addkey" "$vflag" \
+                    "$cflag" "$rtagny" "$sid" "$ddid" "$stat" \
+                    "$begdtm" "$enddtm" $irc
 
-            # Only standard meas types allowed when working from a control file
-            # Pseudo-UV Types 1 through 3 are only good from the
-            # command line or in hydra mode
+            elif [ "$datatyp" = 'UV' ]; then
 
-            if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a
-                 "$mstyp" != 'D' -a "$mstyp" != 'G' ]; then 
-                s_date "$cdate" "$ctime"
-                echo "$cdate $ctime Invalid measurement file " \
-                    "type \"$mstyp\" on line $nline."
-            else
-                fmsrdbout $funit $rtdbnum "$rndsup" "$addkey" "$cflag" \
-                    "$vflag" "$rtagny" "$sid" "$mstyp" "$begdtm" \
-                    "$enddtm" $irc
+                uvtyp=${stat:0:1}
+                if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a "$uvtyp" != 'E'
+                        -a "$uvtyp" != 'R' -a "$uvtyp" != 'S' -a 
+                        "$uvtyp" != 'C' ]; then
+                    s_date "$cdate" "$ctime"
+                    echo "$cdate $ctime Invalid unit-values type " \
+                        "\"$uvtyp\" on line $nline."
+                else
+                    if [ "$uvtyp" = 'M' ]; then inguvtyp='meas'; fi
+                    if [ "$uvtyp" = 'N' ]; then inguvtyp='msar'; fi
+                    if [ "$uvtyp" = 'E' ]; then inguvtyp='edit'; fi
+                    if [ "$uvtyp" = 'R' ]; then inguvtyp='corr'; fi
+                    if [ "$uvtyp" = 'S' ]; then inguvtyp='shift'; fi
+                    if [ "$uvtyp" = 'C' ]; then inguvtyp='da'; fi
+                    fuvrdbout $funit false $rtdbnum "$rndsup" "$cflag" \
+                        "$vflag" "$addkey" "$rtagny" "$sid" "$ddid" \
+                        "$inguvtyp" $sensor_type_id "$transport_cd" \
+                        "$begdtm" "$enddtm" "$loc_tz_cd" $irc
+                fi
+
+            elif [ "$datatyp" = 'MS' ]; then
+
+                mstyp=${stat:0:1}
+
+                # Only standard meas types allowed when working from a
+                # control file
+
+                # Pseudo-UV Types 1 through 3 are only good from the
+                # command line or in hydra mode
+
+                if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a
+                        "$mstyp" != 'D' -a "$mstyp" != 'G' ]; then 
+                    s_date "$cdate" "$ctime"
+                    echo "$cdate $ctime Invalid measurement file " \
+                        "type \"$mstyp\" on line $nline."
+                else
+                    fmsrdbout $funit $rtdbnum "$rndsup" "$addkey" "$cflag" \
+                        "$vflag" "$rtagny" "$sid" "$mstyp" "$begdtm" \
+                        "$enddtm" $irc
+                fi
+
+            elif [ "$datatyp" = 'PK' ]; then
+
+                pktyp=${stat:0:1}
+                if [ "$pktyp" != 'F' -a "$pktyp" != 'P' -a
+                        "$pktyp" != 'B' ]; then
+                    s_date "$cdate" "$ctime"
+                    echo "$cdate $ctime Invalid peak flow file type " \
+                        "\"$pktyp\" on line $nline."
+                else
+                    fpkrdbout $funit "$rndsup" "$addkey" "$cflag" "$vflag" \
+                        "$rtagny" "$sid" "$pktyp" "$begdtm" "$enddtm" $irc
+                fi
+
+            elif [ "$datatyp" = 'DC' ]; then
+
+                fdcrdbout $funit "$rndsup" "$addkey" "$cflag" "$vflag" \
+                    "$rtagny" "$sid" "$ddid" "$begdtm" "$enddtm" \
+                    "$loc_tz_cd" $irc
+
+            elif [ "$datatyp" = 'SV' ]; then
+
+                fsvrdbout $funit "$rndsup" "$addkey" "$cflag" "$vflag" \
+                    "$rtagny" "$sid" "$ddid" "$begdtm" "$enddtm" \
+                    "$loc_tz_cd" $irc
+                
             fi
 
-        elif [ "$datatyp" = 'PK' ]; then
+            # get next line from control file
+            irc=rdb_cfil $two "$datatyp" "$rtagny" "$sid" "$ddid" "$stat" \
+                "$bctdtm" "$ectdtm" $nline
 
-            pktyp=${stat:0:1}
-            if [ "$pktyp" != 'F' -a "$pktyp" != 'P' -a
-                 "$pktyp" != 'B' ]; then
-                s_date "$cdate" "$ctime"
-                echo "$cdate $ctime Invalid peak flow file type " \
-                    "\"$pktyp\" on line $nline."
-            else
-                fpkrdbout $funit "$rndsup" "$addkey" "$cflag" "$vflag" \
-                    "$rtagny" "$sid" "$pktyp" "$begdtm" "$enddtm" $irc
-            fi
-
-        elif [ "$datatyp" = 'DC' ]; then
-
-            fdcrdbout $funit "$rndsup" "$addkey" "$cflag" "$vflag" \
-                "$rtagny" "$sid" "$ddid" "$begdtm" "$enddtm" \
-                "$loc_tz_cd" $irc
-
-        elif [ "$datatyp" = 'SV' ]; then
-
-            fsvrdbout $funit "$rndsup" "$addkey" "$cflag" "$vflag" \
-                     "$rtagny" "$sid" "$ddid" "$begdtm" "$enddtm" \
-                     "$loc_tz_cd" $irc
-     
-        fi
-
-        # get next line from control file
-#9        
-        irc=rdb_cfil $two "$datatyp" "$rtagny" "$sid" "$ddid" "$stat" \
-            "$bctdtm" "$ectdtm" $nline
-        goto 6
+        done
 
     else                        # Not a control file
 
@@ -1077,7 +903,7 @@ rdb_out ()
 
            if [ "$ddid" = ' ' ]; then
                if [ "$parm" != ' ' -a "$datatyp" != 'VT' ]; then
-                 get_prdd "$rtdbnum" "$rtagny" sid "$parm" ddid irc
+                 get_prdd "$rtdbnum" "$rtagny" "$sid" "$parm" ddid irc
                  if [ $irc -ne 0 ]; then
                      echo "$rtagny$sid$parm"
                      rdb_out_goto 999   # <- TODO
