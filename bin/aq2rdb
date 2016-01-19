@@ -151,20 +151,20 @@ host=cidasdqaasaq2rd:8081
 error=0
 loc_nu="0"
 lblank="LOC"
-oflag=FALSE
-tflag=FALSE
-aflag=FALSE
-nflag=FALSE
-dflag=FALSE
-pflag=FALSE
-sflag=FALSE
-yflag=FALSE
-iflag=FALSE
-bflag=FALSE
-eflag=FALSE
-lflag=FALSE
-fflag=FALSE
-xflag=FALSE
+oflag=false
+tflag=false
+aflag=false
+nflag=false
+dflag=false
+pflag=false
+sflag=false
+yflag=false
+iflag=false
+bflag=false
+eflag=false
+lflag=false
+fflag=false
+xflag=false
 
 status=0
 
@@ -182,55 +182,55 @@ else
   multiple='N'
   hydra='N'
     
-  error=FALSE
+  error=false
 
   while getopts 'o:z:t:a:n:d:p:s:b:e:l:f:y:i:x:rwcvmh' optchar; do
     case "$optchar" in
       o)
-        oflag=TRUE
+        oflag=true
         outpath="$OPTARG"
         ;;
       z)
         echo "$0: warning: the nwts2rdb \"-z\" option is no longer used" >& 2
         ;;
       t)
-        tflag=TRUE
+        tflag=true
         datatyp="${OPTARG^^}"   # convert to upper case
         ;;
       a)
-        aflag=TRUE
+        aflag=true
         agency="$OPTARG"
         ;;
       n)
-        nflag=TRUE
+        nflag=true
         station="$OPTARG"
         ;;
       d)
-        dflag=TRUE
+        dflag=true
         ddid="$OPTARG"
         ;;
       p)
-        pflag=TRUE
+        pflag=true
         parm="$OPTARG"
         ;;
       s)
-        sflag=TRUE
+        sflag=true
         stat="$OPTARG"
         ;;
       b)
-        bflag=TRUE
+        bflag=true
         begdat="$OPTARG"
         ;;
       e)
-        eflag=TRUE
+        eflag=true
         enddat="$OPTARG"
         ;;
       l)
-        lflag=TRUE
+        lflag=true
         loc_tz_cd="${OPTARG^^}" # convert to upper case
         ;;
       x)
-        xflag=TRUE
+        xflag=true
         loc_nu="$OPTARG"
         # weirdness to literally emulate nwts2rdb C code
         rndsup='Y'
@@ -254,23 +254,23 @@ else
         hydra='Y'
         ;;
       f)
-        fflag=TRUE
+        fflag=true
         ctlpath="$OPTARG";
         ;;
       y)
-        yflag=TRUE
+        yflag=true
         transport_cd="$OPTARG"
         ;;
       i)
-        iflag=TRUE
+        iflag=true
         titlline="$OPTARG"
         ;;
       ?)
-        error=TRUE
+        error=true
         ;;
     esac
   done
-  if [ "$error" = FALSE ]; then
+  if [ "$error" = false ]; then
     # check for argument completion
 
     # First, processing if -h is specified 
@@ -278,21 +278,21 @@ else
       # date and time must be separate
       cflag='N'
       # only -a, -o, -b, and -e can be specified if -h is specified
-      if [ "$dflag" = TRUE -o "$fflag" = TRUE -o "$iflag" = TRUE -o
-           "$nflag" = TRUE -o "$pflag" = TRUE -o "$sflag" = TRUE -o
-           "$tflag" = TRUE -o "$yflag" = TRUE -o "$xflag" = TRUE -o
+      if [ "$dflag" = true -o "$fflag" = true -o "$iflag" = true -o
+           "$nflag" = true -o "$pflag" = true -o "$sflag" = true -o
+           "$tflag" = true -o "$yflag" = true -o "$xflag" = true -o
            "$wyflag" = Y -o "$cflag" = Y -o "$multiple" = Y ]; then
         echo >& 2
         echo "If -h is specified, only -a, -b, -e, -l, -r, and -o can also be specified" >& 2
         status=120
       # both -b and -e must be specified 
       # date/time range comes from Hydra
-      elif [ "$bflag" = FALSE -o "$eflag" = FALSE ]; then
+      elif [ "$bflag" = false -o "$eflag" = false ]; then
         echo >& 2
         echo "If -h is specified, both -b and -e must be specified." >& 2
         status=119
       # -o must be specified if -h is specified
-      elif [ "$oflag" = FALSE ]; then
+      elif [ "$oflag" = false ]; then
         echo >& 2
         echo "If -h is specified, -o must also be specified." >& 2
         status=121
@@ -321,12 +321,12 @@ else
     # output), and -o (output file). If -o is not supplied, -m cannot
     # also be supplied - (can't do multiple files if everything is
     # going to stdout - one file by definition)
-    if [ "$fflag" = TRUE -a "$multiple" = Y -a "$oflag" = FALSE ]; then
+    if [ "$fflag" = true -a "$multiple" = Y -a "$oflag" = false ]; then
         echo >& 2
         echo "If -f and -m is specified, -o must also be specified." >& 2
         status=122
     # Not using a control file. Cannot have both -d and -p
-    elif [ ! "$fflag" = TRUE -a "$dflag" = TRUE -a "$pflag" = TRUE ]; then
+    elif [ ! "$fflag" = true -a "$dflag" = true -a "$pflag" = true ]; then
         echo >& 2
         echo "Arguments -d and -p cannot both be specified." >& 2
         status=123
@@ -337,16 +337,16 @@ else
     # remember?)  so the RDB output has to go to a file, otherwise the
     # prompts would be mixed in with the rdb output which would make
     # things difficult for a pipeline.
-    elif [ "$fflag" != TRUE -a "$oflag" != TRUE -a \
+    elif [ "$fflag" != true -a "$oflag" != true -a \
            \( \
-              "$tflag" != TRUE -o "$nflag" != TRUE -o \
-              "$bflag" != TRUE -o "$eflag" != TRUE -o \
+              "$tflag" != true -o "$nflag" != true -o \
+              "$bflag" != true -o "$eflag" != true -o \
               \( \( "$datatyp" != DC -a "$datatyp" != SV \) -a \
-                 "$sflag" != TRUE \) -o \
-              \( "$datatyp" = QW -a "$pflag" != TRUE \) -o \
+                 "$sflag" != true \) -o \
+              \( "$datatyp" = QW -a "$pflag" != true \) -o \
                  \( \( "$datatyp" != MS -a "$datatyp" != PK -a \
-                       "$datatyp" != WL \) -a "$dflag" != TRUE -a \
-                    "$pflag" != TRUE \) \
+                       "$datatyp" != WL \) -a "$dflag" != true -a \
+                    "$pflag" != true \) \
            \) ]; then
       
       echo >& 2 
@@ -361,13 +361,15 @@ fi
 if [ "$status" != 0 ]; then
   nwts2rdb_usage
 else
-  if [ "$lflag" != TRUE ]; then
+  if [ "$lflag" != true ]; then
     loc_tz_cd="$lblank"
   fi
 
-  # query aq2rdb endpoint with curl
-  curl -g -m 4 \
-  "http://$host/aq2rdb?${datatyp:+t=$datatyp}${agency:+&a=$agency}${station:+&s=$station}${station:+&s=$station}${parm:+&p=$parm}${stat:+&s=$stat}${begdat:+&b=$begdat}${enddat:+&e=$enddat}"
+  rdb_out "$ctlpath" "$multiple" "$outpath" "$dbnum" \
+      "$datatyp" "$rndsup" "$wyflag" "$cflag" "$vflag" "$hydra" \
+      "$agency" "$station" "$ddpm" "$loc_nu" "$stat" "$transport_cd" \
+      "$begdat" "$enddat" "$loc_tz_cd" "$titlline"
+  status=$?
 
   # if Hydra mode, write the temp filename to the named pipe
   if [ "$hydra" = 'Y' ]; then
