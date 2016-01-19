@@ -312,26 +312,25 @@ rdb_out ()
     if [ "$ctlfile" != ' ' ]; then
         # using a control file - open it
         rdb_cfil "$one" "$ctlfile" "$rtagny" "$sid" "$ddid" \
-            "$stat" "$bctdtm" "$ectdtm" "$nline"
+            "$stat" "$bctdtm" "$ectdtm" $nline
         irc=$?
 #5
         if [ $irc -ne 0 ]; then
             rdb_out_goto 999
         fi
         s_date "$cdate" "$ctime"
-#        WRITE (0,2010) cdate, ctime, ctlfile(1:nwf_strlen(ctlfile))
-#2010     FORMAT (A8,1X,A6,1X,'Processing control file: ',A)
+        echo "$cdate $ctime Processing control file: $ctlfile"
 
         #  get a line from the file
         first=true
         rdb_cfil "$two" "$datatyp" "$rtagny" "$sid" "$ddid" "$stat" \
-            "$bctdtm" "$ectdtm" "$nline"
+            "$bctdtm" "$ectdtm" $nline
         irc=$?
 
 #6        
         if [ $irc -ne 0 ]; then
             rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" "$ddid" \
-                "$stat" "$bctdtm" "$ectdtm" "$nline"
+                "$stat" "$bctdtm" "$ectdtm" $nline
             irc=$?
 
             # end of control file
@@ -351,9 +350,8 @@ rdb_out ()
                  "$datatyp" != 'MS' -a "$datatyp" != 'WL' -a
                  "$datatyp" != 'QW' ]; then
                 s_date "$cdate" "$ctime"
-#              WRITE (0,2020) cdate, ctime, datatyp, nline
-#2020           FORMAT (A8, 1X, A6, 1X, 'Invalid HYDRA data type "', A,
-#    *                 '" on line ', I5, '.')
+                echo "$cdate $ctime Invalid HYDRA data type" \
+                    "\"$datatyp\" on line $nline."
                 goto 9
             fi
         else
@@ -361,9 +359,8 @@ rdb_out ()
                  "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
                  "$datatyp" != 'MS' -a "$datatyp" != 'PK' ]; then
                 s_date "$cdate" "$ctime"
-#              WRITE (0,2021) cdate, ctime, datatyp, nline
-#2021           FORMAT (A8, 1X, A6, 1X, 'Invalid data type "', A,
-#    *                 '" on line ', I5, '.')
+                echo "$cdate $ctime Invalid data type \"$datatyp\" " \
+                    "on line $nline."
                 goto 9
             fi
         fi
@@ -379,9 +376,8 @@ rdb_out ()
            "$ddid" = ' ' \)
           ]; then
             s_date "$cdate" "$ctime"
-#           WRITE (0,2030) cdate, ctime, nline
-#2030        FORMAT (A8, 1X, A6, 1X, 'Incomplete row (missing items)',
-#    *              ' on line ', I5, '.')
+            echo "$cdate $ctime Incomplete row (missing items) on " \
+                "line $nline."
             goto 9
         fi
 
@@ -407,17 +403,17 @@ rdb_out ()
                 else
                     if [ ${#outpath} -gt 128 ]; then
                         rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" \
-                            "$ddid" "$stat" "$bctdtm" "$ectdtm" "$nline"
+                            "$ddid" "$stat" "$bctdtm" "$ectdtm" $nline
                         irc=$?
                         rdb_out_goto 998
                     fi
                     rdbfile="$outpath"
                     s_file ' ' "$rdbfile" ' ' 'unknown' 'write' \
-                        0 1 "$ipu" "$funit" "$irc" *7
+                        0 1 "$ipu" "$funit" $irc *7
 #7
                     if [ $irc -ne 0 ]; then
                         rdb_cfil "$three" "$ctlfile" "$rtagny" "$sid" \
-                           "$ddid" "$stat" "$bctdtm" "$ectdtm" "$nline"
+                           "$ddid" "$stat" "$bctdtm" "$ectdtm" $nline
                         irc=$?
                         rdb_out_goto 999
                     fi
@@ -432,21 +428,19 @@ rdb_out ()
 
             if [ "$datatyp" != "$savetyp" ]; then
                 s_date "$cdate" "$ctime"
-#              WRITE (0,2040) cdate, ctime, datatyp, savetyp, nline
-#2040           FORMAT (A8, 1X, A6, 1X, 'Datatype of "', A,
-#    *            '" not the same as the first request datatype of "',
-#    *            A,'" on line ',I5,'.')
+                echo "$cdate $ctime Datatype of \"$datatyp\" not " \
+                    "the same as the first request datatype " \
+                    "of \"$savetyp\" on line $nline."
                 goto 9
             fi
 
             if [ "$datatyp" = 'MS' -a ${stat:0:1} != "$mssav" ]; then
                 # can't mix types of CSG measurements
                 s_date "$cdate" "$ctime"
-#              WRITE (0,2050) cdate,ctime,stat(1:1),mssav,nline
-#2050           FORMAT (A8,1X,A6,1X,'Measurement type of "',A,
-#    *              '" not compatible with the first ',
-#    *              'measurement type of "',
-#    *              A,'" on line ',I5,'.')
+                echo "$cdate $ctime Measurement type of " \
+                    "\"${stat:0:1}\" not compatible with the " \
+                    "first measurement type of \"$mssav\" on " \
+                    "line $nline."
                 goto 9
             fi
         fi
@@ -485,19 +479,16 @@ rdb_out ()
 #8
             if [ $irc -ne 0 ]; then
                 s_date "$cdate" "$ctime"
-#              WRITE (0,2060) cdate, ctime, irc, nline,
-#    *                        rdbfile(1:rdblen)
-#2060           FORMAT (A8, 1X, A6, 1X, 'Error ', I5,
-#    *                 ' opening output file for line ',
-#    *                 I5, '.', /, 16X, A)
+                echo "$cdate $ctime Error $irc opening output file " \
+                    "for line $nline."
+                echo "                $rdbfile"
                 irc=rdb_cfil $three "$ctlfile" "$rtagny" "$sid" "$ddid" \
                     "$stat" "$bctdtm" "$ectdtm" $nline
                 s_mclos
                 rdb_out_goto 999
             fi
             s_date "$cdate" "$ctime"
-#           WRITE (0,2070) cdate, ctime, rdbfile(1:rdblen)
-#2070        FORMAT (A8, 1X, A6, 1X, 'Writing file ', A)
+            echo "$cdate $ctime Writing file $rdbfile"
         fi
 
 #        check DD for a P in column 1 - indicated parm code for PR DD search
@@ -511,9 +502,8 @@ rdb_out ()
             get_prdd $rtdbnum "$rtagny" "$sid" "$parm" "$ddid" $irc
             if [ $irc -ne 0 ]; then
                 s_date "$cdate" "$ctime"
-#              WRITE (0,2035) cdate, ctime, rtagny, sid, parm, nline
-#2035           FORMAT (A8, 1X, A6, 1X, 'No PRIMARY DD for station "', 
-#    *                 A5, A15, '", parm "', A5, '" on line ', I5, '.')
+                echo "$cdate $ctime No PRIMARY DD for station " \
+                    "\"$rtagny $sid\", parm \"$parm\" on line $nline."
                 goto 9
             fi
         else
@@ -538,9 +528,8 @@ rdb_out ()
                  -a "$uvtyp" != 'R' -a "$uvtyp" != 'S' -a 
                  "$uvtyp" != 'C' ]; then
                 s_date "$cdate" "$ctime"
-#              WRITE (0,2080) cdate, ctime, uvtyp, nline
-#2080           FORMAT (A8, 1X, A6, 1X, 'Invalid unit-values type "', 
-#    *                 A1, '" on line ', I5,'.')
+                echo "$cdate $ctime Invalid unit-values type " \
+                    "\"$uvtyp\" on line $nline."
             else
                 if [ "$uvtyp" = 'M' ]; then inguvtyp='meas'; fi
                 if [ "$uvtyp" = 'N' ]; then inguvtyp='msar'; fi
@@ -565,16 +554,12 @@ rdb_out ()
             if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a
                  "$mstyp" != 'D' -a "$mstyp" != 'G' ]; then 
                 s_date "$cdate" "$ctime"
-#              WRITE (0,2090) cdate, ctime, mstyp, nline
-#2090           FORMAT (A8, 1X, A6, 1X,
-#    *                 'Invalid measurement file type "', A1,
-#    *                 '" on line ', I5, '.')
+                echo "$cdate $ctime Invalid measurement file " \
+                    "type \"$mstyp\" on line $nline."
             else
-
                 fmsrdbout $funit $rtdbnum "$rndsup" "$addkey" "$cflag" \
                     "$vflag" "$rtagny" "$sid" "$mstyp" "$begdtm" \
                     "$enddtm" $irc
-
             fi
 
         elif [ "$datatyp" = 'PK' ]; then
@@ -583,14 +568,11 @@ rdb_out ()
             if [ "$pktyp" != 'F' -a "$pktyp" != 'P' -a
                  "$pktyp" != 'B' ]; then
                 s_date "$cdate" "$ctime"
-#              WRITE (0,2100) cdate, ctime, pktyp, nline
-#2100           FORMAT (A8,1X,A6,1X,'Invalid peak flow file type "',A1,
-#    *              '" on line ',I5,'.')
+                echo "$cdate $ctime Invalid peak flow file type " \
+                    "\"$pktyp\" on line $nline."
             else
-
                 fpkrdbout $funit "$rndsup" "$addkey" "$cflag" "$vflag" \
                     "$rtagny" "$sid" "$pktyp" "$begdtm" "$enddtm" $irc
-
             fi
 #           
         elif [ "$datatyp" = 'DC' ]; then
@@ -1213,10 +1195,13 @@ rdb_out ()
             if [ "$parm" != ' ' -a "$datatyp" != 'VT' ]; then
                 get_prdd "$rtdbnum" "$rtagny" "$sid" "$parm" "$ddid" $irc
                 if [ $irc -ne 0 ]; then
-#                 WRITE (0,2120) rtagny, sid, parm
-#2120              FORMAT (/,'No PRIMARY DD for station "',A5,A15,
-#    *                 '", parm "',A5,'".  Aborting.',/)
-                 rdb_out_goto 999       # <- TODO
+                    echo
+                    # TODO: $rtagny needs to be output in a 5 char
+                    # field here
+                    echo "No PRIMARY DD for station " \
+                        "\"$rtagny $sid\", parm \"$parm\". Aborting."
+                    echo
+                 rdb_out_goto 999
                 fi
             fi
 
