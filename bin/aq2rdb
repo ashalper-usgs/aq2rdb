@@ -149,8 +149,22 @@ host=cidasdqaasaq2rd:8081
 # possibly unnecessary initializations here are artifacts of NWIS C
 # source translation
 error=0
-loc_nu="0"
-lblank="LOC"
+loc_nu='0'
+oblank=' '
+zblank='1'
+tblank=' '
+ablank=' '
+nblank=' '
+dblank=' '
+pblank=' '
+sblank=' '
+yblank=' '
+iblank=' '
+bblank=' '
+eblank=' '
+lblank='LOC'
+xblank='0'
+fblank=' '
 oflag=false
 tflag=false
 aflag=false
@@ -358,23 +372,84 @@ else
     fi
   fi
 fi
-if [ "$status" != 0 ]; then
+if [ $status -ne 0 ]; then
   nwts2rdb_usage
 else
-  if [ "$lflag" != true ]; then
-    loc_tz_cd="$lblank"
-  fi
+    if [ $oflag != true ]; then
+        outpath="$oblank"
+    fi
+    
+    if [ $zflag != true ]; then
+        dbnum="$zblank"
+    fi
+    
+    # set data type to blank if not supplied
+    if [ $tflag != true ]; then
+        datatyp="$tblank"
+    fi
+    
+    # get the length of the agency code
+    if [ $aflag != true ]; then
+        agency="$ablank"
+    fi
+    
+    if [ $nflag != true ]; then
+        station="$nblank"
+    fi
 
-  rdb_out "$ctlpath" "$multiple" "$outpath" "$dbnum" \
-      "$datatyp" "$rndsup" "$wyflag" "$cflag" "$vflag" "$hydra" \
-      "$agency" "$station" "$ddpm" "$loc_nu" "$stat" "$transport_cd" \
-      "$begdat" "$enddat" "$loc_tz_cd" "$titlline"
-  status=$?
+    if [ $dflag = true ]; then
+        ddpm="$ddid"
+    elif [ $pflag = true ]; then
+        # put it in the ddpm variable prefixed with "P"
+        ddpm="P$parm"
+    else
+        # Neither -d or -p was specified
+        # construct a blank string
+        ddpm="$dblank"
+    fi
+    
+    if [ $sflag != true ]; then
+        stat="$sblank"
+    fi
+
+    if [ $yflag != true ]; then
+        transport_cd="$yblank"
+    fi
+    
+    if [ $iflag != true ]; then
+        titlline="$iblank"
+    fi
+
+    if [ $bflag != true ]; then
+        begdat="$bblank"
+    fi
+
+    if [ $eflag != true ]; then
+        enddat="$eblank"
+    fi
+    
+    if [ $lflag != true ]; then
+        loc_tz_cd="$lblank"
+    fi
+    
+    if [ $xflag != true ]; then
+        loc_nu="$xblank"
+    fi
+    
+    if [ $fflag != true ]; then
+        ctlpath="$fblank"
+    fi
+
+    rdb_out "$ctlpath" "$multiple" "$outpath" "$dbnum" \
+        "$datatyp" "$rndsup" "$wyflag" "$cflag" "$vflag" "$hydra" \
+        "$agency" "$station" "$ddpm" "$loc_nu" "$stat" "$transport_cd" \
+        "$begdat" "$enddat" "$loc_tz_cd" "$titlline"
+    status=$?
 
   # if Hydra mode, write the temp filename to the named pipe
   if [ "$hydra" = 'Y' ]; then
     # Open the pipe for writing
-    if [! -w "$pipepath" ]; then
+    if [ ! -w "$pipepath" ]; then
       # Unable to open pipe, delete the temp file and quit
       rm -f "$outpath"
       echo >& 2
@@ -385,4 +460,4 @@ else
     echo "$outpath" > "$pipepath"
   fi
 fi
-exit "$status"
+exit $status
