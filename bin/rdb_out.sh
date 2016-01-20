@@ -8,9 +8,12 @@
 #            Jim Cornwall <jcorn@usgs.gov>
 #
 
-[ -r /usr/local/bin/rdb_fill_beg_date.sh ] && \
-    source /usr/local/bin/rdb_fill_beg_date.sh || \
-[ -r ../bin/rdb_fill_beg_date.sh ] && source ../bin/rdb_fill_beg_date.sh
+# use source tree version if present; installation library otherwise
+if [ -r ../bin/rdb_fill_beg_date.sh ]; then
+    source ../bin/rdb_fill_beg_date.sh
+else
+    source /usr/local/bin/rdb_fill_beg_date.sh
+fi
 
 rdb_out_goto ()
 {
