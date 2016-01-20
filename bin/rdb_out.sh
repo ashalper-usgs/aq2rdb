@@ -8,6 +8,10 @@
 #            Jim Cornwall <jcorn@usgs.gov>
 #
 
+[ -r /usr/local/bin/rdb_fill_beg_date.sh ] && \
+    source /usr/local/bin/rdb_fill_beg_date.sh || \
+[ -r ../bin/rdb_fill_beg_date.sh ] && source ../bin/rdb_fill_beg_date.sh
+
 rdb_out_goto ()
 {
     case $1 in
