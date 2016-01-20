@@ -286,7 +286,7 @@ rdb_out ()
                 rdbfile="$outpath.$datatyp.$rtagny.$sid"
                 rdblen=`expr ${#outpath} + 5 + ${#rtagny} + ${#sid}`
                 if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
-                        "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
+                     "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
                     lddid="$ddid"
                     s_jstrlf "$lddid" 4
                     rdbfile="$rdbfile.$lddid"
@@ -432,15 +432,15 @@ rdb_out ()
         fi
 
         # check data type
-        datatyp=${$datatyp^^}
+        datatyp=${datatyp^^}
 
-        if [ "$hydra" ]; then
+        if [ $hydra ]; then
             needstrt=true
             sopt="${sopt:0:7}1${sopt:8}"
             sopt="${sopt:0:11}2${sopt:12}"
-            if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
-                 "$datatyp" != 'MS' -a "$datatyp" != 'WL' -a
-                 "$datatyp" != 'QW']; then datatyp='UV'; fi
+            if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a \
+                 "$datatyp" != 'MS' -a "$datatyp" != 'WL' -a \
+                 "$datatyp" != 'QW' ]; then datatyp='UV'; fi
 
             # convert dates to 8 characters
             rdb_fill_beg_date "$wyflag" "$begdat" "$begdate"
@@ -474,7 +474,7 @@ rdb_out ()
                     echo '   QW - QW Data From QWDATA'
                     s_qryc 'Enter desired data type: ' ' ' 0 0 2 2 \
                         "$datatyp" *11 # <- TODO: translate Fortran
-                    datatyp=${$datatyp^^}
+                    datatyp=${datatyp^^}
 
                     if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
                          "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
@@ -508,7 +508,7 @@ rdb_out ()
                     echo '   QW - QW Data From QWDATA'
                     s_qryc 'Enter desired data type: ' ' ' 0 0 2 2 \
                         "$datatyp" *12 # <- TODO: translate Fortran (GOTO?)
-                    datatyp=${$datatyp^^}
+                    datatyp=${datatyp^^}
                     if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
                          "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
                          "$datatyp" != 'MS' -a "$datatyp" != 'VT' -a
@@ -651,11 +651,11 @@ rdb_out ()
                         'Unit values type (M, N, E, R, S, or C): ' \
                         ' ' 0 0 1 1 uvtyp *50 # <- TODO: translate F77
                     if [ "$uvtyp" = 'm' ]; then uvtyp='M'; fi
-                    if [ "$uvtyp" = 'n']; then uvtyp='N'; fi
-                    if [ "$uvtyp" = 'e']; then uvtyp='E'; fi
-                    if [ "$uvtyp" = 'r']; then uvtyp='R'; fi
-                    if [ "$uvtyp" = 's']; then uvtyp='S'; fi
-                    if [ "$uvtyp" = 'c']; then uvtyp='C'; fi
+                    if [ "$uvtyp" = 'n' ]; then uvtyp='N'; fi
+                    if [ "$uvtyp" = 'e' ]; then uvtyp='E'; fi
+                    if [ "$uvtyp" = 'r' ]; then uvtyp='R'; fi
+                    if [ "$uvtyp" = 's' ]; then uvtyp='S'; fi
+                    if [ "$uvtyp" = 'c' ]; then uvtyp='C'; fi
                     if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a
                          "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a
                          "$uvtyp" != 'S' -a "$uvtyp" != 'C' ]; then
@@ -699,7 +699,7 @@ rdb_out ()
 
         if [ "$datatyp" = 'MS' ]; then # get MS type
             mstyp=${instat:0:1}
-            mstyp=${$mstyp^^}
+            mstyp=${mstyp^^}
 
             if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a 
                  "$mstyp" != 'D' -a "$mstyp" != 'G' -a
@@ -719,7 +719,7 @@ rdb_out ()
 
             s_qryc '|Enter C, M, D, G, or 1 to 3: ' \
                 ' ' 0 0 1 1 "$mstyp" *45 # <- TODO translate F77 GOTO?
-            mstyp=${$mstyp^^}
+            mstyp=${mstyp^^}
             if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a 
                  "$mstyp" != 'D' -a "$mstyp" != 'G' -a 
                  "$mstyp" != '1' -a "$mstyp" != '2' -a 
@@ -751,7 +751,7 @@ rdb_out ()
 
     if [ "$datatyp" = 'VT' ]; then # get VT type
         vttyp="${instat:0:1}"
-        vttyp=${$vttyp^^}
+        vttyp=${vttyp^^}
 
         if [ "$vttyp" != 'P' -a "$vttyp" != 'R' -a
              "$vttyp" != 'A' -a "$vttyp" != 'M' -a
@@ -768,7 +768,7 @@ rdb_out ()
 
             s_qryc '|Enter P, R, A, M, or F (<CR> = A):' \
                 ' ' 0 1 1 1 "$vttyp" *55 # <- TODO: translate F77
-            vttyp=${$vttyp^^}
+            vttyp=${vttyp^^}
             if [ "$vttyp" != 'P' -a "$vttyp" != 'R' -a
                     "$vttyp" != 'A' -a "$vttyp" != 'M' -a
                     "$vttyp" != 'F' ]; then
