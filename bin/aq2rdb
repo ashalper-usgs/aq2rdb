@@ -166,6 +166,7 @@ lblank='LOC'
 xblank='0'
 fblank=' '
 oflag=false
+zflag=false
 tflag=false
 aflag=false
 nflag=false
@@ -195,7 +196,7 @@ else
   vflag='N'
   multiple='N'
   hydra='N'
-    
+
   error=false
 
   while getopts 'o:z:t:a:n:d:p:s:b:e:l:f:y:i:x:rwcvmh' optchar; do
