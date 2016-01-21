@@ -14,35 +14,35 @@ rdb_fill_beg_dtm ()
 
     # convert date/times to 14 characters
 
-    if [ $wyflag = true ]; then	# output = "<year-1>1001"
+    if [ $wyflag = true ]; then # output = "<year-1>1001"
 
         if [ ${#begdat} -gt 4 ]; then # trim to just the year
             begdtm="${begdat:0:4}"
         else
             begdtm="$begdat"
-	fi
+        fi
 
         iyr=${begdtm:0:4}
         if [ $iyr -le 0 ]; then
             begdtm='00000000000000'
         else
             # year-1, month=Oct, day=01
-	    begdtm="`expr $iyr - 1`1001"
-	fi
+            begdtm="`expr $iyr - 1`1001"
+        fi
 
-	# Handle beginning of period - needs to be all zeros
+        # Handle beginning of period - needs to be all zeros
         if [ "${begdtm:0:4}" = '0000' ]; then begdtm='00000000000000'; fi
-    else			# regular year, not WY
+    else                        # regular year, not WY
 
         if [ ${#begdat} -gt 14 ]; then
             begdtm="${begdat:0:14}"
         else
             begdtm="$begdat"
-	fi
+        fi
 
     fi
 
-    s_jstrlf begdtm 14
+    begdtm=`echo "$begdtm" | awk '{ printf("%-14s", $1); }'`
 
     begdtm=`echo $begdate | tr ' ' '0'`
     echo "$begdtm"
