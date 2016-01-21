@@ -9,13 +9,15 @@
 #           NW_RDB_FILL_BEG_DATE().
 #
 
+source $lib/s_jstrlf.sh
+
 rdb_fill_beg_date ()
 {
-    wyflag="$1"; shift;		# flag if Water Year
-    begdat="$1";		# input date (may be < 8 chars)
+    wyflag="$1"			# flag if Water Year
+    begdat="$2"			# input date (may be < 8 chars)
     # TODO:    begdate;		# output date (filled to 8 chars)
 
-    #     convert date/times to 8 characters
+    # convert date/times to 8 characters
 
     if [ $wyflag = true ]; then
 
@@ -40,8 +42,8 @@ rdb_fill_beg_date ()
 
     fi
 
-    s_jstrlf "$begdate" 8
+    begdate=$(s_jstrlf "$begdate" 8)
 
     begdate=`echo $begdate | tr ' ' '0'`
-    return
+    echo "$begdate"
 }
