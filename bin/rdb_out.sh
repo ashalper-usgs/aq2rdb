@@ -179,8 +179,8 @@ rdb_out ()
 
             # check data type
             if [ $hydra ]; then
-                if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
-                     "$datatyp" != 'MS' -a "$datatyp" != 'WL' -a
+                if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a \
+                     "$datatyp" != 'MS' -a "$datatyp" != 'WL' -a \
                      "$datatyp" != 'QW' ]; then
                     s_date "$cdate" "$ctime"
                     echo "$cdate $ctime Invalid HYDRA data type" \
@@ -188,8 +188,8 @@ rdb_out ()
                     goto 9
                 fi
             else
-                if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
-                        "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
+                if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a \
+                        "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a \
                         "$datatyp" != 'MS' -a "$datatyp" != 'PK' ]; then
                     s_date "$cdate" "$ctime"
                     echo "$cdate $ctime Invalid data type \"$datatyp\" " \
@@ -199,14 +199,14 @@ rdb_out ()
             fi
 
             # check for completeness
-            if [ "$rtagny" = ' ' -o "$sid" = ' ' -o
-                    \( "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
-                        "$datatyp" != 'WL' -a "$datatyp" != 'QW' -a
+            if [ "$rtagny" = ' ' -o "$sid" = ' ' -o \
+                    \( "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a \
+                        "$datatyp" != 'WL' -a "$datatyp" != 'QW' -a \
                         "$stat" = ' ' \) -o \
-                            "$begdtm" = ' ' -o "$enddtm" = ' ' -o
-                        \( "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
-                            "$datatyp" != 'WL' -a "$datatyp" != 'QW' -a 
-                            "$ddid" = ' ' \)
+                            "$begdtm" = ' ' -o "$enddtm" = ' ' -o \
+                        \( "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a \
+                            "$datatyp" != 'WL' -a "$datatyp" != 'QW' -a \
+                            "$ddid" = ' ' \) \
                 ]; then
                 s_date "$cdate" "$ctime"
                 echo "$cdate $ctime Incomplete row (missing items) on " \
@@ -342,7 +342,7 @@ rdb_out ()
                 fi
             else
                 # right justify DDID to 4 characters
-                if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
+                if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a \
                         "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
                     # See S_JSTRRT() comment above.
                     ddid=`echo "$ddid" | awk '{ printf("%4s", $0); }'`
@@ -359,8 +359,8 @@ rdb_out ()
             elif [ "$datatyp" = 'UV' ]; then
 
                 uvtyp=${stat:0:1}
-                if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a "$uvtyp" != 'E'
-                        -a "$uvtyp" != 'R' -a "$uvtyp" != 'S' -a 
+                if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a "$uvtyp" != 'E' \
+                        -a "$uvtyp" != 'R' -a "$uvtyp" != 'S' -a \
                         "$uvtyp" != 'C' ]; then
                     s_date "$cdate" "$ctime"
                     echo "$cdate $ctime Invalid unit-values type " \
@@ -388,8 +388,8 @@ rdb_out ()
                 # Pseudo-UV Types 1 through 3 are only good from the
                 # command line or in hydra mode
 
-                if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a
-                        "$mstyp" != 'D' -a "$mstyp" != 'G' ]; then 
+                if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a \
+                     "$mstyp" != 'D' -a "$mstyp" != 'G' ]; then 
                     s_date "$cdate" "$ctime"
                     echo "$cdate $ctime Invalid measurement file " \
                         "type \"$mstyp\" on line $nline."
@@ -402,8 +402,8 @@ rdb_out ()
             elif [ "$datatyp" = 'PK' ]; then
 
                 pktyp=${stat:0:1}
-                if [ "$pktyp" != 'F' -a "$pktyp" != 'P' -a
-                        "$pktyp" != 'B' ]; then
+                if [ "$pktyp" != 'F' -a "$pktyp" != 'P' -a \
+                     "$pktyp" != 'B' ]; then
                     s_date "$cdate" "$ctime"
                     echo "$cdate $ctime Invalid peak flow file type " \
                         "\"$pktyp\" on line $nline."
@@ -466,9 +466,9 @@ rdb_out ()
                 # Data type VT is pseudo-UV, no combining of date time
                 # possible
 
-                if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
-                     "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
-                     "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a 
+                if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a \
+                     "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a \
+                     "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a \
                      "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
 
 #11
@@ -486,9 +486,9 @@ rdb_out ()
                         "$datatyp" *11 # <- TODO: translate Fortran
                     datatyp=${datatyp^^}
 
-                    if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
-                         "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
-                         "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a 
+                    if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a \
+                         "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a \
+                         "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a \
                          "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
                       s_bada 'Please answer ' \
                           '"DV", "UV", "MS", "PK", "DC", "ST",' \ 
@@ -498,10 +498,10 @@ rdb_out ()
 
             else
 
-                if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
-                     "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
-                     "$datatyp" != 'MS' -a "$datatyp" != 'VT' -a
-                     "$datatyp" != 'PK' -a "$datatyp" != 'WL' -a
+                if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a \
+                     "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a \
+                     "$datatyp" != 'MS' -a "$datatyp" != 'VT' -a \
+                     "$datatyp" != 'PK' -a "$datatyp" != 'WL' -a \
                      "$datatyp" != 'QW' ]; then
 
 #12
@@ -519,10 +519,10 @@ rdb_out ()
                     s_qryc 'Enter desired data type: ' ' ' 0 0 2 2 \
                         "$datatyp" *12 # <- TODO: translate Fortran (GOTO?)
                     datatyp=${datatyp^^}
-                    if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a
-                         "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
-                         "$datatyp" != 'MS' -a "$datatyp" != 'VT' -a
-                         "$datatyp" != 'PK' -a "$datatyp" != 'WL' -a
+                    if [ "$datatyp" != 'DV' -a "$datatyp" != 'UV' -a \
+                         "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a \
+                         "$datatyp" != 'MS' -a "$datatyp" != 'VT' -a \
+                         "$datatyp" != 'PK' -a "$datatyp" != 'WL' -a \
                          "$datatyp" != 'QW' ]; then
                         s_bada 'Please answer ' \
                             '"DV", "UV", "MS", "VT", "PK", "DC", "ST",' \ 
@@ -656,8 +656,8 @@ rdb_out ()
                 if [ "$uvtyp" = 'r' ]; then uvtyp='R'; fi
                 if [ "$uvtyp" = 's' ]; then uvtyp='S'; fi
                 if [ "$uvtyp" = 'c' ]; then uvtyp='C'; fi
-                if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a 
-                     "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a 
+                if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a \
+                     "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a \
                      "$uvtyp" != 'S' -a "$uvtyp" != 'C' ]; then
                     uvtyp_prompted=true
 #50                
@@ -671,8 +671,8 @@ rdb_out ()
                     if [ "$uvtyp" = 'r' ]; then uvtyp='R'; fi
                     if [ "$uvtyp" = 's' ]; then uvtyp='S'; fi
                     if [ "$uvtyp" = 'c' ]; then uvtyp='C'; fi
-                    if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a
-                         "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a
+                    if [ "$uvtyp" != 'M' -a "$uvtyp" != 'N' -a \
+                         "$uvtyp" != 'E' -a "$uvtyp" != 'R' -a \
                          "$uvtyp" != 'S' -a "$uvtyp" != 'C' ]; then
                         s_bada \
                             'Please answer "M", "N", "E", "R", "S", or "C".' \
@@ -700,11 +700,11 @@ rdb_out ()
         # for the first date for this station
 
         if [ $hydra -a "$datatyp" != 'UV' ]; then
-            if [ ! eval key_get_zone_dst "$rtdbnum" "$rtagny" "$sid"
-                        "$tz_cd" "$local_time_fg" ]; then
+            if [ ! eval key_get_zone_dst "$rtdbnum" "$rtagny" "$sid" \
+                            "$tz_cd" "$local_time_fg" ]; then
                 loc_tz_cd='UTC' # default to UTC
             else
-                if [ ! eval get_dflt_tzcd "$tz_cd" "local_time_fg"
+                if [ ! eval get_dflt_tzcd "$tz_cd" "local_time_fg" \
                      ${begdtm:0:8} "$loc_tz_cd" ]; then
                     loc_tz_cd='UTC'       # default to UTC
                 fi
@@ -715,9 +715,9 @@ rdb_out ()
             mstyp=${instat:0:1}
             mstyp=${mstyp^^}
 
-            if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a 
-                 "$mstyp" != 'D' -a "$mstyp" != 'G' -a
-                 "$mstyp" != '1' -a "$mstyp" != '2' -a 
+            if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a \
+                 "$mstyp" != 'D' -a "$mstyp" != 'G' -a \
+                 "$mstyp" != '1' -a "$mstyp" != '2' -a \
                  "$mstyp" != '3' ]; then
                 mstyp=' '
             fi
@@ -734,9 +734,9 @@ rdb_out ()
             s_qryc '|Enter C, M, D, G, or 1 to 3: ' \
                 ' ' 0 0 1 1 "$mstyp" *45 # <- TODO translate F77 GOTO?
             mstyp=${mstyp^^}
-            if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a 
-                 "$mstyp" != 'D' -a "$mstyp" != 'G' -a 
-                 "$mstyp" != '1' -a "$mstyp" != '2' -a 
+            if [ "$mstyp" != 'C' -a "$mstyp" != 'M' -a \
+                 "$mstyp" != 'D' -a "$mstyp" != 'G' -a \
+                 "$mstyp" != '1' -a "$mstyp" != '2' -a \
                  "$mstyp" != '3' ]; then s_bada \
                     'Please answer "C", "M", "G", or "1" to "3".' \
                     *45; fi
@@ -750,9 +750,8 @@ rdb_out ()
                 sopt="${sopt:0:9}3${sopt:10}"
             fi
         else
-
             if [ "$mstyp" >= '1' -a "$mstyp" <= '3' ]; then
-                # doing pseudo-uv, convert date/times to 14 characters
+                # doing pseudo-UV, convert date/times to 14 characters
                 rdb_fill_beg_dtm "$wyflag" "$begdat" "$begdtm"
                 rdb_fill_end_dtm "$wyflag" "$enddat" "$enddtm"
               else
@@ -767,8 +766,8 @@ rdb_out ()
         vttyp="${instat:0:1}"
         vttyp=${vttyp^^}
 
-        if [ "$vttyp" != 'P' -a "$vttyp" != 'R' -a
-             "$vttyp" != 'A' -a "$vttyp" != 'M' -a
+        if [ "$vttyp" != 'P' -a "$vttyp" != 'R' -a \
+             "$vttyp" != 'A' -a "$vttyp" != 'M' -a \
              "$vttyp" != 'F' ]; then
 
             vttyp='A'
@@ -783,8 +782,8 @@ rdb_out ()
             s_qryc '|Enter P, R, A, M, or F (<CR> = A):' \
                 ' ' 0 1 1 1 "$vttyp" *55 # <- TODO: translate F77
             vttyp=${vttyp^^}
-            if [ "$vttyp" != 'P' -a "$vttyp" != 'R' -a
-                    "$vttyp" != 'A' -a "$vttyp" != 'M' -a
+            if [ "$vttyp" != 'P' -a "$vttyp" != 'R' -a \
+                    "$vttyp" != 'A' -a "$vttyp" != 'M' -a \
                     "$vttyp" != 'F' ]; then
                 s_bada \
                     'Please answer "P", "R", "A", "M" or "F".' \
@@ -1039,8 +1038,8 @@ rdb_out ()
 
         # retrieving measured UVs and transport_cd not supplied,
         # prompt for it
-        if [ $uvtyp_prompted -a "$datatyp" = 'UV' -a
-             \( "$uvtyp" = 'M' -o "$uvtyp" = 'N' \) -a
+        if [ "$uvtyp_prompted" = true -a "$datatyp" = 'UV' -a \
+             \( "$uvtyp" = 'M' -o "$uvtyp" = 'N' \) -a \
              "$transport_cd" = ' ' ]; then
             query_meas_uv_type "$rtagny" "$sid" "$ddid" "$begdtm" \
                 "$enddtm" "$loc_tz_cd" "$transport_cd" \
