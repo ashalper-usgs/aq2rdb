@@ -436,7 +436,7 @@ rdb_out ()
 
         sopt='10000000000000000000000000000000' # init control argument
         if [ ${#intyp} -gt 2 ]; then
-            datatyp=${intyp:0:2}
+            datatyp="${intyp:0:2}"
         else
             datatyp="$intyp"
         fi
