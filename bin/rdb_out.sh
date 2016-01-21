@@ -12,6 +12,7 @@ source $lib/rdb_fill_beg_date.sh
 source $lib/rdb_fill_end_date.sh
 source $lib/rdb_fill_beg_dtm.sh
 source $lib/rdb_fill_end_dtm.sh
+source $lib/s_jstrrt.sh
 
 rdb_out_goto ()
 {
@@ -544,7 +545,7 @@ rdb_out ()
         # convert station to 15 characters
         if [ "$instnid" = ' ' ]; then
             needstrt=true
-            if [ "$datatyp" = 'MS' -o "$datatyp" = 'PK' -o
+            if [ "$datatyp" = 'MS' -o "$datatyp" = 'PK' -o \
                  "$datatyp" = 'WL' -o "$datatyp" = 'QW' ]; then
                 sopt="${sopt:0:4}1${sopt:5}"
             else
@@ -561,13 +562,13 @@ rdb_out ()
 
         # DD is ignored for data types MS, PR, WL, and QW
 
-        if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
+        if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a \
              "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
 
             # If type is VT, DDID is only needed IF parm and loc
             # number are not specified
             if [ \( datatyp != 'VT' -a "$inddid" = ' ' \) \
-                 -o
+                 -o \
                  \( datatyp = 'VT' -a "$inddid" = ' ' \
                     -a \( ${inddid:0:1} != 'P' -o "$inlocnu" = ' ' \) \) \
                ]; then
