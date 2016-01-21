@@ -12,7 +12,6 @@ source $lib/rdb_fill_beg_date.sh
 source $lib/rdb_fill_end_date.sh
 source $lib/rdb_fill_beg_dtm.sh
 source $lib/rdb_fill_end_dtm.sh
-source $lib/s_jstrrt.sh
 
 rdb_out_goto ()
 {
@@ -217,7 +216,9 @@ rdb_out ()
 
             # zero pad stat code IF type is DV
             if [ "$datatyp" = 'DV' ]; then
-                s_jstrrt "$stat" 5
+                # Emulate NWIS S_JSTRRT() Fortran subroutine; source
+                # last seen in watstore/library/prime_lib/s_jstrrt.f.
+                stat=`echo "$stat" | awk '{ printf("%5s", $0); }'`
                 stat=`echo $stat | tr ' ' '0'`
             fi
 
@@ -328,7 +329,8 @@ rdb_out ()
 
             if [ ${ddid:0:1} = 'p' -o ${ddid:0:1} = 'P' ]; then
                 parm=${ddid:1:5}
-                s_jstrrt "$parm" 5
+                # See S_JSTRRT() comment above.
+                parm=`echo "$parm" | awk '{ printf("%5s", $0); }'`
                 parm=`echo $parm | tr ' ' '0'`
                 get_prdd $rtdbnum "$rtagny" "$sid" "$parm" "$ddid" $irc
                 if [ $irc -ne 0 ]; then
@@ -341,7 +343,8 @@ rdb_out ()
                 # right justify DDID to 4 characters
                 if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
                         "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
-                    s_jstrrt "$ddid" 4
+                    # See S_JSTRRT() comment above.
+                    ddid=`echo "$ddid" | awk '{ printf("%4s", $0); }'`
                 fi
             fi
 
@@ -584,7 +587,8 @@ rdb_out ()
                     else
                         parm=${inddid:1}
                     fi
-                    s_jstrrt "$parm" 5
+                    # see S_JSTRRT() comment above
+                    parm=`echo "$parm" | awk '{ printf("%5s", $0); }'`
                     parm=`echo $parm | tr ' ' '0'`
                 else
                     parm=' '
@@ -594,7 +598,8 @@ rdb_out ()
                     else
                         ddid="$inddid"
                     fi
-                    s_jstrrt ddid 4
+                    # see S_JSTRRT() comment above
+                    ddid=`echo "$ddid" | awk '{ printf("%4s", $0); }'`
 
                 fi
 
@@ -614,12 +619,13 @@ rdb_out ()
                 else
                     stat="$instat"
                 fi
-                s_jstrrt "$stat" 5
+                # see S_JSTRRT() comment above
+                stat=`echo "$stat" | awk '{ printf("%5s", $0); }'`
                 stat=`echo $stat | tr ' ' '0'`
             fi
         fi
 
-        if [ "$datatyp" = 'DV' -o "$datatyp" = 'DC' -o
+        if [ "$datatyp" = 'DV' -o "$datatyp" = 'DC' -o \
              "$datatyp" = 'SV' -o "$datatyp" = 'PK' ]; then
 
             # convert dates to 8 characters
@@ -673,8 +679,7 @@ rdb_out ()
             fi
 
             # convert date/times to 14 characters
-            if [ "$begdat" = ' ' -o
-                 "$enddat" = ' ' ]; then
+            if [ "$begdat" = ' ' -o "$enddat" = ' ' ]; then
                 needstrt=true
                 if [ $wyflag ]; then
                     sopt=${sopt:0:8}4${sopt:9}
