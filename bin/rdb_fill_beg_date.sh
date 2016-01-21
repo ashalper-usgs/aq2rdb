@@ -9,8 +9,6 @@
 #           NW_RDB_FILL_BEG_DATE().
 #
 
-source $lib/s_jstrlf.sh
-
 rdb_fill_beg_date ()
 {
     wyflag="$1"			# flag if Water Year
@@ -42,7 +40,7 @@ rdb_fill_beg_date ()
 
     fi
 
-    begdate=$(s_jstrlf "$begdate" 8)
+    begdate=`echo "$begdate" | awk '{ printf("%-8s", $1); }'`
 
     begdate=`echo $begdate | tr ' ' '0'`
     echo "$begdate"
