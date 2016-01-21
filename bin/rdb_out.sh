@@ -292,15 +292,16 @@ rdb_out ()
                 # open a new file
                 rdbfile="$outpath.$datatyp.$rtagny.$sid"
                 rdblen=`expr ${#outpath} + 5 + ${#rtagny} + ${#sid}`
-                if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a
+                if [ "$datatyp" != 'MS' -a "$datatyp" != 'PK' -a \
                      "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
                     lddid="$ddid"
-                    s_jstrlf "$lddid" 4
+                    # emulate NWIS S_JSTRLF() Fortran subroutine
+                    lddid=`echo "$lddid" | awk '{ printf("%-4s", $1); }'`
                     rdbfile="$rdbfile.$lddid"
                     rdblen=`expr $rdblen + 1 + ${#lddid}`
                 fi
-                if [ "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a
-                        "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
+                if [ "$datatyp" != 'DC' -a "$datatyp" != 'SV' -a \
+                     "$datatyp" != 'WL' -a "$datatyp" != 'QW' ]; then
                     rdbfile="$rdbfile.$stat"
                     rdblen=`expr $rdblen + 1 + ${#stat}`
                 fi
@@ -542,7 +543,8 @@ rdb_out ()
             else
                 rtagny="$inagny"
             fi
-            s_jstrlf "$rtagny" 5
+            # emulate NWIS S_JSTRLF() Fortran subroutine
+            rtagny=`echo "$rtagny" | awk '{ printf("%-5s", $1); }'`
         fi
 
         # convert station to 15 characters
@@ -560,7 +562,8 @@ rdb_out ()
             else
                 sid="$instnid"
             fi
-            s_jstrlf "$sid" 15
+            # emulate NWIS S_JSTRLF() Fortran subroutine
+            sid=`echo "$sid" | awk '{ printf("%-15s", $1); }'`
         fi
 
         # DD is ignored for data types MS, PR, WL, and QW
