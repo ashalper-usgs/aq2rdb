@@ -1,4 +1,11 @@
 #! /bin/sh
+#
+# File - harness
+#
+# Purpose - Test harness for aq2rdb Web service.
+#
+# Author - Andy Halper <ashalper@usgs.gov>
+#
 
 aq2rdb () {
     curl -g "http://$HOST:8081/aq2rdb?$1"
