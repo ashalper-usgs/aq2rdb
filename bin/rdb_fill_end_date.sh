@@ -18,31 +18,30 @@ rdb_fill_end_date ()
     # convert date/times to 8 characters
 
     if [ "$wyflag" = true ]; then
-	# output will be "<year>0930" for end of WY
+        # output will be "<year>0930" for end of WY
 
         if [ ${#enddat} -gt 4 ]; then
             enddate=${enddat:0:4}
         else
             enddate="$enddat"
-	fi
+        fi
 
         if [ ${enddate:0:4} = '9999' ]; then
-	    # end of period is all nines
-	    enddate='99999999'
-	fi
+            # end of period is all nines
+            enddate='99999999'
+        fi
 
-    else			# output will just be filled-out date
+    else                        # output will just be filled-out date
 
         if [ ${#enddat} -gt 8 ]; then
             enddate=${enddat:0:8}
         else
             enddate="$enddat"
-	fi
+        fi
 
     fi
 
-    # TODO:
-    enddate=$(s_jstrlf enddate 8)
+    enddate=`echo "$enddate" | awk '{ printf("%-8s", $1); }'`
 
     enddate=`echo $enddate | tr ' ' '0'`
     echo "$enddate"
