@@ -206,7 +206,7 @@ else
         outpath="$OPTARG"
         ;;
       z)
-        echo "$0: warning: the nwts2rdb \"-z\" option is no longer used" >& 2
+        echo "$0: warning: the nwts2rdb \"-z\" option is obsolete" >& 2
         ;;
       t)
         tflag=true
@@ -441,24 +441,23 @@ else
         ctlpath="$fblank"
     fi
 
-    rdb_out "$ctlpath" "$multiple" "$outpath" "$dbnum" \
+    status=$(rdb_out "$ctlpath" "$multiple" "$outpath" \
         "$datatyp" "$rndsup" "$wyflag" "$cflag" "$vflag" "$hydra" \
         "$agency" "$station" "$ddpm" "$loc_nu" "$stat" "$transport_cd" \
-        "$begdat" "$enddat" "$loc_tz_cd" "$titlline"
-    status=$?
+        "$begdat" "$enddat" "$loc_tz_cd" "$titlline")
 
-  # if Hydra mode, write the temp filename to the named pipe
-  if [ "$hydra" = 'Y' ]; then
-    # Open the pipe for writing
-    if [ ! -w "$pipepath" ]; then
-      # Unable to open pipe, delete the temp file and quit
-      rm -f "$outpath"
-      echo >& 2
-      echo "Cannot open named pipe for writing." >& 2
-      status=126
+    # if Hydra mode, write the temp filename to the named pipe
+    if [ "$hydra" = 'Y' ]; then
+        # Open the pipe for writing
+        if [ ! -w "$pipepath" ]; then
+            # Unable to open pipe, delete the temp file and quit
+            rm -f "$outpath"
+            echo >& 2
+            echo "Cannot open named pipe for writing." >& 2
+            status=126
+        fi
+        # write the temp file pathname to the pipe
+        echo "$outpath" > "$pipepath"
     fi
-    # write the temp file pathname to the pipe
-    echo "$outpath" > "$pipepath"
-  fi
 fi
 exit $status
