@@ -36,7 +36,8 @@ rdb_fill_end_dtm ()
 
     fi
 
-    s_jstrlf enddtm 14
+    # emulate NWIS S_JSTRLF() Fortran subroutine
+    enddtm=`echo "$enddtm" | awk '{ printf("%-14s", $1); }'`
     if [ "${enddtm:8:1}" = ' ' ]; then
         if [ "${enddtm:0:8}" = '99999999' ]; then
             enddtm="${enddtm:0:8}999999"
