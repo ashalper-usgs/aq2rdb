@@ -25,7 +25,6 @@ var moment = require('moment-timezone');
 /**
    @description The Web service name is the script name without the
                 ".js" suffix.
-
 */
 var packageName = path.basename(process.argv[1]).slice(0, -3);
 
@@ -479,6 +478,12 @@ function httpQuery(host, path, obj, callback) {
         });
     }
     
+    if (options.log === true) {
+        console.log(
+            packageName + '.httpQuery.obj: ' + JSON.stringify(obj)
+        );
+    }
+
     path += '?' + querystring.stringify(obj);
 
     if (options.log === true) {
@@ -1010,14 +1015,20 @@ function parseTimeSeriesDataServiceResponse(messageBody, callback) {
    @function Query USGS Site Web Service.
    @private
    @callback
-   @param {string} siteNo NWIS site number string.
+   @param {string} siteNumber NWIS site number string.
 */
-function requestSite(siteNo, callback) {
+function requestSite(siteNumber, callback) {
+    if (options.log === true) {
+        console.log(
+            packageName + '.requestSite.siteNumber: ' + siteNumber
+        );
+    }
+
     try {
         httpQuery(
             options.waterServicesHostname, '/nwis/site/',
             {format: 'rdb',
-             sites: siteNo,
+             sites: siteNumber,
              siteOutput: 'expanded'}, callback
         );
     }
@@ -1238,7 +1249,15 @@ httpdispatcher.onGet(
                     distill(
                         timeSeriesDescriptions, locationIdentifier, callback
                     );
-                callback(null, locationIdentifier);
+
+                if (options.log === true) {
+                    console.log(
+                        packageName + '.locationIdentifier: ' +
+                            locationIdentifier
+                    );
+                }
+
+                callback(null, locationIdentifier.siteNumber());
             },
             requestSite,
             receiveSite,
