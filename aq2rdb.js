@@ -39,6 +39,10 @@ var AQUARIUS_PREFIX = '/AQUARIUS/Publish/V2/';
 */
 var cli = commandLineArgs([
     /**
+       @description Print version and exit.
+    */
+    { name: 'version', alias: 'v', type: Boolean, defaultValue: false },
+    /**
        @description TCP/IP port that aq2rdb will listen on.
     */
     {name: 'port', alias: 'p', type: Number, defaultValue: 8081},
@@ -1748,19 +1752,27 @@ function handleRequest(request, response) {
 }
 
 /**
-   @description Create HTTP server to host the service.
-*/ 
-var server = http.createServer(handleRequest);
+   @description Check for "version" CLI option.
+*/
+if (options.version === true) {
+    console.log('v1.1.0');      // TODO: parse from installation package.json
+}
+else {
+    /**
+       @description Create HTTP server to host the service.
+    */
+    var server = http.createServer(handleRequest);
 
-/**
-   @description Start listening for requests.
-*/ 
-server.listen(options.port, function () {
-    console.log(
-        PACKAGE_NAME + ': Server listening on: http://localhost:' +
-            options.port.toString()
-    );
-});
+    /**
+       @description Start listening for requests.
+    */ 
+    server.listen(options.port, function () {
+        console.log(
+            PACKAGE_NAME + ': Server listening on: http://localhost:' +
+                options.port.toString()
+        );
+    });
+}
 
 /**
    @description Export module's private functions to test harness
