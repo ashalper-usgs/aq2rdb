@@ -23,7 +23,9 @@ var fs = require('fs');
 var moment = require('moment-timezone');
 
 /**
-   @description The aq2rdb Web service name.
+   @description The Web service name is the script name without the
+                ".js" suffix.
+
 */
 var packageName = path.basename(process.argv[1]).slice(0, -3);
 
@@ -478,6 +480,11 @@ function httpQuery(host, path, obj, callback) {
     }
     
     path += '?' + querystring.stringify(obj);
+
+    if (options.log === true) {
+        console.log(packageName + ': querying http://' +
+                    host + path); 
+    }
 
     var request = http.request({
         host: host,
@@ -1036,10 +1043,6 @@ function receiveSite(messageBody, callback) {
              to encapsulate.
     */
     try {
-        if (options.log === true) {
-            console.log('packageName: ' + packageName);
-        }
-
         // parse (station_nm,tz_cd,local_time_fg) from RDB
         // response
         var row = messageBody.split('\n');
