@@ -1722,7 +1722,7 @@ httpdispatcher.onGet(
             function (callback) {
                 if (url === '/' + PACKAGE_NAME) {
                     return;
-		}
+                }
                 callback(null);
             },
             /**
@@ -1730,8 +1730,8 @@ httpdispatcher.onGet(
                @callback
             */
             function (callback) {
-	    }
-	]); // async.waterfall
+            }
+        ]); // async.waterfall
     }
 ); // aq2rdb
 
