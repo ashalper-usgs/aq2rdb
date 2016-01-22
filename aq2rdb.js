@@ -744,7 +744,7 @@ function getLocationData(token, locationIdentifier, callback) {
    @function Create RDB, DV table row.
    @private
    @param {string} timestamp AQUARIUS timestamp string.
-   @param {string} value Time series daily value.
+   @param {object} value Time series daily value.
    @param {object} qualifiers AQUARIUS
           QualifierListServiceResponse.Qualifiers.
    @param {object} remarkCodes An array (as domain table) of daily
@@ -753,9 +753,13 @@ function getLocationData(token, locationIdentifier, callback) {
    @param {string} qa QA code.
 */
 function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
-    var row = aq2rdb.toNWISDateFormat(timestamp) +
-        // TIME column will always be empty for daily values
-        '\t\t' + value + '\t';
+    // TIME column will always be empty for daily values
+    var row = aq2rdb.toNWISDateFormat(timestamp) + '\t\t';
+
+    if (value.Numeric !== undefined)
+        row += value.Numeric.toString();
+
+    row += '\t';
 
     /**
        @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
@@ -1418,7 +1422,7 @@ httpdispatcher.onGet(
                         response.write(
                             dvTableRow(
                                 timeSeriesPoint.Timestamp,
-                                timeSeriesPoint.Value.Numeric.toString(),
+                                timeSeriesPoint.Value,
                                 timeSeriesDataServiceResponse.Qualifiers,
                                 remarkCodes,
           timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
