@@ -9,6 +9,7 @@
 
 'use strict';
 
+var path = require('path');
 var commandLineArgs = require('command-line-args');
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
@@ -23,9 +24,8 @@ var moment = require('moment-timezone');
 
 /**
    @description The aq2rdb Web service name.
-   @constant
 */
-var PACKAGE_NAME = 'aq2rdb';
+var packageName = path.basename(process.argv[1]).slice(0, -3);
 
 /**
    @description AQUARIUS Web services path prefix.
@@ -42,6 +42,10 @@ var cli = commandLineArgs([
        @description Print version and exit.
     */
     { name: 'version', alias: 'v', type: Boolean, defaultValue: false },
+    /**
+       @description Enable logging.
+    */
+    { name: 'log', alias: 'l', type: Boolean, defaultValue: false },
     /**
        @description TCP/IP port that aq2rdb will listen on.
     */
@@ -125,7 +129,7 @@ function handle(error, response) {
        @see https://nodejs.org/api/errors.html#errors_error_code
     */
     if (error.code === 'ECONNREFUSED') {
-        statusMessage = '# ' + PACKAGE_NAME +
+        statusMessage = '# ' + packageName +
             ': Connection error; a common cause of this ' +
             'is GetAQToken being unreachable';
         /**
@@ -136,14 +140,17 @@ function handle(error, response) {
     }
     else if (error instanceof ReferenceError) {
         statusMessage =
-            '# ' + PACKAGE_NAME + ': There is an undefined ' +
-            'reference on the ' + PACKAGE_NAME + ' server';
+            '# ' + packageName + ': There is an undefined ' +
+            'reference on the ' + packageName + ' server';
         statusCode = 500;
-        console.log(PACKAGE_NAME + ': ' +
-                    error.toString().replace(/: (\w+)/, ': "$1"'));
+
+        if (options.log === true) {
+            console.log(packageName + ': ' +
+                        error.toString().replace(/: (\w+)/, ': "$1"'));
+        }
     }
     else if (typeof error === 'string') {
-        statusMessage = '# ' + PACKAGE_NAME + ': ' + error;
+        statusMessage = '# ' + packageName + ': ' + error;
         /**
            @default HTTP error status code.
            @todo It would be nice to refine this. Too generic now.
@@ -151,7 +158,7 @@ function handle(error, response) {
         statusCode = 404;
     }
     else {
-        statusMessage = '# ' + PACKAGE_NAME + ': ' + error.message;
+        statusMessage = '# ' + packageName + ': ' + error.message;
         /**
            @default HTTP error status code.
            @todo It would be nice to refine this. Too generic now.
@@ -560,6 +567,10 @@ function getAQToken(userName, password, callback) {
     request.on('error', function (error) {
         var statusMessage;
 
+        if (options.log === true) {
+            console.log(error);
+        }
+
         if (error.message === 'connect ECONNREFUSED') {
             callback('Could not connect to GetAQToken service for ' +
                      'AQUARIUS authentication token');
@@ -584,7 +595,7 @@ function getAQToken(userName, password, callback) {
 */
 function docRequest(url, name, response, callback) {
     // if this is a documentation request
-    if (url === '/' + PACKAGE_NAME + '/' + name) {
+    if (url === '/' + packageName + '/' + name) {
         // read and serve the documentation page
         fs.readFile('doc/' + name + '.html', function (error, html) {
             if (error) {
@@ -1025,6 +1036,10 @@ function receiveSite(messageBody, callback) {
              to encapsulate.
     */
     try {
+        if (options.log === true) {
+            console.log('packageName: ' + packageName);
+        }
+
         // parse (station_nm,tz_cd,local_time_fg) from RDB
         // response
         var row = messageBody.split('\n');
@@ -1052,7 +1067,7 @@ function receiveSite(messageBody, callback) {
    @description GetDVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
-    '/' + PACKAGE_NAME + '/GetDVTable',
+    '/' + packageName + '/GetDVTable',
     /**
        @callback
     */
@@ -1413,7 +1428,7 @@ httpdispatcher.onGet(
    @description GetUVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
-    '/' + PACKAGE_NAME + '/GetUVTable',
+    '/' + packageName + '/GetUVTable',
     /**
        @callback
     */
@@ -1713,7 +1728,7 @@ httpdispatcher.onGet(
    @description aq2rdb endpoint service request handler.
 */
 httpdispatcher.onGet(
-    '/' + PACKAGE_NAME,
+    '/' + packageName,
     /**
        @callback
     */
@@ -1724,7 +1739,7 @@ httpdispatcher.onGet(
                @callback
             */
             function (callback) {
-                if (url === '/' + PACKAGE_NAME) {
+                if (url === '/' + packageName) {
                     return;
                 }
                 callback(null);
@@ -1767,10 +1782,12 @@ else {
        @description Start listening for requests.
     */ 
     server.listen(options.port, function () {
-        console.log(
-            PACKAGE_NAME + ': Server listening on: http://localhost:' +
-                options.port.toString()
-        );
+        if (options.log === true) {
+            console.log(
+                packageName + ': Server listening on: http://localhost:' +
+                    options.port.toString()
+            );
+        }
     });
 }
 
