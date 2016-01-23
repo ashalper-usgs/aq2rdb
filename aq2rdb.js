@@ -557,16 +557,28 @@ function getAQToken(userName, password, callback) {
         });
     } // getAQTokenCallback
 
+    var path = '/services/GetAQToken?';
+    var uriString = 'http://' + options.aquariusHostname +
+        '/AQUARIUS/';
+
+    if (options.log === true) {
+        console.log(
+            packageName + ': querying http://' +
+                options.aquariusTokenHostname + path +
+                ' ..., AQUARIUS server at ' + uriString
+        );
+    }
+
+    // make sure to not reveal user-name/passwords in log
+    path += querystring.stringify(
+        {userName: userName, password: password,
+         uriString: uriString}
+    );
+
     /**
        @description GetAQToken service request for AQUARIUS
                     authentication token needed for AQUARIUS API.
     */
-    var path = '/services/GetAQToken?' +
-        querystring.stringify(
-            {userName: userName, password: password,
-             uriString: 'http://' + options.aquariusHostname + '/AQUARIUS/'}
-        );
-
     var request = http.request({
         host: options.aquariusTokenHostname,
         port: '8080',           // TODO: make a CLI option
