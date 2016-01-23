@@ -580,7 +580,7 @@ function getAQToken(userName, password, callback) {
         var statusMessage;
 
         if (options.log === true) {
-            console.log(error);
+            console.log(packageName + ': ' + error);
         }
 
         if (error.message === 'connect ECONNREFUSED') {
@@ -1796,7 +1796,23 @@ function handleRequest(request, response) {
    @description Check for "version" CLI option.
 */
 if (options.version === true) {
-    console.log('v1.1.0');      // TODO: parse from installation package.json
+    fs.readFile('package.json', function (error, json) {
+        if (error) {
+            callback(error);
+            return;
+        }
+   
+        var pkg;
+        try {
+            pkg = JSON.parse(json);
+        }
+        catch (error) {
+            console.log(packageName + ': ' + error);
+            return;
+        }
+
+        console.log(pkg.version);
+    });
 }
 else {
     /**
