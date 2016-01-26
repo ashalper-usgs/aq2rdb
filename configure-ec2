@@ -1,0 +1,13 @@
+#! /bin/sh
+#
+#  File - configure-ec2
+#
+#  Purpose - (Re-)configure an AWS EC2 instance as needed until we ascend the
+#            AMI learning curve.q
+#
+#  Author - Andy Halper <ashalper@usgs.gov>
+#
+
+yum install npm nodejs
+mkdir -p /usr/local/lib/aquarius-token /usr/local/lib/aq2rdb
+
