@@ -11,9 +11,9 @@ import getopt
 import sys
 
 # Display usage information for the aq2rdb command
-def nwts2rdb_usage():
+def aq2rdb_usage():
     sys.stderr.write()
-    sys.stderr.write("Usage: nwts2rdb -ooutfile")
+    sys.stderr.write("Usage: aq2rdb -ooutfile")
     sys.stderr.write("                -zdbnum")
     sys.stderr.write("                -tdatatype (dv, uv, ms, vt, pk, dc, sv, wl, or qw)")
     sys.stderr.write("                -aagency")
@@ -92,7 +92,7 @@ def nwts2rdb_usage():
     sys.stderr.write("")
     sys.stderr.write("         -- OR --")
     sys.stderr.write("")
-    sys.stderr.write("       nwts2rdb -fctlfile")
+    sys.stderr.write("       aq2rdb -fctlfile")
     sys.stderr.write("                -ooutfile")
     sys.stderr.write("                -m (write multiple files)")
     sys.stderr.write("                -zdbnum")
@@ -140,12 +140,8 @@ def nwts2rdb_usage():
     sys.stderr.write("       datatype \"wl\", \"qw\", \"vt\" and some datatype \"ms\" options.")
     sys.stderr.write("")
 
-#int
 def main():
-    #  extern int optind,opterr,optopt;
-    #  extern char *optarg;
-    #
-#  FILE *pipe;
+    #  FILE *pipe;
     #  char *pipepath;
     #  char temppath[256];
     #  int optchar;
@@ -153,27 +149,27 @@ def main():
     #  int error;
     #  char *ddpm;
     #  int i;
-    #  char *outpath=NULL;
-    #  char *dbnum=NULL;
-    #  char *datatyp=NULL;
-    #  char *agency=NULL;
-    #  char *station=NULL;
-    #  char *ddid=NULL;
-    #  char *parm=NULL;
-    #  char *stat=NULL;
-    #  char *begdat=NULL;
-    #  char *enddat=NULL;
-    #  char *loc_tz_cd=NULL;
-    #  char *loc_nu=NULL;
-    #  char *ctlpath=NULL;
-    #  char *transport_cd=NULL;
-    #  char *titlline=NULL;
-    #  char rndsup=NULL;
-    #  char wyflag=NULL;
-    #  char cflag=NULL;
-    #  char vflag=NULL;
-    #  char multiple=NULL;
-    #  char hydra=NULL;
+    outpath = None
+    dbnum = None
+    datatyp = None
+    agency = None
+    station = None
+    ddid = None
+    parm = None
+    stat = None
+    begdat = None
+    enddat = None
+    loc_tz_cd = None
+    loc_nu = None
+    ctlpath = None
+    transport_cd = None
+    titlline = None
+    rndsup = None
+    wyflag = None
+    cflag = None
+    vflag = None
+    multiple = None
+    hydra = None
     oblank = " "
     zblank = "1"
     tblank = " "
@@ -204,20 +200,20 @@ def main():
     lflag = False
     fflag = False
     xflag = False
-    #  int olen;
-    #  int zlen;
-    #  int tlen;
-    #  int alen;
-    #  int nlen;
-    #  int dplen;
-    #  int slen;
-    #  int ylen;
-    #  int ilen;
-    #  int blen;
-    #  int elen;
-    #  int llen;
-    #  int xlen;
-    #  int flen;
+    olen = 0
+    zlen = 0
+    tlen = 0
+    alen = 0
+    nlen = 0
+    dplen = 0
+    slen = 0
+    ylen = 0
+    ilen = 0
+    blen = 0
+    elen = 0
+    llen = 0
+    xlen = 0
+    flen = 0
 
     status = 0
 
@@ -245,8 +241,8 @@ def main():
 
         for opt, arg in opts:
             if opt == "-o":
-        	oflag = True
-        	outpath = arg
+                oflag = True
+                outpath = arg
             elif opt == "-z":
                 zflag = True
                 dbnum = arg
@@ -340,77 +336,81 @@ def main():
                         "must be specified."
                     )
                     status = 119
-        	elif not oflag:
+                elif not oflag:
                     # -o must be specified if -h is specified
                     sys.stderr.write()
-                    sys.stderr.write("If -h is specified, -o must also be specified.\n")
+                    sys.stderr.write(
+                        "If -h is specified, -o must also be specified."
+                    )
                     status = 121
-        #	}
-        #	else {
-        #	  /*
-        #	   * both -h and -o were specified - outpath is actually the 
-        #	   * pathname of a named pipe, save it's name
-        #	  
-        #	  pipepath=outpath;
-        #	  /* make sure the named pipe exists
-        #	  if (access(pipepath,F_OK):
-        #	    /* 
-        #	     * does not exist - hydra must have crashed
-        #	     * delete the temp file and exit
-        #	    
-        #	    sys.stderr.write("\nHydra mode - Named pipe does not exist.\n");
-        #	    status=125;
-        #	  }
-        #	  else {
-        #	    /* Named pipe exists, create a temporary filename in outpath
-        #	    nwc_tmpnam(temppath);
-        #	    outpath=temppath;
-        #	  }
-        #	}
-        #      }
-        #      /*
-        #       * if a control file is supplied, all arguments are ignored except
-        #       * -z (database number), -r (suppress rounding), -l (local time zone),
-        #       * -m (multiple file output), and -o (output file).  If -o is not 
-        #       * supplied, -m cannot also be supplied - (can't do multiple files if 
-        #       * everything is going to stdout - one file by definition) 
-        #      
-        #      if (fflag && multiple == 'Y' && not oflag:
-        #	sys.stderr.write("\nIf -f and -m is specified, -o must also be specified.\n");
-        #	status=122;
-        #      }
-        #      /*
-        #       * Not using a control file.  Cannot have both -d and -p
-        #      
-        #      elif not fflag && dflag && pflag:
-        #	sys.stderr.write("\nArguments -d and -p cannot both be specified.\n");
-        #	status=123;
-        #      }
-        #      /*
-        #       * Not using a control file, -m is ignored.
-        #       * If -o is not specified, all other arguments must be there 
-        #       * as the prompting for missing arguments uses ADAPS subroutines 
-        #       * that write the prompts to stdout (they're ports from Prime, remember?)
-        #       * so the rdb output has to go to a file, otherwise the prompts would 
-        #       * be mixed in with the rdb output which would make things difficult
-        #       * for a pipeline.
-        #      
-        #      elif not fflag && not oflag && 
-        #	       ( not tflag or not nflag or not bflag or not eflag or
-        #		 ((strcmp(datatyp,"DC") && strcmp(datatyp,"SV")) && not sflag) or 
-        #		 (not strcmp(datatyp,"QW") && not pflag) or
-        #		 ((strcmp(datatyp,"MS") && strcmp(datatyp,"PK") && 
-        #		   strcmp(datatyp,"WL")) && not dflag && not pflag )): 
-        #	sys.stderr.write("\nIf the -o argument is omitted, then all of -t, -n, -b, -e,\n");
-        #	sys.stderr.write("and -s if datatype is not \"dc\", or \"sv\"\n"); 
-        #	sys.stderr.write("and -p if datatype is \"qw\"\n");
-        #	sys.stderr.write("and -d or -p if datatype is not \"ms\", \"pk\", or \"wl\" must be present.\n"); 
-        #	status=124;
-        #      }
-        #    }
-        #  }
+                else:
+                    # both -h and -o were specified: outpath is
+                    # actually the pathname of a named pipe, save it's
+                    # name
+                    pipepath = outpath
+
+                    # make sure the named pipe exists
+                    if access(pipepath, F_OK):
+                        # does not exist - Hydra must have crashed
+                        # delete the temp file and exit
+                        sys.stderr.write()
+                        sys.stderr.write(
+                            "Hydra mode - Named pipe does not exist."
+                        )
+                        status = 125
+                    else:
+                        # Named pipe exists, create a temporary filename
+                        # in outpath
+                        tmpnam(temppath)
+                        outpath = temppath
+
+        # if a control file is supplied, all arguments are ignored except
+        # -z (database number), -r (suppress rounding), -l (local time zone),
+        # -m (multiple file output), and -o (output file).  If -o is not 
+        # supplied, -m cannot also be supplied - (can't do multiple files if 
+        # everything is going to stdout - one file by definition)
+        if fflag and multiple == 'Y' and not oflag:
+            sys.stderr.write()
+            sys.stderr.write(
+                "If -f and -m is specified, -o must also " +
+                "be specified."
+            )
+            status = 122
+
+        elif not fflag and dflag and pflag:
+            # Not using a control file. Cannot have both -d and -p
+            sys.stderr.write()
+            sys.stderr.write("Arguments -d and -p cannot both be specified.")
+            status = 123
+        elif not fflag and not oflag and \
+             ( not tflag or not nflag or not bflag or not eflag or \
+               ((datatyp != "DC" and datatyp != "SV") and not sflag) or \
+               (not datatyp != "QW" and not pflag) or \
+               ((datatyp != "MS" and datatyp != "PK" and \
+                 datatyp != "WL") and not dflag and not pflag )):
+            # Not using a control file, -m is ignored.
+
+            # If -o is not specified, all other arguments must be
+            # there as the prompting for missing arguments uses ADAPS
+            # subroutines that write the prompts to stdout (they're
+            # ports from Prime, remember?) so the RDB output has to go
+            # to a file, otherwise the prompts would be mixed in with
+            # the RDB output which would make things difficult for a
+            # pipeline.
+            sys.stderr.write()
+            sys.stderr.write(
+                "If the -o argument is omitted, then all of -t, -n, -b, -e,"
+            )
+            sys.stderr.write("and -s if datatype is not \"dc\", or \"sv\"")
+            sys.stderr.write("and -p if datatype is \"qw\"")
+            sys.stderr.write(
+                "and -d or -p if datatype is not \"ms\", \"pk\", " +
+                "or \"wl\" must be present."
+            )
+            status = 124
+
     if status != 0:
-        nwts2rdb_usage()
+        aq2rdb_usage()
     else:
         # get the length of the output file pathname
         if oflag:
@@ -418,182 +418,122 @@ def main():
         else:
             olen = 1
             outpath = oblank
+            # get the length of the database number 
+            if zflag:
+                zlen = len(dbnum)
+            else:
+                zlen = 1
+                dbnum = zblank
+           
+        # set data type to blank if not supplied 
+        if not tflag:
+            tlen = 1
+            datatyp = tblank
 
-        #    /* get the length of the database number 
-        #    if (zflag:
-        #      zlen=strlen(dbnum); 
-        #    }
-        #    else {
-        #      zlen=1;
-        #      dbnum=zblank; 
-        #    }
-        #    
-        #    /* set data type to blank if not supplied 
-        #    if (not tflag:
-        #      tlen=1;
-        #      datatyp=tblank; 
-        #    }
-        #    
-        #    /* get the length of the agency code 
-        #    if (aflag:
-        #      alen=strlen(agency); 
-        #    }
-        #    else {
-        #      alen=1;
-        #      agency=ablank; 
-        #    }
-        #    
-        #    /* get the length of the station number 
-        #    if (nflag:
-        #      nlen=strlen(station); 
-        #    }
-        #    else {
-        #      nlen=1; 
-        #      station=nblank;
-        #    }
-        #    
-        #    /* 
-        #     * get the length of the dd id
-        #     * put it in the ddpm variable
-        #    
-        #    if (dflag:
-        #      dplen=strlen(ddid); 
-        #      ddpm=(char *) malloc(dplen+2);
-        #      strcpy(ddpm,ddid);
-        #    }
-        #    /* 
-        #     * get the length of the parm code
-        #     * put it in the ddpm variable prefixed with "P"
-        #    
-        #    elif pflag:
-        #      dplen=strlen(parm)+1; 
-        #      ddpm=(char *) malloc(dplen+2);
-        #      strcpy(ddpm,"P");
-        #      strcat(ddpm,parm);
-        #    }
-        #    /* 
-        #     * Neither -d or -p was specified
-        #     * construct a blank string
-        #    
-        #    else {
-        #      dplen=1;
-        #      ddpm=dblank;
-        #    }
-        #    
-        #    /* get the length of the stat code (or other secondary identifier) 
-        #    if (sflag:
-        #      slen=strlen(stat); 
-        #    }
-        #    else {
-        #      slen=1;
-        #      stat=sblank; 
-        #    }
-        #    
-        #    /* get the length of the transport code
-        #    if (yflag:
-        #      ylen=strlen(transport_cd); 
-        #    }
-        #    else {
-        #      ylen=1;
-        #      transport_cd=yblank; 
-        #    }
-        #    
-        #    /* get the length of the title line
-        #    if (iflag:
-        #      ilen=strlen(titlline); 
-        #    }
-        #    else {
-        #      ilen=1;
-        #      titlline=iblank; 
-        #    }
-        #    
-        #    /* get the length of the begin date/time) 
-        #    if (bflag:
-        #      blen=strlen(begdat); 
-        #    }
-        #    else {
-        #      blen=1;
-        #      begdat=bblank; 
-        #    }
-        #    
-        #    /* get the length of the end date/time 
-        #    if (eflag:
-        #      elen=strlen(enddat); 
-        #    }
-        #    else {
-        #      elen=1;
-        #      enddat=eblank; 
-        #    }
-        #    
-        #    /* get the length of the time zone code
-        #    if (lflag:
-        #      llen=strlen(loc_tz_cd); 
-        #    }
-        #    else {
-        #      llen=3;
-        #      loc_tz_cd=lblank; 
-        #    }
-        #    
-        #    /* get the length of the location number
-        #    if (xflag:
-        #      xlen=strlen(loc_nu); 
-        #    }
-        #    else {
-        #      xlen=1;
-        #      loc_nu=xblank; 
-        #    }
-        #    
-        #    /* get the length of the control file pathname 
-        #    if (fflag:
-        #      flen=strlen(ctlpath); 
-        #    }
-        #    else {
-        #      flen=1;
-        #      ctlpath=fblank; 
-        #    }
-        #    
-        #    /* initialize the fortran run-time support
-        ##ifdef __sun__
-        #    f_init();
-        ##else
-        #    xargc=argc;
-        #    xargv=argv;
-        #    if (initrec)
-        #      (*initrec)();
-        ##endif
-        #    
-        #    /* call the fortran routine to finish
-        #    status=nwf_rdb_out_ (ctlpath,&multiple,outpath,dbnum,
-        #			 datatyp,&rndsup,&wyflag,&cflag,&vflag,&hydra,
-        #			 agency,station,ddpm,loc_nu,stat,transport_cd,
-        #			 begdat,enddat,loc_tz_cd,titlline,
-        #			 flen,1,olen,zlen,tlen,1,1,1,1,1,alen,nlen,dplen,
-        #			 xlen,slen,ylen,blen,elen,llen,ilen);
-        #    nw_write_error (stderr);
-        #    /* uninitialize the fortran run-time support
-        ##ifdef __sun__
-        #    f_exit();
-        ##else
-        #    if (uninitrec)
-        #      (*uninitrec)(); 
-        ##endif
-        #    
-        #    /* free allocated memory
-        #    free (ddpm);
-        #    
-        #    /* if hydra mode, write the temp filename to the named pipe
-        #    if (hydra == 'Y':
-        #      /* Open the pipe for writing
-        #      if ((pipe=fopen(pipepath,"w"))==NULL:
-        #	/* Unable to open pipe, delete the temp file and quit
-        #	unlink (outpath);
-        #	sys.stderr.write("\nCannot open named pipe for writing.\n");
-        #	status=126;
-        #      }
-        #      /* write the temp file pathname to the pipe and close it
-        #      fprintf (pipe,"reference %s\n",outpath);
-        #      fclose (pipe);
-        #    }
-        #  }
+        if aflag:
+            # get the length of the agency code 
+            alen = len(agency)
+        else:
+            alen = 1
+            agency = ablank
+
+        # get the length of the station number 
+        if nflag:
+            nlen = len(station)
+        else:
+            nlen = 1
+            station = nblank
+
+        if dflag:
+            # get the length of the DD ID
+            dplen = len(ddid)
+            # put it in the ddpm variable
+            ddpm = ddid
+        elif pflag:
+            # get the length of the parm code
+            dplen = len(parm) + 1
+            # put it in the ddpm variable prefixed with "P"
+            ddpm = "P" + parm
+        else:
+            # Neither -d or -p was specified: construct a blank string
+            dplen = 1
+            ddpm = dblank
+
+        if sflag:
+            # get the length of the stat code (or other secondary
+            # identifier)
+            slen = len(stat)
+        else:
+            slen = 1
+            stat = sblank
+
+        if yflag:
+            # get the length of the transport code
+            ylen = len(transport_cd)
+        else:
+            ylen = 1
+            transport_cd = yblank
+
+        if iflag:
+            # get the length of the title line
+            ilen = len(titlline)
+        else:
+            ilen = 1
+            titlline = iblank
+
+        if bflag:
+            # get the length of the begin date/time
+            blen = len(begdat)
+        else:
+            blen = 1
+            begdat = bblank
+
+        if eflag:
+            # get the length of the end date/time 
+            elen = len(enddat)
+        else:
+            elen = 1
+            enddat = eblank
+
+        # get the length of the time zone code
+        if lflag:
+            llen = len(loc_tz_cd)
+        else:
+            llen = 3
+            loc_tz_cd = lblank
+
+        # get the length of the location number
+        if xflag:
+            xlen = len(loc_nu)
+        else:
+            xlen = 1
+            loc_nu = xblank
+
+        # get the length of the control file pathname 
+        if fflag:
+            flen = len(ctlpath)
+        else:
+            flen = 1
+            ctlpath = fblank
+
+        status = nwf_rdb_out(ctlpath, multiple, outpath, dbnum,
+                             datatyp, rndsup, wyflag, cflag, vflag, hydra,
+                             agency, station, ddpm, loc_nu, stat, transport_cd,
+                             begdat, enddat, loc_tz_cd, titlline)
+        nw_write_error(stderr)
+ 
+        # if Hydra mode, write the temp filename to the named pipe
+        if hydra == 'Y':
+            # Open the pipe for writing
+            pipe = fopen(pipepath, "w")
+            if pipe == NULL:
+                # Unable to open pipe, delete the temp file and quit
+                unlink (outpath)
+                sys.stderr.write()
+                sys.stderr.write("Cannot open named pipe for writing.")
+                status = 126
+                # write the temp file pathname to the pipe and close it
+                # fprintf (pipe,"reference %s\n",outpath)
+                # fclose (pipe)
+
     sys.exit(status)
-        
