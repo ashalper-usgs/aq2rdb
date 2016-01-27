@@ -9,7 +9,7 @@
 #
 
 # additional packages that don't come with the CentOS template
-yum -y install emacs npm nodejs lynx wget
+yum -y install emacs npm nodejs lynx ruby wget
 
 # installation directories and groups
 mkdir -p -m 700 /usr/local/lib/aquarius-token /usr/local/lib/aq2rdb
