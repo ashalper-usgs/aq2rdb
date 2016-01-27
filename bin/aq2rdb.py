@@ -15,52 +15,116 @@ def aq2rdb_usage():
     sys.stderr.write("\n")
     sys.stderr.write("Usage: aq2rdb -ooutfile\n")
     sys.stderr.write("                -zdbnum\n")
-    sys.stderr.write("                -tdatatype (dv, uv, ms, vt, pk, dc, sv, wl, or qw)\n")
+    sys.stderr.write(
+        "                -tdatatype (dv, uv, ms, vt, pk, dc, sv, wl, or qw)\n"
+    )
     sys.stderr.write("                -aagency\n")
     sys.stderr.write("                -nstation\n")
-    sys.stderr.write("                -dddid (not used with datatypes ms, pk, wl, and qw) OR\n")
-    sys.stderr.write("                -pparm (not used with datatypes ms, pk, and wl) AND\n")
+    sys.stderr.write(
+        "                -dddid (not used with datatypes ms, pk, wl, and qw) OR\n"
+    )
+    sys.stderr.write(
+        "                -pparm (not used with datatypes ms, pk, and wl) AND\n"
+    )
     sys.stderr.write("                -xloc_nu (only used with datatype vt)\n")
     sys.stderr.write("                -sstatistic (dv) OR\n")
-    sys.stderr.write("                  uvtype (M)easured, E)dited, R)corrections,\n")
+    sys.stderr.write(
+        "                  uvtype (M)easured, E)dited, R)corrections,\n"
+    )
     sys.stderr.write("                          S)hifts, C)computed, or\n")
-    sys.stderr.write("                          N)Raw Measured (no conversion of input ratings)) OR\n")
-    sys.stderr.write("                  mstype (C)sg, M)eas, D)etailed meas, G)age insp.,\n")
+    sys.stderr.write(
+        "                          N)Raw Measured (no conversion of input ratings)) OR\n"
+    )
+    sys.stderr.write(
+        "                  mstype (C)sg, M)eas, D)etailed meas, G)age insp.,\n"
+    )
     sys.stderr.write("                         or Pseudo-UV options:\n")
     sys.stderr.write("                          1) Discharge,\n")
     sys.stderr.write("                          2) Stage, or\n")
     sys.stderr.write("                          3) Velocity)\n")
     sys.stderr.write("                  vttype (Pseudo-UV options)\n")
-    sys.stderr.write("                          P) Sensor Insp. Primary Reference readings,\n")
-    sys.stderr.write("                          R) Sensor Insp. Primary Recorder readings,\n")
-    sys.stderr.write("                          A) Sensor Insp. All readings,\n")
+    sys.stderr.write(
+        "                          P) Sensor Insp. Primary Reference readings,\n"
+    )
+    sys.stderr.write(
+        "                          R) Sensor Insp. Primary Recorder readings,\n"
+    )
+    sys.stderr.write(
+        "                          A) Sensor Insp. All readings,\n"
+    )
     sys.stderr.write("                          M) QW Monitor readings, OR\n")
-    sys.stderr.write("                          F) QW Monitor Field meter readings)\n")
-    sys.stderr.write("                  pktype (F)ull, P)artial. or B)oth) OR\n")
-    sys.stderr.write("                  wlype (1) Water level below land surface,\n")
-    sys.stderr.write("                         2) Water level below measuring point, or,\n")
-    sys.stderr.write("                         3) Water level above sea level)\n")
-    sys.stderr.write("                  qwmeth (QW method code, \"all\" to get all,\n")
-    sys.stderr.write("                          or \"blank\" for blank method)\n")
-    sys.stderr.write("                  (not used with datatypes dc and sv)\n")
-    sys.stderr.write("                -bbegdate (yyyymmdd) (dv, dc, sv, ms, vt, pk) OR\n")
-    sys.stderr.write("                  begdtm (yyyymmddhhmmss) (uv, wl, pseudo-UV ms)\n")
-    sys.stderr.write("                  A value of all zeros indicates beginning of period of record\n")
-    sys.stderr.write("                -eenddate (yyyymmdd) (dv, dc, sv, ms, vt, pk) OR\n")
-    sys.stderr.write("                  enddtm (yyyymmddhhmmss) (uv, wl, pseudo-UV ms)\n")
-    sys.stderr.write("                  A value of all nines indicates end of period of record\n")
+    sys.stderr.write(
+        "                          F) QW Monitor Field meter readings)\n"
+    )
+    sys.stderr.write(
+        "                  pktype (F)ull, P)artial. or B)oth) OR\n"
+    )
+    sys.stderr.write(
+        "                  wlype (1) Water level below land surface,\n"
+    )
+    sys.stderr.write(
+        "                         2) Water level below measuring point, or,\n"
+    )
+    sys.stderr.write(
+        "                         3) Water level above sea level)\n"
+    )
+    sys.stderr.write(
+        "                  qwmeth (QW method code, \"all\" to get all,\n"
+    )
+    sys.stderr.write(
+        "                          or \"blank\" for blank method)\n"
+    )
+    sys.stderr.write(
+        "                  (not used with datatypes dc and sv)\n"
+    )
+    sys.stderr.write(
+        "                -bbegdate (yyyymmdd) (dv, dc, sv, ms, vt, pk) OR\n"
+    )
+    sys.stderr.write(
+        "                  begdtm (yyyymmddhhmmss) (uv, wl, pseudo-UV ms)\n"
+    )
+    sys.stderr.write(
+        "                  A value of all zeros indicates beginning of period of record\n"
+    )
+    sys.stderr.write(
+        "                -eenddate (yyyymmdd) (dv, dc, sv, ms, vt, pk) OR\n"
+    )
+    sys.stderr.write(
+        "                  enddtm (yyyymmddhhmmss) (uv, wl, pseudo-UV ms)\n"
+    )
+    sys.stderr.write(
+        "                  A value of all nines indicates end of period of record\n"
+    )
     sys.stderr.write("                -l loctzcd (time zone code or \"LOC\")\n")
     sys.stderr.write("                -r (rounding suppression)\n")
     sys.stderr.write("                -w (water year flag)\n")
-    sys.stderr.write("                -c For type \"dv\", Output COMPUTED daily values only\n")
-    sys.stderr.write("                   For other types except pseudo-UV retrievals,\n")
-    sys.stderr.write("                   combine date and time in a single column\n")
-    sys.stderr.write("                -v Make dates and times verbose (excel friendly)\n")
-    sys.stderr.write("                -y transport_cd (Measured Unit-Values only)\n")
-    sys.stderr.write("                    A (ADR), C (CHA), F (FIL), G (EDL), O (OBS),\n")
-    sys.stderr.write("                    P (TEL), R (RAD), S (DCP), U (UNS), or Z (BAK)\n")
-    sys.stderr.write("                    if omitted, defaults to preferred input\n")
-    sys.stderr.write("                -i title_line (Alternate title line if S_STRT is run)\n")
+    sys.stderr.write(
+        "                -c For type \"dv\", Output COMPUTED daily values only\n"
+    )
+    sys.stderr.write(
+        "                   For other types except pseudo-UV retrievals,\n"
+    )
+    sys.stderr.write(
+        "                   combine date and time in a single column\n"
+    )
+    sys.stderr.write(
+        "                -v Make dates and times verbose (Excel friendly)\n"
+    )
+    sys.stderr.write(
+        "                -y transport_cd (Measured Unit-Values only)\n"
+    )
+    sys.stderr.write(
+        "                    A (ADR), C (CHA), F (FIL), G (EDL), O (OBS),\n"
+    )
+    sys.stderr.write(
+        "                    P (TEL), R (RAD), S (DCP), U (UNS), or Z (BAK)\n"
+    )
+    sys.stderr.write(
+        "                    if omitted, defaults to preferred input\n"
+    )
+    sys.stderr.write(
+        "                -i title_line (Alternate title line if S_STRT is run)\n"
+    )
     sys.stderr.write("       If -o is omitted, writes to stdout AND arguments required \n")
     sys.stderr.write("             based on data type as follows:\n")
     sys.stderr.write("             \"dv\" and \"uv\" requires -t, -n, -s, -b, -e, AND -d OR -p\n")
