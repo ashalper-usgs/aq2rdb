@@ -8,7 +8,13 @@
 #  Author - Andy Halper <ashalper@usgs.gov>
 #
 
-yum -y install emacs npm nodejs
+# additional packages that don't come with the CentOS template
+yum -y install emacs npm nodejs lynx wget
+
+# installation directories and groups
 mkdir -p -m 700 /usr/local/lib/aquarius-token /usr/local/lib/aq2rdb
 groupadd owi
 chgrp owi /usr/local/lib/aquarius-token /usr/local/lib/aq2rdb
+
+# add ec2-user to owi group
+usermod -a -G owi ec2-user
