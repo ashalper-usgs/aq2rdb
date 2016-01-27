@@ -7,8 +7,8 @@
 #  Author - Andy Halper <ashalper@usgs.gov>
 #
 
-import getopt
-import sys
+import sys, getopt, rdb_out
+rdb_out = rdb_out.rdb_out
 
 # Display usage information for the aq2rdb command
 def aq2rdb_usage():
@@ -572,10 +572,10 @@ def main():
             flen = 1
             ctlpath = fblank
 
-        status = nwf_rdb_out(ctlpath, multiple, outpath, dbnum,
-                             datatyp, rndsup, wyflag, cflag, vflag, hydra,
-                             agency, station, ddpm, loc_nu, stat, transport_cd,
-                             begdat, enddat, loc_tz_cd, titlline)
+        status = rdb_out(ctlpath, multiple, outpath, dbnum,
+                         datatyp, rndsup, wyflag, cflag, vflag, hydra,
+                         agency, station, ddpm, loc_nu, stat, transport_cd,
+                         begdat, enddat, loc_tz_cd, titlline)
         nw_write_error(stderr)
  
         # if Hydra mode, write the temp filename to the named pipe
