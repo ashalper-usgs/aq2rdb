@@ -36,20 +36,3 @@ ec2-ami-tools-version
 wget http://s3.amazonaws.com/ec2-downloads/ec2-api-tools.zip
 mkdir /usr/local/ec2
 unzip ec2-api-tools.zip -d /usr/local/ec2
-
-echo <<EOF
-After the X.509 certificate is uploaded to /tmp/cert, run the command:
-
-sudo /usr/local/bin/ec2-bundle-vol -k /tmp/cert/aws-private-key.pem -c /tmp/cert/aws-certificate.pem -u 437575011997 -r x86_64 -e /tmp/cert
-
-to create the AMI, then:
-
-ec2-upload-bundle -b aqcu/aq2rdb/ami --region us-west-2 -m /tmp/image.manifest.xml
-
-to upload it to S3, then finally:
-
- ec2-register aqcu/aq2rdb/ami/image.manifest.xml -n aq2rdb -d 'CentOS 6.7 instance configured to host aquarius-token & aq2rdb.' --region us-west-2
-
-to register it.
-
-EOF
