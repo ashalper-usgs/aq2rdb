@@ -1,0 +1,39 @@
+#! /bin/sh
+#
+# File - mkami
+#
+# Purpose - Shell script to make, upload, and register aq2rdb server,
+#           Amazon AMI.
+#
+# Author - Andrew Halper <ashalper@usgs.gov>
+#
+
+pgm=`basename $0`
+
+if [ ! $AWS_ACCESS_KEY ]; then
+    echo "$pgm: AWS_ACCESS_KEY is not set"
+    exit 1
+fi
+
+if [ ! $AWS_SECRET_KEY ]; then
+    echo "$pgm: AWS_SECRET_KEY is not set"
+    exit 1
+fi
+
+# bundle AMI
+sudo /usr/local/bin/ec2-bundle-vol -k /tmp/cert/aws-private-key.pem \
+    -c /tmp/cert/aws-certificate.pem -u 437575011997 -r x86_64 \
+    -e /tmp/cert
+
+# upload AMI to S3 bucket
+ec2-upload-bundle -a "$AWS_ACCESS_KEY" -s "$AWS_SECRET_KEY" \
+		  -b aqcu/aq2rdb/ami --region us-west-2 \
+		  -m /tmp/image.manifest.xml
+
+# clean up /tmp
+sudo rm -f /tmp/image.manifest.xml /tmp/image.part.* /tmp/image &
+
+# register AMI
+ec2-register aqcu/aq2rdb/ami/image.manifest.xml -n aq2rdb \
+    -d 'CentOS 6.7 instance configured to host aquarius-token and aq2rdb.' \
+    --region us-west-2
