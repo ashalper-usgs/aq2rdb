@@ -20,6 +20,8 @@ if [ ! $AWS_SECRET_KEY ]; then
     exit 1
 fi
 
+export EC2_HOME=/usr/local/ec2/ec2-api-tools-1.7.5.1
+
 # bundle AMI
 sudo /usr/local/bin/ec2-bundle-vol -k /tmp/cert/aws-private-key.pem \
     -c /tmp/cert/aws-certificate.pem -u 437575011997 -r x86_64 \
@@ -34,6 +36,6 @@ ec2-upload-bundle -a "$AWS_ACCESS_KEY" -s "$AWS_SECRET_KEY" \
 sudo rm -f /tmp/image.manifest.xml /tmp/image.part.* /tmp/image &
 
 # register AMI
-ec2-register aqcu/aq2rdb/ami/image.manifest.xml -n aq2rdb \
+$EC2_HOME/bin/ec2-register aqcu/aq2rdb/ami/image.manifest.xml -n aq2rdb \
     -d 'CentOS 6.7 instance configured to host aquarius-token and aq2rdb.' \
     --region us-west-2
