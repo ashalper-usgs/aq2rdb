@@ -1,0 +1,22 @@
+{
+    "variables": {
+	"aws_access_key": "",
+	"aws_secret_key": ""
+    },
+    "builders": [{
+	"type": "amazon-ebs",
+	"access_key": "{{user `aws_access_key`}}",
+	"secret_key": "{{user `aws_secret_key`}}",
+	"region": "us-west-2",
+	"source_ami": "ami-d8d631b8",
+	"instance_type": "t2.micro",
+	"ssh_username": "ec2-user",
+	"ami_name": "aq2rdb {{timestamp}}"
+    }],
+    "shell": [
+	"sudo yum -y install emacs npm nodejs lynx ruby wget",
+	"sudo mkdir -p -m 700 /usr/local/lib/aquarius-token /usr/local/lib/aq2rdb",
+	"sudo groupadd owi",
+	"sudo chgrp owi /usr/local/lib/aquarius-token /usr/local/lib/aq2rdb"
+    ]
+}
