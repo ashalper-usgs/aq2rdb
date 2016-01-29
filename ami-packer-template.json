@@ -13,10 +13,8 @@
 	"ssh_username": "ec2-user",
 	"ami_name": "aq2rdb {{timestamp}}"
     }],
-    "shell": [
-	"sudo yum -y install emacs npm nodejs lynx ruby wget",
-	"sudo mkdir -p -m 700 /usr/local/lib/aquarius-token /usr/local/lib/aq2rdb",
-	"sudo groupadd owi",
-	"sudo chgrp owi /usr/local/lib/aquarius-token /usr/local/lib/aq2rdb"
-    ]
+    "provisioners": [{
+	    "type": "shell",
+	    "script": "configure-ec2"
+    }]
 }
