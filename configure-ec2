@@ -10,9 +10,7 @@
 
 # additional packages that don't come with the vanilla OWI CentOS
 # template
-yum -y install emacs npm nodejs lynx ruby wget \
-    http://s3.amazonaws.com/ec2-downloads/ec2-ami-tools.noarch.rpm &
-yum=$!
+yum -y install emacs npm nodejs lynx ruby wget
 
 # installation directories and groups
 mkdir -p -m 700 /usr/local/lib/aquarius-token /usr/local/lib/aq2rdb
@@ -21,18 +19,3 @@ chgrp owi /usr/local/lib/aquarius-token /usr/local/lib/aq2rdb
 
 # add ec2-user to owi group
 usermod -a -G owi ec2-user
-
-# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/creating-an-ami-instance-store.html#creating-ami-linux-instance
-mkdir /tmp/cert && chmod 771 /tmp/cert && chown ec2-user /tmp/cert && \
-    chgrp ec2-user /tmp/cert
-
-# verify installation of AMI Tools
-# http://docs.aws.amazon.com/AWSEC2/latest/CommandLineReference/set-up-ami-tools.html
-wait $yum			# wait for yum (above) to finish
-ec2-ami-tools-version
-
-# set up Amazon EC2 CLI Tools
-# http://docs.aws.amazon.com/AWSEC2/latest/CommandLineReference/set-up-ec2-cli-linux.html#setting_up_ec2_command_linux
-wget http://s3.amazonaws.com/ec2-downloads/ec2-api-tools.zip
-mkdir /usr/local/ec2
-unzip ec2-api-tools.zip -d /usr/local/ec2
