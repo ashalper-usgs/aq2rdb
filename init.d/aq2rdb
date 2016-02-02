@@ -1,9 +1,13 @@
 #! /bin/bash
 #
-# aq2rdb        This starts aq2rdb.
+# File - aq2rdb
 #
-# description: Starts aq2rdb Web service.
+# Purpose - init script to aq2rdb Web service.
+#
+# Author - Andy Halper <ashalper@usgs.gov>
+#
 
-# We run the entire init script as nodejs.
-
-/usr/bin/sudo -u nodejs -H -- /usr/bin/node /opt/nodejs/aq2rdb.js "$@"
+# run as nodejs user
+/usr/bin/sudo -u nodejs -H -- \
+    /usr/local/lib64/node-v4.2.6-linux-x64/bin/node \
+    /usr/local/lib/node_modules/aq2rdb/aq2rdb.js "$@"
