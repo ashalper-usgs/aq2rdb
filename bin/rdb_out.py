@@ -1017,8 +1017,9 @@ def rdb_out(
         s_ggrp()                 # get groups (for security)
         sen_dbop(rtdbnum)        # open Midas files
         # count program (counted by S_STRT above if needed)
-        if not nw_db_save_program_info('aq2rdb'):
-            continue      # ignore errors, we don't care if not counted
+        # TODO: translate F77 in condition below
+        #if not nw_db_save_program_info('aq2rdb'):
+            # continue      # ignore errors, we don't care if not counted
         if parm != ' ' and datatyp != 'VT':
             # get PRIMARY DD that goes with parm if parm supplied
             nwf_get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc)
@@ -1049,8 +1050,8 @@ def rdb_out(
                    ipu, funit, irc, *90)
             #90
             if irc != 0:
-                print "Error opening output file:\n" +
-                "   " + rdbfile
+                print "Error opening output file:\n" + \
+                    "   " + rdbfile
                 goto_999()
 
         # get data and output to files
@@ -1078,10 +1079,10 @@ def rdb_out(
         elif datatyp == 'MS':
 
             if hydra or (mstyp >= '1' and mstyp <= '3'):
-                if hydra) mstyp = ' ':
-                    fmsrdbout_hydra(funit, rndsup, rtagny, sid,
-                                    begdtm, enddtm, loc_tz_cd, 
-                                    mstyp, irc)
+                if hydra: mstyp = ' '
+                fmsrdbout_hydra(funit, rndsup, rtagny, sid,
+                                begdtm, enddtm, loc_tz_cd, 
+                                mstyp, irc)
             else:
                 fmsrdbout(funit, rtdbnum, rndsup, addkey, cflag,
                           vflag, rtagny, sid, mstyp, begdate,  
@@ -1094,7 +1095,7 @@ def rdb_out(
             if inddid[0] != 'P' or inlocnu == ' ':
                 if not nw_db_key_get_dd_parm_loc(rtdbnum, rtagny, 
                                                  sid, ddid, parm,
-                                                 loc_nu)):
+                                                 loc_nu):
                     goto_997
             else:
                 loc_nu = nwc_atoi(inlocnu)
@@ -1128,20 +1129,24 @@ def rdb_out(
         elif datatyp == 'QW':
 
             if hydra:
-       qwparm = ' '
-       qwmeth = ' '
-       fqwrdbout_hydra (funit, rndsup, rtagny, sid, begdtm,
-                                    enddtm, loc_tz_cd, qwparm, qwmeth,
-                                    irc)
+                qwparm = ' '
+                qwmeth = ' '
 
+            fqwrdbout_hydra(funit, rndsup, rtagny, sid, begdtm,
+                            enddtm, loc_tz_cd, qwparm, qwmeth,
+                            irc)
 
-       # close files and exit
-997   s_mclos
-       s_sclose (funit, 'keep')
-       nw_disconnect
-       goto_999
+    # close files and exit
+    #997
+    s_mclos()
+    s_sclose(funit, 'keep')
+    nw_disconnect()
+    goto_999()
 
-       # bad return (do a generic error message)
-998   irc = 3
-       nw_error_handler (irc,'nwf_rdb_out','error',
-             'doing something','something bad happened')
+    # bad return (do a generic error message)
+    #998
+    irc = 3
+    nw_error_handler(irc, 'nwf_rdb_out', 'error',
+                     'doing something', 'something bad happened')
+
+    goto_999()
