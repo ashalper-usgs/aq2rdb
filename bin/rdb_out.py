@@ -106,7 +106,8 @@ def rdb_out(
                            stat, bctdtm, ectdtm, nline)
     #5
     if irc != 0: goto_999()          # ex-GOTO
-    s_date(cdate, ctime)
+    # TODO: find out where cdate, ctime are defined in 3GL
+    #s_date(cdate, ctime)
     # WRITE (0,2010) cdate, ctime, ctlfile(1:nwf_strlen(ctlfile))
     #2010     FORMAT (A8,1X,A6,1X,'Processing control file: ',A)
     print cdate + " " + ctime + " Processing control file: " + ctlfile
