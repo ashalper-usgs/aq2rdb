@@ -1,463 +1,598 @@
-# /bin/sh
+#! /usr/bin/python
 #
-#  File - aq2rdb
+#  File - aq2rdb.py
 #
-#  Purpose - Retrieve time series information from AQUARIUS in RDB
-#            format. Emulate legacy NWIS nwts2rdb as best as possible.
+#  Purpose - Python emulation of nwts2rdb.
 #
-#  Authors - Andrew Halper <ashalper@usgs.gov> (Bourne Shell
-#            translation of nwts2rdb.c)
-#            Scott Bartholoma <sbarthol@usgs.gov> (nwts2rdb.c, nwf_rdb_out.f)
-#            Jim Cornwall <jcorn@usgs.gov> (nwts2rdb.c)
+#  Author - Andy Halper <ashalper@usgs.gov>
 #
 
-lib=`ls -d ../bin || ls -d /usr/local/bin`
+import sys, getopt, rdb_out
+rdb_out = rdb_out.rdb_out
 
-source $lib/rdb_out.sh
+# Display usage information for the aq2rdb command
+def aq2rdb_usage():
+    sys.stderr.write("\n")
+    sys.stderr.write("Usage: aq2rdb -ooutfile\n")
+    sys.stderr.write("                -zdbnum\n")
+    sys.stderr.write(
+        "                -tdatatype (dv, uv, ms, vt, pk, dc, sv, wl, or qw)\n"
+    )
+    sys.stderr.write("                -aagency\n")
+    sys.stderr.write("                -nstation\n")
+    sys.stderr.write(
+        "                -dddid (not used with datatypes ms, pk, wl, and qw) OR\n"
+    )
+    sys.stderr.write(
+        "                -pparm (not used with datatypes ms, pk, and wl) AND\n"
+    )
+    sys.stderr.write("                -xloc_nu (only used with datatype vt)\n")
+    sys.stderr.write("                -sstatistic (dv) OR\n")
+    sys.stderr.write(
+        "                  uvtype (M)easured, E)dited, R)corrections,\n"
+    )
+    sys.stderr.write("                          S)hifts, C)computed, or\n")
+    sys.stderr.write(
+        "                          N)Raw Measured (no conversion of input ratings)) OR\n"
+    )
+    sys.stderr.write(
+        "                  mstype (C)sg, M)eas, D)etailed meas, G)age insp.,\n"
+    )
+    sys.stderr.write("                         or Pseudo-UV options:\n")
+    sys.stderr.write("                          1) Discharge,\n")
+    sys.stderr.write("                          2) Stage, or\n")
+    sys.stderr.write("                          3) Velocity)\n")
+    sys.stderr.write("                  vttype (Pseudo-UV options)\n")
+    sys.stderr.write(
+        "                          P) Sensor Insp. Primary Reference readings,\n"
+    )
+    sys.stderr.write(
+        "                          R) Sensor Insp. Primary Recorder readings,\n"
+    )
+    sys.stderr.write(
+        "                          A) Sensor Insp. All readings,\n"
+    )
+    sys.stderr.write("                          M) QW Monitor readings, OR\n")
+    sys.stderr.write(
+        "                          F) QW Monitor Field meter readings)\n"
+    )
+    sys.stderr.write(
+        "                  pktype (F)ull, P)artial. or B)oth) OR\n"
+    )
+    sys.stderr.write(
+        "                  wlype (1) Water level below land surface,\n"
+    )
+    sys.stderr.write(
+        "                         2) Water level below measuring point, or,\n"
+    )
+    sys.stderr.write(
+        "                         3) Water level above sea level)\n"
+    )
+    sys.stderr.write(
+        "                  qwmeth (QW method code, \"all\" to get all,\n"
+    )
+    sys.stderr.write(
+        "                          or \"blank\" for blank method)\n"
+    )
+    sys.stderr.write(
+        "                  (not used with datatypes dc and sv)\n"
+    )
+    sys.stderr.write(
+        "                -bbegdate (yyyymmdd) (dv, dc, sv, ms, vt, pk) OR\n"
+    )
+    sys.stderr.write(
+        "                  begdtm (yyyymmddhhmmss) (uv, wl, pseudo-UV ms)\n"
+    )
+    sys.stderr.write(
+        "                  A value of all zeros indicates beginning of period of record\n"
+    )
+    sys.stderr.write(
+        "                -eenddate (yyyymmdd) (dv, dc, sv, ms, vt, pk) OR\n"
+    )
+    sys.stderr.write(
+        "                  enddtm (yyyymmddhhmmss) (uv, wl, pseudo-UV ms)\n"
+    )
+    sys.stderr.write(
+        "                  A value of all nines indicates end of period of record\n"
+    )
+    sys.stderr.write("                -l loctzcd (time zone code or \"LOC\")\n")
+    sys.stderr.write("                -r (rounding suppression)\n")
+    sys.stderr.write("                -w (water year flag)\n")
+    sys.stderr.write(
+        "                -c For type \"dv\", Output COMPUTED daily values only\n"
+    )
+    sys.stderr.write(
+        "                   For other types except pseudo-UV retrievals,\n"
+    )
+    sys.stderr.write(
+        "                   combine date and time in a single column\n"
+    )
+    sys.stderr.write(
+        "                -v Make dates and times verbose (Excel friendly)\n"
+    )
+    sys.stderr.write(
+        "                -y transport_cd (Measured Unit-Values only)\n"
+    )
+    sys.stderr.write(
+        "                    A (ADR), C (CHA), F (FIL), G (EDL), O (OBS),\n"
+    )
+    sys.stderr.write(
+        "                    P (TEL), R (RAD), S (DCP), U (UNS), or Z (BAK)\n"
+    )
+    sys.stderr.write(
+        "                    if omitted, defaults to preferred input\n"
+    )
+    sys.stderr.write(
+        "                -i title_line (Alternate title line if S_STRT is run)\n"
+    )
+    sys.stderr.write("       If -o is omitted, writes to stdout AND arguments required \n")
+    sys.stderr.write("             based on data type as follows:\n")
+    sys.stderr.write("             \"dv\" and \"uv\" requires -t, -n, -s, -b, -e, AND -d OR -p\n")
+    sys.stderr.write("             \"dc\" and \"sv\" requires -t, -n, -b, -e, AND -d or -p\n")
+    sys.stderr.write("             \"ms\" and \"pk\" requires -t, -n, -s, -b, and -e\n")
+    sys.stderr.write("             \"vt\" requires -t, -n, -s, -b, -e AND either -p and -x OR -d\n")
+    sys.stderr.write("             \"wl\" requires -t, -n, -s, -b, and -e\n")
+    sys.stderr.write("             \"qw\" requires -t, -n, -s, -b, -e, and -p\n")
+    sys.stderr.write("       If -o is present, no other arguments are required, and the program\n")
+    sys.stderr.write("             will use ADAPS routines to prompt for them.\n")
+    sys.stderr.write("       If -p is present, -d cannot be present.  The parameter code is\n")
+    sys.stderr.write("             used to find the PRIMARY DD for that parameter.\n")
+    sys.stderr.write("       If -a is omitted, defaults to agency \"USGS\"\n")
+    sys.stderr.write("       If -l is omitted, it will default to \"LOC\"\n")
+    sys.stderr.write("       If -r is present, rounding is suppressed,\n")
+    sys.stderr.write("             otherwise rounded values are output.\n")
+    sys.stderr.write("       If -w is present, -b, and -e will be water years instead,\n")
+    sys.stderr.write("             of dates or datetimes or the user will be prompted\n")
+    sys.stderr.write("             for water years instead of dates or datetimes.\n")
+    sys.stderr.write("       If -c is present and daily-values are being output, only computed\n")
+    sys.stderr.write("             daily values will be retrieved.\n")
+    sys.stderr.write("             For other types combine date and time in a single column\n")
+    sys.stderr.write("       If -z is omitted, defaults to database 1\n")
+    sys.stderr.write("       If -y is present, it is ignored unless Measured Unit-Values\n")
+    sys.stderr.write("             are specified as arguments or selected in the prompting.\n")
+    sys.stderr.write("             If omitted, defaults to preferred input.\n")
+    sys.stderr.write("       If -m is present, it is ignored.\n")
+    sys.stderr.write("       If -i is omitted, the standard S_STRT title line is used.\n")
+    sys.stderr.write("\n")
+    sys.stderr.write("         -- OR --\n")
+    sys.stderr.write("\n")
+    sys.stderr.write("       aq2rdb -fctlfile\n")
+    sys.stderr.write("                -ooutfile\n")
+    sys.stderr.write("                -m (write multiple files)\n")
+    sys.stderr.write("                -zdbnum\n")
+    sys.stderr.write("                -l loctzcd (time zone code or \"LOC\")\n")
+    sys.stderr.write("                -r (rounding suppression)\n")
+    sys.stderr.write("                -c (Output COMPUTED daily values only (DV))\n")
+    sys.stderr.write("                   (combine date and time in a single column (UV))\n")
+    sys.stderr.write("                -v Make dates and times verbose (excel friendly)\n")
+    sys.stderr.write("                -y transport_cd (Measured Unit-Values only)\n")
+    sys.stderr.write("                    A (ADR), C (CHA), F (FIL), G (EDL), O (OBS),\n")
+    sys.stderr.write("                    P (TEL), R (RAD), S (DCP), U (UNS), or Z (BAK)\n")
+    sys.stderr.write("                    if omitted, defaults to preferred input\n")
+    sys.stderr.write("       If -o is omitted, writes to stdout, and -m cannot be used\n")
+    sys.stderr.write("       If -m is present, outfile is used as the output file name prefix.\n")
+    sys.stderr.write("             If omitted, all rows in the control file must be the\n")
+    sys.stderr.write("             same datatype.\n")
+    sys.stderr.write("       If -l is omitted, it will default to \"LOC\"\n")
+    sys.stderr.write("       If -r is present, rounding is suppressed,\n")
+    sys.stderr.write("             otherwise rounded values are output.\n")
+    sys.stderr.write("       If -c is present and daily-values are being output, only computed\n")
+    sys.stderr.write("             daily values will be retrieved.\n")
+    sys.stderr.write("             If unit-values are being output, date and time\n")
+    sys.stderr.write("             are combined into a single datetime column.\n")
+    sys.stderr.write("             This option is ignored if the datatype is not dv or uv.\n")
+    sys.stderr.write("       If -z is omitted, defaults to database 1\n")
+    sys.stderr.write("       If -y is present, it is ignored except for rows in the\n")
+    sys.stderr.write("             control file specifying Measured Unit-Values.\n")
+    sys.stderr.write("             If omitted, defaults to preferred input.\n")
+    sys.stderr.write("       If -t, -a, -n, -d, -p, -s, -b, -e, or -i are present, they are ignored.\n")
+    sys.stderr.write("\n")
+    sys.stderr.write("       The control file (-f argument) is an RDB file containing the\n")
+    sys.stderr.write("       columns \"DATATYPE\", \"AGENCY\", \"STATION\", \"DDID\", \"SUBTYPE\",\n")
+    sys.stderr.write("       \"BEGDATE\", and \"ENDDATE\", corresponding to the -t, -a, -n, -d,\n")
+    sys.stderr.write("       -s, -b, and -e arguments for the no control file case.\n")
+    sys.stderr.write("       For the DDID column, if the datatype is \"qw\" it contains the parameter code.\n")
+    sys.stderr.write("       Otherwise, if the first character of the DDID is a \"P\", then it is treated\n")
+    sys.stderr.write("       as a parameter code and used to locate the PRIMARY DD for that parameter.\n")
+    sys.stderr.write("       All columns must be present, and all columns must also be populated\n")
+    sys.stderr.write("       (not blank and not null), except that DDID is not used (may be blank\n")
+    sys.stderr.write("       or null) when DATATYPE is \"ms\" or \"pk\" and SUBTYPE is not used \n")
+    sys.stderr.write("       when DATATYPE is \"dc\", or \"sv\".  It does not matter in what \n")
+    sys.stderr.write("       order the columns appear in the control file.\n")
+    sys.stderr.write("\n")
+    sys.stderr.write("       The control file option cannot be used with pseudo-UV retrievals (all\n")
+    sys.stderr.write("       datatype \"wl\", \"qw\", \"vt\" and some datatype \"ms\" options.\n")
+    sys.stderr.write("\n")
 
-# Usage statement.
-nwts2rdb_usage ()
-{
-  echo >& 2;
-  echo "Usage: aq2rdb -ooutfile" >& 2;
-  echo "              -tdatatype (dv, uv, ms, vt, pk, dc, sv, wl, or qw)" >& 2
-  echo "              -aagency" >& 2
-  echo "              -nstation" >& 2
-  echo "              -dddid (not used with datatypes ms, pk, wl, and qw) OR" >& 2
-  echo "              -pparm (not used with datatypes ms, pk, and wl) AND" >& 2
-  echo "              -xloc_nu (only used with datatype vt)" >& 2
-  echo "              -sstatistic (dv) OR" >& 2
-  echo "                uvtype (M)easured, E)dited, R)corrections," >& 2
-  echo "                        S)hifts, C)computed, or" >& 2
-  echo "                        N)Raw Measured (no conversion of input ratings)) OR" >& 2
-  echo "                mstype (C)sg, M)eas, D)etailed meas, G)age insp.," >& 2
-  echo "                       or Pseudo-UV options:" >& 2
-  echo "                        1) Discharge," >& 2
-  echo "                        2) Stage, or" >& 2
-  echo "                        3) Velocity)" >& 2
-  echo "                vttype (Pseudo-UV options)" >& 2
-  echo "                        P) Sensor Insp. Primary Reference readings," >& 2
-  echo "                        R) Sensor Insp. Primary Recorder readings," >& 2
-  echo "                        A) Sensor Insp. All readings," >& 2
-  echo "                        M) QW Monitor readings, OR" >& 2
-  echo "                        F) QW Monitor Field meter readings)" >& 2
-  echo "                pktype (F)ull, P)artial. or B)oth) OR" >& 2
-  echo "                wlype (1) Water level below land surface," >& 2
-  echo "                       2) Water level below measuring point, or," >& 2
-  echo "                       3) Water level above sea level)" >& 2
-  echo "                qwmeth (QW method code, \"all\" to get all," >& 2
-  echo "                        or \"blank\" for blank method)" >& 2
-  echo "                (not used with datatypes dc and sv)" >& 2
-  echo "              -bbegdate (yyyymmdd) (dv, dc, sv, ms, vt, pk) OR" >& 2
-  echo "                begdtm (yyyymmddhhmmss) (uv, wl, pseudo-UV ms)" >& 2
-  echo "                A value of all zeros indicates beginning of period of record" >& 2
-  echo "              -eenddate (yyyymmdd) (dv, dc, sv, ms, vt, pk) OR" >& 2
-  echo "                enddtm (yyyymmddhhmmss) (uv, wl, pseudo-UV ms)" >& 2
-  echo "                A value of all nines indicates end of period of record" >& 2
-  echo "              -l loctzcd (time zone code or \"LOC\")" >& 2
-  echo "              -r (rounding suppression)" >& 2
-  echo "              -w (water year flag)" >& 2
-  echo "              -c For type \"dv\", Output COMPUTED daily values only" >& 2
-  echo "                 For other types except pseudo-UV retrievals," >& 2
-  echo "                 combine date and time in a single column" >& 2
-  echo "              -v Make dates and times verbose (Excel friendly)" >& 2
-  echo "              -y transport_cd (Measured Unit-Values only)" >& 2
-  echo "                  A (ADR), C (CHA), F (FIL), G (EDL), O (OBS)," >& 2
-  echo "                  P (TEL), R (RAD), S (DCP), U (UNS), or Z (BAK)" >& 2
-  echo "                  if omitted, defaults to preferred input" >& 2
-  echo "              -i title_line (Alternate title line if S_STRT is run)" >& 2
-  echo "     If -o is omitted, writes to stdout AND arguments required " >& 2
-  echo "           based on data type as follows:" >& 2
-  echo "           \"dv\" and \"uv\" requires -t, -n, -s, -b, -e, AND -d OR -p" >& 2
-  echo "           \"dc\" and \"sv\" requires -t, -n, -b, -e, AND -d or -p" >& 2
-  echo "           \"ms\" and \"pk\" requires -t, -n, -s, -b, and -e" >& 2
-  echo "           \"vt\" requires -t, -n, -s, -b, -e AND either -p and -x OR -d" >& 2
-  echo "           \"wl\" requires -t, -n, -s, -b, and -e" >& 2
-  echo "           \"qw\" requires -t, -n, -s, -b, -e, and -p" >& 2
-  echo "     If -o is present, no other arguments are required, and the program" >& 2
-  echo "           will use ADAPS routines to prompt for them." >& 2
-  echo "     If -p is present, -d cannot be present. The parameter code is" >& 2
-  echo "           used to find the PRIMARY DD for that parameter." >& 2
-  echo "     If -a is omitted, defaults to agency \"USGS\"" >& 2
-  echo "     If -l is omitted, it will default to \"LOC\"" >& 2
-  echo "     If -r is present, rounding is suppressed," >& 2
-  echo "           otherwise rounded values are output." >& 2
-  echo "     If -w is present, -b, and -e will be water years instead," >& 2
-  echo "           of dates or datetimes or the user will be prompted" >& 2
-  echo "           for water years instead of dates or datetimes." >& 2
-  echo "     If -c is present and daily-values are being output, only computed" >& 2
-  echo "           daily values will be retrieved." >& 2
-  echo "           For other types combine date and time in a single column" >& 2
-  echo "     If -y is present, it is ignored unless Measured Unit-Values" >& 2
-  echo "           are specified as arguments or selected in the prompting." >& 2
-  echo "           If omitted, defaults to preferred input." >& 2
-  echo "     If -m is present, it is ignored." >& 2
-  echo "     If -i is omitted, the standard S_STRT title line is used." >& 2
-  echo >& 2
-  echo "       -- OR --" >& 2
-  echo >& 2
-  echo "       aq2rdb -fctlfile" >& 2
-  echo "              -ooutfile" >& 2
-  echo "              -m (write multiple files)" >& 2
-  echo "              -l loctzcd (time zone code or \"LOC\")" >& 2
-  echo "              -r (rounding suppression)" >& 2
-  echo "              -c (Output COMPUTED daily values only (DV))" >& 2
-  echo "                 (combine date and time in a single column (UV))" >& 2
-  echo "              -v Make dates and times verbose (excel friendly)" >& 2
-  echo "              -y transport_cd (Measured Unit-Values only)" >& 2
-  echo "                  A (ADR), C (CHA), F (FIL), G (EDL), O (OBS)," >& 2
-  echo "                  P (TEL), R (RAD), S (DCP), U (UNS), or Z (BAK)" >& 2
-  echo "                  if omitted, defaults to preferred input" >& 2
-  echo "     If -o is omitted, writes to stdout, and -m cannot be used" >& 2
-  echo "     If -m is present, outfile is used as the output file name prefix." >& 2
-  echo "           If omitted, all rows in the control file must be the" >& 2
-  echo "           same datatype." >& 2
-  echo "     If -l is omitted, it will default to \"LOC\"" >& 2
-  echo "     If -r is present, rounding is suppressed," >& 2
-  echo "           otherwise rounded values are output." >& 2
-  echo "     If -c is present and daily-values are being output, only computed" >& 2
-  echo "           daily values will be retrieved." >& 2
-  echo "           If unit-values are being output, date and time" >& 2
-  echo "           are combined into a single datetime column." >& 2
-  echo "           This option is ignored if the datatype is not dv or uv." >& 2
-  echo "     If -y is present, it is ignored except for rows in the" >& 2
-  echo "           control file specifying Measured Unit-Values." >& 2
-  echo "           If omitted, defaults to preferred input." >& 2
-  echo "     If -t, -a, -n, -d, -p, -s, -b, -e, or -i are present, they are ignored." >& 2
-  echo >& 2
-  echo "     The control file (-f argument) is an RDB file containing the" >& 2
-  echo "     columns \"DATATYPE\", \"AGENCY\", \"STATION\", \"DDID\", \"SUBTYPE\"," >& 2
-  echo "     \"BEGDATE\", and \"ENDDATE\", corresponding to the -t, -a, -n, -d," >& 2
-  echo "     -s, -b, and -e arguments for the no control file case." >& 2
-  echo "     For the DDID column, if the datatype is \"qw\" it contains the parameter code." >& 2
-  echo "     Otherwise, if the first character of the DDID is a \"P\", then it is treated" >& 2
-  echo "     as a parameter code and used to locate the PRIMARY DD for that parameter." >& 2
-  echo "     All columns must be present, and all columns must also be populated" >& 2
-  echo "     (not blank and not null), except that DDID is not used (may be blank" >& 2
-  echo "     or null) when DATATYPE is \"ms\" or \"pk\" and SUBTYPE is not used " >& 2
-  echo "     when DATATYPE is \"dc\", or \"sv\". It does not matter in what " >& 2
-  echo "     order the columns appear in the control file." >& 2
-  echo >& 2
-  echo "     The control file option cannot be used with pseudo-UV retrievals (all" >& 2
-  echo "     datatype \"wl\", \"qw\", \"vt\" and some datatype \"ms\" options." >& 2
-  echo >& 2
-} # nwts2rdb_usage
+def main():
+    outpath = None
+    dbnum = None
+    datatyp = None
+    agency = None
+    station = None
+    ddid = None
+    parm = None
+    stat = None
+    begdat = None
+    enddat = None
+    loc_tz_cd = None
+    loc_nu = None
+    ctlpath = None
+    transport_cd = None
+    titlline = None
+    rndsup = None
+    wyflag = None
+    cflag = None
+    vflag = None
+    multiple = None
+    hydra = None
+    oblank = " "
+    zblank = "1"
+    tblank = " "
+    ablank = " "
+    nblank = " "
+    dblank = " "
+    pblank = " "
+    sblank = " "
+    yblank = " "
+    iblank = " "
+    bblank = " "
+    eblank = " "
+    lblank = "LOC"
+    xblank = "0"
+    fblank = " "
+    oflag = False
+    zflag = False
+    tflag = False
+    aflag = False
+    nflag = False
+    dflag = False
+    pflag = False
+    sflag = False
+    yflag = False
+    iflag = False
+    bflag = False
+    eflag = False
+    lflag = False
+    fflag = False
+    xflag = False
+    olen = 0
+    zlen = 0
+    tlen = 0
+    alen = 0
+    nlen = 0
+    dplen = 0
+    slen = 0
+    ylen = 0
+    ilen = 0
+    blen = 0
+    elen = 0
+    llen = 0
+    xlen = 0
+    flen = 0
 
-# host of aq2rdb Web service
-host=cidasdqaasaq2rd:8081
+    status = 0
 
-# possibly unnecessary initializations here are artifacts of NWIS C
-# source translation
-error=0
-loc_nu='0'
-oblank=' '
-zblank='1'
-tblank=' '
-ablank=' '
-nblank=' '
-dblank=' '
-pblank=' '
-sblank=' '
-yblank=' '
-iblank=' '
-bblank=' '
-eblank=' '
-lblank='LOC'
-xblank='0'
-fblank=' '
-oflag=false
-zflag=false
-tflag=false
-aflag=false
-nflag=false
-dflag=false
-pflag=false
-sflag=false
-yflag=false
-iflag=false
-bflag=false
-eflag=false
-lflag=false
-fflag=false
-xflag=false
+    # display usage if no arguments
+    if len(sys.argv) <= 1:
+        status = 119
+    else:
+        # get command line arguments 
+        rndsup = 'N'
+        wyflag = 'N'
+        cflag = 'N'
+        vflag = 'N'
+        multiple = 'N'
+        hydra = 'N'
 
-status=0
+        error = False
 
-# display usage if no arguments
-if [ "$#" -le 1 ]; then
-  # strange, non-zero exit status numbers are an artifact of NWIS C
-  # source
-  status=119
-else
-  # get command line arguments
-  rndsup='N'
-  wyflag='N'
-  cflag='N'
-  vflag='N'
-  multiple='N'
-  hydra='N'
+        try:
+            opts, args = getopt.getopt(
+                sys.argv[1:], "o:z:t:a:n:d:p:s:b:e:l:f:y:i:x:rwcvmh?"
+            )
+        except getopt.GetoptError as err:
+            # TODO: transplant error-handling code here
+            sys.stderr.write("TODO:\n")
 
-  error=false
+        for opt, arg in opts:
+            if opt == "-o":
+                oflag = True
+                outpath = arg
+            elif opt == "-z":
+                zflag = True
+                dbnum = arg
+            elif opt == "-t":
+                tflag = True
+                datatyp = arg
+                # get the length of the data type and convert it to
+                # upper case
+                tlen = len(datatyp) 
+                datatyp = datatyp.upper()
+            elif opt == "-a":
+                aflag = True
+                agency = arg
+            elif opt == "-n":
+                nflag = True
+                station = arg
+            elif opt == "-d":
+                dflag = True
+                ddid = arg
+            elif opt == "-p":
+                pflag = True
+                parm = arg
+            elif opt == "-s":
+                sflag = True
+                stat = arg
+            elif opt == "-b":
+                bflag = True
+                begdat = arg
+            elif opt == "-e":
+                eflag = True
+                enddat = arg
+            elif opt == "-l":
+                lflag = True
+                loc_tz_cd = arg
+                # get the length of the time zone code and convert to
+                # upper case
+                llen = len(loc_tz_cd)
+                loc_tz_cd = loc_tz_cd.upper()
+            elif opt == "-x":
+                xflag = True
+                loc_nu = arg
+            elif opt == "-r":
+                rndsup = 'Y'
+            elif opt == "-w":
+                wyflag = 'Y'
+            elif opt == "-c":
+                cflag = 'Y'
+            elif opt == "-v":
+                vflag = 'Y'
+            elif opt == "-m":
+                multiple = 'Y'
+            elif opt == "-h":
+                hydra = 'Y'
+            elif opt == "-f":
+                fflag = True
+                ctlpath = arg
+            elif opt == "-y":
+                yflag = True
+                transport_cd = arg
+            elif opt == "-i":
+                iflag = True
+                titlline = arg
+            elif opt == "-?":
+                error = True
 
-  while getopts 'o:z:t:a:n:d:p:s:b:e:l:f:y:i:x:rwcvmh' optchar; do
-    case "$optchar" in
-      o)
-        oflag=true
-        outpath="$OPTARG"
-        ;;
-      z)
-        echo "$0: warning: the nwts2rdb \"-z\" option is obsolete" >& 2
-        ;;
-      t)
-        tflag=true
-        datatyp="${OPTARG^^}"   # convert to upper case
-        ;;
-      a)
-        aflag=true
-        agency="$OPTARG"
-        ;;
-      n)
-        nflag=true
-        station="$OPTARG"
-        ;;
-      d)
-        dflag=true
-        ddid="$OPTARG"
-        ;;
-      p)
-        pflag=true
-        parm="$OPTARG"
-        ;;
-      s)
-        sflag=true
-        stat="$OPTARG"
-        ;;
-      b)
-        bflag=true
-        begdat="$OPTARG"
-        ;;
-      e)
-        eflag=true
-        enddat="$OPTARG"
-        ;;
-      l)
-        lflag=true
-        loc_tz_cd="${OPTARG^^}" # convert to upper case
-        ;;
-      x)
-        xflag=true
-        loc_nu="$OPTARG"
-        # weirdness to literally emulate nwts2rdb C code
-        rndsup='Y'
-        ;;
-      r)
-        rndsup='Y'
-        ;;
-      w)
-        wyflag='Y'
-        ;;
-      c)
-        cflag='Y'
-        ;;
-      v)
-        vflag='Y'
-        ;;
-      m)
-        multiple='Y'
-        ;;
-      h)
-        hydra='Y'
-        ;;
-      f)
-        fflag=true
-        ctlpath="$OPTARG";
-        ;;
-      y)
-        yflag=true
-        transport_cd="$OPTARG"
-        ;;
-      i)
-        iflag=true
-        titlline="$OPTARG"
-        ;;
-      ?)
-        error=true
-        ;;
-    esac
-  done
-  if [ "$error" = false ]; then
-    # check for argument completion
+        if not error:
+            # check for argument completion
+            # First, processing if -h is specified 
 
-    # First, processing if -h is specified 
-    if [ "$hydra" = Y ]; then
-      # date and time must be separate
-      cflag='N'
-      # only -a, -o, -b, and -e can be specified if -h is specified
-      if [ "$dflag" = true -o "$fflag" = true -o "$iflag" = true -o
-           "$nflag" = true -o "$pflag" = true -o "$sflag" = true -o
-           "$tflag" = true -o "$yflag" = true -o "$xflag" = true -o
-           "$wyflag" = Y -o "$cflag" = Y -o "$multiple" = Y ]; then
-        echo >& 2
-        echo "If -h is specified, only -a, -b, -e, -l, -r, and -o can also be specified" >& 2
-        status=120
-      # both -b and -e must be specified 
-      # date/time range comes from Hydra
-      elif [ "$bflag" = false -o "$eflag" = false ]; then
-        echo >& 2
-        echo "If -h is specified, both -b and -e must be specified." >& 2
-        status=119
-      # -o must be specified if -h is specified
-      elif [ "$oflag" = false ]; then
-        echo >& 2
-        echo "If -h is specified, -o must also be specified." >& 2
-        status=121
-      else
-        # both -h and -o were specified - outpath is actually the 
-        # pathname of a named pipe, save it's name
-        pipepath="$outpath"
-        # make sure the named pipe exists
-        # TODO: need to check what NWIS library function call
-        # acces(pipepath,F_OK) does; conditional below might not be
-        # correct.
-        if [ -w "$pipepath" ]; then
-          # does not exist - Hydra must have crashed
-          # delete the temp file and exit
-          echo >& 2
-          echo "Hydra mode - Named pipe does not exist." >& 2
-          status=125
-        else
-          # Named pipe exists, create a temporary filename in outpath
-          outpath=`mktemp`
-        fi
-      fi
-    fi
-    # if a control file is supplied, all arguments are ignored except
-    # -r (suppress rounding), -l (local time zone), -m (multiple file
-    # output), and -o (output file). If -o is not supplied, -m cannot
-    # also be supplied - (can't do multiple files if everything is
-    # going to stdout - one file by definition)
-    if [ "$fflag" = true -a "$multiple" = Y -a "$oflag" = false ]; then
-        echo >& 2
-        echo "If -f and -m is specified, -o must also be specified." >& 2
-        status=122
-    # Not using a control file. Cannot have both -d and -p
-    elif [ ! "$fflag" = true -a "$dflag" = true -a "$pflag" = true ]; then
-        echo >& 2
-        echo "Arguments -d and -p cannot both be specified." >& 2
-        status=123
-    # Not using a control file, -m is ignored.
-    # If -o is not specified, all other arguments must be there as the
-    # prompting for missing arguments uses ADAPS subroutines that
-    # write the prompts to stdout (they're ports from PRIMOS,
-    # remember?)  so the RDB output has to go to a file, otherwise the
-    # prompts would be mixed in with the rdb output which would make
-    # things difficult for a pipeline.
-    elif [ "$fflag" != true -a "$oflag" != true -a \
-           \( \
-              "$tflag" != true -o "$nflag" != true -o \
-              "$bflag" != true -o "$eflag" != true -o \
-              \( \( "$datatyp" != DC -a "$datatyp" != SV \) -a \
-                 "$sflag" != true \) -o \
-              \( "$datatyp" = QW -a "$pflag" != true \) -o \
-                 \( \( "$datatyp" != MS -a "$datatyp" != PK -a \
-                       "$datatyp" != WL \) -a "$dflag" != true -a \
-                    "$pflag" != true \) \
-           \) ]; then
-      
-      echo >& 2 
-      echo "If the -o argument is omitted, then all of -t, -n, -b, -e," >& 2
-      echo "and -s if datatype is not \"dc\", or \"sv\"" >& 2
-      echo "and -p if datatype is \"qw\"" >& 2
-      echo "and -d or -p if datatype is not \"ms\", \"pk\", or \"wl\" must be present." >& 2
-      status=124
-    fi
-  fi
-fi
-if [ $status -ne 0 ]; then
-  nwts2rdb_usage
-else
-    if [ $oflag != true ]; then
-        outpath="$oblank"
-    fi
-    
-    if [ $zflag != true ]; then
-        dbnum="$zblank"
-    fi
-    
-    # set data type to blank if not supplied
-    if [ $tflag != true ]; then
-        datatyp="$tblank"
-    fi
-    
-    # get the length of the agency code
-    if [ $aflag != true ]; then
-        agency="$ablank"
-    fi
-    
-    if [ $nflag != true ]; then
-        station="$nblank"
-    fi
+            if hydra == 'Y':
+                # date and time must be separate
+                cflag = 'N'
+                # only -z, -a, -o, -b, and -e can be specified if -h
+                # is specified
+                if dflag or fflag or iflag or nflag or \
+                   pflag or sflag or tflag or yflag or xflag or \
+                   wyflag == 'Y' or \
+                   cflag == 'Y' or multiple == 'Y':
+                    sys.stderr.write("\n")
+                    sys.stderr.write(
+                        "If -h is specified, only -a, -b, -e, -l, " +
+                        "-r, -o, and -z can also be specified"
+                    )
+                    status = 120
+                elif not bflag or not eflag:
+                    # both -b and -e must be specified 
+                    # date/time range comes from Hydra
+                    sys.stderr.write("\n")
+                    sys.stderr.write(
+                        "If -h is specified, both -b and -e " +
+                        "must be specified."
+                    )
+                    status = 119
+                elif not oflag:
+                    # -o must be specified if -h is specified
+                    sys.stderr.write("\n")
+                    sys.stderr.write(
+                        "If -h is specified, -o must also be specified."
+                    )
+                    status = 121
+                else:
+                    # both -h and -o were specified: outpath is
+                    # actually the pathname of a named pipe, save it's
+                    # name
+                    pipepath = outpath
 
-    if [ $dflag = true ]; then
-        ddpm="$ddid"
-    elif [ $pflag = true ]; then
-        # put it in the ddpm variable prefixed with "P"
-        ddpm="P$parm"
-    else
-        # Neither -d or -p was specified
-        # construct a blank string
-        ddpm="$dblank"
-    fi
-    
-    if [ $sflag != true ]; then
-        stat="$sblank"
-    fi
+                    # make sure the named pipe exists
+                    if access(pipepath, F_OK):
+                        # does not exist - Hydra must have crashed
+                        # delete the temp file and exit
+                        sys.stderr.write("\n")
+                        sys.stderr.write(
+                            "Hydra mode - Named pipe does not exist."
+                        )
+                        status = 125
+                    else:
+                        # Named pipe exists, create a temporary filename
+                        # in outpath
+                        tmpnam(temppath)
+                        outpath = temppath
 
-    if [ $yflag != true ]; then
-        transport_cd="$yblank"
-    fi
-    
-    if [ $iflag != true ]; then
-        titlline="$iblank"
-    fi
+        # if a control file is supplied, all arguments are ignored except
+        # -z (database number), -r (suppress rounding), -l (local time zone),
+        # -m (multiple file output), and -o (output file).  If -o is not 
+        # supplied, -m cannot also be supplied - (can't do multiple files if 
+        # everything is going to stdout - one file by definition)
+        if fflag and multiple == 'Y' and not oflag:
+            sys.stderr.write("\n")
+            sys.stderr.write(
+                "If -f and -m is specified, -o must also " +
+                "be specified."
+            )
+            status = 122
 
-    if [ $bflag != true ]; then
-        begdat="$bblank"
-    fi
+        elif not fflag and dflag and pflag:
+            # Not using a control file. Cannot have both -d and -p
+            sys.stderr.write("\n")
+            sys.stderr.write("Arguments -d and -p cannot both be specified.\n")
+            status = 123
+        elif not fflag and not oflag and \
+             ( not tflag or not nflag or not bflag or not eflag or \
+               ((datatyp != "DC" and datatyp != "SV") and not sflag) or \
+               (not datatyp != "QW" and not pflag) or \
+               ((datatyp != "MS" and datatyp != "PK" and \
+                 datatyp != "WL") and not dflag and not pflag )):
+            # Not using a control file, -m is ignored.
 
-    if [ $eflag != true ]; then
-        enddat="$eblank"
-    fi
-    
-    if [ $lflag != true ]; then
-        loc_tz_cd="$lblank"
-    fi
-    
-    if [ $xflag != true ]; then
-        loc_nu="$xblank"
-    fi
-    
-    if [ $fflag != true ]; then
-        ctlpath="$fblank"
-    fi
+            # If -o is not specified, all other arguments must be
+            # there as the prompting for missing arguments uses ADAPS
+            # subroutines that write the prompts to stdout (they're
+            # ports from Prime, remember?) so the RDB output has to go
+            # to a file, otherwise the prompts would be mixed in with
+            # the RDB output which would make things difficult for a
+            # pipeline.
+            sys.stderr.write("\n")
+            sys.stderr.write(
+                "If the -o argument is omitted, then all of -t, -n, -b, -e,\n"
+            )
+            sys.stderr.write("and -s if datatype is not \"dc\", or \"sv\"\n")
+            sys.stderr.write("and -p if datatype is \"qw\"\n")
+            sys.stderr.write(
+                "and -d or -p if datatype is not \"ms\", \"pk\", " +
+                "or \"wl\" must be present.\n"
+            )
+            status = 124
 
-    status=$(rdb_out "$ctlpath" "$multiple" "$outpath" \
-        "$datatyp" "$rndsup" "$wyflag" "$cflag" "$vflag" "$hydra" \
-        "$agency" "$station" "$ddpm" "$loc_nu" "$stat" "$transport_cd" \
-        "$begdat" "$enddat" "$loc_tz_cd" "$titlline")
+    if status != 0:
+        aq2rdb_usage()
+    else:
+        # get the length of the output file pathname
+        if oflag:
+            olen = len(outpath)
+        else:
+            olen = 1
+            outpath = oblank
+            # get the length of the database number 
+            if zflag:
+                zlen = len(dbnum)
+            else:
+                zlen = 1
+                dbnum = zblank
+           
+        # set data type to blank if not supplied 
+        if not tflag:
+            tlen = 1
+            datatyp = tblank
 
-    # if Hydra mode, write the temp filename to the named pipe
-    if [ "$hydra" = 'Y' ]; then
-        # Open the pipe for writing
-        if [ ! -w "$pipepath" ]; then
-            # Unable to open pipe, delete the temp file and quit
-            rm -f "$outpath"
-            echo >& 2
-            echo "Cannot open named pipe for writing." >& 2
-            status=126
-        fi
-        # write the temp file pathname to the pipe
-        echo "$outpath" > "$pipepath"
-    fi
-fi
-exit $status
+        if aflag:
+            # get the length of the agency code 
+            alen = len(agency)
+        else:
+            alen = 1
+            agency = ablank
+
+        # get the length of the station number 
+        if nflag:
+            nlen = len(station)
+        else:
+            nlen = 1
+            station = nblank
+
+        if dflag:
+            # get the length of the DD ID
+            dplen = len(ddid)
+            # put it in the ddpm variable
+            ddpm = ddid
+        elif pflag:
+            # get the length of the parm code
+            dplen = len(parm) + 1
+            # put it in the ddpm variable prefixed with "P"
+            ddpm = "P" + parm
+        else:
+            # Neither -d or -p was specified: construct a blank string
+            dplen = 1
+            ddpm = dblank
+
+        if sflag:
+            # get the length of the stat code (or other secondary
+            # identifier)
+            slen = len(stat)
+        else:
+            slen = 1
+            stat = sblank
+
+        if yflag:
+            # get the length of the transport code
+            ylen = len(transport_cd)
+        else:
+            ylen = 1
+            transport_cd = yblank
+
+        if iflag:
+            # get the length of the title line
+            ilen = len(titlline)
+        else:
+            ilen = 1
+            titlline = iblank
+
+        if bflag:
+            # get the length of the begin date/time
+            blen = len(begdat)
+        else:
+            blen = 1
+            begdat = bblank
+
+        if eflag:
+            # get the length of the end date/time 
+            elen = len(enddat)
+        else:
+            elen = 1
+            enddat = eblank
+
+        # get the length of the time zone code
+        if lflag:
+            llen = len(loc_tz_cd)
+        else:
+            llen = 3
+            loc_tz_cd = lblank
+
+        # get the length of the location number
+        if xflag:
+            xlen = len(loc_nu)
+        else:
+            xlen = 1
+            loc_nu = xblank
+
+        # get the length of the control file pathname 
+        if fflag:
+            flen = len(ctlpath)
+        else:
+            flen = 1
+            ctlpath = fblank
+
+        status = rdb_out(ctlpath, multiple, outpath, dbnum,
+                         datatyp, rndsup, wyflag, cflag, vflag, hydra,
+                         agency, station, ddpm, loc_nu, stat, transport_cd,
+                         begdat, enddat, loc_tz_cd, titlline)
+        nw_write_error(stderr)
+ 
+        # if Hydra mode, write the temp filename to the named pipe
+        if hydra == 'Y':
+            # Open the pipe for writing
+            pipe = fopen(pipepath, "w")
+            if pipe == NULL:
+                # Unable to open pipe, delete the temp file and quit
+                unlink (outpath)
+                sys.stderr.write("\n")
+                sys.stderr.write("Cannot open named pipe for writing.\n")
+                status = 126
+                # write the temp file pathname to the pipe and close it
+                # fprintf (pipe,"reference %s\n",outpath)
+                # fclose (pipe)
+
+    return status
+
+if __name__ == "__main__":
+    sys.exit(main())
