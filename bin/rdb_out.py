@@ -8,7 +8,15 @@
 #           Scott D. Bartholoma <sbarthol@usgs.gov> [NWF_RDB_OUT()]
 #
 
+# TODO: check where this is defined/initialized in 3GL
+irc = 0
+
+def s_date(cdate, ctime):
+    # TODO:
+    return
+
 def goto_999():
+    global irc
     #  Good return
     nwf_rdb_out = irc
     sys.exit(0)
@@ -40,130 +48,15 @@ def rdb_out(
         in_loc_tz_cd,           # time zone code
         titlline                # title line (text)
 ):
-
-    # **********************************************************************
-    # * FUNCTION DECLARATIONS
-    # **********************************************************************
-
-    #      INTEGER nwf_strlen,
-    #     *        nwc_rdb_cfil,
-    #     *        nw_get_error_number,
-    #     *        nwc_atoi
-
-    #      LOGICAL nw_write_log_entry,
-    #     *        nw_key_get_zone_dst,
-    #     *        nw_get_dflt_tzcd,
-    #     *        nw_db_save_program_info,
-    #     *        nw_db_key_get_dd_parm_loc
-
-    # **********************************************************************
-    # * EXTERNAL SUBROUTINES OR FUNCTIONS
-    # **********************************************************************
-
-    #      EXTERNAL nwf_strlen,
-    #     *         nwc_rdb_cfil,
-    #     *         nw_write_log_entry,
-    #     *         nw_get_error_number,
-    #     *         nw_key_get_zone_dst,
-    #     *         nw_get_dflt_tzcd,
-    #     *         nw_db_save_program_info
-
-    # **********************************************************************
-    # * INTRINSIC FUNCTIONS
-    # **********************************************************************
-
-    #      INTRINSIC len
-
-    # **********************************************************************
-    # * INCLUDE FILES
-    # **********************************************************************
-
-    #      INCLUDE 'program_id.ins'
-    #      INCLUDE 'adaps_keys.ins'
-    #      INCLUDE 'user_data.ins'
-    #      INCLUDE 'ins.dbdata'
-
-    # **********************************************************************
-    # * LOCAL VARIABLE DECLARATIONS
-    # **********************************************************************
-
-    #      CHARACTER datatyp*2,
-    #     *          savetyp*2,
-    #     *          sopt*32,
-    #     *          ctlfile*128,
-    #     *          rdbfile*128,
-    #     *          rtagny*5,
-    #     *          sid*15,
-    #     *          ddid*6,
-    #     *          lddid*6,
-    #     *          parm*5,
-    #     *          stat*5,
-    #     *          transport_cd*1,
-    #     *          uvtyp*1,
-    #     *          inguvtyp*6,
-    #     *          mstyp*1,
-    #     *          mssav*1,
-    #     *          vttyp*1,
-    #     *          wltyp*1,
-    #     *          meth_cd*5,
-    #     *          pktyp*1,
-    #     *          qwparm*5,
-    #     *          qwmeth*5,
-    #     *          begdate*8,
-    #     *          enddate*8,
-    #     *          begdtm*14,
-    #     *          enddtm*14,
-    #     *          bctdtm*14,
-    #     *          ectdtm*14,
-    #     *          cdate*8,
-    #     *          ctime*6,
-    #     *          tz_cd*6,
-    #     *          loc_tz_cd*6,
-    #     *          local_time_fg*1
-
-#      INTEGER rtdbnum,
-    #     *        loc_nu,
-    #     *        funit,
-    #     *        rdblen,
-    #     *        ipu,
-    #     *        irc,
-    #     *        nline,
-    #     *        sensor_type_id,
-    #     *        one,
-    #     *        two,
-    #     *        three,
-    #     *        iyr,
-    #     *        i
-
-#      INTEGER USBUFF(91),
-    #     &        HOLDBUFF(91)     ! restored old code from rev 1.5
-
-#      LOGICAL needstrt,
-    #     *        multiple,
-    #     *        rndsup,
-    #     *        wyflag,
-    #     *        cflag,
-    #     *        vflag,
-    #     *        hydra,
-    #     *        first,
-    #     *        addkey,
-    #     *        uvtyp_prompted
-
-# **********************************************************************
-# * INITIALIZATIONS
-    # **********************************************************************
-
+    global irc
     one, two, three = 1, 2, 3
-
-    # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    #     initialize
-
     needstrt = False
     uvtyp_prompted = False
     funit = -1
     parm = ' '
     ddid = ' '
     loc_tz_cd = in_loc_tz_cd
+    
     if loc_tz_cd == ' ': loc_tz_cd = 'LOC'
 
     if intrans[0] == ' ':
@@ -175,10 +68,11 @@ def rdb_out(
 
     # TODO: need to check nw_write_log_entry() source to see if it's
     # still relevant
-    if not nw_write_log_entry(1):
-        nw_write_error(6)
-        irc = nw_get_error_number()
-        goto_999()              # ex-GOTO
+    if False:
+        if not nw_write_log_entry(1):
+            nw_write_error(6)
+            irc = nw_get_error_number()
+            goto_999()              # ex-GOTO
 
     if indbnum == ' ':
         rtdbnum = 1
@@ -189,10 +83,11 @@ def rdb_out(
     # Load db number into some common blocks
     dbnum = rtdbnum
     dbnumb = rtdbnum
-    s_dbget(1, rtdbnum, irc)
+    # TODO: need to check 3GL to find out what this does
+    #s_dbget(1, rtdbnum, irc)
 
     # Set control file path
-    if len(ctlpath) > 128: 998() # ex-GOTO
+    if len(ctlpath) > 128: goto_998() # ex-GOTO
     ctlfile = ctlpath
 
     # set logical flags
@@ -210,12 +105,12 @@ def rdb_out(
         irc = nwc_rdb_cfil(one, ctlfile, rtagny, sid, ddid, 
                            stat, bctdtm, ectdtm, nline)
     #5
-    if irc != 0: 999()          # ex-GOTO
+    if irc != 0: goto_999()          # ex-GOTO
     s_date(cdate, ctime)
     # WRITE (0,2010) cdate, ctime, ctlfile(1:nwf_strlen(ctlfile))
     #2010     FORMAT (A8,1X,A6,1X,'Processing control file: ',A)
     print cdate + " " + ctime + " Processing control file: " + ctlfile
-    #  get a line from the file
+    # get a line from the file
     first = True
     irc = rdb_cfil(two, datatyp, rtagny, sid, ddid, stat,
                    bctdtm, ectdtm, nline)
