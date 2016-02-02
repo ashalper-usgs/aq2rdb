@@ -15,7 +15,7 @@ def goto_999():
 
 def write_2120(agny, sid, parm):
     print "No PRIMARY DD for station \"" + agny + sid + \
-        "\", parm \"" + parm + "\".  Aborting."
+        "\", parm \"" + parm + "\". Aborting."
 
 # returns the error code from modules called (0 IF all OK)
 def rdb_out(
@@ -168,15 +168,17 @@ def rdb_out(
 
     if intrans[0] == ' ':
         transport_cd = ' '
-        sensor_type_id = NW_NI4
+        sensor_type_id = None   # TODO: was NW_NI4; need to double-check F77
     else:
         transport_cd = intrans[o].upper()
         sensor_type_id = 0
 
+    # TODO: need to check nw_write_log_entry() source to see if it's
+    # still relevant
     if not nw_write_log_entry(1):
         nw_write_error(6)
         irc = nw_get_error_number()
-        999()                   # ex-GOTO
+        goto_999()              # ex-GOTO
 
     if indbnum == ' ':
         rtdbnum = 1
