@@ -7,7 +7,9 @@
 # Author - Andy Halper <ashalper@usgs.gov>
 #
 
+aq2rdb_home=/usr/local/lib/node_modules/aq2rdb
+
 # run as nodejs user
-/usr/bin/sudo -u nodejs -H -- \
+cd $aq2rdb_home && /usr/bin/sudo -u nodejs -H -- \
     /usr/local/lib64/node-v4.2.6-linux-x64/bin/node \
-    /usr/local/lib/node_modules/aq2rdb/aq2rdb.js "$@"
+    $aq2rdb_home/aq2rdb.js
