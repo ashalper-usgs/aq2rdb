@@ -88,6 +88,7 @@ def rdb_out(
     local_time_fg = None
 
     irc = 0
+    nline = 0
     one, two, three = 1, 2, 3
     needstrt = False
     uvtyp_prompted = False
