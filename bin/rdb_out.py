@@ -8,16 +8,16 @@
 #           Scott D. Bartholoma <sbarthol@usgs.gov> [NWF_RDB_OUT()]
 #
 
-import datetime
+import datetime, rdb_cfil
 datetime = datetime.datetime
+rdb_cfil = rdb_cfil.rdb_cfil
 
 # TODO: check where this is defined/initialized in 3GL
 irc = 0
 
-# (badly) emulate legacy NWIS S_DATE() Fortran subroutine
+# (badly) emulate legacy NWIS, S_DATE() Fortran subroutine
 def s_date():
-    t = datetime.strftime(datetime.now(), '%Y%m%d %H%M%S')
-    return t.split()
+    return datetime.strftime(datetime.now(), '%Y%m%d %H%M%S').split()
 
 def goto_999():
     global irc
@@ -141,8 +141,8 @@ def rdb_out(
     # check for a control file
 
     if ctlfile != ' ':          # using a control file - open it
-        irc = nwc_rdb_cfil(one, ctlfile, rtagny, sid, ddid, 
-                           stat, bctdtm, ectdtm, nline)
+        irc = rdb_cfil(one, ctlfile, rtagny, sid, ddid,
+                       stat, bctdtm, ectdtm, nline)
     #5
     if irc != 0: goto_999()          # ex-GOTO
     cdate, ctime = s_date()
@@ -156,7 +156,7 @@ def rdb_out(
 
     #6
     if irc != 0:
-        irc = nwc_rdb_cfil(three, ctlfile, rtagny, sid, ddid, 
+        irc = rdb_cfil(three, ctlfile, rtagny, sid, ddid, 
                            stat, bctdtm, ectdtm, nline)
     if not first:               # end of control file
         s_mclos                 # close things down and exit cleanly
@@ -225,7 +225,7 @@ def rdb_out(
                 funit = 6
             else:
                 if len(outpath) > 128:
-                    irc = nwc_rdb_cfil(three, ctlfile, rtagny, sid,
+                    irc = rdb_cfil(three, ctlfile, rtagny, sid,
                                        ddid, stat, bctdtm, ectdtm, nline) 
                     goto_998()
 
@@ -235,7 +235,7 @@ def rdb_out(
                 #       0, 1, ipu, funit, irc, *7)
                 #7
                 if irc != 0:
-                    irc = nwc_rdb_cfil (three, ctlfile, rtagny, sid, 
+                    irc = rdb_cfil (three, ctlfile, rtagny, sid, 
                                         ddid, stat, bctdtm, ectdtm, nline)
                     goto_999
 
@@ -310,7 +310,7 @@ def rdb_out(
                 " opening output file for line " + nline + ".\n" + \
                 rdbfile[0:rdblen - 1]
 
-            irc = nwc_rdb_cfil(three, ctlfile, rtagny, sid, ddid, 
+            irc = rdb_cfil(three, ctlfile, rtagny, sid, ddid, 
                                stat, bctdtm, ectdtm, nline)
             s_mclos
             goto_999
@@ -1034,7 +1034,7 @@ def rdb_out(
                                                  loc_nu):
                     goto_997
             else:
-                loc_nu = nwc_atoi(inlocnu)
+                loc_nu = atoi(inlocnu)
 
             fvtrdbout_hydra(funit, rndsup, rtagny, sid, parm,
                             loc_nu, begdtm, enddtm, loc_tz_cd,
