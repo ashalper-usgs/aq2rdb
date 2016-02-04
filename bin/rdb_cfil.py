@@ -65,151 +65,132 @@ def rdb_cfil(
         nline = 0
 
         # find the first non-comment line
-        while (fgets(namline, maxplin, infile) != NULL:
-               (*nline)++
-        if namline[0] != '#':
-               # read the column headings
-	numcol = 0
-	colnam[numcol] = rdb_tabtok(namline)
-	while (colnam[numcol] != NULL:
-	  # see if it is one of the colums we are expecting
-	  for (i = 0; i < 7; i++:
-	    if ! strcmp(colnam[numcol], cols[i]):
-	      havecol[i] = True
-	      colpos[i] = numcol
-	      break
-	    }
-	  }
+        for namline in infile.readline(maxplin):
+            nline += 1
+            if namline[0] != '#':
+                # read the column headings
+                numcol = 0
+                colnam[numcol] = rdb_tabtok(namline)
+                while colnam[numcol] != NULL:
+                    # see if it is one of the columns we are expecting
+                    for i in range(0, 7):
+                        if colnam[numcol] == cols[i]:
+                            havecol[i] = True
+                            colpos[i] = numcol
+                            break
 	
-	  # get the next token
-	  colnam[++numcol] = rdb_tabtok(NULL)
-	}
+                    # get the next token
+                    colnam[++numcol] = rdb_tabtok(NULL)
 	
-	# see if we got what we expected
-	for (i = 0; i < 7; i++:
-	  if ! havecol[i]:
-	    sys.stderr.write("RDB control file column definitions on line %d did not have all the expected columns (rdb_cfil)\n", *nline)
-	    return -1
-	  }
-	}
-	eof = False
-	break
-      }
-    }
-    if eof)
-      return 1
+                # see if we got what we expected
+                for i in range(0, 7):
+                    if havecol[i] != True:
+                        sys.stderr.write(
+                            "RDB control file column definitions on " +
+                            "line %d did not have all the expected " +
+                            "columns (rdb_cfil)\n", nline
+                        )
+                        return -1
 
-    # find the next non-comment line
-    eof = True
-    while (fgets(defline, maxplin, infile) != NULL:
-      (*nline)++;
-      if defline[0] != '#':
-	# read the column definitions
-	n = 0
-	coldef[n] = rdb_tabtok(defline)
-	while (coldef[n] != NULL:
-	  coldef[++n] = rdb_tabtok(NULL)
-	}
 	eof = False
-	if n != numcol:
-	  sys.stderr.write("RDB file on line %d has %d column names but %d definitions (rdb_cfil)\n", *nline, numcol, n)
-	  return -1
-	}	
-	break
-      }
-    }
-    if eof)
-      return 1
-    break
 
-  elif iop == 2:
-    # find the next non-comment line
-    eof = True
-    while (fgets(line, maxplin, infile) != NULL:
-      (*nline)++
-      if line[0] != '#':
-	# read the column values
-	n = 0
+        if eof == True:
+            return 1
+
+        # find the next non-comment line
+        eof = True
+        for namline in infile.readline(maxplin):
+            nline += 1
+            if defline[0] != '#':
+                # read the column definitions
+                n = 0
+                coldef[n] = rdb_tabtok(defline)
+                while coldef[n] != NULL:
+                    coldef[++n] = rdb_tabtok(NULL)
+
+            eof = False
+            if n != numcol:
+                sys.stderr.write(
+                    "RDB file on line %d has %d column names but " +
+                    "%d definitions (rdb_cfil)\n", nline, numcol, n
+                )
+                return -1
+
+            break
+
+            if eof == True:
+                return 1
+            break
+
+    elif iop == 2:
+        # find the next non-comment line
+        eof = True
+        for namline in infile.readline(maxplin):
+            nline += 1
+        if line[0] != '#':
+            # read the column values
+            n = 0
 	colval[n] = rdb_tabtok(line)
-	while (colval[n] != NULL:
-	  # left-justify the string
-	  while (*colval[n]==' ')
-	    colval[n]++
-	  # upcase the string
-	  cp = colval[n]
-	  while (*cp:
-	    *cp = toupper(*cp)
-	    cp++
-	  }
-	  # get next token
-	  colval[++n] = rdb_tabtok(NULL)
-	}
-	if n != numcol:
-	  sys.stderr.write("RDB file on line %d has %d values instead of the expected %d (rdb_cfil)\n", *nline, n, numcol)
-	  return -1
-	}	
+        colvallen = len(colval)
+	while n < colvallen:
+            # left-justify the string
+            while colval[n] == ' ':
+                colval[n] += 1
+            # upcase the string
+            colval[n] = colval[n].upper()
+            # get next token
+            colval[++n] = rdb_tabtok(NULL)
+
+        if n != numcol:
+            sys.stderr.write(
+                "RDB file on line %d has %d values instead of the " +
+                "expected %d (rdb_cfil)\n", nline, n, numcol
+            )
+            return -1
 	
-	# copy the tokens to the return variables
-	if *colval[colpos[0]] == '\0':
-	  cstr2fstr(" ", datatyp, dlen)
-	}
-	else {
-	  cstr2fstr(colval[colpos[0]], datatyp, dlen)
-	}
+        # copy the tokens to the return variables
+        if colval[colpos[0]] == '\0':
+            cstr2fstr(" ", datatyp, dlen)
+	else:
+            cstr2fstr(colval[colpos[0]], datatyp, dlen)
 
-	if *colval[colpos[1]] == '\0':
-	  cstr2fstr(" ", rtagny, rlen)
-	}
-	else {
-	  cstr2fstr(colval[colpos[1]], rtagny, rlen)
-	}
+        if colval[colpos[1]] == '\0':
+            cstr2fstr(" ", rtagny, rlen)
+	else:
+            cstr2fstr(colval[colpos[1]], rtagny, rlen)
 
-	if *colval[colpos[2]] == '\0':
-	  cstr2fstr(" ", sid, slen)
-	}
-	else {
-	  cstr2fstr(colval[colpos[2]], sid, slen)
-	}
+        if colval[colpos[2]] == '\0':
+            cstr2fstr(" ", sid, slen)
+	else:
+            cstr2fstr(colval[colpos[2]], sid, slen)
 
-	if *colval[colpos[3]] == '\0':
-	  cstr2fstr(" ", ddid, ddlen)
-	}
-	else {
-	  cstr2fstr(colval[colpos[3]], ddid, ddlen)
-	}
+        if colval[colpos[3]] == '\0':
+            cstr2fstr(" ", ddid, ddlen)
+	else:
+            cstr2fstr(colval[colpos[3]], ddid, ddlen)
 
-	if *colval[colpos[4]] == '\0':
-	  cstr2fstr(" ", stat, tlen)
-	}
-	else {
-	  cstr2fstr(colval[colpos[4]], stat, tlen)
-	}
+        if colval[colpos[4]] == '\0':
+            cstr2fstr(" ", stat, tlen)
+	else:
+            cstr2fstr(colval[colpos[4]], stat, tlen)
 
-	if *colval[colpos[5]] == '\0':
-	  cstr2fstr(" ", begdtm, blen)
-	}
-	else {
-	  cstr2fstr(colval[colpos[5]], begdtm, blen)
-	}
+        if colval[colpos[5]] == '\0':
+            cstr2fstr(" ", begdtm, blen)
+	else:
+            cstr2fstr(colval[colpos[5]], begdtm, blen)
 
-	if *colval[colpos[6]] == '\0':
-	  cstr2fstr(" ", enddtm, elen)
-	}
-	else {
-	  cstr2fstr(colval[colpos[6]], enddtm, elen)
-	}
+        if colval[colpos[6]] == '\0':
+            cstr2fstr(" ", enddtm, elen)
+	else:
+            cstr2fstr(colval[colpos[6]], enddtm, elen)
 
 	eof = False
-	break
-      }
-    }
-    if eof:
-      return 1
-    break
-  elif iop == 3:
-    # close the file
-    fclose(infile)
-    break
-  }
-  return 0
-}
+
+        if eof == True:
+            return 1
+
+    elif iop == 3:
+        # close the file
+        infile.close()
+
+    return 0
