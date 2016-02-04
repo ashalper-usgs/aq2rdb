@@ -8,16 +8,20 @@
 #           Scott D. Bartholoma <sbarthol@usgs.gov> [NWF_RDB_OUT()]
 #
 
+import datetime
+datetime = datetime.datetime
+
 # TODO: check where this is defined/initialized in 3GL
 irc = 0
 
-def s_date(cdate, ctime):
-    # TODO:
-    return
+# (badly) emulate legacy NWIS S_DATE() Fortran subroutine
+def s_date():
+    t = datetime.strftime(datetime.now(), '%Y%m%d %H%M%S')
+    return t.split()
 
 def goto_999():
     global irc
-    #  Good return
+    # Good return
     nwf_rdb_out = irc
     sys.exit(0)
 
@@ -48,7 +52,42 @@ def rdb_out(
         in_loc_tz_cd,           # time zone code
         titlline                # title line (text)
 ):
-    global irc
+    # (fake) local string variable declarations
+    datatyp = None
+    savetyp = None
+    sopt = None
+    ctlfile = None
+    rdbfile = None
+    rtagny = None
+    sid = None
+    ddid = None
+    lddid = None
+    parm = None
+    stat = None
+    transport_cd = None
+    uvtyp = None
+    inguvtyp = None
+    mstyp = None
+    mssav = None
+    vttyp = None
+    wltyp = None
+    meth_cd = None
+    pktyp = None
+    qwparm = None
+    qwmeth = None
+    begdate = None
+    enddate = None
+    begdtm = None
+    enddtm = None
+    bctdtm = None
+    ectdtm = None
+    cdate = None
+    ctime = None
+    tz_cd = None
+    loc_tz_cd = None
+    local_time_fg = None
+
+    irc = 0
     one, two, three = 1, 2, 3
     needstrt = False
     uvtyp_prompted = False
@@ -106,8 +145,7 @@ def rdb_out(
                            stat, bctdtm, ectdtm, nline)
     #5
     if irc != 0: goto_999()          # ex-GOTO
-    # TODO: find out where cdate, ctime are defined in 3GL
-    #s_date(cdate, ctime)
+    cdate, ctime = s_date()
     # WRITE (0,2010) cdate, ctime, ctlfile(1:nwf_strlen(ctlfile))
     #2010     FORMAT (A8,1X,A6,1X,'Processing control file: ',A)
     print cdate + " " + ctime + " Processing control file: " + ctlfile
@@ -133,7 +171,7 @@ def rdb_out(
         if datatyp != 'DV' and datatyp != 'UV' and \
            datatyp != 'MS' and datatyp != 'WL' and \
            datatyp != 'QW':
-            s_date (cdate, ctime)
+            cdate, ctime = s_date()
             # WRITE (0,2020) cdate, ctime, datatyp, nline
             #2020           FORMAT (A8, 1X, A6, 1X, 'Invalid HYDRA data type "', A,
             #                 '" on line ', I5, '.')
@@ -144,7 +182,7 @@ def rdb_out(
         if datatyp != 'DV' and datatyp != 'UV' and \
            datatyp != 'DC' and datatyp != 'SV' and \
            datatyp != 'MS' and datatyp != 'PK':
-            s_date (cdate, ctime)
+            cdate, ctime = s_date()
             # WRITE (0,2021) cdate, ctime, datatyp, nline
             #2021           FORMAT (A8, 1X, A6, 1X, 'Invalid data type "', A,
             #                 '" on line ', I5, '.')
@@ -161,7 +199,7 @@ def rdb_out(
        (datatyp != 'MS' and datatyp != 'PK' and \
         datatyp != 'WL' and datatyp != 'QW' and \
         ddid == ' '):
-        s_date(cdate, ctime)
+        cdate, ctime = s_date()
         # WRITE (0,2030) cdate, ctime, nline
         #2030        FORMAT (A8, 1X, A6, 1X, 'Incomplete row (missing items)',
         #              ' on line ', I5, '.')
@@ -207,7 +245,7 @@ def rdb_out(
     if not multiple:
 
       if datatyp != savetyp:
-          s_date(cdate, ctime)
+          cdate, ctime = s_date()
           # WRITE (0,2040) cdate, ctime, datatyp, savetyp, nline
           # 2040           FORMAT (A8, 1X, A6, 1X, 'Datatype of "', A,
           #            '" not the same as the first request datatype of "',
@@ -219,7 +257,7 @@ def rdb_out(
 
       if datatyp == 'MS' and stat[0] != mssav:
           #  can't mix types of CSG measurements
-          s_date(cdate, ctime)
+          cdate, ctime = s_date()
           # WRITE (0,2050) cdate,ctime,stat(1:1),mssav,nline
           #2050           FORMAT (A8,1X,A6,1X,'Measurement type of "',A,
           #              '" not compatible with the first ',
@@ -262,7 +300,7 @@ def rdb_out(
         #        0, 1, ipu, funit, irc, *8)
         #8
         if irc != 0:
-            s_date (cdate, ctime)
+            cdate, ctime = s_date()
             #       WRITE (0,2060) cdate, ctime, irc, nline,
             #                                rdbfile(1:rdblen)
             #2060           FORMAT (A8, 1X, A6, 1X, 'Error ', I5,
@@ -277,7 +315,7 @@ def rdb_out(
             s_mclos
             goto_999
 
-        s_date(cdate, ctime)
+        cdate, ctime = s_date()
         #       WRITE (0,2070) cdate, ctime, rdbfile(1:rdblen)
         #2070        FORMAT (A8, 1X, A6, 1X, 'Writing file ', A)
         print cdate + " " + ctime + " Writing file " + rdbfile
@@ -291,7 +329,7 @@ def rdb_out(
 
         get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc)
         if irc != 0:
-            s_date(cdate, ctime)
+            cdate, ctime = s_date()
             #       WRITE (0,2035) cdate, ctime, rtagny, sid, parm, nline
             #2035           FORMAT (A8, 1X, A6, 1X, 'No PRIMARY DD for station "', 
             #                         A5, A15, '", parm "', A5, '" on line ', I5, '.')
@@ -315,7 +353,7 @@ def rdb_out(
         if uvtyp != 'M' and uvtyp != 'N' and uvtyp != 'E' \
            and uvtyp != 'R' and uvtyp != 'S' and \
            uvtyp != 'C':
-            s_date (cdate, ctime)
+            cdate, ctime = s_date()
             # WRITE (0,2080) cdate, ctime, uvtyp, nline
             #2080           FORMAT (A8, 1X, A6, 1X, 'Invalid unit-values type "', 
             #         A1, '" on line ', I5,'.')
@@ -349,7 +387,7 @@ def rdb_out(
         # command line or in Hydra mode
 
         if mstyp != 'C' and mstyp != 'M' and mstyp != 'D' and mstyp != 'G': 
-            s_date(cdate, ctime)
+            cdate, ctime = s_date()
             #       WRITE (0,2090) cdate, ctime, mstyp, nline
             #2090           FORMAT (A8, 1X, A6, 1X,
             #          'Invalid measurement file type "', A1,
