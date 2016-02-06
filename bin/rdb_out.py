@@ -8,10 +8,11 @@
 #           Scott D. Bartholoma <sbarthol@usgs.gov> [NWF_RDB_OUT()]
 #
 
-import datetime, rdb_cfil, rdb_fill_beg_date
+import datetime, rdb_cfil, rdb_fill_beg_date, rdb_fill_end_date
 datetime = datetime.datetime
 rdb_cfil = rdb_cfil.rdb_cfil
 rdb_fill_beg_date = rdb_fill_beg_date.rdb_fill_beg_date
+rdb_fill_end_date = rdb_fill_end_date.rdb_fill_end_date
 
 # TODO: check where this is defined/initialized in 3GL
 irc = 0
