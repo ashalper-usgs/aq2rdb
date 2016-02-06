@@ -12,7 +12,6 @@ def rdb_fill_beg_date(
         begdat                  # input date (may be < 8 chars)
 ):
     iyr = 0
-    ipos = 0
 
     # convert date/times to 8 characters
 
