@@ -8,9 +8,10 @@
 #           Scott D. Bartholoma <sbarthol@usgs.gov> [NWF_RDB_OUT()]
 #
 
-import datetime, rdb_cfil
+import datetime, rdb_cfil, rdb_fill_beg_date
 datetime = datetime.datetime
 rdb_cfil = rdb_cfil.rdb_cfil
+rdb_fill_beg_date = rdb_fill_beg_date.rdb_fill_beg_date
 
 # TODO: check where this is defined/initialized in 3GL
 irc = 0
@@ -120,7 +121,7 @@ def rdb_out(
         # TODO: error-handle non-digit indbnum values here
         rtdbnum = indbnum
 
-    # Load db number into some common blocks
+    # load DB number into some common blocks
     dbnum = rtdbnum
     dbnumb = rtdbnum
     # TODO: need to check 3GL to find out what this does
@@ -144,291 +145,296 @@ def rdb_out(
     if ctlfile != ' ':          # using a control file - open it
         irc = rdb_cfil(one, ctlfile, rtagny, sid, ddid,
                        stat, bctdtm, ectdtm, nline)
-    #5
-    if irc != 0: goto_999()          # ex-GOTO
-    cdate, ctime = s_date()
-    # WRITE (0,2010) cdate, ctime, ctlfile(1:nwf_strlen(ctlfile))
-    #2010     FORMAT (A8,1X,A6,1X,'Processing control file: ',A)
-    print cdate + " " + ctime + " Processing control file: " + ctlfile
-    # get a line from the file
-    first = True
-    irc = rdb_cfil(two, datatyp, rtagny, sid, ddid, stat,
-                   bctdtm, ectdtm, nline)
-
-    #6
-    if irc != 0:
-        irc = rdb_cfil(three, ctlfile, rtagny, sid, ddid, 
-                           stat, bctdtm, ectdtm, nline)
-    if not first:               # end of control file
-        s_mclos                 # close things down and exit cleanly
-    if funit >= 0 and funit != 6:
-        s_sclose(funit, 'keep')
-    irc = 0
-
-    goto_999()
-
-    #  check data type
-    if hydra:
-        if datatyp != 'DV' and datatyp != 'UV' and \
-           datatyp != 'MS' and datatyp != 'WL' and \
-           datatyp != 'QW':
-            cdate, ctime = s_date()
-            # WRITE (0,2020) cdate, ctime, datatyp, nline
-            #2020           FORMAT (A8, 1X, A6, 1X, 'Invalid HYDRA data type "', A,
-            #                 '" on line ', I5, '.')
-            print cdate + " " + ctime + " Invalid HYDRA data type \"" + \
-                datatyp + "\" on line " + nline
-            goto_9()
-    else:
-        if datatyp != 'DV' and datatyp != 'UV' and \
-           datatyp != 'DC' and datatyp != 'SV' and \
-           datatyp != 'MS' and datatyp != 'PK':
-            cdate, ctime = s_date()
-            # WRITE (0,2021) cdate, ctime, datatyp, nline
-            #2021           FORMAT (A8, 1X, A6, 1X, 'Invalid data type "', A,
-            #                 '" on line ', I5, '.')
-            print cdate + " " + ctime + " Invalid data type \"" + \
-                datatyp + "\" on line " + nline
-            goto_9()
-
-    # check for completeness
-    if rtagny == ' ' or sid == ' ' or \
-       (datatyp != 'DC'. AND. datatyp != 'SV' and \
-        datatyp != 'WL' and datatyp != 'QW' and \
-        stat == ' ') or \
-       begdtm == ' ' or enddtm == ' ' or \
-       (datatyp != 'MS' and datatyp != 'PK' and \
-        datatyp != 'WL' and datatyp != 'QW' and \
-        ddid == ' '):
+        #5
+        if irc != 0: goto_999()          # ex-GOTO
         cdate, ctime = s_date()
-        # WRITE (0,2030) cdate, ctime, nline
-        #2030        FORMAT (A8, 1X, A6, 1X, 'Incomplete row (missing items)',
-        #              ' on line ', I5, '.')
-        print cdate + " " + ctime + \
-            " Incomplete row (missing items) on line " + nline
-        goto_9()
+        # WRITE (0,2010) cdate, ctime, ctlfile(1:nwf_strlen(ctlfile))
+        #2010     FORMAT (A8,1X,A6,1X,'Processing control file: ',A)
+        print cdate + " " + ctime + " Processing control file: " + ctlfile
+        # get a line from the file
+        first = True
+        irc = rdb_cfil(two, datatyp, rtagny, sid, ddid, stat,
+                       bctdtm, ectdtm, nline)
 
-    # zero pad stat code IF type is DV
-    if datatyp == 'DV':
-        s_jstrrt(stat, 5)
-        stat.replace(' ', '0')
-
-    if first:
-        savetyp = datatyp     # save first data type
-        mssav = stat[0]
-        first = False
-        s_lgid()              # get user id and number
-        s_ndget()             # get node data
-        s_ggrp()              # get groups (for security)
-        sen_dbop(rtdbnum)     # open Midas files
-        if not multiple:      # open output file
-            if outpath == ' ':
-                funit = 6
-            else:
-                if len(outpath) > 128:
-                    irc = rdb_cfil(three, ctlfile, rtagny, sid,
-                                       ddid, stat, bctdtm, ectdtm, nline) 
-                    goto_998()
-
-                rdbfile = outpath
-                # TODO:
-                # s_file(' ', rdbfile, ' ', 'unknown', 'write',
-                #       0, 1, ipu, funit, irc, *7)
-                #7
-                if irc != 0:
-                    irc = rdb_cfil (three, ctlfile, rtagny, sid, 
-                                        ddid, stat, bctdtm, ectdtm, nline)
-                    goto_999
-
-    # IF multiple not specified, all requests must
-    # be the same data type as the first one
-
-    if not multiple:
-
-      if datatyp != savetyp:
-          cdate, ctime = s_date()
-          # WRITE (0,2040) cdate, ctime, datatyp, savetyp, nline
-          # 2040           FORMAT (A8, 1X, A6, 1X, 'Datatype of "', A,
-          #            '" not the same as the first request datatype of "',
-          #            A,'" on line ',I5,'.')
-          print cdate + " " + ctime + " Datatype of \"" + datatyp + \
-              "\" not the same as the first request datatype of \"" + \
-              savetyp + "\" on line " + nline + "."
-          goto_9
-
-      if datatyp == 'MS' and stat[0] != mssav:
-          #  can't mix types of CSG measurements
-          cdate, ctime = s_date()
-          # WRITE (0,2050) cdate,ctime,stat(1:1),mssav,nline
-          #2050           FORMAT (A8,1X,A6,1X,'Measurement type of "',A,
-          #              '" not compatible with the first ',
-          #              'measurement type of "',
-          #              A,'" on line ',I5,'.')
-          print cdate + " " + ctime + " " + \
-              "Measurement type of \"" + stat[0] + \
-              "\" not compatible with the first measurement type of \"" + \
-              mssav + "\" on line " + nline + "."
-          goto_9
-
-    # convert water years to date or datetime if -w specified
-    nw_rdb_fill_beg_dtm(wyflag, bctdtm, begdtm)
-    nw_rdb_fill_end_dtm(wyflag, ectdtm, enddtm)
-
-    # if multiple, open a new output file - outpath is a prefix
-
-    if multiple:                # close previously open file
-        if funit >= 0 and funit != 6:
-            s_sclose(funit, 'keep')
-        #  open a new file
-        rdbfile = outpath + "." + datatyp + "." + rtagny + "." + sid
-        rdblen = len(outpath) + 5 + len(rtagny) + len(sid)
-        if datatyp != 'MS' and datatyp != 'PK' and \
-           datatyp != 'WL' and datatyp != 'QW':
-            lddid = ddid
-            s_jstrlf(lddid, 4)
-            rdbfile = rdbfile + "." + lddid
-            rdblen = rdblen + 1 + len(lddid)
-
-        if datatyp != 'DC' and datatyp != 'SV' and \
-           datatyp != 'WL' and datatyp != 'QW':
-            rdbfile = rdbfile + '.' + stat
-            rdblen = rdblen + 1 + stat
-
-        rdbfile = rdbfile + '.' + begdtm[0:7] + '.rdb'
-        rdblen = rdblen + 13
-        # TODO:
-        #s_file (' ', rdbfile, ' ', 'unknown', 'write',
-        #        0, 1, ipu, funit, irc, *8)
-        #8
+        #6
         if irc != 0:
-            cdate, ctime = s_date()
-            #       WRITE (0,2060) cdate, ctime, irc, nline,
-            #                                rdbfile(1:rdblen)
-            #2060           FORMAT (A8, 1X, A6, 1X, 'Error ', I5,
-            #             ' opening output file for line ',
-            #             I5, '.', /, 16X, A)
-            print cdate + " " + ctime + " Error " + irc + \
-                " opening output file for line " + nline + ".\n" + \
-                rdbfile[0:rdblen - 1]
-
             irc = rdb_cfil(three, ctlfile, rtagny, sid, ddid, 
-                               stat, bctdtm, ectdtm, nline)
-            s_mclos
-            goto_999
+                           stat, bctdtm, ectdtm, nline)
+            if not first:       # end of control file
+                s_mclos         # close things down and exit cleanly
+                if funit >= 0 and funit != 6:
+                    s_sclose(funit, 'keep')
+                irc = 0
 
-        cdate, ctime = s_date()
-        #       WRITE (0,2070) cdate, ctime, rdbfile(1:rdblen)
-        #2070        FORMAT (A8, 1X, A6, 1X, 'Writing file ', A)
-        print cdate + " " + ctime + " Writing file " + rdbfile
+            goto_999()
 
-    # check DD for a P in column 1 - indicated parm code for PR DD search
-
-    if ddid[0] == 'p' or ddid[0] == 'P':
-        parm = ddid[1:5]
-        s_jstrrt(parm, 5)
-        parm = parm.replace(' ', '0')
-
-        get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc)
-        if irc != 0:
-            cdate, ctime = s_date()
-            #       WRITE (0,2035) cdate, ctime, rtagny, sid, parm, nline
-            #2035           FORMAT (A8, 1X, A6, 1X, 'No PRIMARY DD for station "', 
-            #                         A5, A15, '", parm "', A5, '" on line ', I5, '.')
-            print cdate + " " + ctime + \
-                " No PRIMARY DD for station \"" + rtagny + sid + \
-                "\", parm \"" + parm + "\" on line " + nline
-            goto_9
+        #  check data type
+        if hydra:
+            if datatyp != 'DV' and datatyp != 'UV' and \
+               datatyp != 'MS' and datatyp != 'WL' and \
+               datatyp != 'QW':
+                cdate, ctime = s_date()
+                # WRITE (0,2020) cdate, ctime, datatyp, nline
+                #2020           FORMAT (A8, 1X, A6, 1X, 'Invalid HYDRA data type "', A,
+                #                 '" on line ', I5, '.')
+                print cdate + " " + ctime + " Invalid HYDRA data type \"" + \
+                    datatyp + "\" on line " + nline
+                goto_9()
         else:
+            if datatyp != 'DV' and datatyp != 'UV' and \
+               datatyp != 'DC' and datatyp != 'SV' and \
+               datatyp != 'MS' and datatyp != 'PK':
+                cdate, ctime = s_date()
+                # WRITE (0,2021) cdate, ctime, datatyp, nline
+                #2021         FORMAT (A8, 1X, A6, 1X, 'Invalid data type "', A,
+                #                 '" on line ', I5, '.')
+                print cdate + " " + ctime + " Invalid data type \"" + \
+                    datatyp + "\" on line " + nline
+                goto_9()
+
+        # check for completeness
+        if rtagny == ' ' or sid == ' ' or \
+           (datatyp != 'DC'. AND. datatyp != 'SV' and \
+            datatyp != 'WL' and datatyp != 'QW' and \
+            stat == ' ') or \
+           begdtm == ' ' or enddtm == ' ' or \
+           (datatyp != 'MS' and datatyp != 'PK' and \
+            datatyp != 'WL' and datatyp != 'QW' and \
+            ddid == ' '):
+            cdate, ctime = s_date()
+            # WRITE (0,2030) cdate, ctime, nline
+            #2030  FORMAT (A8, 1X, A6, 1X, 'Incomplete row (missing items)',
+            #              ' on line ', I5, '.')
+            print cdate + " " + ctime + \
+                " Incomplete row (missing items) on line " + nline
+            goto_9()
+
+        # zero pad stat code if type is DV
+        if datatyp == 'DV':
+            stat = "{:>5}".format(stat)
+            stat.replace(' ', '0')
+
+        if first:
+            savetyp = datatyp   # save first data type
+            mssav = stat[0]
+            first = False
+            s_lgid()            # get user id and number
+            s_ndget()           # get node data
+            s_ggrp()            # get groups (for security)
+            sen_dbop(rtdbnum)   # open Midas files
+            if not multiple:      # open output file
+                if outpath == ' ':
+                    funit = 6
+                else:
+                    if len(outpath) > 128:
+                        irc = rdb_cfil(three, ctlfile, rtagny, sid,
+                                       ddid, stat, bctdtm, ectdtm, nline) 
+                        goto_998()
+
+                    rdbfile = outpath
+                    s_file(' ', rdbfile, ' ', 'unknown', 'write',
+                           0, 1, ipu, funit, irc, 7) # <- TODO: *7?
+                    #7
+                    if irc != 0:
+                        irc = rdb_cfil(three, ctlfile, rtagny, sid, 
+                                       ddid, stat, bctdtm, ectdtm, nline)
+                        goto_999()
+
+        # IF multiple not specified, all requests must
+        # be the same data type as the first one
+
+        if not multiple:
+
+            if datatyp != savetyp:
+                cdate, ctime = s_date()
+                # WRITE (0,2040) cdate, ctime, datatyp, savetyp, nline
+                # 2040           FORMAT (A8, 1X, A6, 1X, 'Datatype of "', A,
+                #           '" not the same as the first request datatype of "',
+                #           A,'" on line ',I5,'.')
+                print cdate + " " + ctime + " Datatype of \"" + datatyp + \
+                    "\" not the same as the first request datatype of \"" + \
+                    savetyp + "\" on line " + nline + "."
+                goto_9()
+
+            if datatyp == 'MS' and stat[0] != mssav:
+                #  can't mix types of CSG measurements
+                cdate, ctime = s_date()
+                # WRITE (0,2050) cdate,ctime,stat(1:1),mssav,nline
+                #2050           FORMAT (A8,1X,A6,1X,'Measurement type of "',A,
+                #              '" not compatible with the first ',
+                #              'measurement type of "',
+                #              A,'" on line ',I5,'.')
+                print cdate + " " + ctime + " " + \
+                    "Measurement type of \"" + stat[0] + \
+                    "\" not compatible with the first measurement " + \
+                    "type of \"" + mssav + "\" on line " + nline + "."
+                goto_9()
+
+        # convert water years to date or datetime if -w specified
+        nw_rdb_fill_beg_dtm(wyflag, bctdtm, begdtm)
+        nw_rdb_fill_end_dtm(wyflag, ectdtm, enddtm)
+
+        # if multiple, open a new output file - outpath is a prefix
+
+        if multiple:                # close previously open file
+            if funit >= 0 and funit != 6:
+                s_sclose(funit, 'keep')
+            # open a new file
+            rdbfile = outpath + "." + datatyp + "." + rtagny + "." + sid
+            rdblen = len(outpath) + 5 + len(rtagny) + len(sid)
             if datatyp != 'MS' and datatyp != 'PK' and \
                datatyp != 'WL' and datatyp != 'QW':
-                # right justify DDID to 4 characters
-                s_jstrrt(ddid, 4)
+                lddid = "{:<4}".format(ddid)
+                
+                rdbfile = rdbfile + "." + lddid
+                rdblen = rdblen + 1 + len(lddid)
 
-    # process the request
-    if datatyp == "DV":
-        fdvrdbout(funit, False, rndsup, addkey, vflag, 
-                  cflag, rtagny, sid, ddid, stat, 
-                  begdtm, enddtm, irc)
-    elif datatyp == "UV":
-        uvtyp = stat[0]
-        if uvtyp != 'M' and uvtyp != 'N' and uvtyp != 'E' \
-           and uvtyp != 'R' and uvtyp != 'S' and \
-           uvtyp != 'C':
+            if datatyp != 'DC' and datatyp != 'SV' and \
+               datatyp != 'WL' and datatyp != 'QW':
+                rdbfile = rdbfile + '.' + stat
+                rdblen = rdblen + 1 + stat
+
+            rdbfile = rdbfile + '.' + begdtm[0:7] + '.rdb'
+            rdblen = rdblen + 13
+            s_file(' ', rdbfile, ' ', 'unknown', 'write',
+                   0, 1, ipu, funit, irc, 8) # <- TODO: *8?
+            #8
+            if irc != 0:
+                cdate, ctime = s_date()
+                #       WRITE (0,2060) cdate, ctime, irc, nline,
+                #                                rdbfile(1:rdblen)
+                #2060           FORMAT (A8, 1X, A6, 1X, 'Error ', I5,
+                #             ' opening output file for line ',
+                #             I5, '.', /, 16X, A)
+                print cdate + " " + ctime + " Error " + irc + \
+                    " opening output file for line " + nline + ".\n" + \
+                    rdbfile[0:rdblen - 1]
+
+                irc = rdb_cfil(three, ctlfile, rtagny, sid, ddid, 
+                               stat, bctdtm, ectdtm, nline)
+                s_mclos()
+                goto_999()
+
             cdate, ctime = s_date()
-            # WRITE (0,2080) cdate, ctime, uvtyp, nline
-            #2080           FORMAT (A8, 1X, A6, 1X, 'Invalid unit-values type "', 
-            #         A1, '" on line ', I5,'.')
-            print cdate + " " + ctime + \
+            #       WRITE (0,2070) cdate, ctime, rdbfile(1:rdblen)
+            #2070        FORMAT (A8, 1X, A6, 1X, 'Writing file ', A)
+            print cdate + " " + ctime + " Writing file " + rdbfile
+
+        # check DD for a P in column 1 - indicated parm code for PR DD search
+
+        if ddid[0] == 'p' or ddid[0] == 'P':
+            parm = ddid[1:5]
+            parm = "{:>5}".format(parm)
+            parm = parm.replace(' ', '0')
+
+            get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc)
+            if irc != 0:
+                cdate, ctime = s_date()
+                #       WRITE (0,2035) cdate, ctime, rtagny, sid, parm, nline
+                #2035    FORMAT (A8, 1X, A6, 1X, 'No PRIMARY DD for station "', 
+                #              A5, A15, '", parm "', A5, '" on line ', I5, '.')
+                print cdate + " " + ctime + \
+                    " No PRIMARY DD for station \"" + rtagny + sid + \
+                    "\", parm \"" + parm + "\" on line " + nline
+                goto_9()
+            else:
+                if datatyp != 'MS' and datatyp != 'PK' and \
+                   datatyp != 'WL' and datatyp != 'QW':
+                    # right justify DDID to 4 characters
+                    ddid = "{:>4}".format(ddid)
+
+            # process the request
+            if datatyp == "DV":
+
+                fdvrdbout(funit, False, rndsup, addkey, vflag, 
+                          cflag, rtagny, sid, ddid, stat, 
+                          begdtm, enddtm, irc)
+
+            elif datatyp == "UV":
+                uvtyp = stat[0]
+                if uvtyp != 'M' and uvtyp != 'N' and uvtyp != 'E' \
+                   and uvtyp != 'R' and uvtyp != 'S' and \
+                   uvtyp != 'C':
+                    cdate, ctime = s_date()
+                    # WRITE (0,2080) cdate, ctime, uvtyp, nline
+                    #2080 FORMAT (A8, 1X, A6, 1X, 'Invalid unit-values type "', 
+                    #         A1, '" on line ', I5,'.')
+                    print cdate + " " + ctime + \
                 " Invalid unit-values type \"" + uvtyp + \
                 "\" on line " + nline
-        else:
-           if uvtyp == 'M':
-               inguvtyp = "meas"
-           if uvtyp == 'N':
-               inguvtyp = "msar"
-           if uvtyp == 'E':
-               inguvtyp = "edit"
-           if uvtyp == 'R':
-               inguvtyp = "corr"
-           if uvtyp == 'S':
-               inguvtyp = "shift"
-           if uvtyp == 'C':
-               inguvtyp = "da"
-           fuvrdbout(funit, False, rtdbnum, rndsup, cflag,
-                     vflag, addkey, rtagny, sid, ddid,  
-                     inguvtyp, sensor_type_id, transport_cd,
-                     begdtm, enddtm, loc_tz_cd, irc)
-    elif datatyp == "MS":
-        mstyp = stat[0]
+            else:
+                if uvtyp == 'M': inguvtyp = "meas"
+                if uvtyp == 'N': inguvtyp = "msar"
+                if uvtyp == 'E': inguvtyp = "edit"
+                if uvtyp == 'R': inguvtyp = "corr"
+                if uvtyp == 'S': inguvtyp = "shift"
+                if uvtyp == 'C': inguvtyp = "da"
+                fuvrdbout(funit, False, rtdbnum, rndsup, cflag,
+                          vflag, addkey, rtagny, sid, ddid,  
+                          inguvtyp, sensor_type_id, transport_cd,
+                          begdtm, enddtm, loc_tz_cd, irc)
 
-        # Only standard meas types allowed when working from a
-        # control file
+        elif datatyp == "MS":
 
-        # Pseudo-UV Types 1 through 3 are only good from the
-        # command line or in Hydra mode
+            mstyp = stat[0]
 
-        if mstyp != 'C' and mstyp != 'M' and mstyp != 'D' and mstyp != 'G': 
-            cdate, ctime = s_date()
-            #       WRITE (0,2090) cdate, ctime, mstyp, nline
-            #2090           FORMAT (A8, 1X, A6, 1X,
-            #          'Invalid measurement file type "', A1,
-            #          '" on line ', I5, '.')
-            print cdate + " " + ctime + \
-                " Invalid measurement file type \"" + mstyp + \
-                "\" on line " + nline + "."
-        else:
-            fmsrdbout(funit, rtdbnum, rndsup, addkey, cflag,
-                      vflag, rtagny, sid, mstyp, begdtm, 
-                      enddtm, irc)
-    elif datatyp == "PK":
-       pktyp = stat[0]
-       if pktyp != 'F' and pktyp != 'P' and pktyp != 'B':
-           s_date (cdate, ctime)
-           # WRITE (0,2100) cdate, ctime, pktyp, nline
-           #2100           FORMAT (A8,1X,A6,1X,'Invalid peak flow file type "',A1,
-           #           '" on line ',I5,'.')
-           print cdate + " " + ctime + \
-               " Invalid peak flow file type \"" + pktyp + \
-               "\" on line " + nline + "."
-       else:
-           fpkrdbout(funit, rndsup, addkey, cflag, vflag,
-                     rtagny, sid, pktyp, begdtm, enddtm, irc)
-    elif datatyp == "DC":
-        fdcrdbout(funit, rndsup, addkey, cflag, vflag,
-                  rtagny, sid, ddid, begdtm, enddtm,
-                  loc_tz_cd, irc)
-    elif datatyp == "SV":
-        fsvrdbout(funit, rndsup, addkey, cflag, vflag, \
-                  rtagny, sid, ddid, begdtm, enddtm, \
-                  loc_tz_cd, irc)
+            # Only standard meas types allowed when working from a
+            # control file
 
-        #  get next line from control file
+            # Pseudo-UV Types 1 through 3 are only good from the
+            # command line or in Hydra mode
+
+            if mstyp != 'C' and mstyp != 'M' and mstyp != 'D' and \
+               mstyp != 'G':
+                cdate, ctime = s_date()
+                #       WRITE (0,2090) cdate, ctime, mstyp, nline
+                #2090           FORMAT (A8, 1X, A6, 1X,
+                #          'Invalid measurement file type "', A1,
+                #          '" on line ', I5, '.')
+                print cdate + " " + ctime + \
+                    " Invalid measurement file type \"" + mstyp + \
+                    "\" on line " + nline + "."
+            else:
+
+                fmsrdbout(funit, rtdbnum, rndsup, addkey, cflag,
+                          vflag, rtagny, sid, mstyp, begdtm, 
+                          enddtm, irc)
+
+        elif datatyp == "PK":
+
+            pktyp = stat[0]
+            if pktyp != 'F' and pktyp != 'P' and pktyp != 'B':
+                cdate, ctime = s_date()
+                # WRITE (0,2100) cdate, ctime, pktyp, nline
+                #2100  FORMAT (A8,1X,A6,1X,'Invalid peak flow file type "',A1,
+                #           '" on line ',I5,'.')
+                print cdate + " " + ctime + \
+                    " Invalid peak flow file type \"" + pktyp + \
+                    "\" on line " + nline + "."
+            else:
+
+                fpkrdbout(funit, rndsup, addkey, cflag, vflag,
+                          rtagny, sid, pktyp, begdtm, enddtm, irc)
+
+        elif datatyp == "DC":
+
+            fdcrdbout(funit, rndsup, addkey, cflag, vflag,
+                      rtagny, sid, ddid, begdtm, enddtm,
+                      loc_tz_cd, irc)
+
+        elif datatyp == "SV":
+
+            fsvrdbout(funit, rndsup, addkey, cflag, vflag, \
+                      rtagny, sid, ddid, begdtm, enddtm, \
+                      loc_tz_cd, irc)
+
+        # get next line from control file
         #9
         irc = rdb_cfil(two, datatyp, rtagny, sid, ddid, stat, \
                        bctdtm, ectdtm, nline)
-        goto_6
-    else:
-        # Not a control file
+        goto_6()
+
+    else:                       # Not a control file
 
         sopt = "10000000000000000000000000000000" # init control argument
         if len(intyp) > 2:
@@ -437,7 +443,7 @@ def rdb_out(
             datatyp = intyp
 
         # check data type
-        s_upcase(datatyp, 2)
+        datatyp = datatyp.upper()
 
         if hydra:
             needstrt = True
@@ -538,7 +544,7 @@ def rdb_out(
                 rtagny = inagny[0:4]
             else:
                 rtagny = inagny
-            s_jstrlf(rtagny, 5)
+            rtagny = "{:<5}".format(rtagny)
 
         # convert station to 15 characters
         if instnid == ' ':
@@ -553,7 +559,7 @@ def rdb_out(
                 sid = instnid[0:14]
             else:
                 sid = instnid
-            s_jstrlf(sid, 15)
+            sid = "{:<15}".format(sid)
 
         # DD is ignored for data types MS, PR, WL, and QW
 
@@ -578,7 +584,7 @@ def rdb_out(
                     parm = inddid[1:5]
                 else:
                     parm = inddid[1:]
-                s_jstrrt(parm, 5)
+                parm = "{:<5}".format(parm)
                 parm.replace(' ', '0')
             else:
                 parm = ' '
@@ -587,7 +593,7 @@ def rdb_out(
                     ddid = inddid[0:3]
                 else:
                     ddid = inddid
-                s_jstrrt(ddid, 4)
+                ddid = "{:>4}".format(ddid)
 
     # further processing depends on data type
 
@@ -601,7 +607,7 @@ def rdb_out(
                 stat = instat[0:4]
             else:
                 stat = instat
-            s_jstrrt (stat,5)
+            stat = "{:>5}".format(stat)
             stat.replace(' ', '0')
 
     if datatyp == 'DV' or datatyp == 'DC' or \
@@ -615,8 +621,8 @@ def rdb_out(
             else:
                 sopt[9] = '3'
         else:
-            rdb_fill_beg_date (wyflag, begdat, begdate)
-            rdb_fill_end_date (wyflag, enddat, enddate)
+            begdate = rdb_fill_beg_date(wyflag, begdat)
+            enddate = rdb_fill_end_date(wyflag, enddat)
 
     if datatyp == 'UV':
 
@@ -648,8 +654,8 @@ def rdb_out(
                 if uvtyp != 'M' and uvtyp != 'N' and \
                    uvtyp != 'E' and uvtyp != 'R' and \
                    uvtyp != 'S' and uvtyp != 'C':
-                    s_bada (
-                         "Please answer \"M\", \"N\", \"E\", \"R\", \"S\", or \"C\".",
+                    s_bada(
+                        "Please answer \"M\", \"N\", \"E\", \"R\", \"S\", or \"C\".",
                          *50
                     )
 
