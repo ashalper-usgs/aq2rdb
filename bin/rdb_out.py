@@ -8,11 +8,16 @@
 #           Scott D. Bartholoma <sbarthol@usgs.gov> [NWF_RDB_OUT()]
 #
 
-import datetime, rdb_cfil, rdb_fill_beg_date, rdb_fill_end_date
+import sys, datetime, rdb_cfil, rdb_fill_beg_date, rdb_fill_end_date
+import urllib
+
 datetime = datetime.datetime
 rdb_cfil = rdb_cfil.rdb_cfil
 rdb_fill_beg_date = rdb_fill_beg_date.rdb_fill_beg_date
 rdb_fill_end_date = rdb_fill_end_date.rdb_fill_end_date
+
+# URL prefix of aq2rdb Web services
+aq2rdb = "http://cidasdqaasaq2rd.cr.usgs.gov:8081/aq2rdb"
 
 # TODO: check where this is defined/initialized in 3GL
 irc = 0
@@ -30,6 +35,36 @@ def goto_999():
 def write_2120(agny, sid, parm):
     print "No PRIMARY DD for station \"" + agny + sid + \
         "\", parm \"" + parm + "\". Aborting."
+
+def fdvrdbout(funit, editable, rndsup, addkey, vflag, compdv, agyin,
+              station, inddid, stat, begdate, enddate):
+    # TODO: need to de-hard-code GetDVTable service prefix:
+    url = aq2rdb + "/fdvrdbout" + urllib.urlencode({
+        "editable": "false",
+        "rndsup": rndsup,
+        "addkey": addkey,
+        "vflag": vflag,
+        "compdv": compdv,
+        "agyin": agyin,
+        "station": station,
+        "inddid": inddid,
+        "stat": stat,
+        "begdate": begdate,
+        "enddate": enddate
+    })
+    uo = urllib.urlopen(url)
+    data = uo.read()
+    # TODO: this will probably need some tweaking:
+    try:
+        s = str(data)
+    except:
+        s = None
+        if 'status' not in s or s['status'] != 'OK':
+            # TODO: set value of "irc" here?
+            print '==== Failure To Retrieve ===='
+        # TODO: send to file in funit:
+        print data
+    # TODO: return
 
 # returns the error code from modules called (0 IF all OK)
 def rdb_out(
@@ -54,41 +89,6 @@ def rdb_out(
         in_loc_tz_cd,           # time zone code
         titlline                # title line (text)
 ):
-    # (fake) local string variable declarations
-    datatyp = None
-    savetyp = None
-    sopt = None
-    ctlfile = None
-    rdbfile = None
-    rtagny = None
-    sid = None
-    ddid = None
-    lddid = None
-    parm = None
-    stat = None
-    transport_cd = None
-    uvtyp = None
-    inguvtyp = None
-    mstyp = None
-    mssav = None
-    vttyp = None
-    wltyp = None
-    meth_cd = None
-    pktyp = None
-    qwparm = None
-    qwmeth = None
-    begdate = None
-    enddate = None
-    begdtm = None
-    enddtm = None
-    bctdtm = None
-    ectdtm = None
-    cdate = None
-    ctime = None
-    tz_cd = None
-    loc_tz_cd = None
-    local_time_fg = None
-
     irc = 0
     nline = 0
     one, two, three = 1, 2, 3
@@ -346,11 +346,9 @@ def rdb_out(
 
             # process the request
             if datatyp == "DV":
-
-                fdvrdbout(funit, False, rndsup, addkey, vflag, 
-                          cflag, rtagny, sid, ddid, stat, 
-                          begdtm, enddtm, irc)
-
+                irc = fdvrdbout(funit, "false", rndsup, addkey, vflag, 
+                                cflag, rtagny, sid, ddid, stat, 
+                                begdtm, enddtm)
             elif datatyp == "UV":
                 uvtyp = stat[0]
                 if uvtyp != 'M' and uvtyp != 'N' and uvtyp != 'E' \
@@ -956,10 +954,13 @@ def rdb_out(
 
     else:
 
-        s_lgid()                 # get user id and number
-        s_ndget()                # get node data
-        s_ggrp()                 # get groups (for security)
-        sen_dbop(rtdbnum)        # open Midas files
+        # TODO: this is likely legacy stuff that is no longer
+        # relevant:
+        #s_lgid()                 # get user id and number
+        #s_ndget()                # get node data
+        #s_ggrp()                 # get groups (for security)
+        #sen_dbop(rtdbnum)        # open Midas files
+
         # count program (counted by S_STRT above if needed)
         # TODO: translate F77 in condition below
         #if not nw_db_save_program_info('aq2rdb'):
@@ -1001,11 +1002,9 @@ def rdb_out(
         # get data and output to files
 
         if datatyp == 'DV':
-
-            fdvrdbout(funit, False, rndsup, addkey, vflag,
-                      cflag, rtagny, sid, ddid, stat, 
-                      begdate, enddate, irc)
-
+            irc = fdvrdbout(funit, "false", rndsup, addkey, vflag,
+                            cflag, rtagny, sid, ddid, stat, 
+                            begdate, enddate)
         elif datatyp == 'UV':
 
             if uvtyp == 'M': inguvtyp = 'meas'
@@ -1067,8 +1066,8 @@ def rdb_out(
         elif datatyp == 'WL':
 
             if hydra: wltyp = ' '
-            fwlrdbout_hydra (funit, rndsup, rtagny, sid, begdtm,
-                             enddtm, loc_tz_cd, wltyp, irc)
+            irc = fwlrdbout_hydra(funit, rndsup, rtagny, sid, begdtm,
+                                  enddtm, loc_tz_cd, wltyp)
 
         elif datatyp == 'QW':
 
@@ -1076,15 +1075,20 @@ def rdb_out(
                 qwparm = ' '
                 qwmeth = ' '
 
-            fqwrdbout_hydra(funit, rndsup, rtagny, sid, begdtm,
-                            enddtm, loc_tz_cd, qwparm, qwmeth,
-                            irc)
+            irc = fqwrdbout_hydra(funit, rndsup, rtagny, sid, begdtm,
+                                  enddtm, loc_tz_cd, qwparm, qwmeth)
 
     # close files and exit
     #997
-    s_mclos()
-    s_sclose(funit, 'keep')
-    nw_disconnect()
+
+    # TODO:
+    # s_mclos()
+
+    # TODO:
+    # s_sclose(funit, 'keep')
+
+    # TODO:
+    # nw_disconnect()
     goto_999()
 
     # bad return (do a generic error message)
