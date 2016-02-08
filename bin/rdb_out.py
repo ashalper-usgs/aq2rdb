@@ -38,13 +38,12 @@ def write_2120(agny, sid, parm):
 
 def fdvrdbout(funit, editable, rndsup, addkey, vflag, compdv, agyin,
               station, inddid, stat, begdate, enddate):
-    # TODO: need to de-hard-code GetDVTable service prefix:
-    url = aq2rdb + "/fdvrdbout" + urllib.urlencode({
-        "editable": "false",
-        "rndsup": rndsup,
-        "addkey": addkey,
-        "vflag": vflag,
-        "compdv": compdv,
+    url = aq2rdb + "/fdvrdbout?" + urllib.urlencode({
+        "editable": str(editable).lower(),
+        "rndsup": str(rndsup).lower(),
+        "addkey": str(addkey).lower(),
+        "vflag": str(vflag).lower(),
+        "compdv": str(compdv).lower(),
         "agyin": agyin,
         "station": station,
         "inddid": inddid,
@@ -125,8 +124,9 @@ def rdb_out(
     # load DB number into some common blocks
     dbnum = rtdbnum
     dbnumb = rtdbnum
-    # TODO: need to check 3GL to find out what this does
-    #s_dbget(1, rtdbnum, irc)
+    # TODO: need to check 3GL to find out what this does; looks like
+    # logical database number for ratings?
+    # s_dbget(1, rtdbnum, irc)
 
     # Set control file path
     if len(ctlpath) > 128: goto_998() # ex-GOTO
