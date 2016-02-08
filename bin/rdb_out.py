@@ -244,11 +244,10 @@ def rdb_out(
                                        ddid, stat, bctdtm, ectdtm, nline)
                         goto_999()
 
-        # IF multiple not specified, all requests must
-        # be the same data type as the first one
-
-        if not multiple:
-
+        # if multiple not specified...
+        if multiple != True:
+            # ...all requests must be the same data type as the first
+            # one
             if datatyp != savetyp:
                 cdate, ctime = s_date()
                 # WRITE (0,2040) cdate, ctime, datatyp, savetyp, nline
@@ -673,7 +672,7 @@ def rdb_out(
         # If Hydra mode for UV data, set time zone code that in effect
         # for the first date for this station
 
-        if hydra and datatyp != 'UV':
+        if hydra == True and datatyp != 'UV':
             if not \
                nw_key_get_zone_dst(rtdbnum, rtagny, sid, tz_cd, local_time_fg):
                 loc_tz_cd = 'UTC' # default to UTC
@@ -685,52 +684,53 @@ def rdb_out(
         if datatyp == 'MS':     # get MS type
             mstyp = instat[0].upper()
 
-        if mstyp != 'C' and mstyp != 'M' and \
-           mstyp != 'D' and mstyp != 'G' and \
-           mstyp != '1' and mstyp != '2' and \
-           mstyp != '3':
-            #45
-            mstyp = ' '
-
-            #1234
-            print "Measurement file retrieval type -\n" + \
-                "  C - Crest Stage Gage measurements,\n" + \
-                "  M - Discharge Measurements,\n" + \
-                "  D - Detailed Discharge Measurements,\n" + \
-                "  G - Gage Inspections,\n" + \
-                "  1 - Pseudo UV, measurement discharge,\n" + \
-                "  2 - Pseudo UV, measurement stage, or\n" + \
-                "  3 - Pseudo UV, mean index velocity"
-
-            s_qryc("|Enter C, M, D, G, or 1 to 3: ",
-                   ' ', 0, 0, 1, 1, mstyp, *45)
-            mstyp.upper()
+            # TODO: re-check indentation level vs. 3GL source here:
             if mstyp != 'C' and mstyp != 'M' and \
                mstyp != 'D' and mstyp != 'G' and \
                mstyp != '1' and mstyp != '2' and \
                mstyp != '3':
-                s_bada(
-                    "Please answer \"C\", \"M\", \"G\", or \"1\" to \"3\".",
-                    *45
-                )
+                #45
+                mstyp = ' '
 
-        if begdat == ' ' or enddat == ' ':
-            needstrt = True
-            if wyflag:
-                sopt[8] = '4'
+                #1234
+                print "Measurement file retrieval type -\n" + \
+                    "  C - Crest Stage Gage measurements,\n" + \
+                    "  M - Discharge Measurements,\n" + \
+                    "  D - Detailed Discharge Measurements,\n" + \
+                    "  G - Gage Inspections,\n" + \
+                    "  1 - Pseudo UV, measurement discharge,\n" + \
+                    "  2 - Pseudo UV, measurement stage, or\n" + \
+                    "  3 - Pseudo UV, mean index velocity"
+
+                s_qryc("|Enter C, M, D, G, or 1 to 3: ",
+                       ' ', 0, 0, 1, 1, mstyp, *45)
+                mstyp.upper()
+                if mstyp != 'C' and mstyp != 'M' and \
+                   mstyp != 'D' and mstyp != 'G' and \
+                   mstyp != '1' and mstyp != '2' and \
+                   mstyp != '3':
+                    s_bada(
+                        "Please answer \"C\", \"M\", \"G\", or \"1\" to \"3\".",
+                        *45
+                    )
+
+                if begdat == ' ' or enddat == ' ':
+                    needstrt = True
+                if wyflag:
+                    sopt[8] = '4'
+                else:
+                    sopt[9] = '3'
+
             else:
-                sopt[9] = '3'
 
-        else:
-
-            if mstyp >= '1' and mstyp <= '3':
-                # doing pseudo-UV, convert date/times to 14 characters
-                begdtm = rdb_fill_beg_dtm(wyflag, begdat)
-                enddtm = rdb_fill_end_dtm(wyflag, enddat)
-            else:
-                # convert dates to 8 characters
-                begdate = rdb_fill_beg_date(wyflag, begdat)
-                enddate = rdb_fill_end_date(wyflag, enddat)
+                if mstyp >= '1' and mstyp <= '3':
+                    # doing pseudo-UV, convert date/times to 14 characters
+                    begdtm = rdb_fill_beg_dtm(wyflag, begdat)
+                    enddtm = rdb_fill_end_dtm(wyflag, enddat)
+                else:
+                    # convert dates to 8 characters
+                    begdate = rdb_fill_beg_date(wyflag, begdat)
+                    enddate = rdb_fill_end_date(wyflag, enddat)
 
         if datatyp == 'VT':     # get VT type
             vttyp = instat[0]
@@ -839,15 +839,17 @@ def rdb_out(
                 #2110
                 print 'Unable to open ADAPS User file - Aborting.\n'
                 goto_998()
-        s_lgid()                # get user info 
-        s_mdus(nw_read, irc, *998)
-        if irc == 0:            # save the user info
-            holdbuff = usbuff[0:90]
-            dbnum = rtdbnum     # load supplied parts of user info
-            if sopt[4] == '1' or sopt[4] == '2':
-                agency = rtagny
-                if instnid != ' ': stnid = sid
-            s_mdus(nw_updt, irc, *998) # save modified user info
+
+        # TODO: no longer needed?
+        # s_lgid()                # get user info 
+        # s_mdus(nw_read, irc, *998)
+        # if irc == 0:            # save the user info
+            # holdbuff = usbuff[0:90]
+            # dbnum = rtdbnum     # load supplied parts of user info
+            # if sopt[4] == '1' or sopt[4] == '2':
+                # agency = rtagny
+                # if instnid != ' ': stnid = sid
+            # s_mdus(nw_updt, irc, *998) # save modified user info
 
         # call start routine
         prgid = 'aq2rdb'
@@ -860,8 +862,9 @@ def rdb_out(
                 prgdes = titlline
         rdonly = 1
         #123
-        s_strt(sopt, *998)
-        sopt[0] = '2'
+        # TODO: translate
+        # s_strt(sopt, *998)
+        sopt = '2' + sopt[1:]
         rtdbnum = dbnum         # get DB number first
 
         if sopt[4] == '1' or sopt[4] == '2':
