@@ -9,12 +9,15 @@
 #
 
 import sys, datetime, rdb_cfil, rdb_fill_beg_date, rdb_fill_end_date
+import rdb_fill_beg_dtm, rdb_fill_end_dtm
 import urllib
 
 datetime = datetime.datetime
 rdb_cfil = rdb_cfil.rdb_cfil
 rdb_fill_beg_date = rdb_fill_beg_date.rdb_fill_beg_date
 rdb_fill_end_date = rdb_fill_end_date.rdb_fill_end_date
+rdb_fill_beg_dtm = rdb_fill_beg_dtm.rdb_fill_beg_dtm
+rdb_fill_end_dtm = rdb_fill_end_dtm.rdb_fill_end_dtm
 
 # URL prefix of aq2rdb Web services
 aq2rdb = "http://cidasdqaasaq2rd.cr.usgs.gov:8081/aq2rdb"
@@ -272,8 +275,8 @@ def rdb_out(
                 goto_9()
 
         # convert water years to date or datetime if -w specified
-        nw_rdb_fill_beg_dtm(wyflag, bctdtm, begdtm)
-        nw_rdb_fill_end_dtm(wyflag, ectdtm, enddtm)
+        begdtm = rdb_fill_beg_dtm(wyflag, bctdtm)
+        enddtm = rdb_fill_end_dtm(wyflag, ectdtm)
 
         # if multiple, open a new output file - outpath is a prefix
 
@@ -346,7 +349,8 @@ def rdb_out(
 
             # process the request
             if datatyp == "DV":
-                irc = fdvrdbout(funit, "false", rndsup, addkey, vflag,
+                # TODO: need to decide what to do about empty ddid here:
+                irc = fdvrdbout(funit, False, rndsup, addkey, vflag,
                                 cflag, rtagny, sid, ddid, stat, 
                                 begdtm, enddtm)
             elif datatyp == "UV":
@@ -454,12 +458,12 @@ def rdb_out(
                 datatyp = 'UV'
 
                 # convert dates to 8 characters
-                rdb_fill_beg_date(wyflag, begdat, begdate)
-                rdb_fill_end_date(wyflag, enddat, enddate)
+                begdate = rdb_fill_beg_date(wyflag, begdat)
+                enddate = rdb_fill_end_date(wyflag, enddat)
 
                 # convert date/times to 14 characters
-                rdb_fill_beg_dtm(wyflag, begdat, begdtm)
-                rdb_fill_end_dtm(wyflag, enddat, enddtm)
+                begdtm = rdb_fill_beg_dtm(wyflag, begdat)
+                enddtm = rdb_fill_end_dtm(wyflag, enddat)
 
         else:
 
@@ -632,6 +636,7 @@ def rdb_out(
             if uvtyp != 'M' and uvtyp != 'N' and \
                uvtyp != 'E' and uvtyp != 'R' and \
                uvtyp != 'S' and uvtyp != 'C':
+                # TODO: prompt for UV type here; not finished yet
                 uvtyp_prompted = True
                 #50
                 uvtyp = ' '
@@ -661,8 +666,8 @@ def rdb_out(
                 else:
                     sopt[9] = '3'
             else:
-                rdb_fill_beg_dtm(wyflag, begdat, begdtm)
-                rdb_fill_end_dtm(wyflag, enddat, enddtm)
+                begdtm = rdb_fill_beg_dtm(wyflag, begdat)
+                enddtm = rdb_fill_end_dtm(wyflag, enddat)
 
 
         # If Hydra mode for UV data, set time zone code that in effect
@@ -720,12 +725,12 @@ def rdb_out(
 
             if mstyp >= '1' and mstyp <= '3':
                 # doing pseudo-UV, convert date/times to 14 characters
-                rdb_fill_beg_dtm (wyflag, begdat, begdtm)
-                rdb_fill_end_dtm (wyflag, enddat, enddtm)
+                begdtm = rdb_fill_beg_dtm(wyflag, begdat)
+                enddtm = rdb_fill_end_dtm(wyflag, enddat)
             else:
                 # convert dates to 8 characters
-                rdb_fill_beg_date (wyflag, begdat, begdate)
-                rdb_fill_end_date (wyflag, enddat, enddate)
+                begdate = rdb_fill_beg_date(wyflag, begdat)
+                enddate = rdb_fill_end_date(wyflag, enddat)
 
         if datatyp == 'VT':     # get VT type
             vttyp = instat[0]
@@ -770,8 +775,8 @@ def rdb_out(
                     sopt[9] = '3'
 
             # Doing pseudo-UV, convert date/times to 14 characters
-            rdb_fill_beg_dtm(wyflag, begdat, begdtm)
-            rdb_fill_end_dtm(wyflag, enddat, enddtm)
+            begdtm = rdb_fill_beg_dtm(wyflag, begdat)
+            enddtm = rdb_fill_end_dtm(wyflag, enddat)
 
         if datatyp == 'PK':     # get pk type
 
@@ -808,8 +813,8 @@ def rdb_out(
                 else:
                     sopt[9] = '3'
             else:
-                rdb_fill_beg_dtm(wyflag, begdat, begdtm)
-                rdb_fill_end_dtm(wyflag, enddat, enddtm)
+                begdtm = rdb_fill_beg_dtm(wyflag, begdat)
+                enddtm = rdb_fill_end_dtm(wyflag, enddat)
 
         if datatyp == 'QW':
             qwparm = ' '
@@ -825,8 +830,8 @@ def rdb_out(
                 else:
                     sopt[9] = '3'
             else:
-                rdb_fill_beg_dtm(wyflag, begdat, begdtm)
-                rdb_fill_end_dtm(wyflag, enddat, enddtm)
+                begdtm = rdb_fill_beg_dtm(wyflag, begdat)
+                enddtm = rdb_fill_end_dtm(wyflag, enddat)
 
         if needstrt:               # call s_strt if needed
             s_mdus(nw_oprw, irc, *998) # get USER info 
@@ -999,6 +1004,7 @@ def rdb_out(
         # get data and output to files
 
         if datatyp == 'DV':
+            # TODO: need to decide what to do about empty ddid here:
             irc = fdvrdbout(funit, "false", rndsup, addkey, vflag,
                             cflag, rtagny, sid, ddid, stat, 
                             begdate, enddate)
