@@ -61,7 +61,7 @@ def fdvrdbout(funit, editable, rndsup, addkey, vflag, compdv, agyin,
         if 'status' not in s or s['status'] != 'OK':
             # TODO: set value of "irc" here?
             print '==== Failure To Retrieve ===='
-        # TODO: send to file in funit:
+        # TODO: send to file referenced by funit instead:
         print data
     # TODO: return
 
@@ -346,7 +346,7 @@ def rdb_out(
 
             # process the request
             if datatyp == "DV":
-                irc = fdvrdbout(funit, "false", rndsup, addkey, vflag, 
+                irc = fdvrdbout(funit, "false", rndsup, addkey, vflag,
                                 cflag, rtagny, sid, ddid, stat, 
                                 begdtm, enddtm)
             elif datatyp == "UV":
@@ -543,7 +543,6 @@ def rdb_out(
                 rtagny = inagny[0:4]
             else:
                 rtagny = inagny
-            rtagny = "{:<5}".format(rtagny)
 
         # convert station to 15 characters
         if instnid == ' ':
@@ -558,13 +557,11 @@ def rdb_out(
                 sid = instnid[0:14]
             else:
                 sid = instnid
-            sid = "{:<15}".format(sid)
 
         # DD is ignored for data types MS, PR, WL, and QW
 
         if datatyp != 'MS' and datatyp != 'PK' and \
            datatyp != 'WL' and datatyp != 'QW':
-
             # If type is VT, DDID is only needed IF parm and loc
             # number are not specified
             if (datatyp != 'VT' and inddid == ' ') \
@@ -573,9 +570,7 @@ def rdb_out(
                 and (inddid[0] != 'P' or inlocnu == ' ')):
                 needstrt = True
                 sopt[4] = '2'
-
         else:
-
             # If ddid starts with "P", it is a parameter code, fill to
             # 5 digits
             if inddid[0] == 'p' or inddid[0] == 'P':
@@ -674,10 +669,12 @@ def rdb_out(
         # for the first date for this station
 
         if hydra and datatyp != 'UV':
-            if not nw_key_get_zone_dst(rtdbnum, rtagny, sid, tz_cd, local_time_fg):
+            if not \
+               nw_key_get_zone_dst(rtdbnum, rtagny, sid, tz_cd, local_time_fg):
                 loc_tz_cd = 'UTC' # default to UTC
             else:
-                if not nw_get_dflt_tzcd(tz_cd, local_time_fg, begdtm[0:7], loc_tz_cd):
+                if not \
+                   nw_get_dflt_tzcd(tz_cd, local_time_fg, begdtm[0:7], loc_tz_cd):
                     loc_tz_cd = 'UTC' # default to UTC
 
         if datatyp == 'MS':     # get MS type
