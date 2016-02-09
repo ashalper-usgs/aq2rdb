@@ -3,21 +3,23 @@
                 "Write DV data in rdb FORMAT" [sic].
    @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
    @author <a href="mailto:sbarthol@usgs.gov">Scott D. Bartholoma</a>
+   @param {object} response IncomingMessage object created by http.Server.
+   @param {Boolean} editable true if DVs are editable; false otherwise.
+   @param {Boolean} rndsup true to suppress rounding; false otherwise.
+   @param {Boolean} addkey true if logical key is to be added to each row.
+   @param {Boolean} vflag true to produce Excel-style, verbose dates/times.
+   @param {Boolean} compdv true to retrieve computed DVs only.
+   @param {string} agyin Site agency code.
+   @param {string} station Site number (a.k.a. site ID).
+   @param {string} inddid Data descriptor (DD) number.
+   @param {string} stat Statistic code.
+   @param {string} begdate Begin date.
+   @param {string} enddate End date.
    @callback
 */
 function fdvrdbout(
-    editable,		// flag IF DVs are editable
-    rndsup,		// rounding-suppressed flag
-    addkey,		// flag IF logical key to be added to each row
-    vflag,		// flag for Excel-style verbose dates/times
-    compdv,		// flag IF retrieving computed DVs only
-    agyin,		// agency code
-    station,		// station number
-    inddid,		// input DD number
-    stat,		// statistics code
-    begdate,		// start date
-    enddate,		// end date
-    callback
+    response, editable, rndsup, addkey, vflag, compdv, agyin, station,
+    inddid, stat, begdate, enddate, callback
 ) {
     // TODO: many/most of these probably won't be needed:
 
