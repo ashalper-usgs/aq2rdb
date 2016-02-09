@@ -124,6 +124,7 @@ tzName['ZP6'] =   {N: 'Etc/GMT+6',  Y: 'Etc/GMT+6'};
 /**
    @function Error handler.
    @param {object} error "Error" object.
+   @param {object} response IncomingMessage object created by http.Server.
 */ 
 function handle(error, response) {
     var statusMessage, statusCode;
@@ -380,10 +381,9 @@ var aq2rdb = module.exports = {
 /**
    @function Error messager for JSON parse errors.
    @private
-   @param {object} response aq2rdb IncomingMessage object created by
-          http.Server.
+   @param {object} response IncomingMessage object created by http.Server.
    @param {string} message Error message to display in an RDB comment.
-*/ 
+*/
 function jsonParseErrorMessage(response, message) {
     var statusMessage = 'While trying to parse a JSON response ' +
         'from AQUARIUS: ' + message;
@@ -1829,9 +1829,14 @@ httpdispatcher.onGet(
                         );
                     }
                 }
-                callback(null);
+                callback(
+                    null, response, field.editable, field.rndsup,
+                    field.addkey, field.vflag, field.compdv,
+                    field.agyin, field.station, field.inddid,
+                    field.stat, field.begdate, field.enddate
+                );
             },
-	    fdvrdbout
+            fdvrdbout
         ],
         /**
            @description node-async error handler function for
