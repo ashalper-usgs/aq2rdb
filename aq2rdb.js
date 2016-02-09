@@ -22,6 +22,8 @@ var async = require('async');
 var fs = require('fs');
 var moment = require('moment-timezone');
 
+var fdvrdbout = require('./fdvrdbout');
+
 /**
    @description The Web service name is the script name without the
                 ".js" suffix.
@@ -1793,7 +1795,7 @@ httpdispatcher.onGet(
                 callback(null);
             },
             /**
-               @description
+               @description Parse fdvrdbout arguments.
                @callback
             */
             function (callback) {
@@ -1828,7 +1830,8 @@ httpdispatcher.onGet(
                     }
                 }
                 callback(null);
-            }
+            },
+	    fdvrdbout
         ],
         /**
            @description node-async error handler function for
