@@ -1,3 +1,4 @@
-/node_modules/
-/.settings/
 /.project
+/.pydevproject
+/.settings/
+/node_modules/
