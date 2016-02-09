@@ -182,9 +182,7 @@ def rdb_out(
 
         #  check data type
         if hydra:
-            if datatyp != 'DV' and datatyp != 'UV' and \
-               datatyp != 'MS' and datatyp != 'WL' and \
-               datatyp != 'QW':
+            if datatyp not in ["DV", "UV", "MS", "WL", "QW"]:
                 cdate, ctime = s_date()
                 # WRITE (0,2020) cdate, ctime, datatyp, nline
                 #2020           FORMAT (A8, 1X, A6, 1X, 'Invalid HYDRA data type "', A,
@@ -193,9 +191,7 @@ def rdb_out(
                     datatyp + "\" on line " + nline
                 goto_9()
         else:
-            if datatyp != 'DV' and datatyp != 'UV' and \
-               datatyp != 'DC' and datatyp != 'SV' and \
-               datatyp != 'MS' and datatyp != 'PK':
+            if datatyp not in ["DV", "UV", "DC", "SV", "MS", "PK"]:
                 cdate, ctime = s_date()
                 # WRITE (0,2021) cdate, ctime, datatyp, nline
                 #2021         FORMAT (A8, 1X, A6, 1X, 'Invalid data type "', A,
@@ -206,13 +202,9 @@ def rdb_out(
 
         # check for completeness
         if rtagny == ' ' or sid == ' ' or \
-           (datatyp != 'DC'. AND. datatyp != 'SV' and \
-            datatyp != 'WL' and datatyp != 'QW' and \
-            stat == ' ') or \
-           begdtm == ' ' or enddtm == ' ' or \
-           (datatyp != 'MS' and datatyp != 'PK' and \
-            datatyp != 'WL' and datatyp != 'QW' and \
-            ddid == ' '):
+           (datatyp not in ["DC", "SV", "WL", "QW"] and stat == ' ') \
+           or begdtm == ' ' or enddtm == ' ' or \
+           (datatyp not in ["MS", "PK", "WL", "QW"] and ddid == ' '):
             cdate, ctime = s_date()
             # WRITE (0,2030) cdate, ctime, nline
             #2030  FORMAT (A8, 1X, A6, 1X, 'Incomplete row (missing items)',
@@ -300,8 +292,7 @@ def rdb_out(
                 rdbfile = rdbfile + "." + lddid
                 rdblen = rdblen + 1 + len(lddid)
 
-            if datatyp != 'DC' and datatyp != 'SV' and \
-               datatyp != 'WL' and datatyp != 'QW':
+            if datatyp not in ["DC", "SV", "WL", "QW"]:
                 rdbfile = rdbfile + '.' + stat
                 rdblen = rdblen + 1 + stat
 
@@ -349,8 +340,7 @@ def rdb_out(
                     "\", parm \"" + parm + "\" on line " + nline
                 goto_9()
             else:
-                if datatyp != 'MS' and datatyp != 'PK' and \
-                   datatyp != 'WL' and datatyp != 'QW':
+                if datatyp not in ["MS", "PK", "WL", "QW"]:
                     # right justify DDID to 4 characters
                     ddid = "{:>4}".format(ddid)
 
@@ -362,9 +352,7 @@ def rdb_out(
                                 begdtm, enddtm)
             elif datatyp == "UV":
                 uvtyp = stat[0]
-                if uvtyp != 'M' and uvtyp != 'N' and uvtyp != 'E' \
-                   and uvtyp != 'R' and uvtyp != 'S' and \
-                   uvtyp != 'C':
+                if uvtyp not in ['M', 'N', 'E', 'R', 'S', 'C']:
                     cdate, ctime = s_date()
                     # WRITE (0,2080) cdate, ctime, uvtyp, nline
                     #2080 FORMAT (A8, 1X, A6, 1X, 'Invalid unit-values type "', 
@@ -394,8 +382,7 @@ def rdb_out(
             # Pseudo-UV Types 1 through 3 are only good from the
             # command line or in Hydra mode
 
-            if mstyp != 'C' and mstyp != 'M' and mstyp != 'D' and \
-               mstyp != 'G':
+            if mstyp not in ['C', 'M', 'D', 'G']:
                 cdate, ctime = s_date()
                 #       WRITE (0,2090) cdate, ctime, mstyp, nline
                 #2090           FORMAT (A8, 1X, A6, 1X,
@@ -405,7 +392,6 @@ def rdb_out(
                     " Invalid measurement file type \"" + mstyp + \
                     "\" on line " + nline + "."
             else:
-
                 fmsrdbout(funit, rtdbnum, rndsup, addkey, cflag,
                           vflag, rtagny, sid, mstyp, begdtm, 
                           enddtm, irc)
@@ -413,7 +399,7 @@ def rdb_out(
         elif datatyp == "PK":
 
             pktyp = stat[0]
-            if pktyp != 'F' and pktyp != 'P' and pktyp != 'B':
+            if pktyp not in ['F', 'P', 'B']:
                 cdate, ctime = s_date()
                 # WRITE (0,2100) cdate, ctime, pktyp, nline
                 #2100  FORMAT (A8,1X,A6,1X,'Invalid peak flow file type "',A1,
@@ -459,9 +445,7 @@ def rdb_out(
             needstrt = True
             sopt[7] = '1'
             sopt[11] = '2'
-            if datatyp != 'DV' and datatyp != 'UV' and \
-               datatyp != 'MS' and datatyp != 'WL' and \
-               datatyp != 'QW':
+            if datatyp not in ["DV", "UV", "MS", "WL", "QW"]:
                 datatyp = 'UV'
 
                 # convert dates to 8 characters
@@ -477,12 +461,8 @@ def rdb_out(
             if cflag:
                 # Data type VT is pseudo-UV, no combining of date time
                 # possible
-
-                if datatyp != 'DV' and datatyp != 'UV' and \
-                   datatyp != 'DC' and datatyp != 'SV' and \
-                   datatyp != 'MS' and datatyp != 'PK' and \
-                   datatyp != 'WL' and datatyp != 'QW':
-       
+                if datatyp not in \
+                   ["DV", "UV", "DC", "SV", "MS", "PK", "WL", "QW"]:
                     #11
                     datatyp = ' '
                     print "Valid data types are:"
@@ -498,25 +478,19 @@ def rdb_out(
                     # s_qryc('Enter desired data type: ',' ',0,0,2,2,
                     #                      datatyp,*11)
                     datatyp = datatyp.upper()
-                    if datatyp != 'DV' and datatyp != 'UV' and \
-                       datatyp != 'DC' and datatyp != 'SV' and \
-                       datatyp != 'MS' and datatyp != 'PK' and \
-                       datatyp != 'WL' and datatyp != 'QW':
+                    if datatyp not in \
+                       ["DV", "UV", "DC", "SV", "MS", "PK", "WL", "QW"]:
                         # TODO:
                         s_bada(
                             "Please answer " +
-                            "\"DV\", \"UV\", \"MS\", \"PK\", \"DC\", \"ST\"," + 
+                            "\"DV\", \"UV\", \"MS\", \"PK\", \"DC\"," + 
                             " \"SV\", \"WL\" or \"QW\".", *11
                         ) 
 
             else:
 
-                if datatyp != 'DV' and datatyp != 'UV' and \
-                   datatyp != 'DC' and datatyp != 'SV' and \
-                   datatyp != 'MS' and datatyp != 'VT' and \
-                   datatyp != 'PK' and datatyp != 'WL' and \
-                   datatyp != 'QW':
-
+                if datatyp not in \
+                   ["DV", "UV", "DC", "SV", "MS", "VT", "PK", "WL", "QW"]:
                     #12
                     while True:
                         print "Valid data types are:"
@@ -533,15 +507,12 @@ def rdb_out(
                         # s_qryc('Enter desired data type: ',' ',0,0,2,2,
                         #     datatyp,*12)
                         datatyp = datatyp.upper()
-                        if datatyp != "DV" and datatyp != "UV" and \
-                           datatyp != "DC" and datatyp != "SV" and \
-                           datatyp != "MS" and datatyp != "VT" and \
-                           datatyp != "PK" and datatyp != "WL" and \
-                           datatyp != "QW":
+                        if datatyp not in \
+                        ["DV", "UV", "DC", "SV", "MS", "VT", "PK", "WL", "QW"]:
                             # TODO:
                             s_bada(
                                 "Please answer " +
-                                "\"DV\", \"UV\", \"MS\", \"VT\", \"PK\", \"DC\", \"ST\"," + 
+                                "\"DV\", \"UV\", \"MS\", \"VT\", \"PK\", \"DC\"," + 
                                 " \"SV\", \"WL\" or \"QW\"."
                             )
                         else:
@@ -549,7 +520,7 @@ def rdb_out(
                         
         # convert agency to 5 characters - default to USGS
         if inagny == ' ':
-            rtagny = 'USGS'
+            rtagny = "USGS"
         else:
             if len(inagny) > 5:
                 rtagny = inagny[0:4]
@@ -559,8 +530,7 @@ def rdb_out(
         # convert station to 15 characters
         if instnid == ' ':
             needstrt = True
-            if datatyp == 'MS' or datatyp == 'PK' or \
-               datatyp == 'WL' or datatyp == 'QW':
+            if datatyp in ["MS", "PK", "WL", "QW"]:
                 sopt[4] = '1'
             else:
                 sopt[4] = '2'
@@ -572,8 +542,7 @@ def rdb_out(
 
         # DD is ignored for data types MS, PR, WL, and QW
 
-        if datatyp != 'MS' and datatyp != 'PK' and \
-           datatyp != 'WL' and datatyp != 'QW':
+        if datatyp not in ["MS", "PK", "WL", "QW"]:
             # If type is VT, DDID is only needed IF parm and loc
             # number are not specified
             if (datatyp != 'VT' and inddid == ' ') \
@@ -616,8 +585,7 @@ def rdb_out(
             stat = "{:>5}".format(stat)
             stat.replace(' ', '0')
 
-    if datatyp == 'DV' or datatyp == 'DC' or \
-       datatyp == 'SV' or datatyp == 'PK':
+    if datatyp in ["DV", "DC", "SV", "PK"]:
 
         # convert dates to 8 characters
         if begdat == ' ' or enddat == ' ':
@@ -634,16 +602,8 @@ def rdb_out(
 
         if not hydra:
             # get UV type
-            uvtyp = instat[0]
-            if uvtyp == 'm': uvtyp = 'M'
-            if uvtyp == 'n': uvtyp = 'N'
-            if uvtyp == 'e': uvtyp = 'E'
-            if uvtyp == 'r': uvtyp = 'R'
-            if uvtyp == 's': uvtyp = 'S'
-            if uvtyp == 'c': uvtyp = 'C'
-            if uvtyp != 'M' and uvtyp != 'N' and \
-               uvtyp != 'E' and uvtyp != 'R' and \
-               uvtyp != 'S' and uvtyp != 'C':
+            uvtyp = instat[0].upper()            
+            if uvtyp not in ['M', 'N', 'E', 'R', 'S', 'C']:
                 # TODO: prompt for UV type here; not finished yet
                 uvtyp_prompted = True
                 #50
@@ -652,15 +612,8 @@ def rdb_out(
                     "Unit values type (M, N, E, R, S, or C): ",
                     ' ', 0, 0, 1, 1, uvtyp, *50
                 )
-                if uvtyp == 'm': uvtyp = 'M'
-                if uvtyp == 'n': uvtyp = 'N'
-                if uvtyp == 'e': uvtyp = 'E'
-                if uvtyp == 'r': uvtyp = 'R'
-                if uvtyp == 's': uvtyp = 'S'
-                if uvtyp == 'c': uvtyp = 'C'
-                if uvtyp != 'M' and uvtyp != 'N' and \
-                   uvtyp != 'E' and uvtyp != 'R' and \
-                   uvtyp != 'S' and uvtyp != 'C':
+                uvtyp = uvtyp.upper()
+                if uvtyp not in ['M', 'N', 'E', 'R', 'S', 'C']:
                     s_bada(
                         "Please answer \"M\", \"N\", \"E\", \"R\", \"S\", or \"C\".",
                          *50
@@ -694,10 +647,7 @@ def rdb_out(
             mstyp = instat[0].upper()
 
             # TODO: re-check indentation level vs. 3GL source here:
-            if mstyp != 'C' and mstyp != 'M' and \
-               mstyp != 'D' and mstyp != 'G' and \
-               mstyp != '1' and mstyp != '2' and \
-               mstyp != '3':
+            if mstyp not in ['C', 'M', 'D', 'G', '1', '2', '3']:
                 #45
                 mstyp = ' '
 
@@ -714,10 +664,7 @@ def rdb_out(
                 s_qryc("|Enter C, M, D, G, or 1 to 3: ",
                        ' ', 0, 0, 1, 1, mstyp, *45)
                 mstyp.upper()
-                if mstyp != 'C' and mstyp != 'M' and \
-                   mstyp != 'D' and mstyp != 'G' and \
-                   mstyp != '1' and mstyp != '2' and \
-                   mstyp != '3':
+                if mstyp not in ['C', 'M', 'D', 'G', '1', '2', '3']:
                     s_bada(
                         "Please answer \"C\", \"M\", \"G\", or \"1\" to \"3\".",
                         *45
@@ -742,13 +689,9 @@ def rdb_out(
                     enddate = rdb_fill_end_date(wyflag, enddat)
 
         if datatyp == 'VT':     # get VT type
-            vttyp = instat[0]
-            vttyp.upper()
+            vttyp = instat[0].upper()
 
-            if vttyp != 'P' and vttyp != 'R' and \
-               vttyp != 'A' and vttyp != 'M' and \
-               vttyp != 'F':
-
+            if vttyp not in ['P', 'R', 'A', 'M', 'F']:
                 #55
                 vttyp = 'A'
 
@@ -767,9 +710,7 @@ def rdb_out(
                 s_qryc("|Enter P, R, A, M, or F (<CR> = A):",
                        ' ', 0, 1, 1, 1, vttyp, *55)
                 vttyp.upper()
-                if vttyp != 'P' and vttyp != 'R' and \
-                   vttyp != 'A' and vttyp != 'M' and \
-                   vttyp != 'F':
+                if vttyp not in ['P', 'R', 'A', 'M', 'F']:
                     s_bada(
                         'Please answer "P", "R", "A", "M" or "F".',
                         *55
@@ -788,13 +729,9 @@ def rdb_out(
             enddtm = rdb_fill_end_dtm(wyflag, enddat)
 
         if datatyp == 'PK':     # get pk type
+            pktyp = instat[0].upper()
 
-            pktyp = instat[0]
-            if pktyp == 'f': pktyp = 'F'
-            if pktyp == 'p': pktyp = 'P'
-            if pktyp == 'b': pktyp = 'B'
-
-            if pktyp != 'F' and pktyp != 'P' and pktyp != 'B':
+            if pktyp not in ['F', 'P', 'B']:
                 #46
                 pktyp = ' '
                 s_qryc('Peak flow file retrieval type -' +
@@ -803,12 +740,9 @@ def rdb_out(
                        '|Both Full and Partial peaks (B) - ' +
                        '|Please enter F, P, or B: ',' ',0,0,1,1,
                        pktyp, *46)
-                if pktyp == 'f': pktyp = 'F'
-                if pktyp == 'p': pktyp = 'P'
-                if pktyp == 'b': pktyp = 'B'
-                if pktyp != 'F' and pktyp != 'P' and pktyp != 'B':
-                    s_bada (
-                        'Please answer "F", "P",  or "B".', *46)
+                pktyp = pktyp.upper()
+                if pktyp not in ['F', 'P', 'B']:
+                    s_bada('Please answer "F", "P",  or "B".', *46)
 
         if datatyp == 'WL':
             wltyp = instat[0]
@@ -876,7 +810,7 @@ def rdb_out(
         sopt = '2' + sopt[1:]
         rtdbnum = dbnum         # get DB number first
 
-        if sopt[4] == '1' or sopt[4] == '2':
+        if sopt[4] in ['1', '2']:
             rtagny = agency     # get agency
             sid = stnid         # get stn ID
             if sopt[4] == '2':
@@ -1038,13 +972,13 @@ def rdb_out(
 
             if hydra or (mstyp >= '1' and mstyp <= '3'):
                 if hydra: mstyp = ' '
-                fmsrdbout_hydra(funit, rndsup, rtagny, sid,
-                                begdtm, enddtm, loc_tz_cd, 
-                                mstyp, irc)
+                irc = fmsrdbout_hydra(funit, rndsup, rtagny, sid,
+                                      begdtm, enddtm, loc_tz_cd, 
+                                      mstyp)
             else:
-                fmsrdbout(funit, rtdbnum, rndsup, addkey, cflag,
-                          vflag, rtagny, sid, mstyp, begdate,  
-                          enddate, irc)
+                irc = fmsrdbout(funit, rtdbnum, rndsup, addkey, cflag,
+                                vflag, rtagny, sid, mstyp, begdate,  
+                                enddate)
 
         elif datatyp == 'VT':
 
@@ -1054,29 +988,30 @@ def rdb_out(
                 if not nw_db_key_get_dd_parm_loc(rtdbnum, rtagny, 
                                                  sid, ddid, parm,
                                                  loc_nu):
-                    goto_997
+                    goto_997()
             else:
                 loc_nu = atoi(inlocnu)
 
-            fvtrdbout_hydra(funit, rndsup, rtagny, sid, parm,
-                            loc_nu, begdtm, enddtm, loc_tz_cd,
-                            vttyp, irc)
+            irc = fvtrdbout_hydra(funit, rndsup, rtagny, sid, parm,
+                                  loc_nu, begdtm, enddtm, loc_tz_cd,
+                                  vttyp)
 
         elif datatyp == 'PK':
-            fpkrdbout(funit, rndsup, addkey, cflag, vflag, 
-                      rtagny, sid, pktyp, begdate, enddate, irc) 
+
+            irc = fpkrdbout(funit, rndsup, addkey, cflag, vflag, 
+                            rtagny, sid, pktyp, begdate, enddate) 
 
         elif datatyp == 'DC':
 
-            fdcrdbout(funit, rndsup, addkey, cflag, vflag,
-                      rtagny, sid, ddid, begdate, enddate, 
-                      loc_tz_cd, irc)
+            irc = fdcrdbout(funit, rndsup, addkey, cflag, vflag,
+                            rtagny, sid, ddid, begdate, enddate, 
+                            loc_tz_cd)
 
         elif datatyp == 'SV':
 
-            fsvrdbout(funit, rndsup, addkey, cflag, vflag,
-                      rtagny, sid, ddid, begdate, enddate, 
-                      loc_tz_cd, irc)
+            irc = fsvrdbout(funit, rndsup, addkey, cflag, vflag,
+                            rtagny, sid, ddid, begdate, enddate, 
+                            loc_tz_cd)
 
         elif datatyp == 'WL':
 
