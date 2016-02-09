@@ -393,6 +393,17 @@ function jsonParseErrorMessage(response, message) {
 }
 
 /**
+   @description Detect presence of GetAQToken field.
+   @private
+*/
+function isGetAQTokenField(name) {
+    if (name == 'userName' || name == 'password')
+        return true;
+    else
+        return false;
+}
+
+/**
    @description LocationIdentifier object prototype.
    @class
    @private
@@ -1132,7 +1143,7 @@ httpdispatcher.onGet(
                 }
 
                 for (var name in field) {
-                    if (name.match(/^(userName|password)$/)) {
+                    if (isGetAQTokenField(name)) {
                         // GetAQToken fields
                     }
                     else if (name === 'LocationIdentifier') {
@@ -1500,7 +1511,7 @@ httpdispatcher.onGet(
                 }
 
                 for (var name in field) {
-                    if (name.match(/^(userName|password)$/)) {
+                    if (isGetAQTokenField(name)) {
                         // GetAQToken fields
                     }
                     else if (name === 'LocationIdentifier') {
@@ -1763,10 +1774,10 @@ httpdispatcher.onGet(
 ); // GetUVTable
 
 /**
-   @description aq2rdb endpoint service request handler.
+   @description fdvrdbout endpoint service request handler.
 */
 httpdispatcher.onGet(
-    '/' + packageName,
+    '/' + packageName + '/fdvrdbout',
     /**
        @callback
     */
@@ -1777,7 +1788,7 @@ httpdispatcher.onGet(
                @callback
             */
             function (callback) {
-                if (url === '/' + packageName) {
+                if (url === '/' + packageName + '/fdvrdbout') {
                     return;
                 }
                 callback(null);
@@ -1787,10 +1798,33 @@ httpdispatcher.onGet(
                @callback
             */
             function (callback) {
+                try {
+                    field = url.parse(request.url, true).query;
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+                for (var name in field) {
+                    if (isGetAQTokenField(name)) {
+                        // GetAQToken fields
+                    }
+                    else if (
+                        name.match(
+/^(editable|rndsup|addkey|vflag|compdv|agyin|station|inddid|stat|begdate|enddate)$/
+                        )
+                    ) {
+                        // fdvrdbout fields
+                    }
+                    else {
+                        callback(new Error('Unknown field "' + name + '"'));
+                        return;
+                    }
+                }
             }
         ]); // async.waterfall
     }
-); // aq2rdb
+); // fdvrdbout
 
 /**
    @description Service dispatcher.
