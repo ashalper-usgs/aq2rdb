@@ -25,9 +25,17 @@ aq2rdb = "http://cidasdqaasaq2rd.cr.usgs.gov:8081/aq2rdb"
 # TODO: check where this is defined/initialized in 3GL
 irc = 0
 
+# TODO:
+def s_bada():
+    return
+
 # (badly) emulate legacy NWIS, S_DATE() Fortran subroutine
 def s_date():
     return datetime.strftime(datetime.now(), '%Y%m%d %H%M%S').split()
+
+# TODO:
+def s_qryc():
+    return
 
 def goto_999():
     global irc
@@ -105,7 +113,7 @@ def rdb_out(
 
     if intrans[0] == ' ':
         transport_cd = ' '
-        sensor_type_id = None   # TODO: was NW_NI4; need to double-check F77
+        sensor_type_id = None   # TODO: was NW_NI4(); need to double-check F77
     else:
         transport_cd = intrans[o].upper()
         sensor_type_id = 0
@@ -181,7 +189,7 @@ def rdb_out(
                 # WRITE (0,2020) cdate, ctime, datatyp, nline
                 #2020           FORMAT (A8, 1X, A6, 1X, 'Invalid HYDRA data type "', A,
                 #                 '" on line ', I5, '.')
-                print cdate + " " + ctime + " Invalid HYDRA data type \"" + \
+                print cdate + " " + ctime + " Invalid Hydra data type \"" + \
                     datatyp + "\" on line " + nline
                 goto_9()
         else:
@@ -510,34 +518,35 @@ def rdb_out(
                    datatyp != 'QW':
 
                     #12
-                    datatyp = ' '
-                    print "Valid data types are:"
-                    print "   DV - Daily Values"
-                    print "   UV - Unit Values"
-                    print "   MS - Discharge Measurements"
-                    print "   VT - Site Visit Readings"
-                    print "   PK - Peak Flows"
-                    print "   DC - Data Corrections"
-                    print "   SV - Variable Shift"
-                    print "   WL - Water Levels from GWSI"
-                    print "   QW - QW Data From QWDATA"
-                    # TODO:
-                    # s_qryc('Enter desired data type: ',' ',0,0,2,2,
-                    #     datatyp,*12)
-                    datatyp = datatyp.upper()
-                    if datatyp != "DV" and datatyp != "UV" and \
-                       datatyp != "DC" and datatyp != "SV" and \
-                       datatyp != "MS" and datatyp != "VT" and \
-                       datatyp != "PK" and datatyp != "WL" and \
-                       datatyp != "QW":
+                    while True:
+                        print "Valid data types are:"
+                        print "   DV - Daily Values"
+                        print "   UV - Unit Values"
+                        print "   MS - Discharge Measurements"
+                        print "   VT - Site Visit Readings"
+                        print "   PK - Peak Flows"
+                        print "   DC - Data Corrections"
+                        print "   SV - Variable Shift"
+                        print "   WL - Water Levels from GWSI"
+                        print "   QW - QW Data From QWDATA"
                         # TODO:
-                        s_bada(
-                            "Please answer " +
-                            "\"DV\", \"UV\", \"MS\", \"VT\", \"PK\", \"DC\", \"ST\"," + 
-                            " \"SV\", \"WL\" or \"QW\".",
-                            *12
-                        )
-
+                        # s_qryc('Enter desired data type: ',' ',0,0,2,2,
+                        #     datatyp,*12)
+                        datatyp = datatyp.upper()
+                        if datatyp != "DV" and datatyp != "UV" and \
+                           datatyp != "DC" and datatyp != "SV" and \
+                           datatyp != "MS" and datatyp != "VT" and \
+                           datatyp != "PK" and datatyp != "WL" and \
+                           datatyp != "QW":
+                            # TODO:
+                            s_bada(
+                                "Please answer " +
+                                "\"DV\", \"UV\", \"MS\", \"VT\", \"PK\", \"DC\", \"ST\"," + 
+                                " \"SV\", \"WL\" or \"QW\"."
+                            )
+                        else:
+                            break
+                        
         # convert agency to 5 characters - default to USGS
         if inagny == ' ':
             rtagny = 'USGS'
