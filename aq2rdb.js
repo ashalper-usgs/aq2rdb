@@ -1784,13 +1784,12 @@ httpdispatcher.onGet(
     function (request, response) {
         async.waterfall([
             /**
-               @description Check for documentation request.
+               @function Check for documentation request.
                @callback
             */
             function (callback) {
-                if (url === '/' + packageName + '/fdvrdbout') {
+                if (docRequest(request.url, 'fdvrdbout', response, callback))
                     return;
-                }
                 callback(null);
             },
             /**
@@ -1798,6 +1797,8 @@ httpdispatcher.onGet(
                @callback
             */
             function (callback) {
+                var field;
+
                 try {
                     field = url.parse(request.url, true).query;
                 }
@@ -1820,9 +1821,28 @@ httpdispatcher.onGet(
                         callback(new Error('Unknown field "' + name + '"'));
                         return;
                     }
+                    if (options.log === true) {
+                        console.log(
+                            packageName + ': ' + JSON.stringify(field)
+                        );
+                    }
                 }
+                callback(null);
             }
-        ]); // async.waterfall
+        ],
+        /**
+           @description node-async error handler function for
+                        outer-most, fdvrdbout async.waterfall
+                        function.
+           @callback
+        */
+        function (error) {
+            if (error) {
+                handle(error, response);
+            }
+            response.end();
+        }
+      ); // async.waterfall
     }
 ); // fdvrdbout
 
@@ -1831,6 +1851,12 @@ httpdispatcher.onGet(
 */ 
 function handleRequest(request, response) {
     try {
+        if (options.log === true) {
+            console.log(
+                packageName + '.handleRequest.request.url: ' +
+                    request.url
+            );
+        }
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
@@ -1853,7 +1879,9 @@ if (options.version === true) {
             pkg = JSON.parse(json);
         }
         catch (error) {
-            console.log(packageName + ': ' + error);
+            if (options.log === true) {
+                console.log(packageName + ': ' + error);
+            }
             return;
         }
 
