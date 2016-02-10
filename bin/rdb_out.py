@@ -8,19 +8,22 @@
 #           Scott D. Bartholoma <sbarthol@usgs.gov> [NWF_RDB_OUT()]
 #
 
-import sys, datetime, rdb_cfil, rdb_fill_beg_date, rdb_fill_end_date
-import rdb_fill_beg_dtm, rdb_fill_end_dtm
-import urllib
-
+# Python modules
+import datetime, sys, urllib
 datetime = datetime.datetime
+
+# aq2rdb modules
+import fdvrdbout, rdb_cfil, rdb_fill_beg_date, rdb_fill_beg_dtm
+import rdb_fill_end_date, rdb_fill_end_dtm
+fdvrdbout = fdvrdbout.fdvrdbout
 rdb_cfil = rdb_cfil.rdb_cfil
 rdb_fill_beg_date = rdb_fill_beg_date.rdb_fill_beg_date
-rdb_fill_end_date = rdb_fill_end_date.rdb_fill_end_date
 rdb_fill_beg_dtm = rdb_fill_beg_dtm.rdb_fill_beg_dtm
+rdb_fill_end_date = rdb_fill_end_date.rdb_fill_end_date
 rdb_fill_end_dtm = rdb_fill_end_dtm.rdb_fill_end_dtm
 
 # URL prefix of aq2rdb Web services
-aq2rdb = "http://cidasdqaasaq2rd.cr.usgs.gov:8081/aq2rdb"
+aq2rdb = "http://localhost:8081/aq2rdb"
 
 # TODO: check where this is defined/initialized in 3GL
 irc = 0
@@ -46,35 +49,6 @@ def goto_999():
 def write_2120(agny, sid, parm):
     print "No PRIMARY DD for station \"" + agny + sid + \
         "\", parm \"" + parm + "\". Aborting."
-
-def fdvrdbout(funit, editable, rndsup, addkey, vflag, compdv, agyin,
-              station, inddid, stat, begdate, enddate):
-    url = aq2rdb + "/fdvrdbout?" + urllib.urlencode({
-        "editable": str(editable).lower(),
-        "rndsup": str(rndsup).lower(),
-        "addkey": str(addkey).lower(),
-        "vflag": str(vflag).lower(),
-        "compdv": str(compdv).lower(),
-        "agyin": agyin,
-        "station": station,
-        "inddid": inddid,
-        "stat": stat,
-        "begdate": begdate,
-        "enddate": enddate
-    })
-    uo = urllib.urlopen(url)
-    data = uo.read()
-    # TODO: this will probably need some tweaking:
-    try:
-        s = str(data)
-    except:
-        s = None
-        if 'status' not in s or s['status'] != 'OK':
-            # TODO: set value of "irc" here?
-            print '==== Failure To Retrieve ===='
-        # TODO: send to file referenced by funit instead:
-        print data
-    # TODO: return
 
 # returns the error code from modules called (0 IF all OK)
 def rdb_out(
@@ -174,6 +148,7 @@ def rdb_out(
                            stat, bctdtm, ectdtm, nline)
             if not first:       # end of control file
                 s_mclos         # close things down and exit cleanly
+                # TODO: needs translation to Python I/O:
                 if funit >= 0 and funit != 6:
                     s_sclose(funit, 'keep')
                 irc = 0
@@ -228,7 +203,7 @@ def rdb_out(
             sen_dbop(rtdbnum)   # open Midas files
             if not multiple:      # open output file
                 if outpath == ' ':
-                    funit = 6
+                    funit = sys.stdout
                 else:
                     if len(outpath) > 128:
                         irc = rdb_cfil(three, ctlfile, rtagny, sid,
@@ -236,8 +211,9 @@ def rdb_out(
                         goto_998()
 
                     rdbfile = outpath
-                    s_file(' ', rdbfile, ' ', 'unknown', 'write',
-                           0, 1, ipu, funit, irc, 7) # <- TODO: *7?
+                    # s_file(' ', rdbfile, ' ', 'unknown', 'write',
+                    #        0, 1, ipu, funit, irc, 7) # <- TODO: *7?
+                    funit = open(rdbfile, 'w')
                     #7
                     if irc != 0:
                         irc = rdb_cfil(three, ctlfile, rtagny, sid, 
@@ -298,8 +274,9 @@ def rdb_out(
 
             rdbfile = rdbfile + '.' + begdtm[0:7] + '.rdb'
             rdblen = rdblen + 13
-            s_file(' ', rdbfile, ' ', 'unknown', 'write',
-                   0, 1, ipu, funit, irc, 8) # <- TODO: *8?
+            # s_file(' ', rdbfile, ' ', 'unknown', 'write',
+            #        0, 1, ipu, funit, irc, 8) # <- TODO: *8?
+            funit = open(rdbfile, 'w')
             #8
             if irc != 0:
                 cdate, ctime = s_date()
@@ -324,7 +301,7 @@ def rdb_out(
 
         # check DD for a P in column 1 - indicated parm code for PR DD search
 
-        if ddid[0] == 'p' or ddid[0] == 'P':
+        if ddid[0] in ['p', 'P']:
             parm = ddid[1:5]
             parm = "{:>5}".format(parm)
             parm = parm.replace(' ', '0')
@@ -935,7 +912,7 @@ def rdb_out(
 
         # Open output file
         if outpath == ' ':
-            funit = 6
+            funit = sys.stdout
         else:
             if len(outpath) > 128: goto_998()
             rdbfile = outpath
