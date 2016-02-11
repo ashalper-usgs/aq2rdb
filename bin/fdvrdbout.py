@@ -384,12 +384,13 @@ def fdvrdbout(
         #          sname(1:nwf_strlen(sname)),'"'
         funit.write(
             '# //STATION NAME="' +
-            sname + '"'
+            sname + '"\n'
         )
 
         # write Location info
-        # TODO:
-        rdb_write_loc_info(funit, dd_id)
+        # TODO: this is disabled right now, while we research how to
+        # get Location info. from AQUARIUS
+        #rdb_write_loc_info(funit, dd_id)
 
         # write DD info
         # WRITE (funit,'(20A)')
@@ -399,7 +400,7 @@ def fdvrdbout(
         funit.write(
             '# //DD DDID="' + ddid + '" RNDARY="' +
             rndary + '" DVABORT=' +
-            cdvabort
+            cdvabort + '\n'
         )
 
         # WRITE (funit,'(20A)')
@@ -407,7 +408,7 @@ def fdvrdbout(
         #          ddlabl(1:nwf_strlen(ddlabl)),'"'
         funit.write(
             '# //DD LABEL="' +
-            ddlabl + '"'
+            ddlabl + '"\n'
         )
 
         # write parameter info
@@ -415,10 +416,12 @@ def fdvrdbout(
         #        '# //PARAMETER CODE="',pcode(2:6),
         #        '" SNAME = "',psnam(1:nwf_strlen(psnam)),
         #        '"'
+        # TODO: need to call PT's PARM Web service here to get
+        # (parm_cd,parm_nm,parm_ds)
         funit.write(
             '# //PARAMETER CODE="' + pcode[1:5] +
             '" SNAME = "' + psnam +
-            '"'
+            '"\n'
         )
         # WRITE (funit,'(20A)')
         #        '# //PARAMETER LNAME="',
