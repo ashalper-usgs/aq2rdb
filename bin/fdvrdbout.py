@@ -7,6 +7,8 @@
 #           Scott D. Bartholoma <sbarthol@usgs.gov> [FDVRDBOUT()]
 #
 
+import urllib, os, sys
+
 # TODO: this is a stub
 def stretr(ifunct):
     return 0
@@ -248,10 +250,29 @@ def fdvrdbout(
     # get site
     sagncy = agyin
     sid = station
-    # TODO: load site record from Web service here: see also
-    # watstore/library/wat_lib/stretr.sf
-    irc = stretr(100)
-    if irc != 0:
+
+    # Query USGS Water Services for site attributes; see also
+    # watstore/library/wat_lib/stretr.sf, and requestSite() in
+    # ../aq2rdb.js
+    #'http://waterservices.usgs.gov/nwis/site/?' + \
+    url = 'fnoof' + \
+          urllib.urlencode({'format': 'rdb',
+                            'sites': sid,
+                            'siteOutput': 'expanded'})
+    try:
+        response = urllib.urlopen(url)
+    except IOError as e:
+        sys.stderr.write(
+            os.path.basename(sys.argv[0]) +
+            ': IOError from urllib.urlopen(\'' + url + '\'); ' +
+            'the error message was: ' + os.strerror(e.errno) + '\n'
+        )
+    else:
+        irc = response.getcode()
+
+    if irc == 0:
+        data = response.read()
+    else:
         sagncy = agyin
         sid = station
         sname = '*** NOT IN SITE FILE ***'
