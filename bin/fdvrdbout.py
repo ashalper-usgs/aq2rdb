@@ -254,8 +254,7 @@ def fdvrdbout(
     # Query USGS Water Services for site attributes; see also
     # watstore/library/wat_lib/stretr.sf, and requestSite() in
     # ../aq2rdb.js
-    #'http://waterservices.usgs.gov/nwis/site/?' + \
-    url = 'fnoof' + \
+    url = 'http://waterservices.usgs.gov/nwis/site/?' + \
           urllib.urlencode({'format': 'rdb',
                             'sites': sid,
                             'siteOutput': 'expanded'})
@@ -267,17 +266,18 @@ def fdvrdbout(
             ': IOError from urllib.urlopen(\'' + url + '\'); ' +
             'the error message was: ' + os.strerror(e.errno) + '\n'
         )
+        irc = e.errno
     else:
-        irc = response.getcode()
-
-    if irc == 0:
-        data = response.read()
-    else:
-        sagncy = agyin
-        sid = station
-        sname = '*** NOT IN SITE FILE ***'
-        smgtof = ' '
-        slstfl = ' '
+        if response.getcode() == 404:
+            sagncy = agyin
+            sid = station
+            sname = '*** NOT IN SITE FILE ***'
+            smgtof = ' '
+            slstfl = ' '
+            irc = response.getcode()
+        else:
+            data = response.read()
+            irc = response.getcode()
 
     if smgtof == ' ':
         smgtof = str(gmtof)     # WRITE(smgtof,'(I3)') gmtof
