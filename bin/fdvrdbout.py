@@ -7,11 +7,12 @@
 #           Scott D. Bartholoma <sbarthol@usgs.gov> [FDVRDBOUT()]
 #
 
+# Python modules
 import urllib, os, sys
 
-# TODO: this is a stub
-def stretr(ifunct):
-    return 0
+# aq2rdb modules
+import rdb_write_loc_info
+rdb_write_loc_info = rdb_write_loc_info.rdb_write_loc_info
 
 # TODO: this is a stub; see watstore/adaps/adrsrc/dd_lib/s_lbdd.f
 nw_left = 0
@@ -388,7 +389,7 @@ def fdvrdbout(
 
         # write Location info
         # TODO:
-        nw_rdb_write_loc_info(funit, dd_id)
+        rdb_write_loc_info(funit, dd_id)
 
         # write DD info
         # WRITE (funit,'(20A)')
