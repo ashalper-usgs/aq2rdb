@@ -279,7 +279,20 @@ def fdvrdbout(
             data = response.read()
             irc = response.getcode()
 
+    # parse RDB response
+    table = data.split('\n')
+    table.pop()                 # empty
+    dataList = table.pop().split('\t')
+
+    # TODO: these are indexed by field position now...bad
+    sname = dataList[2]         # SITEFILE.site_no
+    smgtof = dataList[31]       # SITEFILE.tz_cd
+
+    # TODO: Likely global variables declared in stretr.sf?
     if smgtof == ' ':
+        # from watstore/adaps/adrsrc/inserts/ins.dv_app:
+        # 
+        # INTEGER*4 GMTOF,          ! LOCAL OFFSET FROM GMT TIME IN HOURS
         smgtof = str(gmtof)     # WRITE(smgtof,'(I3)') gmtof
 
     smgtof = "{:<3}".format(smgtof) # s_jstrlf(smgtof, 3)
