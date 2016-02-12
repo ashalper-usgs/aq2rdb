@@ -9,6 +9,7 @@
 
 'use strict';
 
+// Node.js modules
 var path = require('path');
 var commandLineArgs = require('command-line-args');
 var http = require('http');
@@ -22,7 +23,8 @@ var async = require('async');
 var fs = require('fs');
 var moment = require('moment-timezone');
 
-var fdvrdbout = require('./fdvrdbout');
+// aq2rdb modules
+var rdbHeader = require('./rdbHeader');
 
 /**
    @description The Web service name is the script name without the
@@ -182,17 +184,6 @@ function handle(error, response) {
 */
 var aq2rdb = module.exports = {
     /**
-       @function Convert an ISO 8601 extended format, date string to
-                 RFC 3339 basic format.
-       @public
-       @param {string} s ISO 8601 date string to convert.
-       @see https://tools.ietf.org/html/rfc3339
-    */
-    toBasicFormat: function (s) {
-        return s.replace('T', ' ').replace(/\.\d*/, '');
-    },
-
-    /**
        @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to
                  a common NWIS date format.
        @public
@@ -240,10 +231,7 @@ var aq2rdb = module.exports = {
        @param {string} subLocationIdentifer Sublocation identifier.
        @param {object} range Time series query date range.
     */
-    rdbHeader: function (fileType, site, subLocationIdentifer, range) {
-        // some convoluted syntax for "now"
-        var retrieved = aq2rdb.toBasicFormat((new Date()).toISOString());
-    
+    rdbHeaderBody: function (fileType, site, subLocationIdentifer, range) {
         /**
            @author <a href="mailto:bdgarner@usgs.gov">Bradley Garner</a>
     
@@ -312,15 +300,8 @@ var aq2rdb = module.exports = {
               the logic for emulating this old ADAPS format likely would
               get messy in a hurry.
         */
+
         var header =
-            '# //UNITED STATES GEOLOGICAL SURVEY       ' +
-            'http://water.usgs.gov/\n' +
-            '# //NATIONAL WATER INFORMATION SYSTEM     ' +
-            'http://water.usgs.gov/data.html\n' +
-            '# //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL ' +
-            'PUBLISHED BY USGS\n' +
-            '# //RETRIEVED: ' + retrieved.substr(0, retrieved.length - 1) +
-            ' UTC\n' +
             '# //FILE TYPE="' + fileType + '" ' + 'EDITABLE=NO\n' +
             '# //STATION AGENCY="' + site.agencyCode +
             '" NUMBER="' + site.number + '       " ' +
@@ -374,7 +355,7 @@ var aq2rdb = module.exports = {
         header += '"\n';
     
         return header;
-    } // rdbHeader
+    } // rdbHeaderBody
 
 }; // public functions
 
@@ -1306,8 +1287,16 @@ httpdispatcher.onGet(
                         );
                         callback(null);
                     },
-                    /**
+		    /**
                        @function Write RDB header to HTTP response.
+                       @callback
+                    */
+		    function (callback) {
+			rdbHeader(response);
+			callback(null);
+		    },
+                    /**
+                       @function Write RDB body to HTTP response.
                        @callback
                     */
                     function (callback) {
@@ -1321,7 +1310,7 @@ httpdispatcher.onGet(
                             end = aq2rdb.toNWISDateFormat(field.QueryTo);
                         }
 
-                        var header = aq2rdb.rdbHeader(
+                        var header = aq2rdb.rdbHeaderBody(
                             'NWIS-I DAILY-VALUES', site,
                             timeSeriesDescription.SubLocationIdentifer,
                             {start: start, end: end}
@@ -1668,12 +1657,21 @@ httpdispatcher.onGet(
                 );
                 callback(null, timeSeriesDescription);
             },
+	    /**
+               @function Write RDB header to HTTP response.
+               @callback
+            */
+	    function (callback) {
+		rdbHeader(response);
+		callback(null);
+	    },
             /**
+	       @function Write RDB header body to HTTP response.
                @callback
             */
             function (timeSeriesDescription, callback) {
                 response.write(
-                    aq2rdb.rdbHeader(
+                    aq2rdb.rdbHeaderBody(
                         'NWIS-I UNIT-VALUES', site,
                         timeSeriesDescription.SubLocationIdentifer,
                         {start: aq2rdb.toNWISDatetimeFormat(field.QueryFrom),
