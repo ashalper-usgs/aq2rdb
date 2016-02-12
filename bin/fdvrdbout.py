@@ -280,8 +280,9 @@ def fdvrdbout(
     table.pop()                 # empty
     dataList = table.pop().split('\t')
 
-    # TODO: these are indexed by field position now...bad; investigate
-    # loading the site columns/values into a Python dictionary
+    # TODO: these are indexed by field position now, which is risky;
+    # investigate loading the site columns/values into a Python
+    # dictionary
     sname = dataList[2]         # SITEFILE.site_no
     smgtof = dataList[31]       # SITEFILE.tz_cd
 
@@ -360,14 +361,12 @@ def fdvrdbout(
         # write the header records
         rdb_header(funit)
 
+        funit.write('# //FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=')
         if editable:
-            funit.write(
-                '# //FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=YES\n'
-            )
+            funit.write('YES')
         else:
-            funit.write(
-                '# //FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=NO\n'
-            )
+            funit.write('NO')
+        funit.write('\n')
 
         # write database info
         rdb_dbline(funit)
@@ -435,7 +434,7 @@ def fdvrdbout(
             dtlen = 3
         else:
             dtcolw = '8D'       # "yyyymmdd" 8 chars
-            dtlen=2
+            dtlen = 2
 
         # WRITE (funit,'(20A)') outlin(1:23+dtlen)
         funit.write(dtcolw + '\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n')
