@@ -306,21 +306,35 @@ def fdvrdbout(
             slstfl = 'N'
 
     # get DD
+    # TODO: seems like MIA pmcode value (below) might get bound by
+    # this?  These next three were probably global variables passed in
+    # to legacy Fortran, S_MDDD() subroutine (below). See also
+    # watstore/library/sub_lib/s_mddd.sf.
     ddagny = agyin
     ddstid = station
     ddid = inddid
-    # TODO:
     #s_mddd(nw_read, irc, *998)
+    # TODO: these values are hard-coded right now just to move
+    # debugging along. See if it's still possible to derive
+    # PARM.parm_cd from DD.dd_id.
+    pmcode = '00001'
+    psnam = 'Xsec loc, US from rb'
+    plname = 'Location in cross section, distance from right ' + \
+             'bank looking upstream, feet'
+    scode = stat
+    ssnam = 'MAXIMUM'
+    slname = 'MAXIMUM VALUES'
 
     # if HTTP success
     if 200 <= irc and irc < 300:
         ddlabl = s_lbdd(nw_left) # set label
-        # TODO: find out where PMCODE is defined
         pcode = 'P' + pmcode    # set rounding
 
         # TODO: call parameter code Web service? See
-        # https://internal.cida.usgs.gov/jira/browse/NWED-124
+        # https://internal.cida.usgs.gov/jira/browse/NWED-124, and
+        # watstore/library/wat_lib/pmretr.sf
         rtcode = pmretr(60)
+
         if rnddd != ' ' and rnddd != '0000000000':
             rndary = rnddd
         else:
@@ -351,44 +365,22 @@ def fdvrdbout(
         rdb_header(funit)
 
         if editable:
-            # WRITE (funit, '(20A)')
-            #             '# //FILE TYPE="NWIS-I DAILY-VALUES" ',
-            #             'EDITABLE=YES'
             funit.write(
-                '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
-                'EDITABLE=YES\n'
+                '# //FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=YES\n'
             )
         else:
-            # WRITE (funit, '(20A)')
-            #             '# //FILE TYPE="NWIS-I DAILY-VALUES" ',
-            #             'EDITABLE=NO'
             funit.write(
-                '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
-                'EDITABLE=NO\n'
+                '# //FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=NO\n'
             )
 
         # write database info
         rdb_dbline(funit)
 
         # write site info
-        # WRITE (funit,'(20A)')
-        #          '# //STATION AGENCY="',sagncy,'" NUMBER="',
-        #          sid,'" TIME_ZONE="',
-        #          smgtof(1:nwf_strlen(smgtof)),'" DST_FLAG=',
-        #          slstfl
         funit.write(
-            '# //STATION AGENCY="' + sagncy + '" NUMBER="' +
-            sid + '" TIME_ZONE="' +
-            smgtof + '" DST_FLAG=' +
-            slstfl + '\n'
-        )
-
-        # WRITE (funit,'(20A)')
-        #          '# //STATION NAME="',
-        #          sname(1:nwf_strlen(sname)),'"'
-        funit.write(
-            '# //STATION NAME="' +
-            sname + '"\n'
+            '# //STATION AGENCY="' + sagncy + '" NUMBER="' + sid +
+            '" TIME_ZONE="' + smgtof + '" DST_FLAG=' + slstfl + '\n' +
+            '# //STATION NAME="' + sname + '"\n'
         )
 
         # write Location info
@@ -397,95 +389,49 @@ def fdvrdbout(
         #rdb_write_loc_info(funit, dd_id)
 
         # write DD info
-        # WRITE (funit,'(20A)')
-        #          '# //DD DDID="',ddid,'" RNDARY="',
-        #          rndary,'" DVABORT=',
-        #          cdvabort(1:nwf_strlen(cdvabort))
         funit.write(
-            '# //DD DDID="' + ddid + '" RNDARY="' +
-            rndary + '" DVABORT=' +
-            cdvabort + '\n'
-        )
-
-        # WRITE (funit,'(20A)')
-        #          '# //DD LABEL="',
-        #          ddlabl(1:nwf_strlen(ddlabl)),'"'
-        funit.write(
-            '# //DD LABEL="' +
-            ddlabl + '"\n'
+            '# //DD DDID="' + ddid + '" RNDARY="' + rndary +
+            '" DVABORT=' + cdvabort + '\n' +
+            '# //DD LABEL="' + ddlabl + '"\n'
         )
 
         # write parameter info
-        # WRITE (funit,'(20A)')
-        #        '# //PARAMETER CODE="',pcode(2:6),
-        #        '" SNAME = "',psnam(1:nwf_strlen(psnam)),
-        #        '"'
-        # TODO: need to call PT's PARM Web service here to get
-        # (parm_cd,parm_nm,parm_ds)
         funit.write(
-            '# //PARAMETER CODE="' + pcode[1:5] +
-            '" SNAME = "' + psnam +
-            '"\n'
-        )
-        # WRITE (funit,'(20A)')
-        #        '# //PARAMETER LNAME="',
-        #        plname(1:nwf_strlen(plname)),'"'
-        funit.write(
-            '# //PARAMETER LNAME="' +
-            plname + '"'
+            '# //PARAMETER CODE="' + pcode[1:5] + '" SNAME = "' +
+            psnam + '"\n' +
+            '# //PARAMETER LNAME="' + plname + '"\n'
         )
 
         # write statistic info
-        # WRITE (funit,'(20A)')
-        #        '# //STATISTIC CODE="',scode(2:6),
-        #        '" SNAME="',ssnam(1:nwf_strlen(ssnam)),
-        #        '"'
         funit.write(
-            '# //STATISTIC CODE="' + scode[1:5] +
-            '" SNAME="' + ssnam +
-            '"'
-        )
-
-        # WRITE (funit,'(20A)')
-        #        '# //STATISTIC LNAME="',
-        #        slname(1:nwf_strlen(slname)),'"'
-        funit.write(
-            '# //STATISTIC LNAME="' +
-            slname + '"'
+            '# //STATISTIC CODE="' + scode[1:5] + '" SNAME="' +
+            ssnam + '"\n' +
+            '# //STATISTIC LNAME="' + slname + '"\n'
         )
 
         # write DV type info
         if compdv:
-            # WRITE (funit,'(20A)')
-            #           '# //TYPE NAME="COMPUTED" ',
-            #           'DESC = "COMPUTED DAILY VALUES ONLY"'
             funit.write(
                 '# //TYPE NAME="COMPUTED" ' +
-                'DESC = "COMPUTED DAILY VALUES ONLY"'
+                'DESC = "COMPUTED DAILY VALUES ONLY"\n'
             )
         else:
-            # WRITE (funit,'(20A)')
-            #           '# //TYPE NAME="FINAL" ',
-            #           'DESC = "EDITED AND COMPUTED DAILY VALUES"'
             funit.write(
                 '# //TYPE NAME="FINAL" ' +
-                'DESC = "EDITED AND COMPUTED DAILY VALUES"'
+                'DESC = "EDITED AND COMPUTED DAILY VALUES"\n'
             )
 
         # write data aging information
-        nw_rdb_write_aging(funit, dbnum, dd_id, begdate, enddate)
+        # TODO: need to write this:
+        #nw_rdb_write_aging(funit, dbnum, dd_id, begdate, enddate)
 
         # write editable range
-        # WRITE (funit,'(20A)')
-        #        '# //RANGE START="', begdate,
-        #        '" END="', enddate,'"'
         funit.write(
-            '# //RANGE START="' + begdate +
-            '" END="' + enddate + '"'
+            '# //RANGE START="' + begdate + '" END="' + enddate +
+            '"\n'
         )
 
         # write single site RDB column headings
-        # WRITE (funit,'(20A)') outlin(1:46)
         funit.write('DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n')
 
         if vflag:               # verbose Excel-style format
