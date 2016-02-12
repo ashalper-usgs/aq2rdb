@@ -55,7 +55,6 @@ def rdb_out(
         ctlpath,                # control file path/name
         inmultiple,             # Y/N flag to do multiple ratings
         outpath,                # output file path/name
-        indbnum,                # database number (obsolete)
         intyp,                  # rating type
         inrndsup,               # Y/N flag for rounding-suppressed
         inwyflag,               # Y/N flag for water-year
@@ -99,19 +98,6 @@ def rdb_out(
             nw_write_error(6)
             irc = nw_get_error_number()
             goto_999()              # ex-GOTO
-
-    if indbnum == ' ':
-        rtdbnum = 1
-    else:
-        # TODO: error-handle non-digit indbnum values here
-        rtdbnum = indbnum
-
-    # load DB number into some common blocks
-    dbnum = rtdbnum
-    dbnumb = rtdbnum
-    # TODO: need to check 3GL to find out what this does; looks like
-    # logical database number for ratings?
-    # s_dbget(1, rtdbnum, irc)
 
     # Set control file path
     if len(ctlpath) > 128: goto_998() # ex-GOTO
@@ -200,7 +186,9 @@ def rdb_out(
             s_lgid()            # get user id and number
             s_ndget()           # get node data
             s_ggrp()            # get groups (for security)
-            sen_dbop(rtdbnum)   # open Midas files
+            # TODO: logical database number is obsolete, so this might
+            # no longer be necessary
+            #sen_dbop(rtdbnum)   # open Midas files
             if not multiple:      # open output file
                 if outpath == ' ':
                     funit = sys.stdout
@@ -306,6 +294,8 @@ def rdb_out(
             parm = "{:>5}".format(parm)
             parm = parm.replace(' ', '0')
 
+            # TODO: NWIS logical database number is obsolete, so
+            # "rtdbnum" might be as well
             get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc)
             if irc != 0:
                 cdate, ctime = s_date()
@@ -344,6 +334,8 @@ def rdb_out(
                 if uvtyp == 'R': inguvtyp = "corr"
                 if uvtyp == 'S': inguvtyp = "shift"
                 if uvtyp == 'C': inguvtyp = "da"
+                # TODO: NWIS logical database number is obsolete, so
+                # "rtdbnum" might be as well
                 fuvrdbout(funit, False, rtdbnum, rndsup, cflag,
                           vflag, addkey, rtagny, sid, ddid,  
                           inguvtyp, sensor_type_id, transport_cd,
@@ -369,6 +361,8 @@ def rdb_out(
                     " Invalid measurement file type \"" + mstyp + \
                     "\" on line " + nline + "."
             else:
+                # TODO: NWIS logical database number is obsolete, so
+                # "rtdbnum" might be as well
                 fmsrdbout(funit, rtdbnum, rndsup, addkey, cflag,
                           vflag, rtagny, sid, mstyp, begdtm, 
                           enddtm, irc)
@@ -612,6 +606,8 @@ def rdb_out(
         # for the first date for this station
 
         if hydra == True and datatyp != 'UV':
+            # TODO: NWIS logical database number is obsolete, so
+            # "rtdbnum" might be as well
             if not \
                nw_key_get_zone_dst(rtdbnum, rtagny, sid, tz_cd, local_time_fg):
                 loc_tz_cd = 'UTC' # default to UTC
@@ -765,7 +761,6 @@ def rdb_out(
         # s_mdus(nw_read, irc, *998)
         # if irc == 0:            # save the user info
             # holdbuff = usbuff[0:90]
-            # dbnum = rtdbnum     # load supplied parts of user info
             # if sopt[4] == '1' or sopt[4] == '2':
                 # agency = rtagny
                 # if instnid != ' ': stnid = sid
@@ -785,7 +780,6 @@ def rdb_out(
         # TODO: translate
         # s_strt(sopt, *998)
         sopt = '2' + sopt[1:]
-        rtdbnum = dbnum         # get DB number first
 
         if sopt[4] in ['1', '2']:
             rtagny = agency     # get agency
@@ -795,6 +789,8 @@ def rdb_out(
 
         if ddid == ' ':
             if parm != ' ' and datatyp != 'VT':
+                # TODO: NWIS logical database number is obsolete, so
+                # "rtdbnum" parameter here might be as well
                 nwf_get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc)
                 if irc != 0:
                     write_2120(rtagny, sid, parm)
@@ -884,7 +880,6 @@ def rdb_out(
         #s_lgid()                 # get user id and number
         #s_ndget()                # get node data
         #s_ggrp()                 # get groups (for security)
-        #sen_dbop(rtdbnum)        # open Midas files
 
         # count program (counted by S_STRT above if needed)
         # TODO: translate F77 in condition below
@@ -892,6 +887,8 @@ def rdb_out(
             # continue      # ignore errors, we don't care if not counted
         if parm != ' ' and datatyp != 'VT':
             # get PRIMARY DD that goes with parm if parm supplied
+            # TODO: NWIS logical database number is obsolete, so
+            # "rtdbnum" parameter here might be as well
             nwf_get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc)
         if irc != 0:
             write_2120(rtagny, sid, parm)
@@ -940,6 +937,8 @@ def rdb_out(
             if uvtyp == 'S': inguvtyp = 'shift'
             if uvtyp == 'C': inguvtyp = 'da'
 
+            # TODO: NWIS logical database number is obsolete, so
+            # "rtdbnum" parameter here might be as well
             fuvrdbout(funit, False, rtdbnum, rndsup, cflag,
                       vflag, addkey, rtagny, sid, ddid, inguvtyp, 
                       sensor_type_id, transport_cd, begdtm, 
@@ -953,6 +952,8 @@ def rdb_out(
                                       begdtm, enddtm, loc_tz_cd, 
                                       mstyp)
             else:
+                # TODO: NWIS logical database number is obsolete, so
+                # "rtdbnum" parameter here might be as well
                 irc = fmsrdbout(funit, rtdbnum, rndsup, addkey, cflag,
                                 vflag, rtagny, sid, mstyp, begdate,  
                                 enddate)
@@ -962,6 +963,8 @@ def rdb_out(
             # Get parm and location number from DD, if not specified
             # in arguments
             if inddid[0] != 'P' or inlocnu == ' ':
+                # TODO: NWIS logical database number is obsolete, so
+                # "rtdbnum" parameter here might be as well
                 if not nw_db_key_get_dd_parm_loc(rtdbnum, rtagny, 
                                                  sid, ddid, parm,
                                                  loc_nu):
