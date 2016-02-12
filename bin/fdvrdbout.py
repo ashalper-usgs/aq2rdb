@@ -12,8 +12,7 @@ import urllib, os, sys
 from datetime import datetime
 
 # aq2rdb modules
-import rdb_write_loc_info
-rdb_write_loc_info = rdb_write_loc_info.rdb_write_loc_info
+from rdb_write_loc_info import rdb_write_loc_info
 
 # TODO: this is a stub; see watstore/adaps/adrsrc/dd_lib/s_lbdd.f
 nw_left = 0
@@ -21,14 +20,9 @@ def s_lbdd(justify):
     text = ''
     return text
 
-# TODO: this is a stub; see watstore/library/wat_lib/pmretr.sf
-def pmretr(ifunct):
-    ierr = 0
-    return ierr
-
 # TODO: this is a stub; see
 # watstore/adaps/adrsrc/tsing_lib/nw_db_retr_dvabort.sf
-def db_retr_dvabort( agency_cd, site_no, dd_nu, begdtm, enddtm):
+def db_retr_dvabort(agency_cd, site_no, dd_nu, begdtm, enddtm):
     dvabort = 0
     return dvabort
 
@@ -331,10 +325,11 @@ def fdvrdbout(
         ddlabl = s_lbdd(nw_left) # set label
         pcode = 'P' + pmcode    # set rounding
 
-        # TODO: call parameter code Web service? See
+        # TODO: call parameter code Web service here. See
+        # https://internal.cida.usgs.gov/jira/browse/AQRDB-44,
         # https://internal.cida.usgs.gov/jira/browse/NWED-124, and
         # watstore/library/wat_lib/pmretr.sf
-        rtcode = pmretr(60)
+        #rtcode = pmretr(60)
 
         if rnddd != ' ' and rnddd != '0000000000':
             rndary = rnddd
@@ -387,7 +382,7 @@ def fdvrdbout(
         # write Location info
         # TODO: this is disabled right now, while we research how to
         # get Location info. from AQUARIUS
-        #rdb_write_loc_info(funit, dd_id)
+        #rdb_write_loc_info(funit, ddid)
 
         # write DD info
         funit.write(
@@ -424,7 +419,7 @@ def fdvrdbout(
 
         # write data aging information
         # TODO: need to write this:
-        #nw_rdb_write_aging(funit, dd_id, begdate, enddate)
+        #nw_rdb_write_aging(funit, ddid, begdate, enddate)
 
         # write editable range
         funit.write(
@@ -443,7 +438,7 @@ def fdvrdbout(
             dtlen=2
 
         # WRITE (funit,'(20A)') outlin(1:23+dtlen)
-        funit.write(dtcolw + '\t6S\t16N\t1S\t1S\t32S\t1S\t1S')
+        funit.write(dtcolw + '\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n')
     else:
         if first:
 
@@ -474,7 +469,7 @@ def fdvrdbout(
 
             funit.write(
                 '5S\t15S\t4S\t5S\t5S\t' + dtcolw +
-                '\t6S\t16N\t1S\t1S\t32S\t1S\t1S'
+                '\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n'
             )
             first = False
 
@@ -503,7 +498,7 @@ def fdvrdbout(
 
         # Setup begin date
         if begdate == '00000000':
-            if not nw_db_retr_dv_first_yr(dd_id, stat, dv_water_yr):
+            if not nw_db_retr_dv_first_yr(ddid, stat, dv_water_yr):
                 return nw_get_error_number()
             # WRITE (bnwisdt,2030) dv_water_yr - 1
             #2030       FORMAT (I4.4,'1001')
@@ -519,7 +514,7 @@ def fdvrdbout(
 
         # Setup end date
         if enddate == '99999999':
-            if not nw_db_retr_dv_last_yr(dd_id, stat, dv_water_yr):
+            if not nw_db_retr_dv_last_yr(ddid, stat, dv_water_yr):
                 return nw_get_error_number()
 
             # WRITE (enwisdt,2040) dv_water_yr
@@ -534,23 +529,15 @@ def fdvrdbout(
         else:
             eisodt = enwisdt.isoformat()           
 
-        # Get DV data to a temporary file
-        nwc_tmpnam(temppath)
-        getfunit(1, tunit)
-        # TODO:
-        # OPEN (UNIT=tunit, FILE=temppath, FORM='unformatted', STATUS='unknown')
-        # REWIND (tunit)
-
-        nwc_itoa(dd_id, cdd_id, 12)
         odate = bnwisdt
         if not compdv:
             # TODO: map to AQUARIUS Web service call:
             stmt = "SELECT dvd.dv_dt, dvd.dv_va, dvd.dv_rd, " + \
                    "dvd.dv_rmk_cd, dvd.dv_type_cd, " + \
                    "dvd.data_aging_cd FROM " + \
-                   dv_data_name + " dvd, " + \
-                   dv_name + " dv " + \
-                   "WHERE dv.dd_id = " + cdd_id + " AND " + \
+                   "DV_DATA_01 dvd, " + \
+                   "DV_01 dv " + \
+                   "WHERE dv.dd_id = " + ddid + " AND " + \
                    "dv.stat_cd = '" + stat + "' AND " + \
                    "dvd.dv_id = dv.dv_id AND " +  \
                    "dvd.dv_dt >=  '" + bisodt + "' AND " +  \
@@ -563,7 +550,7 @@ def fdvrdbout(
                    "dvd.data_aging_cd FROM " + \
                    dv_data_name + " dvd, " + \
                    dv_name + " dv " + \
-                   "WHERE dv.dd_id = " + cdd_id + " AND " + \
+                   "WHERE dv.dd_id = " + ddid + " AND " + \
                    "dv.stat_cd = '" + stat + "' AND  " +  \
                    "dvd.dv_id = dv.dv_id AND " + \
                    "dvd.dv_type_cd = 'C' AND " + \
@@ -575,7 +562,7 @@ def fdvrdbout(
                    "dvf.data_aging_cd FROM " + \
                    dv_diff_name + " dvf, " + \
                    dv_name + " dv " + \
-                   "WHERE dv.dd_id = " + cdd_id + " AND " + \
+                   "WHERE dv.dd_id = " + ddid + " AND " + \
                    "dv.stat_cd = '" + stat + "' AND " +  \
                    "dvf.dv_id = dv.dv_id AND " + \
                    "dvf.dv_type_cd = 'C' AND " + \
@@ -584,6 +571,11 @@ def fdvrdbout(
                    " ORDER BY dv_dt"
          
         # EXEC SQL PREPARE pstmt FROM :stmt
+        # TODO: this is just temporary, so we can see what the SQL
+        # looks like while we re-map all of this to AQUARIUS Web
+        # service calls:
+        print stmt
+        exit
         # nw_sql_error_handler('fdvrdbout', 'prepare', 'Retrieving DV data', rowcount, irc)
         if irc == 0:
             # EXEC SQL OPEN cur_stmt
@@ -678,7 +670,7 @@ def fdvrdbout(
         #30
         # READ (tunit,END=40) cdate, cval, dv_rd, dv_rmk_cd, dv_type_cd, data_aging_cd
         if data_aging_cd == ' ':
-            if not nw_db_retr_aging_for_date(dd_id, cdate, data_aging_cd):
+            if not nw_db_retr_aging_for_date(ddid, cdate, data_aging_cd):
                 return rtcode
 
         if data_aging_cd != 'W': rtcode = 1
