@@ -251,19 +251,6 @@ def main():
     lflag = False
     fflag = False
     xflag = False
-    olen = 0
-    tlen = 0
-    alen = 0
-    nlen = 0
-    dplen = 0
-    slen = 0
-    ylen = 0
-    ilen = 0
-    blen = 0
-    elen = 0
-    llen = 0
-    xlen = 0
-    flen = 0
 
     status = 0
 
@@ -300,11 +287,7 @@ def main():
                 )
             elif opt == "-t":
                 tflag = True
-                datatyp = arg
-                # get the length of the data type and convert it to
-                # upper case
-                tlen = len(datatyp) 
-                datatyp = datatyp.upper()
+                datatyp = arg.upper()
             elif opt == "-a":
                 aflag = True
                 agency = arg
@@ -328,11 +311,7 @@ def main():
                 enddat = arg
             elif opt == "-l":
                 lflag = True
-                loc_tz_cd = arg
-                # get the length of the time zone code and convert to
-                # upper case
-                llen = len(loc_tz_cd)
-                loc_tz_cd = loc_tz_cd.upper()
+                loc_tz_cd = arg.upper()
             elif opt == "-x":
                 xflag = True
                 loc_nu = arg
@@ -465,101 +444,53 @@ def main():
         aq2rdb_usage()
     else:
         # get the length of the output file pathname
-        if oflag:
-            olen = len(outpath)
-        else:
-            olen = 1
+        if not oflag:
             outpath = oblank
            
         # set data type to blank if not supplied 
         if not tflag:
-            tlen = 1
             datatyp = tblank
 
-        if aflag:
-            # get the length of the agency code 
-            alen = len(agency)
-        else:
-            alen = 1
+        if not aflag:
             agency = ablank
 
         # get the length of the station number 
-        if nflag:
-            nlen = len(station)
-        else:
-            nlen = 1
+        if not nflag:
             station = nblank
 
         if dflag:
-            # get the length of the DD ID
-            dplen = len(ddid)
-            # put it in the ddpm variable
             ddpm = ddid
         elif pflag:
-            # get the length of the parm code
-            dplen = len(parm) + 1
-            # put it in the ddpm variable prefixed with "P"
             ddpm = "P" + parm
         else:
             # Neither -d or -p was specified: construct a blank string
-            dplen = 1
             ddpm = dblank
 
-        if sflag:
-            # get the length of the stat code (or other secondary
-            # identifier)
-            slen = len(stat)
-        else:
-            slen = 1
+        if not sflag:
             stat = sblank
 
-        if yflag:
-            # get the length of the transport code
-            ylen = len(transport_cd)
-        else:
-            ylen = 1
+        if not yflag:
             transport_cd = yblank
 
-        if iflag:
-            # get the length of the title line
-            ilen = len(titlline)
-        else:
-            ilen = 1
+        if not iflag:
             titlline = iblank
 
-        if bflag:
-            # get the length of the begin date/time
-            blen = len(begdat)
-        else:
-            blen = 1
+        if not bflag:
             begdat = bblank
 
-        if eflag:
-            # get the length of the end date/time 
-            elen = len(enddat)
-        else:
-            elen = 1
+        if not eflag:
             enddat = eblank
 
         # get the length of the time zone code
-        if lflag:
-            llen = len(loc_tz_cd)
-        else:
-            llen = 3
+        if not lflag:
             loc_tz_cd = lblank
 
         # get the length of the location number
-        if xflag:
-            xlen = len(loc_nu)
-        else:
-            xlen = 1
+        if not xflag:
             loc_nu = xblank
 
         # get the length of the control file pathname 
-        if fflag:
-            flen = len(ctlpath)
-        else:
-            flen = 1
+        if not fflag:
             ctlpath = fblank
 
         status = rdb_out(ctlpath, multiple, outpath,
