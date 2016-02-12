@@ -14,7 +14,6 @@ rdb_out = rdb_out.rdb_out
 def aq2rdb_usage():
     sys.stderr.write("\n")
     sys.stderr.write("Usage: aq2rdb -ooutfile\n")
-    sys.stderr.write("                -zdbnum\n")
     sys.stderr.write(
         "                -tdatatype (dv, uv, ms, vt, pk, dc, sv, wl, or qw)\n"
     )
@@ -159,7 +158,6 @@ def aq2rdb_usage():
     sys.stderr.write("       aq2rdb -fctlfile\n")
     sys.stderr.write("                -ooutfile\n")
     sys.stderr.write("                -m (write multiple files)\n")
-    sys.stderr.write("                -zdbnum\n")
     sys.stderr.write("                -l loctzcd (time zone code or \"LOC\")\n")
     sys.stderr.write("                -r (rounding suppression)\n")
     sys.stderr.write("                -c (Output COMPUTED daily values only (DV))\n")
@@ -206,7 +204,6 @@ def aq2rdb_usage():
 
 def main():
     outpath = ' '
-    dbnum = ' '
     datatyp = ' '
     agency = ' '
     station = ' '
@@ -227,7 +224,6 @@ def main():
     multiple = ' '
     hydra = ' '
     oblank = ' '
-    zblank = '1'
     tblank = ' '
     ablank = ' '
     nblank = ' '
@@ -242,7 +238,6 @@ def main():
     xblank = '0'
     fblank = ' '
     oflag = False
-    zflag = False
     tflag = False
     aflag = False
     nflag = False
@@ -257,7 +252,6 @@ def main():
     fflag = False
     xflag = False
     olen = 0
-    zlen = 0
     tlen = 0
     alen = 0
     nlen = 0
@@ -300,8 +294,10 @@ def main():
                 oflag = True
                 outpath = arg
             elif opt == "-z":
-                zflag = True
-                dbnum = arg
+                sys.stderr.write(
+                    os.path.basename(sys.argv[0]) +
+                    ': NWIS logical database number ("-z" option) is obsolete'
+                )
             elif opt == "-t":
                 tflag = True
                 datatyp = arg
@@ -474,12 +470,6 @@ def main():
         else:
             olen = 1
             outpath = oblank
-            # get the length of the database number 
-            if zflag:
-                zlen = len(dbnum)
-            else:
-                zlen = 1
-                dbnum = zblank
            
         # set data type to blank if not supplied 
         if not tflag:
@@ -572,7 +562,7 @@ def main():
             flen = 1
             ctlpath = fblank
 
-        status = rdb_out(ctlpath, multiple, outpath, dbnum,
+        status = rdb_out(ctlpath, multiple, outpath,
                          datatyp, rndsup, wyflag, cflag, vflag, hydra,
                          agency, station, ddpm, loc_nu, stat, transport_cd,
                          begdat, enddat, loc_tz_cd, titlline)
