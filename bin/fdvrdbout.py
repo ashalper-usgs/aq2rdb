@@ -285,11 +285,11 @@ def fdvrdbout(
     table.pop()                 # empty
     dataList = table.pop().split('\t')
 
-    # TODO: these are indexed by field position now...bad
+    # TODO: these are indexed by field position now...bad; investigate
+    # loading the site columns/values into a Python dictionary
     sname = dataList[2]         # SITEFILE.site_no
     smgtof = dataList[31]       # SITEFILE.tz_cd
 
-    # TODO: Likely global variables declared in stretr.sf?
     if smgtof == ' ':
         # from watstore/adaps/adrsrc/inserts/ins.dv_app:
         # 
@@ -312,10 +312,14 @@ def fdvrdbout(
     # TODO:
     #s_mddd(nw_read, irc, *998)
 
-    if irc == 0:
+    # if HTTP success
+    if 200 <= irc and irc < 300:
         ddlabl = s_lbdd(nw_left) # set label
         # TODO: find out where PMCODE is defined
-        #pcode = 'P' + pmcode     # set rounding
+        pcode = 'P' + pmcode    # set rounding
+
+        # TODO: call parameter code Web service? See
+        # https://internal.cida.usgs.gov/jira/browse/NWED-124
         rtcode = pmretr(60)
         if rnddd != ' ' and rnddd != '0000000000':
             rndary = rnddd
