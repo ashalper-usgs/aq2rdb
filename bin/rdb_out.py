@@ -326,17 +326,19 @@ def rdb_out(
                 " Invalid unit-values type \"" + uvtyp + \
                 "\" on line " + nline
             else:
-                if uvtyp == 'M': inguvtyp = "meas"
-                if uvtyp == 'N': inguvtyp = "msar"
-                if uvtyp == 'E': inguvtyp = "edit"
-                if uvtyp == 'R': inguvtyp = "corr"
-                if uvtyp == 'S': inguvtyp = "shift"
-                if uvtyp == 'C': inguvtyp = "da"
+                uv = {
+                    'M': "meas",
+                    'N': "msar",
+                    'E': "edit",
+                    'R': "corr",
+                    'S': "shift",
+                    'C': "da"
+                }
                 # TODO: NWIS logical database number is obsolete, so
                 # "rtdbnum" might be as well
                 fuvrdbout(funit, False, rtdbnum, rndsup, cflag,
                           vflag, addkey, rtagny, sid, ddid,  
-                          inguvtyp, sensor_type_id, transport_cd,
+                          uv[uvtyp], sensor_type_id, transport_cd,
                           begdtm, enddtm, loc_tz_cd, irc)
 
         elif datatyp == "MS":
