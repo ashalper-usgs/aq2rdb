@@ -924,7 +924,6 @@ def rdb_out(
         # get data and output to files
 
         if datatyp == 'DV':
-            # TODO: need to decide what to do about empty ddid here:
             irc = fdvrdbout(funit, "false", rndsup, addkey, vflag,
                             cflag, rtagny, sid, ddid, stat, 
                             begdate, enddate)
