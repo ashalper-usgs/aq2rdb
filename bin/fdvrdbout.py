@@ -9,6 +9,7 @@
 
 # Python modules
 import urllib, os, sys
+from datetime import datetime
 
 # aq2rdb modules
 import rdb_write_loc_info
@@ -423,7 +424,7 @@ def fdvrdbout(
 
         # write data aging information
         # TODO: need to write this:
-        #nw_rdb_write_aging(funit, dbnum, dd_id, begdate, enddate)
+        #nw_rdb_write_aging(funit, dd_id, begdate, enddate)
 
         # write editable range
         funit.write(
@@ -477,24 +478,28 @@ def fdvrdbout(
             )
             first = False
 
-    # If the DD does not exist, no sense in trying to retrieve any data
+    # If the DD does not exist, no sense in trying to retrieve any
+    # data
     if ddlabl != '*** NOT IN DD FILE ***':
 
         # get DV table names
+
+        # TODO: emulate nw_getchk_table_nm() by checking AQUARIUS Web
+        # services to see if it is reachable?
         rtcode = 0
-        if not nw_getchk_table_nm('DV', dbnum, 'R', dv_name, ldv_name):
-            return 4
+        #if not nw_getchk_table_nm('DV', 'R', dv_name, ldv_name):
+        #    return 4
 
-        if not nw_getchk_table_nm(
-                'DV_DATA', dbnum, 'R', dv_data_name, ldv_data_name
-        ):
-            return 4
+        #if not nw_getchk_table_nm(
+        #        'DV_DATA', 'R', dv_data_name, ldv_data_name
+        #):
+        #    return 4
 
-        if compdv:
-            if not nw_getchk_table_nm(
-                    'DV_DIFF', dbnum, 'R', dv_diff_name, ldv_diff_name
-            ):
-               return 4
+        #if compdv:
+            #if not nw_getchk_table_nm(
+            #        'DV_DIFF', 'R', dv_diff_name, ldv_diff_name
+            #):
+            #   return 4
 
         # Setup begin date
         if begdate == '00000000':
@@ -504,11 +509,13 @@ def fdvrdbout(
             #2030       FORMAT (I4.4,'1001')
             bnwisdt = "{:>4}1001".format(dv_water_yr - 1)
 
-        # validate and load begin date into ingres FORMAT
-        if not nw_cdt_ok(bnwisdt):
+        # validate and load begin date
+        try:
+            bnwisdt = datetime.strptime(bnwisdt, '%Y%m%d')
+        except ValueError as e:
             return 3
         else:
-            nw_dt_nwis2ing(bnwisdt,bingdt)
+            bisodt = bnwisdt.isoformat()           
 
         # Setup end date
         if enddate == '99999999':
@@ -519,11 +526,13 @@ def fdvrdbout(
             #2040       FORMAT (I4.4,'0930')
             enwisdt = "{:>4}0930".format(dv_water_yr)
 
-        # validate and load end date into ingres FORMAT
-        if not nw_cdt_ok(enwisdt):
+        # validate and load end date
+        try:
+            enwisdt = datetime.strptime(enwisdt, '%Y%m%d')
+        except ValueError as e:
             return 3
         else:
-            nw_dt_nwis2ing(enwisdt, eingdt)
+            eisodt = enwisdt.isoformat()           
 
         # Get DV data to a temporary file
         nwc_tmpnam(temppath)
@@ -544,8 +553,8 @@ def fdvrdbout(
                    "WHERE dv.dd_id = " + cdd_id + " AND " + \
                    "dv.stat_cd = '" + stat + "' AND " + \
                    "dvd.dv_id = dv.dv_id AND " +  \
-                   "dvd.dv_dt >=  '" + bingdt + "' AND " +  \
-                   "dvd.dv_dt <=  '" + eingdt + "' "  +  \
+                   "dvd.dv_dt >=  '" + bisodt + "' AND " +  \
+                   "dvd.dv_dt <=  '" + eisodt + "' "  +  \
                    "ORDER BY dvd.dv_dt"
         else:
             # TODO: map to AQUARIUS Web service call:
@@ -558,8 +567,8 @@ def fdvrdbout(
                    "dv.stat_cd = '" + stat + "' AND  " +  \
                    "dvd.dv_id = dv.dv_id AND " + \
                    "dvd.dv_type_cd = 'C' AND " + \
-                   "dvd.dv_dt >=  '" + bingdt + "' AND " + \
-                   "dvd.dv_dt <=  '" + eingdt + "' " +  \
+                   "dvd.dv_dt >=  '" + bisodt + "' AND " + \
+                   "dvd.dv_dt <=  '" + eisodt + "' " +  \
                    " UNION " + \
                    "SELECT dvf.dv_dt, dvf.dv_va, dvf.dv_rd, " + \
                    "dvf.dv_rmk_cd, dvf.dv_type_cd, " + \
@@ -570,8 +579,8 @@ def fdvrdbout(
                    "dv.stat_cd = '" + stat + "' AND " +  \
                    "dvf.dv_id = dv.dv_id AND " + \
                    "dvf.dv_type_cd = 'C' AND " + \
-                   "dvf.dv_dt >=  '" + bingdt + "' AND " + \
-                   "dvf.dv_dt <=  '" + eingdt + "' " + \
+                   "dvf.dv_dt >=  '" + bisodt + "' AND " + \
+                   "dvf.dv_dt <=  '" + eisodt + "' " + \
                    " ORDER BY dv_dt"
          
         # EXEC SQL PREPARE pstmt FROM :stmt
@@ -669,8 +678,7 @@ def fdvrdbout(
         #30
         # READ (tunit,END=40) cdate, cval, dv_rd, dv_rmk_cd, dv_type_cd, data_aging_cd
         if data_aging_cd == ' ':
-            if not nw_db_retr_aging_for_date(dbnum, dd_id, cdate,
-                                             data_aging_cd):
+            if not nw_db_retr_aging_for_date(dd_id, cdate, data_aging_cd):
                 return rtcode
 
         if data_aging_cd != 'W': rtcode = 1
