@@ -9,18 +9,16 @@
 #
 
 # Python modules
-import datetime, sys, urllib
-datetime = datetime.datetime
+import sys, urllib
+from datetime import datetime
 
 # aq2rdb modules
-import fdvrdbout, rdb_cfil, rdb_fill_beg_date, rdb_fill_beg_dtm
-import rdb_fill_end_date, rdb_fill_end_dtm
-fdvrdbout = fdvrdbout.fdvrdbout
-rdb_cfil = rdb_cfil.rdb_cfil
-rdb_fill_beg_date = rdb_fill_beg_date.rdb_fill_beg_date
-rdb_fill_beg_dtm = rdb_fill_beg_dtm.rdb_fill_beg_dtm
-rdb_fill_end_date = rdb_fill_end_date.rdb_fill_end_date
-rdb_fill_end_dtm = rdb_fill_end_dtm.rdb_fill_end_dtm
+from fdvrdbout import fdvrdbout
+from rdb_cfil import rdb_cfil
+from rdb_fill_beg_date import rdb_fill_beg_date
+from rdb_fill_beg_dtm import rdb_fill_beg_dtm
+from rdb_fill_end_date import rdb_fill_end_date
+from rdb_fill_end_dtm import rdb_fill_end_dtm
 
 # URL prefix of aq2rdb Web services
 aq2rdb = "http://localhost:8081/aq2rdb"

@@ -7,8 +7,11 @@
 #  Author - Andy Halper <ashalper@usgs.gov>
 #
 
-import sys, getopt, rdb_out
-rdb_out = rdb_out.rdb_out
+# Python modules
+import sys, getopt
+
+# aq2rdb module
+from rdb_out import rdb_out
 
 # Display usage information for the aq2rdb command
 def aq2rdb_usage():
