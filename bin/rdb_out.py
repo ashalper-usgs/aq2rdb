@@ -50,6 +50,8 @@ def write_2120(agny, sid, parm):
 
 # returns the error code from modules called (0 IF all OK)
 def rdb_out(
+        userName,               # AQUARIUS user name
+        password,               # AQUARIUS password
         ctlpath,                # control file path/name
         inmultiple,             # Y/N flag to do multiple ratings
         outpath,                # output file path/name
@@ -312,9 +314,11 @@ def rdb_out(
             # process the request
             if datatyp == "DV":
                 # TODO: need to decide what to do about empty ddid here:
-                irc = fdvrdbout(funit, False, rndsup, addkey, vflag,
-                                cflag, rtagny, sid, ddid, stat, 
-                                begdtm, enddtm)
+                irc = fdvrdbout(
+                    userName, password, funit, False, rndsup, addkey,
+                    vflag, cflag, rtagny, sid, ddid, stat,
+                    begdtm, enddtm
+                )
             elif datatyp == "UV":
                 uvtyp = stat[0]
                 if uvtyp not in ['M', 'N', 'E', 'R', 'S', 'C']:
@@ -924,9 +928,11 @@ def rdb_out(
         # get data and output to files
 
         if datatyp == 'DV':
-            irc = fdvrdbout(funit, "false", rndsup, addkey, vflag,
-                            cflag, rtagny, sid, ddid, stat, 
-                            begdate, enddate)
+            irc = fdvrdbout(
+                userName, password, funit, True, rndsup, addkey,
+                vflag, cflag, rtagny, sid, ddid, stat,
+                begdate, enddate
+            )
         elif datatyp == 'UV':
 
             if uvtyp == 'M': inguvtyp = 'meas'
