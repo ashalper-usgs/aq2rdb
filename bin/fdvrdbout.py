@@ -229,7 +229,9 @@ def fdvrdbout(
         bnwisdt = begdate
 
     if enddate == '99999999':
-        enwisdtm = NW_NWIS_MAXDATE
+        # RH comes from NW_NWIS_MAXDATE value in
+        # watstore/support/ins.dir/adaps_keys.ins
+        enwisdtm = '23821231000000'
         enwisdt = enwisdtm[0:7]
     else:
         enwisdt = enddate
