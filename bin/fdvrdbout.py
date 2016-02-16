@@ -36,6 +36,8 @@ def rdb_dbline(funit):
     return
 
 def fdvrdbout(
+        userName,               # AQUARIUS user name
+        password,               # AQUARIUS password
         funit,                  # file unit writing output into
         editable,               # flag IF DVs are editable
         rndsup,                 # rounding-suppressed flag
@@ -519,6 +521,30 @@ def fdvrdbout(
             eisodt = enwisdt.isoformat()           
 
         odate = bnwisdt
+
+        # call GetAQToken to get AQUARIUS authentication token
+        class Service:
+            # TODO: hard-coded right now; move to constructor
+            hostname = 'localhost'
+            port = '8080'
+        aquariusToken = Service()
+        url = 'http://' + aquariusToken.hostname + ':' + \
+              aquariusToken.port + '/services/GetAQToken?' + \
+              urllib.urlencode(
+                  {'userName': userName,
+                   'password': password,
+                   'uriString': 'http://nwists.usgs.gov/'}
+              )
+        try:
+            response = urllib.urlopen(url)
+        except IOError as e:
+            sys.stderr.write(
+                os.path.basename(sys.argv[0]) +
+                ': IOError from urllib.urlopen(\'' + url + '\'); ' +
+                'the error message was: "' + e.errno + '"\n'
+            )
+            irc = e.errno
+            return
 
         # TODO: call AQUARIUS here?
 
