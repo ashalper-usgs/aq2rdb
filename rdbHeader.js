@@ -10,20 +10,19 @@
  * @see <a href="https://sites.google.com/a/usgs.gov/nwis_integrator/data_retrieval/cli/aqts2rdb">aqts2rdb</a>.
  */
 
-var rfc3339 = require('./rfc3339');
+var moment = require('moment');
 
 function rdbHeader(response) {
     // cruft from Fortran
     var suffix = '                    \n';
 
     response.write(
-	'# //UNITED STATES GEOLOGICAL SURVEY ' +
+        '# //UNITED STATES GEOLOGICAL SURVEY ' +
             '      http://water.usgs.gov/' + suffix +
-	    '# //NATIONAL WATER INFORMATION SYSTEM ' +
+            '# //NATIONAL WATER INFORMATION SYSTEM ' +
             '    http://water.usgs.gov/data.html' + suffix +
-	    '# //DATA ARE PROVISIONAL AND SUBJECT TO ' +
+            '# //DATA ARE PROVISIONAL AND SUBJECT TO ' +
             'CHANGE UNTIL PUBLISHED BY USGS' + suffix +
-	    '# //RETRIEVED: ' +
-	    rfc3339.toBasicFormat((new Date()).toISOString())
+            '# //RETRIEVED: ' + moment().format('YYYY-MM-DD HH:mm:ss')
     );
 }
