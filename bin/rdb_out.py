@@ -60,7 +60,6 @@ def rdb_out(
         inwyflag,               # Y/N flag for water-year
         incflag,        # Y/N flag for Computed DVs/Combined Datetimes (UVs)
         invflag,                # Y/N flag for verbose dates and times
-        inhydra,                # Y/N flag if handling data for Hydra
         inagny,                 # agency code
         instnid,                # station number
         inddid,                 # DD number
@@ -109,7 +108,6 @@ def rdb_out(
     cflag    = ((incflag == 'y')  or (incflag == 'Y'))
     vflag    = ((invflag == 'y')  or (invflag == 'Y'))
     multiple = ((inmultiple == 'y') or (inmultiple == 'Y'))
-    hydra    = ((inhydra == 'y')  or (inhydra == 'Y'))
     addkey = (ctlfile != ' ' and not multiple)
 
     # check for a control file
@@ -141,25 +139,14 @@ def rdb_out(
 
             goto_999()
 
-        #  check data type
-        if hydra:
-            if datatyp not in ["DV", "UV", "MS", "WL", "QW"]:
-                cdate, ctime = s_date()
-                # WRITE (0,2020) cdate, ctime, datatyp, nline
-                #2020           FORMAT (A8, 1X, A6, 1X, 'Invalid HYDRA data type "', A,
-                #                 '" on line ', I5, '.')
-                print cdate + " " + ctime + " Invalid Hydra data type \"" + \
-                    datatyp + "\" on line " + nline
-                goto_9()
-        else:
-            if datatyp not in ["DV", "UV", "DC", "SV", "MS", "PK"]:
-                cdate, ctime = s_date()
-                # WRITE (0,2021) cdate, ctime, datatyp, nline
-                #2021         FORMAT (A8, 1X, A6, 1X, 'Invalid data type "', A,
-                #                 '" on line ', I5, '.')
-                print cdate + " " + ctime + " Invalid data type \"" + \
-                    datatyp + "\" on line " + nline
-                goto_9()
+        if datatyp not in ["DV", "UV", "DC", "SV", "MS", "PK"]:
+            cdate, ctime = s_date()
+            # WRITE (0,2021) cdate, ctime, datatyp, nline
+            #2021         FORMAT (A8, 1X, A6, 1X, 'Invalid data type "', A,
+            #                 '" on line ', I5, '.')
+            print cdate + " " + ctime + " Invalid data type \"" + \
+                datatyp + "\" on line " + nline
+            goto_9()
 
         # check for completeness
         if rtagny == ' ' or sid == ' ' or \
@@ -353,7 +340,7 @@ def rdb_out(
             # control file
 
             # Pseudo-UV Types 1 through 3 are only good from the
-            # command line or in Hydra mode
+            # command line
 
             if mstyp not in ['C', 'M', 'D', 'G']:
                 cdate, ctime = s_date()
@@ -416,82 +403,65 @@ def rdb_out(
         # check data type
         datatyp = datatyp.upper()
 
-        if hydra:
-            needstrt = True
-            sopt[7] = '1'
-            sopt[11] = '2'
-            if datatyp not in ["DV", "UV", "MS", "WL", "QW"]:
-                datatyp = 'UV'
-
-                # convert dates to 8 characters
-                begdate = rdb_fill_beg_date(wyflag, begdat)
-                enddate = rdb_fill_end_date(wyflag, enddat)
-
-                # convert date/times to 14 characters
-                begdtm = rdb_fill_beg_dtm(wyflag, begdat)
-                enddtm = rdb_fill_end_dtm(wyflag, enddat)
+        if cflag:
+            # Data type VT is pseudo-UV, no combining of date time
+            # possible
+            if datatyp not in \
+               ["DV", "UV", "DC", "SV", "MS", "PK", "WL", "QW"]:
+                #11
+                datatyp = ' '
+                print "Valid data types are:"
+                print "   DV - Daily Values"
+                print "   UV - Unit Values"
+                print "   MS - Discharge Measurements"
+                print "   PK - Peak Flows"
+                print "   DC - Data Corrections"
+                print "   SV - Variable Shift"
+                print "   WL - Water Levels from GWSI"
+                print "   QW - QW Data From QWDATA"
+                # TODO: 
+                # s_qryc('Enter desired data type: ',' ',0,0,2,2,
+                #                      datatyp,*11)
+                datatyp = datatyp.upper()
+                if datatyp not in \
+                   ["DV", "UV", "DC", "SV", "MS", "PK", "WL", "QW"]:
+                    # TODO:
+                    s_bada(
+                        "Please answer " +
+                        "\"DV\", \"UV\", \"MS\", \"PK\", \"DC\"," + 
+                        " \"SV\", \"WL\" or \"QW\".", *11
+                    ) 
 
         else:
 
-            if cflag:
-                # Data type VT is pseudo-UV, no combining of date time
-                # possible
-                if datatyp not in \
-                   ["DV", "UV", "DC", "SV", "MS", "PK", "WL", "QW"]:
-                    #11
-                    datatyp = ' '
+            if datatyp not in \
+               ["DV", "UV", "DC", "SV", "MS", "VT", "PK", "WL", "QW"]:
+                #12
+                while True:
                     print "Valid data types are:"
                     print "   DV - Daily Values"
                     print "   UV - Unit Values"
                     print "   MS - Discharge Measurements"
+                    print "   VT - Site Visit Readings"
                     print "   PK - Peak Flows"
                     print "   DC - Data Corrections"
                     print "   SV - Variable Shift"
                     print "   WL - Water Levels from GWSI"
                     print "   QW - QW Data From QWDATA"
-                    # TODO: 
+                    # TODO:
                     # s_qryc('Enter desired data type: ',' ',0,0,2,2,
-                    #                      datatyp,*11)
+                    #     datatyp,*12)
                     datatyp = datatyp.upper()
                     if datatyp not in \
-                       ["DV", "UV", "DC", "SV", "MS", "PK", "WL", "QW"]:
+                       ["DV", "UV", "DC", "SV", "MS", "VT", "PK", "WL", "QW"]:
                         # TODO:
                         s_bada(
                             "Please answer " +
-                            "\"DV\", \"UV\", \"MS\", \"PK\", \"DC\"," + 
-                            " \"SV\", \"WL\" or \"QW\".", *11
-                        ) 
-
-            else:
-
-                if datatyp not in \
-                   ["DV", "UV", "DC", "SV", "MS", "VT", "PK", "WL", "QW"]:
-                    #12
-                    while True:
-                        print "Valid data types are:"
-                        print "   DV - Daily Values"
-                        print "   UV - Unit Values"
-                        print "   MS - Discharge Measurements"
-                        print "   VT - Site Visit Readings"
-                        print "   PK - Peak Flows"
-                        print "   DC - Data Corrections"
-                        print "   SV - Variable Shift"
-                        print "   WL - Water Levels from GWSI"
-                        print "   QW - QW Data From QWDATA"
-                        # TODO:
-                        # s_qryc('Enter desired data type: ',' ',0,0,2,2,
-                        #     datatyp,*12)
-                        datatyp = datatyp.upper()
-                        if datatyp not in \
-                        ["DV", "UV", "DC", "SV", "MS", "VT", "PK", "WL", "QW"]:
-                            # TODO:
-                            s_bada(
-                                "Please answer " +
-                                "\"DV\", \"UV\", \"MS\", \"VT\", \"PK\", \"DC\"," + 
-                                " \"SV\", \"WL\" or \"QW\"."
-                            )
-                        else:
-                            break
+                            "\"DV\", \"UV\", \"MS\", \"VT\", \"PK\", \"DC\"," + 
+                            " \"SV\", \"WL\" or \"QW\"."
+                        )
+                    else:
+                        break
                         
         # convert agency to 5 characters - default to USGS
         if inagny == ' ':
@@ -575,50 +545,34 @@ def rdb_out(
 
     if datatyp == 'UV':
 
-        if not hydra:
-            # get UV type
-            uvtyp = instat[0].upper()            
+        # get UV type
+        uvtyp = instat[0].upper()            
+        if uvtyp not in ['M', 'N', 'E', 'R', 'S', 'C']:
+            # TODO: prompt for UV type here; not finished yet
+            uvtyp_prompted = True
+            #50
+            uvtyp = ' '
+            s_qryc(
+                "Unit values type (M, N, E, R, S, or C): ",
+                ' ', 0, 0, 1, 1, uvtyp, *50
+            )
+            uvtyp = uvtyp.upper()
             if uvtyp not in ['M', 'N', 'E', 'R', 'S', 'C']:
-                # TODO: prompt for UV type here; not finished yet
-                uvtyp_prompted = True
-                #50
-                uvtyp = ' '
-                s_qryc(
-                    "Unit values type (M, N, E, R, S, or C): ",
-                    ' ', 0, 0, 1, 1, uvtyp, *50
+                s_bada(
+                    "Please answer \"M\", \"N\", \"E\", \"R\", \"S\", or \"C\".",
+                    *50
                 )
-                uvtyp = uvtyp.upper()
-                if uvtyp not in ['M', 'N', 'E', 'R', 'S', 'C']:
-                    s_bada(
-                        "Please answer \"M\", \"N\", \"E\", \"R\", \"S\", or \"C\".",
-                         *50
-                    )
 
-            # convert date/times to 14 characters
-            if begdat == ' ' or enddat == ' ':
-                needstrt = True
-                if wyflag:
-                    sopt[8] = '4'
-                else:
-                    sopt[9] = '3'
+        # convert date/times to 14 characters
+        if begdat == ' ' or enddat == ' ':
+            needstrt = True
+            if wyflag:
+                sopt[8] = '4'
             else:
-                begdtm = rdb_fill_beg_dtm(wyflag, begdat)
-                enddtm = rdb_fill_end_dtm(wyflag, enddat)
-
-
-        # If Hydra mode for UV data, set time zone code that in effect
-        # for the first date for this station
-
-        if hydra == True and datatyp != 'UV':
-            # TODO: NWIS logical database number is obsolete, so
-            # "rtdbnum" might be as well
-            if not \
-               nw_key_get_zone_dst(rtdbnum, rtagny, sid, tz_cd, local_time_fg):
-                loc_tz_cd = 'UTC' # default to UTC
-            else:
-                if not \
-                   nw_get_dflt_tzcd(tz_cd, local_time_fg, begdtm[0:7], loc_tz_cd):
-                    loc_tz_cd = 'UTC' # default to UTC
+                sopt[9] = '3'
+        else:
+            begdtm = rdb_fill_beg_dtm(wyflag, begdat)
+            enddtm = rdb_fill_end_dtm(wyflag, enddat)
 
         if datatyp == 'MS':     # get MS type
             mstyp = instat[0].upper()
@@ -951,8 +905,7 @@ def rdb_out(
 
         elif datatyp == 'MS':
 
-            if hydra or (mstyp >= '1' and mstyp <= '3'):
-                if hydra: mstyp = ' '
+            if mstyp >= '1' and mstyp <= '3':
                 irc = fmsrdbout_hydra(funit, rndsup, rtagny, sid,
                                       begdtm, enddtm, loc_tz_cd, 
                                       mstyp)
@@ -1000,15 +953,10 @@ def rdb_out(
 
         elif datatyp == 'WL':
 
-            if hydra: wltyp = ' '
             irc = fwlrdbout_hydra(funit, rndsup, rtagny, sid, begdtm,
                                   enddtm, loc_tz_cd, wltyp)
 
         elif datatyp == 'QW':
-
-            if hydra:
-                qwparm = ' '
-                qwmeth = ' '
 
             irc = fqwrdbout_hydra(funit, rndsup, rtagny, sid, begdtm,
                                   enddtm, loc_tz_cd, qwparm, qwmeth)
