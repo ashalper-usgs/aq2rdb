@@ -25,6 +25,7 @@ var moment = require('moment-timezone');
 
 // aq2rdb modules
 var rdbHeader = require('./rdbHeader');
+var fdvrdbout = require('./fdvrdbout');
 
 /**
    @description The Web service name is the script name without the
