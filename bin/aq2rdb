@@ -8,7 +8,8 @@
 #
 
 # Python modules
-import sys, getopt
+import sys
+from getopt import getopt
 
 # aq2rdb module
 from rdb_out import rdb_out
@@ -17,6 +18,12 @@ from rdb_out import rdb_out
 def aq2rdb_usage():
     sys.stderr.write("\n")
     sys.stderr.write("Usage: aq2rdb -ooutfile\n")
+    sys.stderr.write(
+        "                --userName=username AQUARIUS user name\n"
+    )
+    sys.stderr.write(
+        "                --password=password AQUARIUS password\n"
+    )
     sys.stderr.write(
         "                -tdatatype (dv, uv, ms, vt, pk, dc, sv, wl, or qw)\n"
     )
@@ -272,8 +279,9 @@ def main():
         error = False
 
         try:
-            opts, args = getopt.getopt(
-                sys.argv[1:], "o:z:t:a:n:d:p:s:b:e:l:f:y:i:x:rwcvmh?"
+            opts, args = getopt(
+                sys.argv[1:], "o:z:t:a:n:d:p:s:b:e:l:f:y:i:x:rwcvmh?",
+                ["userName=", "password="]
             )
         except getopt.GetoptError as err:
             # TODO: transplant error-handling code here
@@ -283,6 +291,10 @@ def main():
             if opt == "-o":
                 oflag = True
                 outpath = arg
+            elif opt == "--userName":
+                userName = arg
+            elif opt == "--password":
+                password = arg
             elif opt == "-z":
                 sys.stderr.write(
                     os.path.basename(sys.argv[0]) +
@@ -496,10 +508,12 @@ def main():
         if not fflag:
             ctlpath = fblank
 
-        status = rdb_out(ctlpath, multiple, outpath,
-                         datatyp, rndsup, wyflag, cflag, vflag, hydra,
-                         agency, station, ddpm, loc_nu, stat, transport_cd,
-                         begdat, enddat, loc_tz_cd, titlline)
+        status = rdb_out(
+            userName, password, ctlpath, multiple, outpath, datatyp,
+            rndsup, wyflag, cflag, vflag, hydra, agency,
+            station, ddpm, loc_nu, stat, transport_cd,
+            begdat, enddat, loc_tz_cd, titlline
+        )
         nw_write_error(stderr)
  
         # if Hydra mode, write the temp filename to the named pipe
