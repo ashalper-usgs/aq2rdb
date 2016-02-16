@@ -12,6 +12,7 @@ import urllib, os, sys
 from datetime import datetime
 
 # aq2rdb modules
+from rdb_header import rdb_header
 from rdb_write_loc_info import rdb_write_loc_info
 
 # TODO: this is a stub; see watstore/adaps/adrsrc/dd_lib/s_lbdd.f
@@ -29,10 +30,6 @@ def db_retr_dvabort(agency_cd, site_no, dd_nu, begdtm, enddtm):
 # TODO: stub
 def s_statck(stat):
     return 0
-
-# TODO: stub; see watstore/adaps/adrsrc/rdb_lib/nw_rdb_header.f
-def rdb_header(funit):
-    return
 
 # TODO: stub; see watstore/adaps/adrsrc/rdb_lib/nw_rdb_dbline.f
 def rdb_dbline(funit):
@@ -208,29 +205,22 @@ def fdvrdbout(
 
     # SAVE ddlabl, rndary, cdvabort, first
 
-    #  *********************************************************************
-    #   INITIALIZATIONS
-    #  *********************************************************************
-
-    # DATA ddlabl    / ' ' /
-    # DATA rndary    / ' ' /
-    # DATA cdvabort  / ' ' /
-    # DATA first     / .TRUE. /
-    # DATA nullval   / '**NULL**' /
-    # DATA nullrd    / ' ' /
-    # DATA nullrmk   / ' ' /
-    # DATA nulltype  / ' ' /
-    # DATA nullaging / ' ' /
-
-    # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-    #     initialize
+    ddlabl = ' '
+    rndary = ' '
+    cdvabort = ' '
+    first = True
+    nullval = '**NULL**'
+    nullrd = ' '
+    nullrmk = ' '
+    nulltype = ' '
+    nullaging = ' '
 
     wrotedata = False
 
     if begdate == '00000000':
-        # TODO: look up RH constant value in 3GL
-        bnwisdtm = NW_NWIS_MINDATE
+        # RH comes from NW_NWIS_MINDATE value in
+        # watstore/support/ins.dir/adaps_keys.ins
+        bnwisdtm = '15820101235959'
         bnwisdt = bnwisdtm[0:7]
     else:
         bnwisdtm = begdate + '000000'
@@ -529,6 +519,9 @@ def fdvrdbout(
             eisodt = enwisdt.isoformat()           
 
         odate = bnwisdt
+
+        # TODO: call AQUARIUS here?
+
         if not compdv:
             # TODO: map to AQUARIUS Web service call:
             stmt = "SELECT dvd.dv_dt, dvd.dv_va, dvd.dv_rd, " + \
