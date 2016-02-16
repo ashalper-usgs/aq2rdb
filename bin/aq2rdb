@@ -232,7 +232,6 @@ def main():
     cflag = ' '
     vflag = ' '
     multiple = ' '
-    hydra = ' '
     oblank = ' '
     tblank = ' '
     ablank = ' '
@@ -269,18 +268,17 @@ def main():
         status = 119
     else:
         # get command line arguments 
-        rndsup = 'N'
-        wyflag = 'N'
-        cflag = 'N'
-        vflag = 'N'
-        multiple = 'N'
-        hydra = 'N'
+        rndsup = False
+        wyflag = False
+        cflag = False
+        vflag = False
+        multiple = False
 
         error = False
 
         try:
             opts, args = getopt(
-                sys.argv[1:], "o:z:t:a:n:d:p:s:b:e:l:f:y:i:x:rwcvmh?",
+                sys.argv[1:], "o:z:t:a:n:d:p:s:b:e:l:f:y:i:x:rwcvm?",
                 ["userName=", "password="]
             )
         except getopt.GetoptError as err:
@@ -331,17 +329,15 @@ def main():
                 xflag = True
                 loc_nu = arg
             elif opt == "-r":
-                rndsup = 'Y'
+                rndsup = True
             elif opt == "-w":
-                wyflag = 'Y'
+                wyflag = True
             elif opt == "-c":
-                cflag = 'Y'
+                cflag = True
             elif opt == "-v":
-                vflag = 'Y'
+                vflag = True
             elif opt == "-m":
-                multiple = 'Y'
-            elif opt == "-h":
-                hydra = 'Y'
+                multiple = True
             elif opt == "-f":
                 fflag = True
                 ctlpath = arg
@@ -354,68 +350,12 @@ def main():
             elif opt == "-?":
                 error = True
 
-        if not error:
-            # check for argument completion
-            # First, processing if -h is specified 
-
-            if hydra == 'Y':
-                # date and time must be separate
-                cflag = 'N'
-                # only -z, -a, -o, -b, and -e can be specified if -h
-                # is specified
-                if dflag or fflag or iflag or nflag or \
-                   pflag or sflag or tflag or yflag or xflag or \
-                   wyflag == 'Y' or \
-                   cflag == 'Y' or multiple == 'Y':
-                    sys.stderr.write("\n")
-                    sys.stderr.write(
-                        "If -h is specified, only -a, -b, -e, -l, " +
-                        "-r, -o, and -z can also be specified"
-                    )
-                    status = 120
-                elif not bflag or not eflag:
-                    # both -b and -e must be specified 
-                    # date/time range comes from Hydra
-                    sys.stderr.write("\n")
-                    sys.stderr.write(
-                        "If -h is specified, both -b and -e " +
-                        "must be specified."
-                    )
-                    status = 119
-                elif not oflag:
-                    # -o must be specified if -h is specified
-                    sys.stderr.write("\n")
-                    sys.stderr.write(
-                        "If -h is specified, -o must also be specified."
-                    )
-                    status = 121
-                else:
-                    # both -h and -o were specified: outpath is
-                    # actually the pathname of a named pipe, save it's
-                    # name
-                    pipepath = outpath
-
-                    # make sure the named pipe exists
-                    if access(pipepath, F_OK):
-                        # does not exist - Hydra must have crashed
-                        # delete the temp file and exit
-                        sys.stderr.write("\n")
-                        sys.stderr.write(
-                            "Hydra mode - Named pipe does not exist."
-                        )
-                        status = 125
-                    else:
-                        # Named pipe exists, create a temporary filename
-                        # in outpath
-                        tmpnam(temppath)
-                        outpath = temppath
-
         # if a control file is supplied, all arguments are ignored except
         # -z (database number), -r (suppress rounding), -l (local time zone),
         # -m (multiple file output), and -o (output file).  If -o is not 
         # supplied, -m cannot also be supplied - (can't do multiple files if 
         # everything is going to stdout - one file by definition)
-        if fflag and multiple == 'Y' and not oflag:
+        if fflag and multiple and not oflag:
             sys.stderr.write("\n")
             sys.stderr.write(
                 "If -f and -m is specified, -o must also " +
@@ -510,25 +450,11 @@ def main():
 
         status = rdb_out(
             userName, password, ctlpath, multiple, outpath, datatyp,
-            rndsup, wyflag, cflag, vflag, hydra, agency,
-            station, ddpm, loc_nu, stat, transport_cd,
-            begdat, enddat, loc_tz_cd, titlline
+            rndsup, wyflag, cflag, vflag, agency, station, ddpm,
+            loc_nu, stat, transport_cd, begdat, enddat, loc_tz_cd,
+            titlline
         )
         nw_write_error(stderr)
- 
-        # if Hydra mode, write the temp filename to the named pipe
-        if hydra == 'Y':
-            # Open the pipe for writing
-            pipe = fopen(pipepath, "w")
-            if pipe == NULL:
-                # Unable to open pipe, delete the temp file and quit
-                unlink (outpath)
-                sys.stderr.write("\n")
-                sys.stderr.write("Cannot open named pipe for writing.\n")
-                status = 126
-                # write the temp file pathname to the pipe and close it
-                # fprintf (pipe,"reference %s\n",outpath)
-                # fclose (pipe)
 
     return status
 
