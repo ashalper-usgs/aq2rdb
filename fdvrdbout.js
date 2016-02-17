@@ -54,9 +54,6 @@ function fdvrdbout(
     var nulltype = ' ', nullaging = ' ';
     var smgtof, rtcode;
 
-    var exdate;               // verbose Excel style date "mm/dd/yyyy"
-    var dtcolw;               // holds DATE column width '19D' etc.
-
     var wrotedata = false, first = true;
 
     async.waterfall([
@@ -294,6 +291,8 @@ function fdvrdbout(
                         callback(null);
                     },
                     function (callback) {
+                        var dtcolw;
+                        
                         // if verbose, Excel-style format
                         if (vflag) {
                             dtcolw = '10D';     // "mm/dd/yyyy" 10 chars
@@ -311,41 +310,49 @@ function fdvrdbout(
                 ]); // async.waterfall
             }
             else if (first) {
+                async.waterfall([
+                    function (callback) {
                 /**
                    @todo write "with keys" rdb column headings
                    WRITE (funit,'(20A)')
                    *           '# //FILE TYPE="NWIS-I DAILY-VALUES" ',
                    *           'EDITABLE=NO'
                    */
+                        callback(null);
+                    },
+                    function (callback) {
+                        // write database info
+                        nw_rdb_dbline(funit);
+                        callback(null);
+                    },
+                    function (callback) {
+                        funit.write(
+                           'AGENCY\tSTATION\tDD\tPARAMETER\tSTATISTIC\tDATE\t' +
+                           'TIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n'
+                        );
+                        callback(null);
+                    },
+                    function (callback) {
+                        var dtcolw;
+                        
+                        // if verbose, Excel-style format
+                        if (vflag) {
+                            dtcolw = '10D';  // "mm/dd/yyyy" 10 chars
+                        }
+                        else {
+                            dtcolw = '8D';   // "yyyymmdd" 8 chars
+                        }
 
-                // write database info
-                nw_rdb_dbline(funit);
-
-                outlin =
-                    'AGENCY\tSTATION\tDD\tPARAMETER\tSTATISTIC\tDATE\t' +
-                    'TIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n'
-                /**
-                   @todo
-                   WRITE (funit,'(20A)') outlin(1:84)
-                */
-
-                if (vflag) {        // verbose Excel-style format
-                    dtcolw = '10D';  // "mm/dd/yyyy" 10 chars
-                    dtlen = 3;
-                }
-                else {
-                    dtcolw = '8D';   // "yyyymmdd" 8 chars
-                    dtlen = 2;
-                }
-                outlin = '5S\t15S\t4S\t5S\t5S\t' + dtcolw +
-                    '\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n';
-                /**
-                   @todo
-                   WRITE (funit,'(20A)') outlin(1:39+dtlen)
-                 */
-                first = false;
+                        funit.write(
+                            '5S\t15S\t4S\t5S\t5S\t' + dtcolw +
+                                '\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n'
+                        );
+                        
+                        first = false;
+                        callback(null);
+                    }
+                ]);
             }
-
             callback(null);
         },
         function (callback) {
@@ -565,6 +572,8 @@ function fdvrdbout(
                 }
                 if (data_aging_cd !== 'W')
                     rtcode = 1;
+
+                var exdate;   // verbose Excel style date "mm/dd/yyyy"
 
                 if (vflag) {           // build "mm/dd/yyyy"
                     exdate = cdate.substr(4, 5) + '/' + cdate.substr(6, 7) +
