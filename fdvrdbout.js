@@ -109,12 +109,11 @@ function fdvrdbout(
                 var siteField = row[row.length - 2].split('\t');
 
                 // the necessary site fields
-                site.agencyCode = siteField[columnName.indexOf('agency_cd')];
-                site.number = siteField[columnName.indexOf('site_no')];
-                site.name = siteField[columnName.indexOf('station_nm')];
+                sagncy = siteField[columnName.indexOf('agency_cd')];
+                sid = siteField[columnName.indexOf('site_no')];
+                sname = siteField[columnName.indexOf('station_nm')];
                 site.tzCode = siteField[columnName.indexOf('tz_cd')];
-                site.localTimeFlag =
-                    siteField[columnName.indexOf('local_time_fg')];
+                slstfl = siteField[columnName.indexOf('local_time_fg')];
             }
             catch (error) {
                 /**
@@ -126,7 +125,7 @@ function fdvrdbout(
                     sagncy = agyin;
                     sid = station;
                     sname = '*** NOT IN SITE FILE ***';
-                    smgtof = undefined;
+                    smgtof = ' ';
                     slstfl = ' ';
                 }
                  */
@@ -140,14 +139,6 @@ function fdvrdbout(
                 smgtof = sprintf("%3d", gmtof); // WRITE (smgtof,'(I3)') gmtof
             }
             smgtof = sprintf("%-3d", smgtof);
-            
-            if (slstfl === ' ') {
-                if (lstfg === 0)
-                    slstfl = true;
-                else
-                    slstfl = false;
-            }
-
             callback(null);
         },
         function (callback) {
@@ -163,7 +154,10 @@ function fdvrdbout(
         },
         function (callback) {
             if (irc === 0) {
-                s_lbdd(nw_left, ddlabl); // set label
+                /**
+                   @todo
+                   s_lbdd(nw_left, ddlabl); // set label
+                 */
                 pcode = 'P';             // pmcode            // set rounding
                 /**
                    @todo Load data descriptor?
@@ -213,9 +207,8 @@ function fdvrdbout(
                @todo get stat information
                irc = s_statck(stat);
             */
-            if (irc !== 0) {
+            if (irc !== 0)
                 ssnam = '*** INVALID STAT ***';
-            }
 
             callback(null);
         },
