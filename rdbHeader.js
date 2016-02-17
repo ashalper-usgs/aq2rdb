@@ -13,16 +13,13 @@
 var moment = require('moment');
 
 function rdbHeader(response) {
-    // cruft from Fortran
-    var suffix = '                    \n';
-
     response.write(
         '# //UNITED STATES GEOLOGICAL SURVEY ' +
-            '      http://water.usgs.gov/' + suffix +
+            '      http://water.usgs.gov/\n' +
             '# //NATIONAL WATER INFORMATION SYSTEM ' +
-            '    http://water.usgs.gov/data.html' + suffix +
+            '    http://water.usgs.gov/data.html\n' +
             '# //DATA ARE PROVISIONAL AND SUBJECT TO ' +
-            'CHANGE UNTIL PUBLISHED BY USGS' + suffix +
-            '# //RETRIEVED: ' + moment().format('YYYY-MM-DD HH:mm:ss')
+            'CHANGE UNTIL PUBLISHED BY USGS\n' +
+            '# //RETRIEVED: ' + moment().format('YYYY-MM-DD HH:mm:ss') + '\n'
     );
 }
