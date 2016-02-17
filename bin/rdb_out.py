@@ -53,13 +53,13 @@ def rdb_out(
         userName,               # AQUARIUS user name
         password,               # AQUARIUS password
         ctlpath,                # control file path/name
-        inmultiple,             # Y/N flag to do multiple ratings
+        multiple,               # Boolean flag to do multiple ratings
         outpath,                # output file path/name
         intyp,                  # rating type
-        inrndsup,               # Y/N flag for rounding-suppressed
-        inwyflag,               # Y/N flag for water-year
-        incflag,        # Y/N flag for Computed DVs/Combined Datetimes (UVs)
-        invflag,                # Y/N flag for verbose dates and times
+        rndsup,                 # Boolean flag for rounding-suppressed
+        wyflag,                 # Boolean flag for water-year
+        cflag, # Boolean flag for Computed DVs/Combined Datetimes (UVs)
+        vflag, # Boolean flag for verbose dates and times
         inagny,                 # agency code
         instnid,                # station number
         inddid,                 # DD number
@@ -102,13 +102,7 @@ def rdb_out(
     if len(ctlpath) > 128: goto_998() # ex-GOTO
     ctlfile = ctlpath
 
-    # set logical flags
-    rndsup   = ((inrndsup == 'y') or (inrndsup == 'Y'))
-    wyflag   = ((inwyflag == 'y') or (inwyflag == 'Y'))
-    cflag    = ((incflag == 'y')  or (incflag == 'Y'))
-    vflag    = ((invflag == 'y')  or (invflag == 'Y'))
-    multiple = ((inmultiple == 'y') or (inmultiple == 'Y'))
-    addkey = (ctlfile != ' ' and not multiple)
+    addkey = (ctlfile != ' ' and not multiple) # set logical flag
 
     # check for a control file
 
