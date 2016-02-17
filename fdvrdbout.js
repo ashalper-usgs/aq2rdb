@@ -167,12 +167,10 @@ function fdvrdbout(
                    @todo call parameter Web service here
                    rtcode = pmretr(60);
                  */
-                if (rnddd !== ' ' && rnddd !== '0000000000') {
+                if (rnddd !== ' ' && rnddd !== '0000000000')
                     rndary = rnddd;
-                }
-                else {
+                else
                     rndary = rndparm;
-                }
             }
             else {
                 ddagny = agyin;
@@ -406,12 +404,10 @@ function fdvrdbout(
                 }
 
                 // validate and load begin date into ingres FORMAT
-                if (! nw_cdt_ok(bnwisdt)) {
+                if (! nw_cdt_ok(bnwisdt))
                     return 3;
-                }
-                else {
+                else
                     nw_dt_nwis2ing(bnwisdt, bingdt)
-                }
 
                 // Setup end date
                 if (enddate === '99999999') {
@@ -426,12 +422,10 @@ function fdvrdbout(
                 }
 
                 // validate and load end date into ingres FORMAT
-                if (! nw_cdt_ok(enwisdt)) {
+                if (! nw_cdt_ok(enwisdt))
                     return 3;
-                }
-                else {
+                else
                     nw_dt_nwis2ing(enwisdt, eingdt);
-                }
 
                 odate = bnwisdt;
                 if (! compdv) {
@@ -515,7 +509,6 @@ function fdvrdbout(
                 if (dv_va_null === -1) dv_va = NW_NR4;
                 if (dv_rd_null === -1) dv_rd = ' ';
                 if (dv_va < NW_CR4) {
-                    
                     // value is null
                     // TODO:
                     /*
@@ -525,11 +518,9 @@ function fdvrdbout(
                 }
                 else {
                     // Pick a rounding precision IF blank
-                    if (dv_rd === ' ') {
-                        if (! nw_va_rget_rd(dv_va, rndary, dv_rd)) {
+                    if (dv_rd === ' ')
+                        if (! nw_va_rget_rd(dv_va, rndary, dv_rd))
                             dv_rd = '9';
-                        }
-                    }
                     
                     // convert value to a character string and load it
                     if (rndsup) {
@@ -540,9 +531,8 @@ function fdvrdbout(
                          */
                     }
                     else {
-                        if (! nw_va_rrnd_tx(dv_va, dv_rd, cval)) {
+                        if (! nw_va_rrnd_tx(dv_va, dv_rd, cval))
                             cval = '****';
-                        }
                     }
                     cval = sprintf("%20s", cval);
                     /**
