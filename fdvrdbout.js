@@ -85,28 +85,67 @@ function fdvrdbout(
             callback(null, sid);
         },
         site.request,
-        site.receive,
-        function (site, callback) {
-            if (irc !== 0) {
-                sagncy = agyin;
-                sid = station;
-                sname = '*** NOT IN SITE FILE ***';
-                smgtof = undefined;
-                slstfl = ' ';
-            }
+        /**
+           @function Receive and parse response from USGS Site Web Service.
+           @callback
+           @param {string} messageBody Message body of HTTP response from USGS
+                                       Site Web Service.
+           @param {function} callback Callback to call when complete.
+        */
+        function(messageBody, callback) {
+            var site = new Object;
 
+            /**
+               @todo Here we're parsing RDB, which is messy, and would
+                     be nice to encapsulate.
+            */
+            try {
+                // parse (station_nm,tz_cd,local_time_fg) from RDB
+                // response
+                var row = messageBody.split('\n');
+                // RDB column names
+                var columnName = row[row.length - 4].split('\t');
+                // site column values are in last row of table
+                var siteField = row[row.length - 2].split('\t');
+
+                // the necessary site fields
+                site.agencyCode = siteField[columnName.indexOf('agency_cd')];
+                site.number = siteField[columnName.indexOf('site_no')];
+                site.name = siteField[columnName.indexOf('station_nm')];
+                site.tzCode = siteField[columnName.indexOf('tz_cd')];
+                site.localTimeFlag =
+                    siteField[columnName.indexOf('local_time_fg')];
+            }
+            catch (error) {
+                /**
+                   @todo Need to research the USGS Site Web Service
+                         semantics for "site not found", and emulate
+                         this legacy code accordingly.
+
+                if (irc !== 0) {
+                    sagncy = agyin;
+                    sid = station;
+                    sname = '*** NOT IN SITE FILE ***';
+                    smgtof = undefined;
+                    slstfl = ' ';
+                }
+                 */
+                callback(error);
+                return;
+            }
+            callback(null, site);
+        },
+        function (site, callback) {
             if (smgtof === ' ') {
                 smgtof = sprintf("%3d", gmtof); // WRITE (smgtof,'(I3)') gmtof
             }
-            s_jstrlf(smgtof, 3);
-
+            smgtof = sprintf("%-3d", smgtof);
+            
             if (slstfl === ' ') {
-                if (lstfg === 0) {
+                if (lstfg === 0)
                     slstfl = true;
-                }
-                else {
+                else
                     slstfl = false;
-                }
             }
 
             callback(null);
