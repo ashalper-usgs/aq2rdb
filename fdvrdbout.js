@@ -44,9 +44,8 @@ function fdvrdbout(
 ) {
     // many/most of these are artifacts of the legacy code, and
     // probably won't be needed:
-    var irc, dvabort, ldv_name, ldv_data_name;
-    var rowcount, dv_water_yr, tunit;
-    var dv_name, dv_data_name, dv_diff_name, cdd_id;
+    var irc, dvabort;
+    var dv_water_yr, tunit;
     var ddlabl = ' ', cval, cdate, odate, outlin, rndary = ' ';
     var rndparm, rnddd, cdvabort = ' ', bnwisdt, enwisdt;
     var bnwisdtm, enwisdtm, bingdt, eingdt, temppath;
@@ -133,7 +132,7 @@ function fdvrdbout(
                  */
                 /**
                    @todo call parameter Web service here
-                   pmretr(60, rtcode);
+                   rtcode = pmretr(60);
                  */
                 if (rnddd !== ' ' && rnddd !== '0000000000') {
                     rndary = rnddd;
@@ -402,7 +401,6 @@ function fdvrdbout(
                     nw_dt_nwis2ing(enwisdt, eingdt);
                 }
 
-                nwc_itoa(dd_id, cdd_id, 12);
                 odate = bnwisdt;
                 if (! compdv) {
                     /**
@@ -529,10 +527,8 @@ function fdvrdbout(
                   end if
                   end if
                 */
-                if (irc !== 0) {
-                    rtcode = irc;
-                    return;
-                }
+                if (irc !== 0)
+                    return irc;
                 
                 // fill nulls to the end of the period, if the database
                 // retrieval stopped short
