@@ -26,12 +26,8 @@ function fdvrdbout(
     response, editable, rndsup, addkey, vflag, compdv, agyin, station,
     inddid, stat, begdate, enddate, callback
 ) {
-    // TODO: many/most of these probably won't be needed:
-
-    // **********************************************************
-    // * LOCAL VARIABLE DECLARATIONS
-    // **********************************************************
-
+    // many/most of these are artifacts of the legacy code, and
+    // probably won't be needed:
     var irc, outlen, dvabort, ldv_name, ldv_data_name;
     var ldv_diff_name, rowcount, dv_water_yr, dtlen, tunit;
     var dv_name, dv_data_name, dv_diff_name, cdd_id;
@@ -42,7 +38,7 @@ function fdvrdbout(
     var nulltype = ' ', nullaging = ' ';
 
     var exdate;               // verbose Excel style date "mm/dd/yyyy"
-    var dtcolw;               // holds DATE column width '19D' etc
+    var dtcolw;               // holds DATE column width '19D' etc.
 
     var wrotedata = false, first = true;
 
@@ -69,17 +65,16 @@ function fdvrdbout(
                 enwisdt = enddate;
                 enwisdtm = enddate + '23959';
             }
-            callback(null);
-        },
-        function (callback) {
+
             // get site
             sagncy = agyin;
             sid = station;
-            // TODO: 
-            stretr(100, irc);
-            callback(null);
+
+            callback(null, sid);
         },
-        function (callback) {
+        requestSite,
+        receiveSite,
+        function (site, callback) {
             if (irc !== 0) {
                 sagncy = agyin;
                 sid = station;
@@ -96,10 +91,10 @@ function fdvrdbout(
 
             if (slstfl === ' ') {
                 if (lstfg === 0) {
-                    slstfl = 'Y';
+                    slstfl = true;
                 }
                 else {
-                    slstfl = 'N';
+                    slstfl = false;
                 }
             }
 
