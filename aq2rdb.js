@@ -26,6 +26,7 @@ var moment = require('moment-timezone');
 // aq2rdb modules
 var rdbHeader = require('./rdbHeader');
 var fdvrdbout = require('./fdvrdbout');
+var site = require('./site');
 
 /**
    @description The Web service name is the script name without the
@@ -1023,72 +1024,6 @@ function parseTimeSeriesDataServiceResponse(messageBody, callback) {
 } // parsetimeSeriesDataServiceResponse
 
 /**
-   @function Query USGS Site Web Service.
-   @private
-   @callback
-   @param {string} siteNumber NWIS site number string.
-*/
-function requestSite(siteNumber, callback) {
-    if (options.log === true) {
-        console.log(
-            packageName + '.requestSite.siteNumber: ' + siteNumber
-        );
-    }
-
-    try {
-        httpQuery(
-            options.waterServicesHostname, '/nwis/site/',
-            {format: 'rdb',
-             sites: siteNumber,
-             siteOutput: 'expanded'}, callback
-        );
-    }
-    catch (error) {
-        callback(error);
-    }
-    return;
-} // requestSite
-
-/**
-   @function Receive and parse response from USGS Site Web Service.
-   @private
-   @callback
-   @param {string} messageBody Message body of HTTP response from USGS
-                   Site Web Service.
-   @param {function} callback Callback to call when complete.
-*/
-function receiveSite(messageBody, callback) {
-    var site = new Object;
-
-    /**
-       @todo Here we're parsing RDB, which is messy, and would be nice
-             to encapsulate.
-    */
-    try {
-        // parse (station_nm,tz_cd,local_time_fg) from RDB
-        // response
-        var row = messageBody.split('\n');
-        // RDB column names
-        var columnName = row[row.length - 4].split('\t');
-        // site column values are in last row of table
-        var siteField = row[row.length - 2].split('\t');
-
-        // the necessary site fields
-        site.agencyCode = siteField[columnName.indexOf('agency_cd')];
-        site.number = siteField[columnName.indexOf('site_no')];
-        site.name = siteField[columnName.indexOf('station_nm')];
-        site.tzCode = siteField[columnName.indexOf('tz_cd')];
-        site.localTimeFlag = siteField[columnName.indexOf('local_time_fg')];
-    }
-    catch (error) {
-        callback(error);
-        return;
-    }
-
-    callback(null, site);
-} // receiveSite
-
-/**
    @description GetDVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
@@ -1270,8 +1205,8 @@ httpdispatcher.onGet(
 
                 callback(null, locationIdentifier.siteNumber());
             },
-            requestSite,
-            receiveSite,
+            site.request,
+            site.receive,
             /**
                @function Write RDB header and heading.
                @callback
@@ -1557,12 +1492,12 @@ httpdispatcher.onGet(
                 callback(null, locationIdentifier.toString());
             },
             /**
-               @todo requestSite() and receiveSite() can be done in
+               @todo site.request() and site.receive() can be done in
                      parallel with the requesting/receiving of time
                      series descriptions below.
             */
-            requestSite,
-            receiveSite,
+            site.request,
+            site.receive,
             function (receivedSite, callback) {
                 site = receivedSite; // set global
                 callback(null);
@@ -1931,8 +1866,6 @@ if (process.env.NODE_ENV === 'test') {
         dvTableRow: dvTableRow,
         distill: distill,
         nwisVersusIANA: nwisVersusIANA,
-        parseTimeSeriesDataServiceResponse: parseTimeSeriesDataServiceResponse,
-        requestSite: requestSite,
-        receiveSite: receiveSite
+        parseTimeSeriesDataServiceResponse: parseTimeSeriesDataServiceResponse
     };
 }
