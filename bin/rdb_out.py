@@ -141,9 +141,6 @@ def rdb_out(
 
         if datatyp not in ["DV", "UV", "DC", "SV", "MS", "PK"]:
             cdate, ctime = s_date()
-            # WRITE (0,2021) cdate, ctime, datatyp, nline
-            #2021         FORMAT (A8, 1X, A6, 1X, 'Invalid data type "', A,
-            #                 '" on line ', I5, '.')
             print cdate + " " + ctime + " Invalid data type \"" + \
                 datatyp + "\" on line " + nline
             goto_9()
