@@ -190,19 +190,15 @@ function fdvrdbout(
                         callback(null);
                     },
                     function (callback) {
-                        if (editable) {
-                            funit.write(
-                                '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
-                                    'EDITABLE=YES\n'
-                            );
-                        }
-                        else {
-                            funit.write(
-                                '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
-                                    'EDITABLE=NO\n'
-                            );
-                        }
+                        var line =
+                            '# //FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=';
+                        
+                        if (editable)
+                            line += "YES";
+                        else
+                            line += "NO";
 
+                        funit.write(line + '\n', "ascii");
                         callback(null);
                     },
                     function (callback) {
@@ -380,8 +376,7 @@ function fdvrdbout(
                 // Setup end date
                 if (enddate === '99999999') {
                     if (! nw_db_retr_dv_last_yr(dd_id, stat, dv_water_yr)) {
-                        rtcode = nw_get_error_number();
-                        return;
+                        return nw_get_error_number();
                     }
                     /*
                       WRITE (enwisdt,2040) dv_water_yr
@@ -392,8 +387,7 @@ function fdvrdbout(
 
                 // validate and load end date into ingres FORMAT
                 if (! nw_cdt_ok(enwisdt)) {
-                    rtcode = 3;
-                    return;
+                    return 3;
                 }
                 else {
                     nw_dt_nwis2ing(enwisdt, eingdt);
@@ -500,23 +494,23 @@ function fdvrdbout(
                     
                     // convert value to a character string and load it
                     if (rndsup) {
-                        // TODO:
-                        /*
+                        /**
+                           @todo
                           WRITE (cval,2050) dv_va
                           2050                   FORMAT (E14.7)
-                        */
+                         */
                     }
                     else {
                         if (! nw_va_rrnd_tx(dv_va, dv_rd, cval)) {
                             cval = '****';
                         }
                     }
-                    s_jstrlf(cval, 20);
-                    // TODO:
-                    /*
-                      WRITE (tunit) cdate, cval, dv_rd, dv_rmk_cd,
-                      *                    dv_type_cd, data_aging_cd
-                      */
+                    cval = sprintf("%20s", cval);
+                    /**
+                       @todo
+                       WRITE (tunit) cdate, cval, dv_rd, dv_rmk_cd,
+                       *                    dv_type_cd, data_aging_cd
+                     */
                 }
                 nw_dtinc(odate, 1);
                 // TODO:
