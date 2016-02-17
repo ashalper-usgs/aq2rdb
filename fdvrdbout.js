@@ -44,7 +44,7 @@ function fdvrdbout(
 ) {
     // many/most of these are artifacts of the legacy code, and
     // probably won't be needed:
-    var irc, outlen, dvabort, ldv_name, ldv_data_name;
+    var irc, dvabort, ldv_name, ldv_data_name;
     var rowcount, dv_water_yr, tunit;
     var dv_name, dv_data_name, dv_diff_name, cdd_id;
     var ddlabl = ' ', cval, cdate, odate, outlin, rndary = ' ';
@@ -399,16 +399,6 @@ function fdvrdbout(
                     nw_dt_nwis2ing(enwisdt, eingdt);
                 }
 
-                // Get DV data to a temporary file
-                nwc_tmpnam(temppath)
-                getfunit(1, tunit)
-                // TODO:
-                /*
-                  OPEN (UNIT=tunit, FILE=temppath,
-                  *        FORM='unformatted', STATUS='unknown')
-                  REWIND (tunit)
-                */
-
                 nwc_itoa(dd_id, cdd_id, 12);
                 odate = bnwisdt;
                 if (! compdv) {
@@ -590,7 +580,6 @@ function fdvrdbout(
                 else {
                     outlin = exdate;
                 }
-                outlen = nwf_strlen(outlin);
 
                 if (cval === '**NULL**') {
                     outlin += '\t\t\t\t' + dv_rmk_cd + '\t\t' +
@@ -602,14 +591,14 @@ function fdvrdbout(
                         data_aging_cd;
                     wrotedata = true;
                 }
-                outlen = nwf_strlen(outlin);
+
                 /**
-                  @todo
                   WRITE (funit,'(20A)') outlin(1:outlen)
                   GOTO 30
 
                   40      CLOSE (tunit, status = 'DELETE')
-                 */
+                */
+                funit.write(outlin + '\n');
             }
 
             callback(null);
