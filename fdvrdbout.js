@@ -45,7 +45,7 @@ function fdvrdbout(
     // many/most of these are artifacts of the legacy code, and
     // probably won't be needed:
     var irc, outlen, dvabort, ldv_name, ldv_data_name;
-    var rowcount, dv_water_yr, dtlen, tunit;
+    var rowcount, dv_water_yr, tunit;
     var dv_name, dv_data_name, dv_diff_name, cdd_id;
     var ddlabl = ' ', cval, cdate, odate, outlin, rndary = ' ';
     var rndparm, rnddd, cdvabort = ' ', bnwisdt, enwisdt;
@@ -53,7 +53,6 @@ function fdvrdbout(
     var nullval = '**NULL**', nullrd = ' ', nullrmk = ' ';
     var nulltype = ' ', nullaging = ' ';
     var smgtof, rtcode;
-
     var wrotedata = false, first = true;
 
     async.waterfall([
@@ -159,15 +158,14 @@ function fdvrdbout(
         function (callback) {
             // DV abort limit defaults to 120 minutes
             cdvabort = '120';
-
-            //  get the DV abort limit
+            
+            /**
+               @todo get the DV abort limit
+               WRITE(cdvabort,'(I6)') dvabort;
+            */
             if (dbRetrDVAbort(ddagny, ddstid, ddid, bnwisdtm,
                               enwisdtm, dvabort)) {
-                /**
-                   @todo
-                   WRITE(cdvabort,'(I6)') dvabort;
-                 */
-                s_jstrlf(cdvabort, 6);
+                cdvabort = sprintf("%6d", dvabort);
             }
 
             callback(null);
@@ -414,8 +412,9 @@ function fdvrdbout(
                 nwc_itoa(dd_id, cdd_id, 12);
                 odate = bnwisdt;
                 if (! compdv) {
-                    // TODO:
-                    /*
+                    /**
+                       @todo
+
                       stmt = 'SELECT dvd.dv_dt, dvd.dv_va, dvd.dv_rd, ' //
                       *                    'dvd.dv_rmk_cd, dvd.dv_type_cd, ' //
                       *                    'dvd.data_aging_cd FROM ' //
@@ -430,8 +429,9 @@ function fdvrdbout(
                       */
                 }
                 else {
-                    // TODO:
                     /*
+                      @todo
+
                       stmt = 'SELECT dvd.dv_dt, dvd.dv_va, dvd.dv_rd,' //
                       *               'dvd.dv_rmk_cd, dvd.dv_type_cd,' //
                       *               'dvd.data_aging_cd FROM ' //
