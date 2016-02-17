@@ -47,276 +47,306 @@ function fdvrdbout(
     var wrotedata = false, first = true;
 
     async.waterfall([
-	function (callback) {
-	    if (begdate === '00000000') {
-		// RH comes from NW_NWIS_MINDATE value in
-		// watstore/support/ins.dir/adaps_keys.ins
-		bnwisdtm = '15820101235959';
-		bnwisdt = bnwisdtm.substr(0, 7);
-	    }
-	    else {
-		bnwisdtm = begdate + '000000';
-		bnwisdt = begdate;
-	    }
-
-	    if (enddate === '99999999') {
-		// RH comes from NW_NWIS_MAXDATE value in
-		// watstore/support/ins.dir/adaps_keys.ins
-		enwisdtm = '23821231000000'
-		enwisdt = enwisdtm.substr(0, 7);
-	    }
-	    else {
-		enwisdt = enddate;
-		enwisdtm = enddate + '23959';
-	    }
-	    callback(null);
-	},
-	function (callback) {
-	    // get site
-	    sagncy = agyin;
-	    sid = station;
-	    // TODO: 
-	    stretr(100, irc);
-	    callback(null);
-	},
-	function (callback) {
-	    if (irc !== 0) {
-		sagncy = agyin;
-		sid = station;
-		sname = '*** NOT IN SITE FILE ***';
-		smgtof = ' ';
-		slstfl = ' ';
-	    }
-
-	    if (smgtof === ' ') {
-		// TODO:
-		// WRITE (smgtof,'(I3)') gmtof
-	    }
-	    s_jstrlf(smgtof, 3);
-
-	    if (slstfl === ' ') {
-		if (lstfg === 0) {
-		    slstfl = 'Y';
-		}
-		else {
-		    slstfl = 'N';
-		}
-	    }
-
-	    callback(null);
-	},
-	function (callback) {
-	    // get DD
-	    ddagny = agyin;
-	    ddstid = station;
-	    ddid = inddid;
-	    // TODO:
-	    // s_mddd(nw_read, irc, *998);
-
-	    callback(null);
-	}
-    ]);
-
-    if (irc === 0) {
-        s_lbdd(nw_left, ddlabl); // set label
-        pcode = 'P';             // pmcode            // set rounding
-        pmretr(60, rtcode);
-        if (rnddd !== ' ' && rnddd !== '0000000000') {
-            rndary = rnddd;
-        }
-        else {
-            rndary = rndparm;
-        }
-    }
-    else {
-        ddagny = agyin;
-        ddstid = station;
-        ddid = inddid;
-        ddlabl = '*** NOT IN DD FILE ***';
-        rndary = '9999999992';
-    }
-
-    //  DV abort limit defaults to 120 minutes
-    cdvabort = '120';
-
-    //  get the DV abort limit
-    if (nw_db_retr_dvabort(ddagny, ddstid, ddid,
-                           bnwisdtm, enwisdtm, dvabort)) {
-        // TODO:
-        // WRITE(cdvabort,'(I6)') dvabort;
-        s_jstrlf(cdvabort, 6);
-    }
-
-    // get stat information
-    s_statck(stat, irc);
-    if (irc !== 0) {
-        ssnam = '*** INVALID STAT ***';
-    }
-
-    if (! addkey) {
-
-        // write the header records
-        rdbHeader(funit);
-
-        if (editable) {
-            // TODO:
-            /*
-            WRITE(funit, '(20A)')
-            '# //FILE TYPE="NWIS-I DAILY-VALUES" ',
-            'EDITABLE=YES'
-            */
-        }
-        else {
-            // TODO:
-            /*
-            WRITE (funit, '(20A)')
-            '# //FILE TYPE="NWIS-I DAILY-VALUES" ',
-            'EDITABLE=NO'
-            */
-        }
-
-        // write database info
-        nw_rdb_dbline (funit);
-
-        // write site info
-        // TODO:
-        /*
-         WRITE (funit,'(20A)')
-     *        '# //STATION AGENCY="',sagncy,'" NUMBER="',
-     *        sid,'" TIME_ZONE="',
-     *        smgtof(1:nwf_strlen(smgtof)),'" DST_FLAG=',
-     *        slstfl
-         WRITE (funit,'(20A)')
-     *        '# //STATION NAME="',
-     *        sname(1:nwf_strlen(sname)),'"'
-     */
-        // write Location info
-        nw_rdb_write_loc_info(funit, dd_id);
-
-        // write DD info
-        // TODO:
-        /*
-         WRITE (funit,'(20A)')
-     *        '# //DD DDID="',ddid,'" RNDARY="',
-     *        rndary,'" DVABORT=',
-     *        cdvabort(1:nwf_strlen(cdvabort))
-         WRITE (funit,'(20A)')
-     *        '# //DD LABEL="',
-     *        ddlabl(1:nwf_strlen(ddlabl)),'"'
-     */
-
-        // write parameter info
-        // TODO:
-        /*
-         WRITE (funit,'(20A)')
-     *        '# //PARAMETER CODE="',pcode(2:6),
-     *        '" SNAME = "',psnam(1:nwf_strlen(psnam)),
-     *        '"'
-         WRITE (funit,'(20A)')
-     *        '# //PARAMETER LNAME="',
-     *        plname(1:nwf_strlen(plname)),'"'
-     */
-
-        // write statistic info
-        // TODO:
-        /*
-         WRITE (funit,'(20A)')
-     *        '# //STATISTIC CODE="',scode(2:6),
-     *        '" SNAME="',ssnam(1:nwf_strlen(ssnam)),
-     *        '"'
-         WRITE (funit,'(20A)')
-     *        '# //STATISTIC LNAME="',
-     *        slname(1:nwf_strlen(slname)),'"'
-     */
-
-        // write DV type info
-        if (compdv) {
-            // TODO:
-            /*
-            WRITE (funit,'(20A)')
-     *           '# //TYPE NAME="COMPUTED" ',
-     *           'DESC = "COMPUTED DAILY VALUES ONLY"'
-     */
-        }
-        else {
-            // TODO:
-            /*
-            WRITE (funit,'(20A)')
-     *           '# //TYPE NAME="FINAL" ',
-     *           'DESC = "EDITED AND COMPUTED DAILY VALUES"'
-     */
-        }
-
-        // write data aging information
-        nw_rdb_write_aging(funit, dbnum, dd_id, begdate, enddate);
-
-        // write editable range
-        // TODO:
-        /*
-        WRITE (funit,'(20A)')
-     *        '# //RANGE START="', begdate,
-     *        '" END="', enddate,'"'
-     */
-
-        // write single site RDB column headings
-        outlin = 'DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n'
-        // TODO:
-        // WRITE (funit,'(20A)') outlin(1:46)
-
-        if (vflag) {            // verbose Excel-style format
-            dtcolw = '10D';     // "mm/dd/yyyy" 10 chars
-            dtlen = 3;
-        }
-        else {
-            dtcolw = '8D';      // "yyyymmdd" 8 chars
-            dtlen = 2;
-        }
-        outlin = dtcolw.substr(0, dtlen - 1) +
-            '\t6S\t16N\t1S\t1S\t32S\t1S\t1S';
-        // TODO:
-        /*
-        WRITE (funit,'(20A)') outlin(1:23+dtlen)
-        */
-    }
-    else {
-        if (first) {
-
-            // write "with keys" rdb column headings
-            // TODO:
-            /*
-            WRITE (funit,'(20A)')
-     *           '# //FILE TYPE="NWIS-I DAILY-VALUES" ',
-     *           'EDITABLE=NO'
-     */
-
-            // write database info
-            nw_rdb_dbline(funit);
-
-            outlin =
-                'AGENCY\tSTATION\tDD\tPARAMETER\tSTATISTIC\tDATE\t' +
-                'TIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n'
-            // TODO:
-            /*
-            WRITE (funit,'(20A)') outlin(1:84)
-            */
-
-            if (vflag) {        // verbose Excel-style format
-               dtcolw = '10D';  // "mm/dd/yyyy" 10 chars
-               dtlen = 3;
+        function (callback) {
+            if (begdate === '00000000') {
+                // RH comes from NW_NWIS_MINDATE value in
+                // watstore/support/ins.dir/adaps_keys.ins
+                bnwisdtm = '15820101235959';
+                bnwisdt = bnwisdtm.substr(0, 7);
             }
             else {
-               dtcolw = '8D';   // "yyyymmdd" 8 chars
-               dtlen = 2;
+                bnwisdtm = begdate + '000000';
+                bnwisdt = begdate;
             }
-            outlin = '5S\t15S\t4S\t5S\t5S\t' + dtcolw +
-                '\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n';
+
+            if (enddate === '99999999') {
+                // RH comes from NW_NWIS_MAXDATE value in
+                // watstore/support/ins.dir/adaps_keys.ins
+                enwisdtm = '23821231000000'
+                enwisdt = enwisdtm.substr(0, 7);
+            }
+            else {
+                enwisdt = enddate;
+                enwisdtm = enddate + '23959';
+            }
+            callback(null);
+        },
+        function (callback) {
+            // get site
+            sagncy = agyin;
+            sid = station;
+            // TODO: 
+            stretr(100, irc);
+            callback(null);
+        },
+        function (callback) {
+            if (irc !== 0) {
+                sagncy = agyin;
+                sid = station;
+                sname = '*** NOT IN SITE FILE ***';
+                smgtof = ' ';
+                slstfl = ' ';
+            }
+
+            if (smgtof === ' ') {
+                // TODO:
+                // WRITE (smgtof,'(I3)') gmtof
+            }
+            s_jstrlf(smgtof, 3);
+
+            if (slstfl === ' ') {
+                if (lstfg === 0) {
+                    slstfl = 'Y';
+                }
+                else {
+                    slstfl = 'N';
+                }
+            }
+
+            callback(null);
+        },
+        function (callback) {
+            // get DD
+            ddagny = agyin;
+            ddstid = station;
+            ddid = inddid;
             // TODO:
-            /*
-            WRITE (funit,'(20A)') outlin(1:39+dtlen)
-            */
-            first = false;
-         }
-      }
+            // s_mddd(nw_read, irc, *998);
+
+            callback(null);
+        },
+        function (callback) {
+            if (irc === 0) {
+                s_lbdd(nw_left, ddlabl); // set label
+                pcode = 'P';             // pmcode            // set rounding
+                pmretr(60, rtcode);
+                if (rnddd !== ' ' && rnddd !== '0000000000') {
+                    rndary = rnddd;
+                }
+                else {
+                    rndary = rndparm;
+                }
+            }
+            else {
+                ddagny = agyin;
+                ddstid = station;
+                ddid = inddid;
+                ddlabl = '*** NOT IN DD FILE ***';
+                rndary = '9999999992';
+            }
+
+            callback(null);
+        },
+        // TODO: this might be obsolete
+        function (callback) {
+            //  DV abort limit defaults to 120 minutes
+            cdvabort = '120';
+
+            //  get the DV abort limit
+            if (dbRetrDVAbort(ddagny, ddstid, ddid, bnwisdtm,
+                              enwisdtm, dvabort)) {
+                // TODO:
+                // WRITE(cdvabort,'(I6)') dvabort;
+                s_jstrlf(cdvabort, 6);
+            }
+
+            callback(null);
+        },
+        function (callback) {
+            // get stat information
+            s_statck(stat, irc);
+            if (irc !== 0) {
+                ssnam = '*** INVALID STAT ***';
+            }
+
+            callback(null);
+        },
+        function (callback) {
+            if (! addkey) {
+                async.waterfall([
+                    function (callback) {
+                        // write the header records
+                        rdbHeader(funit);
+                        callback(null);
+                    },
+                    function (callback) {
+                        if (editable) {
+                            funit.write(
+                                '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
+                                    'EDITABLE=YES\n'
+                            );
+                        }
+                        else {
+                            funit.write(
+                                '# //FILE TYPE="NWIS-I DAILY-VALUES" ' +
+                                    'EDITABLE=NO\n'
+                            );
+                        }
+
+                        callback(null);
+                    },
+                    function (callback) {
+                        // write database info
+                        rdbDBLine(funit), // <- TODO
+                        callback(null);
+                    },
+                    function (callback) {
+                        // write site info
+                        funit.write(
+                            '# //STATION AGENCY="' + sagncy +
+                                '" NUMBER="' + sid + '" TIME_ZONE="' +
+                                smgtof + '" DST_FLAG=' + slstfl + '\n' +
+                                '# //STATION NAME="' + sname + '"\n'
+                        );
+                        callback(null);
+                    },
+                    function (callback) {
+                        // write Location info
+                        // TODO:
+                        rdbWriteLocInfo(funit, dd_id);
+                        callback(null);
+                    },
+                    function (callback) {
+                        // write DD info
+                        funit.write(
+                            '# //DD DDID="' + ddid + '" RNDARY="' +
+                                rndary + '" DVABORT=' + cdvabort + '\n' +
+                                '# //DD LABEL="' + ddlabl + '"\n' +
+                                '# //PARAMETER CODE="' +
+                                pcode.substr(1, 5) + '" SNAME = "' +
+                                psnam + '"\n' +
+                                '# //PARAMETER LNAME="' + plname +
+                                '"\n' +
+                                '# //STATISTIC CODE="' +
+                                scode.substr(1, 5) + '" SNAME="' +
+                                ssnam + '"\n' +
+                                '# //STATISTIC LNAME="' + slname + '"\n'
+                        );
+                        callback(null);
+                    },
+                    function (callback) {
+                        // write DV type info
+                        if (compdv) {
+                            funit.write(
+                                '# //TYPE NAME="COMPUTED" ' +
+                                    'DESC = "COMPUTED DAILY VALUES ONLY"\n'
+                            )
+                        }
+                        else {
+                            funit.write(
+                                '# //TYPE NAME="FINAL" ' +
+                                   'DESC = "EDITED AND COMPUTED DAILY VALUES"\n'
+                            )
+                        }
+                        callback(null);
+                    },
+                    function (callback) {
+                        // write data aging information
+                        // TODO:
+                        rdbWriteAging(
+                            funit, dbnum, dd_id, begdate, enddate
+                        );
+                        callback(null);
+                    },
+                    function (callback) {
+                        // write editable range
+                        funit.write(
+                            '# //RANGE START="' + begdate +
+                                '" END="' + enddate + '"\n'
+                        )
+                        callback(null);
+                    },
+                    function (callback) {
+                        callback(null);
+                    },
+                    function (callback) {
+                        callback(null);
+                    },
+                    function (callback) {
+                        callback(null);
+                    },
+                    function (callback) {
+                        callback(null);
+                    },
+                    function (callback) {
+                        callback(null);
+                    },
+                    function (callback) {
+                        callback(null);
+                    },
+                    function (callback) {
+                        callback(null);
+                    },
+                    function (callback) {
+                        callback(null);
+                    }
+                ]);
+
+                // write single site RDB column headings
+                outlin =
+                    'DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n';
+
+                // TODO:
+                // WRITE (funit,'(20A)') outlin(1:46)
+
+                if (vflag) {            // verbose Excel-style format
+                    dtcolw = '10D';     // "mm/dd/yyyy" 10 chars
+                    dtlen = 3;
+                }
+                else {
+                    dtcolw = '8D';      // "yyyymmdd" 8 chars
+                    dtlen = 2;
+                }
+                outlin = dtcolw.substr(0, dtlen - 1) +
+                    '\t6S\t16N\t1S\t1S\t32S\t1S\t1S';
+                // TODO:
+                /*
+                  WRITE (funit,'(20A)') outlin(1:23+dtlen)
+                */
+            }
+            else {
+                if (first) {
+
+                    // write "with keys" rdb column headings
+                    // TODO:
+                    /*
+                      WRITE (funit,'(20A)')
+                      *           '# //FILE TYPE="NWIS-I DAILY-VALUES" ',
+                      *           'EDITABLE=NO'
+                      */
+
+                    // write database info
+                    nw_rdb_dbline(funit);
+
+                    outlin =
+                        'AGENCY\tSTATION\tDD\tPARAMETER\tSTATISTIC\tDATE\t' +
+                        'TIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n'
+                    // TODO:
+                    /*
+                      WRITE (funit,'(20A)') outlin(1:84)
+                    */
+
+                    if (vflag) {        // verbose Excel-style format
+                        dtcolw = '10D';  // "mm/dd/yyyy" 10 chars
+                        dtlen = 3;
+                    }
+                    else {
+                        dtcolw = '8D';   // "yyyymmdd" 8 chars
+                        dtlen = 2;
+                    }
+                    outlin = '5S\t15S\t4S\t5S\t5S\t' + dtcolw +
+                        '\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n';
+                    // TODO:
+                    /*
+                      WRITE (funit,'(20A)') outlin(1:39+dtlen)
+                    */
+                    first = false;
+                }
+            }
+
+            callback(null);
+        }
+    ]);
 
     // If the DD does not exist, no sense in trying to retrieve any data
     if (ddlabl !== '*** NOT IN DD FILE ***') {
