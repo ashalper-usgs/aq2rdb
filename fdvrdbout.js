@@ -1,4 +1,25 @@
 /**
+ * @fileOverview A Node.js emulation of legacy NWIS, FDVRDBOUT()
+ *               Fortran subroutine.
+ *
+ * @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
+ *
+ */
+
+'use strict';
+
+/**
+   @description Node.js modules.
+*/
+var async = require('async');
+var sprintf = require("sprintf-js").sprintf;
+
+/**
+   @description aq2rdb modules.
+*/
+var site = require('./site');
+
+/**
    @description Emulate legacy NWIS, FDVRDBOUT() Fortran subroutine:
                 "Write DV data in rdb FORMAT" [sic].
    @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
@@ -17,20 +38,6 @@
    @param {string} enddate End date.
    @callback
 */
-
-'use strict';
-
-/**
-   @description Node.js modules.
-*/
-var async = require('async');
-var sprintf = require("sprintf-js").sprintf;
-
-/**
-   @description aq2rdb modules.
-*/
-var site = require('./site');
-
 function fdvrdbout(
     response, editable, rndsup, addkey, vflag, compdv, agyin, station,
     inddid, stat, begdate, enddate, callback
@@ -94,10 +101,7 @@ function fdvrdbout(
             }
 
             if (smgtof === ' ') {
-                /**
-                   @todo
-                    WRITE (smgtof,'(I3)') gmtof
-                 */
+                smgtof = sprintf("%3d", gmtof); // WRITE (smgtof,'(I3)') gmtof
             }
             s_jstrlf(smgtof, 3);
 
@@ -128,10 +132,13 @@ function fdvrdbout(
                 s_lbdd(nw_left, ddlabl); // set label
                 pcode = 'P';             // pmcode            // set rounding
                 /**
-                   @todo call parameter Web service here
+                   @todo Load data descriptor?
                    s_mddd(nw_read, irc, *998);
                  */
-                pmretr(60, rtcode);
+                /**
+                   @todo call parameter Web service here
+                   pmretr(60, rtcode);
+                 */
                 if (rnddd !== ' ' && rnddd !== '0000000000') {
                     rndary = rnddd;
                 }
@@ -169,8 +176,10 @@ function fdvrdbout(
             callback(null);
         },
         function (callback) {
-            // get stat information
-            s_statck(stat, irc);
+            /**
+               @todo get stat information
+               irc = s_statck(stat);
+            */
             if (irc !== 0) {
                 ssnam = '*** INVALID STAT ***';
             }
@@ -219,9 +228,10 @@ function fdvrdbout(
                         callback(null);
                     },
                     function (callback) {
-                        // write Location info
-                        // TODO:
-                        rdbWriteLocInfo(funit, dd_id);
+                        /**
+                           @todo write Location info
+                           rdbWriteLocInfo(funit, dd_id);
+                         */
                         callback(null);
                     },
                     function (callback) {
@@ -259,11 +269,12 @@ function fdvrdbout(
                         callback(null);
                     },
                     function (callback) {
-                        // write data aging information
-                        // TODO:
-                        rdbWriteAging(
-                            funit, dbnum, dd_id, begdate, enddate
-                        );
+                        /**
+                           @todo write data aging information
+                           rdbWriteAging(
+                           funit, dbnum, dd_id, begdate, enddate
+                           );
+                         */
                         callback(null);
                     },
                     function (callback) {
@@ -276,28 +287,25 @@ function fdvrdbout(
                     },
                     function (callback) {
                         // write single site RDB column headings
-                        outlin =
-                     'DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n';
-
-                        /**
-                           @todo
-                           WRITE (funit,'(20A)') outlin(1:46)
-                         */
-
-                        if (vflag) {            // verbose Excel-style format
+                        funit.write(
+                            "DATE\tTIME\tVALUE\tPRECISION\t" +
+                                "REMARK\tFLAGS\tTYPE\tQA\n"
+                        );
+                        callback(null);
+                    },
+                    function (callback) {
+                        // if verbose, Excel-style format
+                        if (vflag) {
                             dtcolw = '10D';     // "mm/dd/yyyy" 10 chars
-                            dtlen = 3;
                         }
                         else {
                             dtcolw = '8D';      // "yyyymmdd" 8 chars
-                            dtlen = 2;
                         }
-                        outlin = dtcolw.substr(0, dtlen - 1) +
-                            '\t6S\t16N\t1S\t1S\t32S\t1S\t1S';
-                        /**
-                           @todo
-                           WRITE (funit,'(20A)') outlin(1:23+dtlen)
-                        */
+
+                        // WRITE (funit,'(20A)') outlin(1:23+dtlen)
+                        funit.write(
+                            dtcolw + '\t6S\t16N\t1S\t1S\t32S\t1S\t1S'
+                        );
                         callback(null);
                     }
                 ]); // async.waterfall
@@ -344,45 +352,21 @@ function fdvrdbout(
             // If the DD does not exist, no sense in trying to
             // retrieve any data
             if (ddlabl !== '*** NOT IN DD FILE ***') {
-
-                // get DV table names
-                rtcode = 0;
-                if (! nw_getchk_table_nm('DV', dbnum, 'R', dv_name, ldv_name)) {
-                    rtcode = 4;
-                    return;
-                }
-                if (! nw_getchk_table_nm('DV_DATA', dbnum, 'R', dv_data_name,
-                                         ldv_data_name)) {
-                    rtcode = 4;
-                    return;
-                }
-                if (compdv) {
-                    var ldv_diff_name;
-
-                    if (! nw_getchk_table_nm('DV_DIFF', dbnum, 'R',
-                                             dv_diff_name, ldv_diff_name)) {
-                        rtcode = 4;
-                        return;
-                    }
-                }
-
                 // Setup begin date
                 if (begdate === '00000000') {
                     if (! nw_db_retr_dv_first_yr(dd_id, stat, dv_water_yr)) {
-                        rtcode = nw_get_error_number();
-                        return;
+                        return nw_get_error_number();
                     }
                     /**
-                       @todo
                        WRITE (bnwisdt,2030) dv_water_yr - 1
                        2030       FORMAT (I4.4,'1001')
                     */
+                    bnwisdt = sprintf("%4d1001", dv_water_yr - 1);
                 }
 
                 // validate and load begin date into ingres FORMAT
                 if (! nw_cdt_ok(bnwisdt)) {
-                    rtcode = 3;
-                    return;
+                    return 3;
                 }
                 else {
                     nw_dt_nwis2ing(bnwisdt, bingdt)
@@ -394,11 +378,11 @@ function fdvrdbout(
                         rtcode = nw_get_error_number();
                         return;
                     }
-                    // TODO:
                     /*
                       WRITE (enwisdt,2040) dv_water_yr
                       2040       FORMAT (I4.4,'0930')
                     */
+                    enwisdt = sprintf("%4d0930", dv_water_yr);
                 }
 
                 // validate and load end date into ingres FORMAT
