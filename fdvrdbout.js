@@ -214,7 +214,8 @@ function fdvrdbout(
                             '# //STATION AGENCY="' + sagncy +
                                 '" NUMBER="' + sid + '" TIME_ZONE="' +
                                 smgtof + '" DST_FLAG=' + slstfl + '\n' +
-                                '# //STATION NAME="' + sname + '"\n'
+                                '# //STATION NAME="' + sname + '"\n',
+                            "ascii"
                         );
                         callback(null);
                     },
@@ -239,7 +240,8 @@ function fdvrdbout(
                                 '# //STATISTIC CODE="' +
                                 scode.substr(1, 5) + '" SNAME="' +
                                 ssnam + '"\n' +
-                                '# //STATISTIC LNAME="' + slname + '"\n'
+                                '# //STATISTIC LNAME="' + slname + '"\n',
+                            "ascii"
                         );
                         callback(null);
                     },
@@ -248,13 +250,15 @@ function fdvrdbout(
                         if (compdv) {
                             funit.write(
                                 '# //TYPE NAME="COMPUTED" ' +
-                                    'DESC = "COMPUTED DAILY VALUES ONLY"\n'
+                                    'DESC = "COMPUTED DAILY VALUES ONLY"\n',
+                                "ascii"
                             )
                         }
                         else {
                             funit.write(
                                 '# //TYPE NAME="FINAL" ' +
-                                   'DESC = "EDITED AND COMPUTED DAILY VALUES"\n'
+                                'DESC = "EDITED AND COMPUTED DAILY VALUES"\n',
+                                "ascii"
                             )
                         }
                         callback(null);
@@ -272,7 +276,8 @@ function fdvrdbout(
                         // write editable range
                         funit.write(
                             '# //RANGE START="' + begdate +
-                                '" END="' + enddate + '"\n'
+                                '" END="' + enddate + '"\n',
+                            "ascii"
                         )
                         callback(null);
                     },
@@ -280,7 +285,8 @@ function fdvrdbout(
                         // write single site RDB column headings
                         funit.write(
                             "DATE\tTIME\tVALUE\tPRECISION\t" +
-                                "REMARK\tFLAGS\tTYPE\tQA\n"
+                                "REMARK\tFLAGS\tTYPE\tQA\n",
+                            "ascii"
                         );
                         callback(null);
                     },
@@ -297,7 +303,8 @@ function fdvrdbout(
 
                         // WRITE (funit,'(20A)') outlin(1:23+dtlen)
                         funit.write(
-                            dtcolw + '\t6S\t16N\t1S\t1S\t32S\t1S\t1S'
+                            dtcolw + "\t6S\t16N\t1S\t1S\t32S\t1S\t1S",
+                            "ascii"
                         );
                         callback(null);
                     }
@@ -321,8 +328,9 @@ function fdvrdbout(
                     },
                     function (callback) {
                         funit.write(
-                           'AGENCY\tSTATION\tDD\tPARAMETER\tSTATISTIC\tDATE\t' +
-                           'TIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n'
+                           "AGENCY\tSTATION\tDD\tPARAMETER\tSTATISTIC\tDATE\t" +
+                           "TIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n",
+                           "ascii"
                         );
                         callback(null);
                     },
@@ -331,15 +339,16 @@ function fdvrdbout(
                         
                         // if verbose, Excel-style format
                         if (vflag) {
-                            dtcolw = '10D';  // "mm/dd/yyyy" 10 chars
+                            dtcolw = "10D";  // "mm/dd/yyyy" 10 chars
                         }
                         else {
-                            dtcolw = '8D';   // "yyyymmdd" 8 chars
+                            dtcolw = "8D";   // "yyyymmdd" 8 chars
                         }
 
                         funit.write(
-                            '5S\t15S\t4S\t5S\t5S\t' + dtcolw +
-                                '\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n'
+                            "5S\t15S\t4S\t5S\t5S\t" + dtcolw +
+                                "\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n",
+                            "ascii"
                         );
                         
                         first = false;
@@ -592,7 +601,7 @@ function fdvrdbout(
 
                   40      CLOSE (tunit, status = 'DELETE')
                 */
-                funit.write(outlin + '\n');
+                funit.write(outlin + '\n', "ascii");
             }
 
             callback(null);
