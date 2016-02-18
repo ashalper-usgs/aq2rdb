@@ -25,7 +25,7 @@ var moment = require('moment-timezone');
 
 // aq2rdb modules
 var aquarius = require('./aquarius');
-var fdvrdbout = require('./fdvrdbout');
+var fdvrdbout = require('./fdvrdbout').fdvrdbout;
 var rdbHeader = require('./rdbHeader');
 var site = require('./site');
 
@@ -1461,6 +1461,8 @@ httpdispatcher.onGet(
        @callback
     */
     function (request, response) {
+        var field;
+
         async.waterfall([
             /**
                @function Check for documentation request.
@@ -1476,8 +1478,6 @@ httpdispatcher.onGet(
                @callback
             */
             function (callback) {
-                var field;
-
                 try {
                     field = url.parse(request.url, true).query;
                 }
@@ -1528,11 +1528,13 @@ httpdispatcher.onGet(
                 // getAQToken(), and called from there if successful
             },
             function (token, callback) {
+                // call fdvrdbout() below
                 callback(
                     null, token, field.editable, field.rndsup,
                     field.addkey, field.vflag, field.compdv,
                     field.agyin, field.station, field.inddid,
-                    field.stat, field.begdate, field.enddate, response
+                    field.stat, field.begdate, field.enddate,
+                    options.log, response
                 );
             },
             fdvrdbout
