@@ -24,7 +24,7 @@ var site = require('./site');
                 "Write DV data in rdb FORMAT" [sic].
    @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
    @author <a href="mailto:sbarthol@usgs.gov">Scott D. Bartholoma</a>
-   @param {object} response IncomingMessage object created by http.Server.
+   @param {string} token AQUARIUS Web services authentication token.
    @param {Boolean} editable true if DVs are editable; false otherwise.
    @param {Boolean} rndsup true to suppress rounding; false otherwise.
    @param {Boolean} addkey true if logical key is to be added to each row.
@@ -35,12 +35,25 @@ var site = require('./site');
    @param {string} stat Statistic code.
    @param {string} begdate Begin date.
    @param {string} enddate End date.
+   @param {Boolean} log true to enable server logging; false otherwise.
+   @param {object} response IncomingMessage object created by http.Server.
    @callback
 */
 function fdvrdbout(
     token, editable, rndsup, addkey, vflag, compdv, agyin, station,
-    stat, begdate, enddate, response, callback
+    stat, begdate, enddate, log, response, callback
 ) {
+    if (log)
+	console.log(
+	    'fdvrdbout(\n' +
+		'token, ' + editable + ', ' + rndsup + ',\n' +
+		addkey + ', ' + vflag + ', ' + compdv + ',\n' +
+		agyin + ', ' + station + ', ' + stat + ',\n' +
+		begdate + ', ' + enddate + ', ' + log + ',\n' +
+		response + ', ' + callback + '\n' +
+	    ')'
+	);
+
     // many/most of these are artifacts of the legacy code, and
     // probably won't be needed:
     var irc, dvabort;
