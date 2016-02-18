@@ -112,6 +112,12 @@ function fdvrdbout(
                 sagncy = siteField[columnName.indexOf('agency_cd')];
                 sid = siteField[columnName.indexOf('site_no')];
                 sname = siteField[columnName.indexOf('station_nm')];
+                /**
+                   @todo nwts2rdb appeared to reference the time zone
+                         offset instead of the code (see smgtof
+                         processing below)? Need to figure out if this
+                         is still relevant.
+                 */
                 site.tzCode = siteField[columnName.indexOf('tz_cd')];
                 slstfl = siteField[columnName.indexOf('local_time_fg')];
             }
@@ -251,6 +257,24 @@ function fdvrdbout(
                     function (callback) {
                         /**
                            @todo write Location info
+
+                           At 8:30 AM, Feb 16th, 2016, Wade Walker
+                           <walker@usgs.gov> said:
+
+                           sublocation is the AQUARIUS equivalent of
+                           ADAPS location. It is returned from any of
+                           the GetTimeSeriesDescriptionList... methods
+                           or for GetFieldVisitData method elements
+                           where sublocation is
+                           appropriate. GetSensorsAndGages will also
+                           return associated sublocations. They're
+                           basically just a shared attribute of time
+                           series, sensors and gages, and field
+                           readings, so no specific call for them,
+                           they're just returned with the data they're
+                           applicable to. Let me know if you need
+                           something beyond that.
+
                            rdbWriteLocInfo(funit, dd_id);
                          */
                         callback(null);
@@ -477,7 +501,7 @@ function fdvrdbout(
                 }
 
                 // TODO:
-		
+                
                 /*
                   EXEC SQL PREPARE pstmt FROM :stmt
                   nw_sql_error_handler ('fdvrdbout', 'prepare',
