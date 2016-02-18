@@ -48,11 +48,11 @@ module.exports = {
         if (log)
             console.log(
                 'fdvrdbout(\n' +
-                    'token, ' + editable + ', ' + rndsup + ',\n' +
-                    addkey + ', ' + vflag + ', ' + compdv + ',\n' +
-                    agyin + ', ' + station + ', ' + stat + ',\n' +
-                    begdate + ', ' + enddate + ', ' + log + ',\n' +
-                    response + ', ' + callback + '\n' +
+                    '   token, ' + editable + ', ' + rndsup + ',\n' +
+                    '   ' + addkey + ', ' + vflag + ', ' + compdv + ',\n' +
+                    '   ' + agyin + ', ' + station + ', ' + stat + ',\n' +
+                    '   ' + begdate + ', ' + enddate + ', ' + log + ',\n' +
+                    '   response, callback\n' +
                     ')'
             );
 
