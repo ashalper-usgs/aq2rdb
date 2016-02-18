@@ -951,7 +951,10 @@ httpdispatcher.onGet(
                     );
                 }
 
-                callback(null, locationIdentifier.siteNumber());
+                callback(
+                    null, options.waterServicesHostname,
+                    locationIdentifier.siteNumber(), options.log
+                );
             },
             site.request,
             site.receive,
@@ -1233,7 +1236,10 @@ httpdispatcher.onGet(
             */
             function (messageBody, callback) {
                 token = messageBody;
-                callback(null, locationIdentifier.toString());
+                callback(
+                    null, options.waterServicesHostname,
+                    locationIdentifier.siteNumber(), options.log
+                );
             },
             /**
                @todo site.request() and site.receive() can be done in
@@ -1531,11 +1537,11 @@ httpdispatcher.onGet(
             function (token, callback) {
                 // call fdvrdbout() below
                 callback(
-                    null, token, field.editable, field.rndsup,
-                    field.addkey, field.vflag, field.compdv,
-                    field.agyin, field.station, field.stat,
-                    field.begdate, field.enddate, options.log,
-                    response
+                    null, options.waterServicesHostname, token,
+                    field.editable, field.rndsup, field.addkey,
+                    field.vflag, field.compdv, field.agyin,
+                    field.station, field.stat, field.begdate,
+                    field.enddate, options.log, response
                 );
             },
             fdvrdbout,
