@@ -1486,14 +1486,19 @@ httpdispatcher.onGet(
                     callback(error);
                     return;
                 }
-                
+
+                if (options.log)
+                    console.log(
+                        packageName + ': ' + JSON.stringify(field)
+                    );
+
                 for (var name in field) {
                     if (isGetAQTokenField(name)) {
                         // GetAQToken fields
                     }
                     else if (
                         name.match(
-                                /^(editable|rndsup|addkey|vflag|compdv|agyin|station|inddid|stat|begdate|enddate)$/
+                                /^(editable|rndsup|addkey|vflag|compdv|agyin|station|stat|begdate|enddate)$/
                         )
                     ) {
                         // fdvrdbout fields
@@ -1501,11 +1506,6 @@ httpdispatcher.onGet(
                     else {
                         callback(new Error('Unknown field "' + name + '"'));
                         return;
-                    }
-                    if (options.log === true) {
-                        console.log(
-                            packageName + ': ' + JSON.stringify(field)
-                        );
                     }
                 }
                 callback(null, field);
@@ -1533,9 +1533,9 @@ httpdispatcher.onGet(
                 callback(
                     null, token, field.editable, field.rndsup,
                     field.addkey, field.vflag, field.compdv,
-                    field.agyin, field.station, field.inddid,
-                    field.stat, field.begdate, field.enddate,
-                    options.log, response
+                    field.agyin, field.station, field.stat,
+                    field.begdate, field.enddate, options.log,
+                    response
                 );
             },
             fdvrdbout,
