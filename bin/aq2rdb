@@ -10,6 +10,7 @@
 # Python modules
 import sys
 from getopt import getopt
+from os.path import basename
 
 # aq2rdb module
 from rdb_out import rdb_out
@@ -271,7 +272,7 @@ def main():
             # TODO: transplant error-handling code here
             sys.stderr.write("TODO:\n")
 
-        name = os.path.basename(sys.argv[0]) # script name
+        name = basename(sys.argv[0]) # script name
 
         for opt, arg in opts:
             if opt == "-o":
