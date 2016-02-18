@@ -450,7 +450,7 @@ var LocationIdentifier = function (text) {
 */
 function httpQuery(host, path, obj, callback) {
     /**
-       @description Handle response from GetLocationData.
+       @description Handle response from HTTP query.
        @callback
     */
     function httpQueryCallback(response) {
@@ -939,7 +939,7 @@ httpdispatcher.onGet(
             */
             function (timeSeriesDescriptions, callback) {
                 timeSeriesDescription =
-                    distill(
+                    aquarius.distill(
                         timeSeriesDescriptions, locationIdentifier, callback
                     );
 
@@ -1088,7 +1088,7 @@ httpdispatcher.onGet(
             */
             function (callback) {
                 try {
-                    getTimeSeriesCorrectedData(
+                    aquarius.getTimeSeriesCorrectedData(
                         token, timeSeriesDescription.UniqueId,
                         field.QueryFrom, field.QueryTo, callback
                     );
@@ -1098,11 +1098,7 @@ httpdispatcher.onGet(
                     return;
                 }
             },
-            // This function is defined at the global scope because it
-            // is required in more than one async.waterfall() call;
-            // see parseTimeSeriesDataServiceResponse initializer
-            // assignment above.
-            parseTimeSeriesDataServiceResponse,
+            aquarius.parseTimeSeriesDataServiceResponse,
             /**
                @function Write each RDB row to HTTP response.
                @callback
@@ -1332,7 +1328,7 @@ httpdispatcher.onGet(
                         }
                     },
                     function (uvTimeSeriesDescriptions) {
-                        timeSeriesDescription = distill(
+                        timeSeriesDescription = aquarius.distill(
                             uvTimeSeriesDescriptions,
                             locationIdentifier, callback
                         );
@@ -1379,7 +1375,7 @@ httpdispatcher.onGet(
             */
             function (uniqueId, callback) {
                 try {
-                    getTimeSeriesCorrectedData(
+                    aquarius.getTimeSeriesCorrectedData(
                         token, uniqueId,
                         field.QueryFrom, field.QueryTo, callback
                     );
@@ -1389,7 +1385,7 @@ httpdispatcher.onGet(
                     return;
                 }
             },
-            parseTimeSeriesDataServiceResponse,
+            aquarius.parseTimeSeriesDataServiceResponse,
             /**
                @callback
             */
@@ -1630,11 +1626,7 @@ if (process.env.NODE_ENV === 'test') {
         httpQuery: httpQuery,
         getAQToken: getAQToken,
         docRequest: docRequest,
-        getTimeSeriesCorrectedData: getTimeSeriesCorrectedData,
-        getLocationData: getLocationData,
         dvTableRow: dvTableRow,
-        distill: distill,
-        nwisVersusIANA: nwisVersusIANA,
-        parseTimeSeriesDataServiceResponse: parseTimeSeriesDataServiceResponse
+        nwisVersusIANA: nwisVersusIANA
     };
 }
