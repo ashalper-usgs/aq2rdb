@@ -548,6 +548,7 @@ function getAQToken(userName, password, callback) {
         });
     } // getAQTokenCallback
 
+    var port = '8080';
     var path = '/services/GetAQToken?';
     var uriString = 'http://' + options.aquariusHostname +
         '/AQUARIUS/';
@@ -555,8 +556,8 @@ function getAQToken(userName, password, callback) {
     if (options.log === true) {
         console.log(
             packageName + ': querying http://' +
-                options.aquariusTokenHostname + path +
-                ' ..., AQUARIUS server at ' + uriString
+                options.aquariusTokenHostname + ':' + port + path +
+                '..., AQUARIUS server at ' + uriString
         );
     }
 
@@ -572,7 +573,7 @@ function getAQToken(userName, password, callback) {
     */
     var request = http.request({
         host: options.aquariusTokenHostname,
-        port: '8080',           // TODO: make a CLI option
+        port: port,             // TODO: make a CLI parameter?
         path: path
     }, getAQTokenCallback);
 
@@ -1537,7 +1538,15 @@ httpdispatcher.onGet(
                     options.log, response
                 );
             },
-            fdvrdbout
+            fdvrdbout,
+            function(rtcode, callback) {
+                if (options.log)
+                    console.log(
+                        packageName + ': fdvrdbout.rtcode: ' +
+                            rtcode + '\n'
+                    );
+                callback(null);
+            }
         ],
         /**
            @description node-async error handler function for
