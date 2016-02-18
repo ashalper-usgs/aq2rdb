@@ -1489,13 +1489,14 @@ httpdispatcher.onGet(
                     callback(error);
                     return;
                 }
+                
                 for (var name in field) {
                     if (isGetAQTokenField(name)) {
                         // GetAQToken fields
                     }
                     else if (
                         name.match(
-/^(editable|rndsup|addkey|vflag|compdv|agyin|station|inddid|stat|begdate|enddate)$/
+                                /^(editable|rndsup|addkey|vflag|compdv|agyin|station|inddid|stat|begdate|enddate)$/
                         )
                     ) {
                         // fdvrdbout fields
@@ -1510,11 +1511,32 @@ httpdispatcher.onGet(
                         );
                     }
                 }
+                callback(null, field);
+            },
+            /**
+               @description Get AQUARIUS authentication token from
+                            GetAQToken service.
+               @callback
+             */
+            function (field, callback) {
+                try {
+                    getAQToken(
+                        field.userName, field.password, callback
+                    );
+                }
+                catch (error) {
+                    // abort & pass "error" to final callback
+                    callback(error);
+                }
+                // no callback here, because it is passed to
+                // getAQToken(), and called from there if successful
+            },
+            function (token, callback) {
                 callback(
-                    null, response, field.editable, field.rndsup,
+                    null, token, field.editable, field.rndsup,
                     field.addkey, field.vflag, field.compdv,
                     field.agyin, field.station, field.inddid,
-                    field.stat, field.begdate, field.enddate
+                    field.stat, field.begdate, field.enddate, response
                 );
             },
             fdvrdbout
