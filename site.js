@@ -15,26 +15,25 @@ var site = module.exports = {
        @callback
        @param {string} siteNumber NWIS site number string.
     */
-    request: function (number, callback) {
-	if (options.log === true) {
+    request: function (waterServicesHostname, number, log, callback) {
+        if (log)
             console.log(
-		path.basename(process.argv[1]).slice(0, -3) +
-		    '.request.number: ' + number
+                path.basename(process.argv[1]).slice(0, -3) +
+                    '.request.number: ' + number
             );
-	}
 
-	try {
+        try {
             httpQuery(
-		options.waterServicesHostname, '/nwis/site/',
-		{format: 'rdb',
-		 sites: number,
-		 siteOutput: 'expanded'}, callback
+                waterServicesHostname, '/nwis/site/',
+                {format: 'rdb',
+                 sites: number,
+                 siteOutput: 'expanded'}, callback
             );
-	}
-	catch (error) {
+        }
+        catch (error) {
             callback(error);
-	}
-	return;
+        }
+        return;
     }, // request
 
     /**
@@ -45,13 +44,13 @@ var site = module.exports = {
        @param {function} callback Callback to call when complete.
     */
     receive: function(messageBody, callback) {
-	var site = new Object;
+        var site = new Object;
 
-	/**
-	   @todo Here we're parsing RDB, which is messy, and would be nice
+        /**
+           @todo Here we're parsing RDB, which is messy, and would be nice
            to encapsulate.
-	*/
-	try {
+        */
+        try {
             // parse (station_nm,tz_cd,local_time_fg) from RDB
             // response
             var row = messageBody.split('\n');
@@ -66,13 +65,13 @@ var site = module.exports = {
             site.name = siteField[columnName.indexOf('station_nm')];
             site.tzCode = siteField[columnName.indexOf('tz_cd')];
             site.localTimeFlag = siteField[columnName.indexOf('local_time_fg')];
-	}
-	catch (error) {
+        }
+        catch (error) {
             callback(error);
             return;
-	}
+        }
 
-	callback(null, site);
+        callback(null, site);
     } // receive
 
 } // site
