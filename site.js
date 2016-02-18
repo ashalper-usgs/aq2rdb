@@ -6,6 +6,8 @@
 
 'use strict';
 
+var path = require('path');
+
 /**
    @description Public functions.
 */
