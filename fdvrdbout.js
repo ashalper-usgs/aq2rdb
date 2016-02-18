@@ -39,8 +39,8 @@ var site = require('./site');
    @callback
 */
 function fdvrdbout(
-    response, editable, rndsup, addkey, vflag, compdv, agyin, station,
-    inddid, stat, begdate, enddate, callback
+    token, editable, rndsup, addkey, vflag, compdv, agyin, station,
+    inddid, stat, begdate, enddate, response, callback
 ) {
     // many/most of these are artifacts of the legacy code, and
     // probably won't be needed:
@@ -118,8 +118,8 @@ function fdvrdbout(
             catch (error) {
                 /**
                    @todo Need to research the USGS Site Web Service
-                         semantics for "site not found", and emulate
-                         this legacy code accordingly.
+                         semantics for "site not found" assertion, and
+                         emulate this legacy code accordingly.
 
                 if (irc !== 0) {
                     sagncy = agyin;
@@ -477,6 +477,7 @@ function fdvrdbout(
                 }
 
                 // TODO:
+		
                 /*
                   EXEC SQL PREPARE pstmt FROM :stmt
                   nw_sql_error_handler ('fdvrdbout', 'prepare',
