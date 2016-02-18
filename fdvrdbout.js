@@ -637,7 +637,7 @@ function fdvrdbout(
     //   1 - some or all of data marked final
     //   2 - No non-null data in retrieval
     //   3 - error - bad begin or end date - no file written
-    return rtcode;
+    callback(null, rtcode);
 
     /**
       @todo
