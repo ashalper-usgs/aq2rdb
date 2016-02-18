@@ -62,7 +62,6 @@ def rdb_out(
         vflag, # Boolean flag for verbose dates and times
         inagny,                 # agency code
         instnid,                # station number
-        inddid,                 # DD number
         inlocnu,                # Location number
         instat,                 # Statistics code
         intrans,                # UV Transport code
@@ -78,7 +77,6 @@ def rdb_out(
     uvtyp_prompted = False
     funit = -1
     parm = ' '
-    ddid = ' '
     loc_tz_cd = in_loc_tz_cd
     
     if loc_tz_cd == ' ': loc_tz_cd = 'LOC'
@@ -107,7 +105,7 @@ def rdb_out(
     # check for a control file
 
     if ctlfile != ' ':          # using a control file - open it
-        irc = rdb_cfil(one, ctlfile, rtagny, sid, ddid,
+        irc = rdb_cfil(one, ctlfile, rtagny, sid,
                        stat, bctdtm, ectdtm, nline)
         #5
         if irc != 0: goto_999()          # ex-GOTO
@@ -117,12 +115,12 @@ def rdb_out(
         print cdate + " " + ctime + " Processing control file: " + ctlfile
         # get a line from the file
         first = True
-        irc = rdb_cfil(two, datatyp, rtagny, sid, ddid, stat,
+        irc = rdb_cfil(two, datatyp, rtagny, sid, stat,
                        bctdtm, ectdtm, nline)
 
         #6
         if irc != 0:
-            irc = rdb_cfil(three, ctlfile, rtagny, sid, ddid, 
+            irc = rdb_cfil(three, ctlfile, rtagny, sid,
                            stat, bctdtm, ectdtm, nline)
             if not first:       # end of control file
                 s_mclos         # close things down and exit cleanly
@@ -143,7 +141,7 @@ def rdb_out(
         if rtagny == ' ' or sid == ' ' or \
            (datatyp not in ["DC", "SV", "WL", "QW"] and stat == ' ') \
            or begdtm == ' ' or enddtm == ' ' or \
-           (datatyp not in ["MS", "PK", "WL", "QW"] and ddid == ' '):
+           (datatyp not in ["MS", "PK", "WL", "QW"]):
             cdate, ctime = s_date()
             # WRITE (0,2030) cdate, ctime, nline
             #2030  FORMAT (A8, 1X, A6, 1X, 'Incomplete row (missing items)',
@@ -173,7 +171,7 @@ def rdb_out(
                 else:
                     if len(outpath) > 128:
                         irc = rdb_cfil(three, ctlfile, rtagny, sid,
-                                       ddid, stat, bctdtm, ectdtm, nline) 
+                                       stat, bctdtm, ectdtm, nline) 
                         goto_998()
 
                     rdbfile = outpath
@@ -183,7 +181,7 @@ def rdb_out(
                     #7
                     if irc != 0:
                         irc = rdb_cfil(three, ctlfile, rtagny, sid, 
-                                       ddid, stat, bctdtm, ectdtm, nline)
+                                       stat, bctdtm, ectdtm, nline)
                         goto_999()
 
         # if multiple not specified...
@@ -229,10 +227,7 @@ def rdb_out(
             rdblen = len(outpath) + 5 + len(rtagny) + len(sid)
             if datatyp != 'MS' and datatyp != 'PK' and \
                datatyp != 'WL' and datatyp != 'QW':
-                lddid = "{:<4}".format(ddid)
-                
-                rdbfile = rdbfile + "." + lddid
-                rdblen = rdblen + 1 + len(lddid)
+                rdblen = rdblen + 1
 
             if datatyp not in ["DC", "SV", "WL", "QW"]:
                 rdbfile = rdbfile + '.' + stat
@@ -255,7 +250,7 @@ def rdb_out(
                     " opening output file for line " + nline + ".\n" + \
                     rdbfile[0:rdblen - 1]
 
-                irc = rdb_cfil(three, ctlfile, rtagny, sid, ddid, 
+                irc = rdb_cfil(three, ctlfile, rtagny, sid,
                                stat, bctdtm, ectdtm, nline)
                 s_mclos()
                 goto_999()
@@ -265,48 +260,22 @@ def rdb_out(
             #2070        FORMAT (A8, 1X, A6, 1X, 'Writing file ', A)
             print cdate + " " + ctime + " Writing file " + rdbfile
 
-        # check DD for a P in column 1 - indicated parm code for PR DD search
-
-        if ddid[0] in ['p', 'P']:
-            parm = ddid[1:5]
-            parm = "{:>5}".format(parm)
-            parm = parm.replace(' ', '0')
-
-            # TODO: NWIS logical database number is obsolete, so
-            # "rtdbnum" might be as well
-            get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc)
-            if irc != 0:
+        # process the request
+        if datatyp == "DV":
+            irc = fdvrdbout(
+                userName, password, funit, False, rndsup, addkey,
+                vflag, cflag, rtagny, sid, stat, begdtm, enddtm
+            )
+        elif datatyp == "UV":
+            uvtyp = stat[0]
+            if uvtyp not in ['M', 'N', 'E', 'R', 'S', 'C']:
                 cdate, ctime = s_date()
-                #       WRITE (0,2035) cdate, ctime, rtagny, sid, parm, nline
-                #2035    FORMAT (A8, 1X, A6, 1X, 'No PRIMARY DD for station "', 
-                #              A5, A15, '", parm "', A5, '" on line ', I5, '.')
+                # WRITE (0,2080) cdate, ctime, uvtyp, nline
+                #2080 FORMAT (A8, 1X, A6, 1X, 'Invalid unit-values type "', 
+                #         A1, '" on line ', I5,'.')
                 print cdate + " " + ctime + \
-                    " No PRIMARY DD for station \"" + rtagny + sid + \
-                    "\", parm \"" + parm + "\" on line " + nline
-                goto_9()
-            else:
-                if datatyp not in ["MS", "PK", "WL", "QW"]:
-                    # right justify DDID to 4 characters
-                    ddid = "{:>4}".format(ddid)
-
-            # process the request
-            if datatyp == "DV":
-                # TODO: need to decide what to do about empty ddid here:
-                irc = fdvrdbout(
-                    userName, password, funit, False, rndsup, addkey,
-                    vflag, cflag, rtagny, sid, ddid, stat,
-                    begdtm, enddtm
-                )
-            elif datatyp == "UV":
-                uvtyp = stat[0]
-                if uvtyp not in ['M', 'N', 'E', 'R', 'S', 'C']:
-                    cdate, ctime = s_date()
-                    # WRITE (0,2080) cdate, ctime, uvtyp, nline
-                    #2080 FORMAT (A8, 1X, A6, 1X, 'Invalid unit-values type "', 
-                    #         A1, '" on line ', I5,'.')
-                    print cdate + " " + ctime + \
-                " Invalid unit-values type \"" + uvtyp + \
-                "\" on line " + nline
+                    " Invalid unit-values type \"" + uvtyp + \
+                    "\" on line " + nline
             else:
                 uv = {
                     'M': "meas",
@@ -318,10 +287,11 @@ def rdb_out(
                 }
                 # TODO: NWIS logical database number is obsolete, so
                 # "rtdbnum" might be as well
-                fuvrdbout(funit, False, rtdbnum, rndsup, cflag,
-                          vflag, addkey, rtagny, sid, ddid,  
-                          uv[uvtyp], sensor_type_id, transport_cd,
-                          begdtm, enddtm, loc_tz_cd, irc)
+                irc = fuvrdbout(
+                    funit, False, rtdbnum, rndsup, cflag, vflag,
+                    addkey, rtagny, sid, uv[uvtyp], sensor_type_id,
+                    transport_cd, begdtm, enddtm, loc_tz_cd
+                )
 
         elif datatyp == "MS":
 
@@ -367,20 +337,22 @@ def rdb_out(
 
         elif datatyp == "DC":
 
-            fdcrdbout(funit, rndsup, addkey, cflag, vflag,
-                      rtagny, sid, ddid, begdtm, enddtm,
-                      loc_tz_cd, irc)
+            irc = fdcrdbout(
+                funit, rndsup, addkey, cflag, vflag, rtagny, sid,
+                begdtm, enddtm, loc_tz_cd
+            )
 
         elif datatyp == "SV":
 
-            fsvrdbout(funit, rndsup, addkey, cflag, vflag, \
-                      rtagny, sid, ddid, begdtm, enddtm, \
-                      loc_tz_cd, irc)
+            irc = fsvrdbout(
+                funit, rndsup, addkey, cflag, vflag, rtagny, sid,
+                begdtm, enddtm, loc_tz_cd
+            )
 
         # get next line from control file
         #9
-        irc = rdb_cfil(two, datatyp, rtagny, sid, ddid, stat, \
-                       bctdtm, ectdtm, nline)
+        irc = rdb_cfil(two, datatyp, rtagny, sid, stat, bctdtm,
+                       ectdtm, nline)
         goto_6()
 
     else:                       # Not a control file
@@ -479,32 +451,11 @@ def rdb_out(
         # DD is ignored for data types MS, PR, WL, and QW
 
         if datatyp not in ["MS", "PK", "WL", "QW"]:
-            # If type is VT, DDID is only needed IF parm and loc
-            # number are not specified
-            if (datatyp != 'VT' and inddid == ' ') \
-               or \
-               (datatyp == 'VT' and inddid == ' ' \
-                and (inddid[0] != 'P' or inlocnu == ' ')):
+            if datatyp == 'VT' and inlocnu == ' ':
                 needstrt = True
                 sopt[4] = '2'
         else:
-            # If ddid starts with "P", it is a parameter code, fill to
-            # 5 digits
-            if inddid[0] == 'p' or inddid[0] == 'P':
-                if len(inddid) > 6:
-                    parm = inddid[1:5]
-                else:
-                    parm = inddid[1:]
-                parm = "{:<5}".format(parm)
-                parm.replace(' ', '0')
-            else:
-                parm = ' '
-                # convert ddid to 4 characters
-                if len(inddid) > 4:
-                    ddid = inddid[0:3]
-                else:
-                    ddid = inddid
-                ddid = "{:>4}".format(ddid)
+            parm = ' '
 
     # further processing depends on data type
 
@@ -683,9 +634,6 @@ def rdb_out(
 
         if datatyp == 'QW':
             qwparm = ' '
-            if len(inddid) >= 2:
-                qwparm = inddid[1:]
-                qwmeth = instat
             # convert date/times to 14 characters
             if begdat == ' ' or enddat == ' ':
                 needstrt = True
@@ -733,17 +681,14 @@ def rdb_out(
         if sopt[4] in ['1', '2']:
             rtagny = agency     # get agency
             sid = stnid         # get stn ID
-            if sopt[4] == '2':
-                ddid = usddid   # and DD number
 
-        if ddid == ' ':
-            if parm != ' ' and datatyp != 'VT':
-                # TODO: NWIS logical database number is obsolete, so
-                # "rtdbnum" parameter here might be as well
-                nwf_get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc)
-                if irc != 0:
-                    write_2120(rtagny, sid, parm)
-                    goto_999()
+        if parm != ' ' and datatyp != 'VT':
+            # TODO: NWIS logical database number is obsolete, so
+            # "rtdbnum" parameter here might be as well
+            irc = nwf_get_prdd(rtdbnum, rtagny, sid, parm)
+            if irc != 0:
+                write_2120(rtagny, sid, parm)
+                goto_999()
 
         # stat code
         if sopt[7] == '1': stat = statcd
@@ -838,7 +783,7 @@ def rdb_out(
             # get PRIMARY DD that goes with parm if parm supplied
             # TODO: NWIS logical database number is obsolete, so
             # "rtdbnum" parameter here might be as well
-            nwf_get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc)
+            irc = nwf_get_prdd(rtdbnum, rtagny, sid, parm)
         if irc != 0:
             write_2120(rtagny, sid, parm)
             goto_999
@@ -848,12 +793,13 @@ def rdb_out(
         if uvtyp_prompted and datatyp == 'UV' and \
            (uvtyp == 'M' or uvtyp == 'N') and \
            transport_cd == ' ':
-            nw_query_meas_uv_type(rtagny, sid, ddid, begdtm,
-                                  enddtm, loc_tz_cd, transport_cd,
-                                  sensor_type_id, *998)
+            nw_query_meas_uv_type(
+                rtagny, sid, begdtm, enddtm, loc_tz_cd, transport_cd,
+                sensor_type_id, *998
+            )
             if transport_cd == ' ':
-                print "No MEASURED UV data for station \"" + rtagny + \
-                    sid + "\", DD \"" + ddid + "\". Aborting."
+                print 'No MEASURED UV data for station "' + rtagny + \
+                    sid + '". Aborting.'
                 goto_999()
 
         # Open output file
@@ -875,8 +821,7 @@ def rdb_out(
         if datatyp == 'DV':
             irc = fdvrdbout(
                 userName, password, funit, True, rndsup, addkey,
-                vflag, cflag, rtagny, sid, ddid, stat,
-                begdate, enddate
+                vflag, cflag, rtagny, sid, stat, begdate, enddate
             )
         elif datatyp == 'UV':
 
@@ -889,10 +834,11 @@ def rdb_out(
 
             # TODO: NWIS logical database number is obsolete, so
             # "rtdbnum" parameter here might be as well
-            fuvrdbout(funit, False, rtdbnum, rndsup, cflag,
-                      vflag, addkey, rtagny, sid, ddid, inguvtyp, 
-                      sensor_type_id, transport_cd, begdtm, 
-                      enddtm, loc_tz_cd, irc)
+            irc = fuvrdbout(
+                funit, False, rtdbnum, rndsup, cflag, vflag, addkey,
+                rtagny, sid, inguvtyp, sensor_type_id, transport_cd,
+                begdtm, enddtm, loc_tz_cd
+            )
 
         elif datatyp == 'MS':
 
@@ -911,12 +857,13 @@ def rdb_out(
 
             # Get parm and location number from DD, if not specified
             # in arguments
-            if inddid[0] != 'P' or inlocnu == ' ':
+            # TODO: DD number is obsolete, so what to do here?
+            if inlocnu == ' ':
                 # TODO: NWIS logical database number is obsolete, so
                 # "rtdbnum" parameter here might be as well
-                if not nw_db_key_get_dd_parm_loc(rtdbnum, rtagny, 
-                                                 sid, ddid, parm,
-                                                 loc_nu):
+                if not nw_db_key_get_dd_parm_loc(
+                        rtdbnum, rtagny, sid, parm, loc_nu
+                ):
                     goto_997()
             else:
                 loc_nu = atoi(inlocnu)
@@ -933,13 +880,13 @@ def rdb_out(
         elif datatyp == 'DC':
 
             irc = fdcrdbout(funit, rndsup, addkey, cflag, vflag,
-                            rtagny, sid, ddid, begdate, enddate, 
+                            rtagny, sid, begdate, enddate, 
                             loc_tz_cd)
 
         elif datatyp == 'SV':
 
             irc = fsvrdbout(funit, rndsup, addkey, cflag, vflag,
-                            rtagny, sid, ddid, begdate, enddate, 
+                            rtagny, sid, begdate, enddate, 
                             loc_tz_cd)
 
         elif datatyp == 'WL':
