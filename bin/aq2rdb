@@ -30,9 +30,6 @@ def aq2rdb_usage():
     sys.stderr.write("                -aagency\n")
     sys.stderr.write("                -nstation\n")
     sys.stderr.write(
-        "                -dddid (not used with datatypes ms, pk, wl, and qw) OR\n"
-    )
-    sys.stderr.write(
         "                -pparm (not used with datatypes ms, pk, and wl) AND\n"
     )
     sys.stderr.write("                -xloc_nu (only used with datatype vt)\n")
@@ -196,15 +193,11 @@ def aq2rdb_usage():
     sys.stderr.write("       If -t, -a, -n, -d, -p, -s, -b, -e, or -i are present, they are ignored.\n")
     sys.stderr.write("\n")
     sys.stderr.write("       The control file (-f argument) is an RDB file containing the\n")
-    sys.stderr.write("       columns \"DATATYPE\", \"AGENCY\", \"STATION\", \"DDID\", \"SUBTYPE\",\n")
+    sys.stderr.write("       columns \"DATATYPE\", \"AGENCY\", \"STATION\", \"SUBTYPE\",\n")
     sys.stderr.write("       \"BEGDATE\", and \"ENDDATE\", corresponding to the -t, -a, -n, -d,\n")
     sys.stderr.write("       -s, -b, and -e arguments for the no control file case.\n")
-    sys.stderr.write("       For the DDID column, if the datatype is \"qw\" it contains the parameter code.\n")
-    sys.stderr.write("       Otherwise, if the first character of the DDID is a \"P\", then it is treated\n")
-    sys.stderr.write("       as a parameter code and used to locate the PRIMARY DD for that parameter.\n")
     sys.stderr.write("       All columns must be present, and all columns must also be populated\n")
-    sys.stderr.write("       (not blank and not null), except that DDID is not used (may be blank\n")
-    sys.stderr.write("       or null) when DATATYPE is \"ms\" or \"pk\" and SUBTYPE is not used \n")
+    sys.stderr.write("       (not blank and not null), except that SUBTYPE is not used \n")
     sys.stderr.write("       when DATATYPE is \"dc\", or \"sv\".  It does not matter in what \n")
     sys.stderr.write("       order the columns appear in the control file.\n")
     sys.stderr.write("\n")
@@ -217,7 +210,6 @@ def main():
     datatyp = ' '
     agency = ' '
     station = ' '
-    ddid = ' '
     parm = ' '
     stat = ' '
     begdat = ' '
@@ -245,7 +237,6 @@ def main():
     tflag = False
     aflag = False
     nflag = False
-    dflag = False
     pflag = False
     sflag = False
     yflag = False
@@ -280,6 +271,8 @@ def main():
             # TODO: transplant error-handling code here
             sys.stderr.write("TODO:\n")
 
+        name = os.path.basename(sys.argv[0]) # script name
+
         for opt, arg in opts:
             if opt == "-o":
                 oflag = True
@@ -290,7 +283,7 @@ def main():
                 password = arg
             elif opt == "-z":
                 sys.stderr.write(
-                    os.path.basename(sys.argv[0]) +
+                    name +
                     ': NWIS logical database number ("-z" option) is obsolete'
                 )
             elif opt == "-t":
@@ -303,8 +296,9 @@ def main():
                 nflag = True
                 station = arg
             elif opt == "-d":
-                dflag = True
-                ddid = arg
+                sys.stderr.write(
+                    name + ': ddid ("-d" option) is obsolete'
+                )
             elif opt == "-p":
                 pflag = True
                 parm = arg
@@ -358,7 +352,7 @@ def main():
             )
             status = 122
 
-        elif not fflag and dflag and pflag:
+        elif not fflag and pflag:
             # Not using a control file. Cannot have both -d and -p
             sys.stderr.write("\n")
             sys.stderr.write("Arguments -d and -p cannot both be specified.\n")
@@ -368,7 +362,7 @@ def main():
                ((datatyp != "DC" and datatyp != "SV") and not sflag) or \
                (not datatyp != "QW" and not pflag) or \
                ((datatyp != "MS" and datatyp != "PK" and \
-                 datatyp != "WL") and not dflag and not pflag )):
+                 datatyp != "WL") and not pflag )):
             # Not using a control file, -m is ignored.
 
             # If -o is not specified, all other arguments must be
@@ -408,9 +402,7 @@ def main():
         if not nflag:
             station = nblank
 
-        if dflag:
-            ddpm = ddid
-        elif pflag:
+        if pflag:
             ddpm = "P" + parm
         else:
             # Neither -d or -p was specified: construct a blank string
