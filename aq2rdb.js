@@ -57,6 +57,16 @@ var cli = commandLineArgs([
     */
     {name: 'aquariusHostname', alias: 'a', type: String},
     /**
+       @description AQUARIUS Web service host, service account user
+                    name.
+    */
+    {name: 'aquariusUserName', type: String},
+    /**
+       @description AQUARIUS Web service host, service account
+                    password.
+    */
+    {name: 'aquariusPassword', type: String},
+    /**
        @description DNS name of aquarius-token Web service host.
     */
     {name: 'aquariusTokenHostname', alias: 't', type: String},
@@ -502,12 +512,23 @@ function httpQuery(host, path, obj, callback) {
    @function Call GetAQToken service to get AQUARIUS authentication
              token.
    @private
+   @param {string} hostname AQUARIUS TCP/IP host name.
    @param {string} userName AQUARIUS user name.
    @param {string} password AQUARIUS password.
    @param {function} callback Callback function to call if/when
           GetAQToken responds.
 */
-function getAQToken(userName, password, callback) {
+function getAQToken(hostname, userName, password, callback) {
+
+    if (hostname === undefined) {
+        callback('Required field "hostname" not found');
+        return;
+    }
+
+    if (hostname === '') {
+        callback('Required field "hostname" must have a value');
+        return;
+    }
 
     if (userName === undefined) {
         callback('Required field "userName" not found');
@@ -550,14 +571,12 @@ function getAQToken(userName, password, callback) {
 
     var port = '8080';
     var path = '/services/GetAQToken?';
-    var uriString = 'http://' + options.aquariusHostname +
-        '/AQUARIUS/';
+    var uriString = 'http://' + hostname + '/AQUARIUS/';
 
     if (options.log === true) {
         console.log(
-            packageName + ': querying http://' +
-                options.aquariusTokenHostname + ':' + port + path +
-                '..., AQUARIUS server at ' + uriString
+            packageName + ': querying http://' + hostname + ':' +
+                port + path + '..., AQUARIUS server at ' + uriString
         );
     }
 
@@ -772,6 +791,38 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
 } // nwisVersusIANA
 
 /**
+   @description AQUARIUS Web service login credentials object
+                prototype.
+   @class
+   @private
+*/
+var AquariusCredentials = function(cli, http) {
+    /**
+       @todo need some fallback logic here to read
+       (hostname,userName,password) from encrypted
+       configuration file if it was not provided as REST
+       parameters in the service request, or on the
+       command at service start-up.
+    */
+    // if any of AQUARIUS (hostname,userName,password) are
+    // missing from the Web service request...
+    if (http.hostname === undefined ||
+        http.userName === undefined ||
+        http.password === undefined) {
+        // ...fall-back on the service start-up values
+        hostname = cli.aquariusHostname;
+        userName = cli.aquariusUserName;
+        password = cli.aquariusPassword;
+    }
+    else {
+        // use the values provided in the HTTP query
+        hostname = http.hostname;
+        userName = http.userName;
+        password = http.password;
+    }
+} // AquariusCredentials
+
+/**
    @description GetDVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
@@ -853,9 +904,11 @@ httpdispatcher.onGet(
                          GetAQToken service.
                @callback
             */
-            function (userName, password, callback) {
+            function (hostname, userName, password, callback) {
                 try {
-                    getAQToken(userName, password, callback);
+                    getAQToken(
+                        hostname, userName, password, callback
+                    );
                 }
                 catch (error) {
                     // abort & pass "error" to final callback
@@ -1217,24 +1270,31 @@ httpdispatcher.onGet(
                     return;
                 }
 
-                /**
-                   @todo need some fallback logic here to read
-                   (userName,password) from encrypted configuration
-                   file if it was not provided as REST parameters
-                   in the service request.
-                 */
+                aquariusCredentials = new AquariusCredentials(
+                    {hostname: options.aquariusHostname,
+                     userName: options.aquariusUserName,
+                     password: options.password},
+                    {hostname: field.hostname,
+                     userName: field.userName,
+                     password: field.password}
+                );
 
                 // proceed to next waterfall
-                callback(null, field.userName, field.password);
+                callback(null, aquariusCredentials);
             },
             /**
                @description Get AQUARIUS authentication token from
                             GetAQToken service.
                @callback
             */
-            function (userName, password, callback) {
+            function (hostname, aquariusCredentials) {
                 try {
-                    getAQToken(userName, password, callback);
+                    getAQToken(
+                        aquariusCredentials.hostname,
+                        aquariusCredentials.userName,
+                        aquariusCredentials.password,
+                        callback
+                    );
                 }
                 catch (error) {
                     // abort & pass "error" to final callback
