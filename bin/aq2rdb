@@ -134,15 +134,15 @@ def aq2rdb_usage():
     )
     sys.stderr.write("       If -o is omitted, writes to stdout AND arguments required \n")
     sys.stderr.write("             based on data type as follows:\n")
-    sys.stderr.write("             \"dv\" and \"uv\" requires -t, -n, -s, -b, -e, AND -d OR -p\n")
-    sys.stderr.write("             \"dc\" and \"sv\" requires -t, -n, -b, -e, AND -d or -p\n")
+    sys.stderr.write("             \"dv\" and \"uv\" requires -t, -n, -s, -b, -e, AND -p\n")
+    sys.stderr.write("             \"dc\" and \"sv\" requires -t, -n, -b, -e, AND -p\n")
     sys.stderr.write("             \"ms\" and \"pk\" requires -t, -n, -s, -b, and -e\n")
-    sys.stderr.write("             \"vt\" requires -t, -n, -s, -b, -e AND either -p and -x OR -d\n")
+    sys.stderr.write("             \"vt\" requires -t, -n, -s, -b, -e AND either -p and -x\n")
     sys.stderr.write("             \"wl\" requires -t, -n, -s, -b, and -e\n")
     sys.stderr.write("             \"qw\" requires -t, -n, -s, -b, -e, and -p\n")
     sys.stderr.write("       If -o is present, no other arguments are required, and the program\n")
     sys.stderr.write("             will use ADAPS routines to prompt for them.\n")
-    sys.stderr.write("       If -p is present, -d cannot be present.  The parameter code is\n")
+    sys.stderr.write("       The parameter code is\n")
     sys.stderr.write("             used to find the PRIMARY DD for that parameter.\n")
     sys.stderr.write("       If -a is omitted, defaults to agency \"USGS\"\n")
     sys.stderr.write("       If -l is omitted, it will default to \"LOC\"\n")
@@ -191,11 +191,11 @@ def aq2rdb_usage():
     sys.stderr.write("       If -y is present, it is ignored except for rows in the\n")
     sys.stderr.write("             control file specifying Measured Unit-Values.\n")
     sys.stderr.write("             If omitted, defaults to preferred input.\n")
-    sys.stderr.write("       If -t, -a, -n, -d, -p, -s, -b, -e, or -i are present, they are ignored.\n")
+    sys.stderr.write("       If -t, -a, -n, -p, -s, -b, -e, or -i are present, they are ignored.\n")
     sys.stderr.write("\n")
     sys.stderr.write("       The control file (-f argument) is an RDB file containing the\n")
     sys.stderr.write("       columns \"DATATYPE\", \"AGENCY\", \"STATION\", \"SUBTYPE\",\n")
-    sys.stderr.write("       \"BEGDATE\", and \"ENDDATE\", corresponding to the -t, -a, -n, -d,\n")
+    sys.stderr.write("       \"BEGDATE\", and \"ENDDATE\", corresponding to the -t, -a, -n,\n")
     sys.stderr.write("       -s, -b, and -e arguments for the no control file case.\n")
     sys.stderr.write("       All columns must be present, and all columns must also be populated\n")
     sys.stderr.write("       (not blank and not null), except that SUBTYPE is not used \n")
@@ -374,7 +374,7 @@ def main():
             sys.stderr.write("and -s if datatype is not \"dc\", or \"sv\"\n")
             sys.stderr.write("and -p if datatype is \"qw\"\n")
             sys.stderr.write(
-                "and -d or -p if datatype is not \"ms\", \"pk\", " +
+                "and -p if datatype is not \"ms\", \"pk\", " +
                 "or \"wl\" must be present.\n"
             )
             status = 124
@@ -400,7 +400,7 @@ def main():
         if pflag:
             ddpm = "P" + parm
         else:
-            # Neither -d or -p was specified: construct a blank string
+            # -p was not specified: construct a blank string
             ddpm = dblank
 
         if not sflag:
