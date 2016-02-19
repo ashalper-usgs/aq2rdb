@@ -352,12 +352,6 @@ def main():
                 "be specified."
             )
             status = 122
-
-        elif not fflag and pflag:
-            # Not using a control file. Cannot have both -d and -p
-            sys.stderr.write("\n")
-            sys.stderr.write("Arguments -d and -p cannot both be specified.\n")
-            status = 123
         elif not fflag and not oflag and \
              ( not tflag or not nflag or not bflag or not eflag or \
                ((datatyp != "DC" and datatyp != "SV") and not sflag) or \
@@ -437,10 +431,9 @@ def main():
             ctlpath = fblank
 
         status = rdb_out(
-            userName, password, ctlpath, multiple, outpath, datatyp,
-            rndsup, wyflag, cflag, vflag, agency, station, ddpm,
-            loc_nu, stat, transport_cd, begdat, enddat, loc_tz_cd,
-            titlline
+            ctlpath, multiple, outpath, datatyp, rndsup, wyflag,
+            cflag, vflag, agency, station, loc_nu, stat, transport_cd,
+            begdat, enddat, loc_tz_cd, titlline
         )
         nw_write_error(stderr)
 
