@@ -13,7 +13,6 @@ import sys, urllib
 from datetime import datetime
 
 # aq2rdb modules
-from fdvrdbout import fdvrdbout
 from rdb_cfil import rdb_cfil
 from rdb_fill_beg_date import rdb_fill_beg_date
 from rdb_fill_beg_dtm import rdb_fill_beg_dtm
@@ -50,8 +49,6 @@ def write_2120(agny, sid, parm):
 
 # returns the error code from modules called (0 IF all OK)
 def rdb_out(
-        userName,               # AQUARIUS user name
-        password,               # AQUARIUS password
         ctlpath,                # control file path/name
         multiple,               # Boolean flag to do multiple ratings
         outpath,                # output file path/name
@@ -62,6 +59,8 @@ def rdb_out(
         vflag, # Boolean flag for verbose dates and times
         inagny,                 # agency code
         instnid,                # station number
+        # TODO: ddpm parameter might still be needed here. Check
+        # git history and legacy code.
         inlocnu,                # Location number
         instat,                 # Statistics code
         intrans,                # UV Transport code
@@ -262,10 +261,25 @@ def rdb_out(
 
         # process the request
         if datatyp == "DV":
-            irc = fdvrdbout(
-                userName, password, funit, False, rndsup, addkey,
-                vflag, cflag, rtagny, sid, stat, begdtm, enddtm
+            # TODO: call aq2rdb, fdvrdbout Web service here to GET RDB
+            # file.
+            print (
+                "fdvrdbout(\n" +
+                "   funit={}, editable={},\n" +
+                "   rndsup={}, addkey={}, vflag={}, cflag={},\n" +
+                "   rtagny={}, sid={}, stat={},\n" +
+                "   begdtm={}, enddate={}\n" +
+                ")"
+            ).format(
+                funit, False,
+                rndsup, addkey, vflag, cflag,
+                rtagny, sid, stat,
+                begdtm, enddtm
             )
+            #irc = fdvrdbout(
+            #    funit, False, rndsup, addkey, vflag, cflag, rtagny,
+            #    sid, stat, begdtm, enddtm
+            #)
         elif datatyp == "UV":
             uvtyp = stat[0]
             if uvtyp not in ['M', 'N', 'E', 'R', 'S', 'C']:
@@ -818,12 +832,27 @@ def rdb_out(
 
         # get data and output to files
 
-        if datatyp == 'DV':
-            irc = fdvrdbout(
-                userName, password, funit, True, rndsup, addkey,
-                vflag, cflag, rtagny, sid, stat, begdate, enddate
+        if datatyp == "DV":
+            # TODO: call aq2rdb, fdvrdbout Web service here to GET RDB
+            # file.
+            print (
+                "fdvrdbout(\n" +
+                "   funit={}, editable={},\n" +
+                "   rndsup={}, addkey={}, vflag={}, cflag={},\n" +
+                "   rtagny={}, sid={}, stat={},\n" +
+                "   begdtm={}, enddate={}\n" +
+                ")"
+            ).format(
+                funit, True,
+                rndsup, addkey, vflag, cflag,
+                rtagny, sid, stat,
+                begdate, enddate
             )
-        elif datatyp == 'UV':
+            #irc = fdvrdbout(
+            #    funit, True, rndsup, addkey, vflag, cflag, rtagny,
+            #    sid, stat, begdate, enddate
+            #)
+        elif datatyp == "UV":
 
             if uvtyp == 'M': inguvtyp = 'meas'
             if uvtyp == 'N': inguvtyp = 'msar'
