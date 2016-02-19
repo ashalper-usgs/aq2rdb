@@ -798,11 +798,10 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
 */
 var AquariusCredentials = function(cli, http) {
     /**
-       @todo need some fallback logic here to read
-       (hostname,userName,password) from encrypted
-       configuration file if it was not provided as REST
-       parameters in the service request, or on the
-       command at service start-up.
+       @todo Need some fallback logic here to read
+             (hostname,userName,password) from encrypted configuration
+             file if not provided as REST parameters in the service
+             request, or on the command at service start-up.
     */
     // if any of AQUARIUS (hostname,userName,password) are
     // missing from the Web service request...
@@ -1572,7 +1571,7 @@ httpdispatcher.onGet(
 
                 if (options.log)
                     console.log(
-                        packageName + ': ' + JSON.stringify(field)
+                        packageName + '.field: ' + JSON.stringify(field)
                     );
 
                 for (var name in field) {
@@ -1581,7 +1580,7 @@ httpdispatcher.onGet(
                     }
                     else if (
                         name.match(
-                                /^(editable|rndsup|addkey|vflag|compdv|agyin|station|stat|begdate|enddate)$/
+    /^(editable|rndsup|addkey|vflag|compdv|agyin|station|stat|begdate|enddate)$/
                         )
                     ) {
                         // fdvrdbout fields
@@ -1591,6 +1590,8 @@ httpdispatcher.onGet(
                         return;
                     }
                 }
+
+                console.log(packageName + ': creating aquariusCredentials...');
 
                 var aquariusCredentials = new AquariusCredentials(
                     {hostname: options.aquariusHostname,
@@ -1609,6 +1610,12 @@ httpdispatcher.onGet(
                @callback
              */
             function (aquariusCredentials, callback) {
+                if (options.log)
+                    console.log(
+                        packageName + ': ' +
+                            JSON.stringify(aquariusCredentials)
+                    );
+
                 try {
                     getAQToken(
                         aquariusCredentials.hostname,
@@ -1653,6 +1660,10 @@ httpdispatcher.onGet(
         function (error) {
             if (error) {
                 handle(error, response);
+                if (options.log)
+                    console.log(
+                        packageName + ': error: ' + error.message
+                    );
             }
             response.end();
         }
