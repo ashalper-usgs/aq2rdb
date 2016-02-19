@@ -269,12 +269,12 @@ def rdb_out(
                        'rndsup': str(rndsup).lower(),
                        'addkey': str(addkey).lower(),
                        'vflag': str(vflag).lower(),
-                       'cflag': str(cflag).lower(),
-                       'rtagny': rtagny,
-                       'sid': sid,
+                       'compdv': str(cflag).lower(),
+                       'agyin': rtagny,
+                       'station': sid,
                        'stat': stat,
-                       'begdtm': begdtm,
-                       'enddtm': enddtm}
+                       'begdate': begdtm,
+                       'enddate': enddtm}
                   )
 
             try:
@@ -850,9 +850,9 @@ def rdb_out(
                        'rndsup': str(rndsup).lower(),
                        'addkey': str(addkey).lower(),
                        'vflag': str(vflag).lower(),
-                       'cflag': str(cflag).lower(),
-                       'rtagny': rtagny,
-                       'sid': sid,
+                       'compdv': str(cflag).lower(),
+                       'agyin': rtagny,
+                       'station': sid,
                        'stat': stat,
                        'begdate': begdate,
                        'enddate': enddate}
