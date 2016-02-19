@@ -838,18 +838,24 @@ httpdispatcher.onGet(
                     return;
                 }
 
-                callback(null); // proceed to next waterfall
+                /**
+                   @todo need some fallback logic here to read
+                   (userName,password) from encrypted configuration
+                   file if it was not provided as REST parameters
+                   in the service request.
+                 */
+
+                // proceed to next waterfall
+                callback(null, field.userName, field.password);
             },
             /**
                @function Get AQUARIUS authentication token from
                          GetAQToken service.
                @callback
             */
-            function (callback) {
+            function (userName, password, callback) {
                 try {
-                    getAQToken(
-                        field.userName, field.password, callback
-                    );
+                    getAQToken(userName, password, callback);
                 }
                 catch (error) {
                     // abort & pass "error" to final callback
@@ -1211,18 +1217,24 @@ httpdispatcher.onGet(
                     return;
                 }
 
-                callback(null); // proceed to next waterfall
+                /**
+                   @todo need some fallback logic here to read
+                   (userName,password) from encrypted configuration
+                   file if it was not provided as REST parameters
+                   in the service request.
+                 */
+
+                // proceed to next waterfall
+                callback(null, field.userName, field.password);
             },
             /**
                @description Get AQUARIUS authentication token from
                             GetAQToken service.
                @callback
             */
-            function (callback) {
+            function (userName, password, callback) {
                 try {
-                    getAQToken(
-                        field.userName, field.password, callback
-                    );
+                    getAQToken(userName, password, callback);
                 }
                 catch (error) {
                     // abort & pass "error" to final callback
@@ -1514,18 +1526,23 @@ httpdispatcher.onGet(
                         return;
                     }
                 }
-                callback(null, field);
+
+                /**
+                   @todo need some fallback logic here to read
+                   (userName,password) from encrypted configuration
+                   file if it was not provided as REST parameters
+                   in the service request.
+                 */
+                callback(null, field.userName, field.password);
             },
             /**
                @description Get AQUARIUS authentication token from
                             GetAQToken service.
                @callback
              */
-            function (field, callback) {
+            function (userName, password, callback) {
                 try {
-                    getAQToken(
-                        field.userName, field.password, callback
-                    );
+                    getAQToken(userName, password, callback);
                 }
                 catch (error) {
                     // abort & pass "error" to final callback
