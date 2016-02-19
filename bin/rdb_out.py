@@ -261,25 +261,30 @@ def rdb_out(
 
         # process the request
         if datatyp == "DV":
-            # TODO: call aq2rdb, fdvrdbout Web service here to GET RDB
-            # file.
-            print (
-                "fdvrdbout(\n" +
-                "   funit={}, editable={},\n" +
-                "   rndsup={}, addkey={}, vflag={}, cflag={},\n" +
-                "   rtagny={}, sid={}, stat={},\n" +
-                "   begdtm={}, enddate={}\n" +
-                ")"
-            ).format(
-                funit, False,
-                rndsup, addkey, vflag, cflag,
-                rtagny, sid, stat,
-                begdtm, enddtm
-            )
-            #irc = fdvrdbout(
-            #    funit, False, rndsup, addkey, vflag, cflag, rtagny,
-            #    sid, stat, begdtm, enddtm
-            #)
+            url = 'http://localhost:8081/aq2rdb/fdvrdbout?' + \
+                  urllib.urlencode(
+                      {'editable': 'false',
+                       'rndsup': str(rndsup).lower(),
+                       'addkey': str(addkey).lower(),
+                       'vflag': str(vflag).lower(),
+                       'cflag': str(cflag).lower(),
+                       'rtagny': rtagny,
+                       'sid': sid,
+                       'stat': stat,
+                       'begdtm': begdtm,
+                       'enddtm': enddtm}
+                  )
+            print url
+            try:
+                response = urllib.urlopen(url)
+            except IOError as e:
+                sys.stderr.write(
+                    os.path.basename(sys.argv[0]) +
+                    ': IOError from urllib.urlopen(\'' + url + '\'); ' +
+                    'the error message was: ' + os.strerror(e.errno) + '\n'
+                )
+                irc = e.errno
+
         elif datatyp == "UV":
             uvtyp = stat[0]
             if uvtyp not in ['M', 'N', 'E', 'R', 'S', 'C']:
@@ -833,25 +838,30 @@ def rdb_out(
         # get data and output to files
 
         if datatyp == "DV":
-            # TODO: call aq2rdb, fdvrdbout Web service here to GET RDB
-            # file.
-            print (
-                "fdvrdbout(\n" +
-                "   funit={}, editable={},\n" +
-                "   rndsup={}, addkey={}, vflag={}, cflag={},\n" +
-                "   rtagny={}, sid={}, stat={},\n" +
-                "   begdtm={}, enddate={}\n" +
-                ")"
-            ).format(
-                funit, True,
-                rndsup, addkey, vflag, cflag,
-                rtagny, sid, stat,
-                begdate, enddate
-            )
-            #irc = fdvrdbout(
-            #    funit, True, rndsup, addkey, vflag, cflag, rtagny,
-            #    sid, stat, begdate, enddate
-            #)
+            url = 'http://localhost:8081/aq2rdb/fdvrdbout?' + \
+                  urllib.urlencode(
+                      {'editable': 'true',
+                       'rndsup': str(rndsup).lower(),
+                       'addkey': str(addkey).lower(),
+                       'vflag': str(vflag).lower(),
+                       'cflag': str(cflag).lower(),
+                       'rtagny': rtagny,
+                       'sid': sid,
+                       'stat': stat,
+                       'begdate': begdate,
+                       'enddate': enddate}
+                  )
+            print url
+
+            try:
+                response = urllib.urlopen(url)
+            except IOError as e:
+                sys.stderr.write(
+                    os.path.basename(sys.argv[0]) +
+                    ': IOError from urllib.urlopen(\'' + url + '\'); ' +
+                    'the error message was: ' + os.strerror(e.errno) + '\n'
+                )
+                irc = e.errno
         elif datatyp == "UV":
 
             if uvtyp == 'M': inguvtyp = 'meas'
