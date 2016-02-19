@@ -261,6 +261,8 @@ def rdb_out(
 
         # process the request
         if datatyp == "DV":
+            # TODO: put hard-coded aq2rdb hostname/port here in
+            # config. file.
             url = 'http://localhost:8081/aq2rdb/fdvrdbout?' + \
                   urllib.urlencode(
                       {'editable': 'false',
@@ -274,7 +276,7 @@ def rdb_out(
                        'begdtm': begdtm,
                        'enddtm': enddtm}
                   )
-            print url
+
             try:
                 response = urllib.urlopen(url)
             except IOError as e:
@@ -284,6 +286,8 @@ def rdb_out(
                     'the error message was: ' + os.strerror(e.errno) + '\n'
                 )
                 irc = e.errno
+            else:
+                print "response.getcode(): " + str(response.getcode())
 
         elif datatyp == "UV":
             uvtyp = stat[0]
@@ -838,6 +842,8 @@ def rdb_out(
         # get data and output to files
 
         if datatyp == "DV":
+            # TODO: put hard-coded aq2rdb hostname/port here in
+            # config. file.
             url = 'http://localhost:8081/aq2rdb/fdvrdbout?' + \
                   urllib.urlencode(
                       {'editable': 'true',
@@ -851,7 +857,6 @@ def rdb_out(
                        'begdate': begdate,
                        'enddate': enddate}
                   )
-            print url
 
             try:
                 response = urllib.urlopen(url)
@@ -862,6 +867,9 @@ def rdb_out(
                     'the error message was: ' + os.strerror(e.errno) + '\n'
                 )
                 irc = e.errno
+            else:
+                print "response.getcode(): " + str(response.getcode())
+
         elif datatyp == "UV":
 
             if uvtyp == 'M': inguvtyp = 'meas'
