@@ -810,15 +810,15 @@ var AquariusCredentials = function(cli, http) {
         http.userName === undefined ||
         http.password === undefined) {
         // ...fall-back on the service start-up values
-        hostname = cli.aquariusHostname;
-        userName = cli.aquariusUserName;
-        password = cli.aquariusPassword;
+        this.hostname = cli.aquariusHostname;
+        this.userName = cli.aquariusUserName;
+        this.password = cli.aquariusPassword;
     }
     else {
         // use the values provided in the HTTP query
-        hostname = http.hostname;
-        userName = http.userName;
-        password = http.password;
+        this.hostname = http.hostname;
+        this.userName = http.userName;
+        this.password = http.password;
     }
 } // AquariusCredentials
 
@@ -889,25 +889,30 @@ httpdispatcher.onGet(
                     return;
                 }
 
-                /**
-                   @todo need some fallback logic here to read
-                   (userName,password) from encrypted configuration
-                   file if it was not provided as REST parameters
-                   in the service request.
-                 */
+                var aquariusCredentials = new AquariusCredentials(
+                    {hostname: options.aquariusHostname,
+                     userName: options.aquariusUserName,
+                     password: options.password},
+                    {hostname: field.hostname,
+                     userName: field.userName,
+                     password: field.password}
+                );
 
                 // proceed to next waterfall
-                callback(null, field.userName, field.password);
+                callback(null, aquariusCredentials);
             },
             /**
                @function Get AQUARIUS authentication token from
                          GetAQToken service.
                @callback
             */
-            function (hostname, userName, password, callback) {
+            function (aquariusCredentials, callback) {
                 try {
                     getAQToken(
-                        hostname, userName, password, callback
+                        aquariusCredentials.hostname,
+                        aquariusCredentials.userName,
+                        aquariusCredentials.password,
+                        callback
                     );
                 }
                 catch (error) {
@@ -1270,7 +1275,7 @@ httpdispatcher.onGet(
                     return;
                 }
 
-                aquariusCredentials = new AquariusCredentials(
+                var aquariusCredentials = new AquariusCredentials(
                     {hostname: options.aquariusHostname,
                      userName: options.aquariusUserName,
                      password: options.password},
@@ -1287,7 +1292,7 @@ httpdispatcher.onGet(
                             GetAQToken service.
                @callback
             */
-            function (hostname, aquariusCredentials) {
+            function (aquariusCredentials, callback) {
                 try {
                     getAQToken(
                         aquariusCredentials.hostname,
@@ -1587,22 +1592,30 @@ httpdispatcher.onGet(
                     }
                 }
 
-                /**
-                   @todo need some fallback logic here to read
-                   (userName,password) from encrypted configuration
-                   file if it was not provided as REST parameters
-                   in the service request.
-                 */
-                callback(null, field.userName, field.password);
+                var aquariusCredentials = new AquariusCredentials(
+                    {hostname: options.aquariusHostname,
+                     userName: options.aquariusUserName,
+                     password: options.password},
+                    {hostname: field.hostname,
+                     userName: field.userName,
+                     password: field.password}
+                );
+
+                callback(null, aquariusCredentials);
             },
             /**
                @description Get AQUARIUS authentication token from
                             GetAQToken service.
                @callback
              */
-            function (userName, password, callback) {
+            function (aquariusCredentials, callback) {
                 try {
-                    getAQToken(userName, password, callback);
+                    getAQToken(
+                        aquariusCredentials.hostname,
+                        aquariusCredentials.userName,
+                        aquariusCredentials.password,
+                        callback
+                    );
                 }
                 catch (error) {
                     // abort & pass "error" to final callback
