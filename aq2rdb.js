@@ -796,7 +796,7 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
    @class
    @private
 */
-var AquariusCredentials = function(cli, http) {
+function AquariusCredentials (cli, http) {
     /**
        @todo Need some fallback logic here to read
              (hostname,userName,password) from encrypted configuration
@@ -809,9 +809,9 @@ var AquariusCredentials = function(cli, http) {
         http.userName === undefined ||
         http.password === undefined) {
         // ...fall-back on the service start-up values
-        this.hostname = cli.aquariusHostname;
-        this.userName = cli.aquariusUserName;
-        this.password = cli.aquariusPassword;
+        this.hostname = cli.hostname;
+        this.userName = cli.userName;
+        this.password = cli.password;
     }
     else {
         // use the values provided in the HTTP query
@@ -891,7 +891,7 @@ httpdispatcher.onGet(
                 var aquariusCredentials = new AquariusCredentials(
                     {hostname: options.aquariusHostname,
                      userName: options.aquariusUserName,
-                     password: options.password},
+                     password: options.aquariusPassword},
                     {hostname: field.hostname,
                      userName: field.userName,
                      password: field.password}
@@ -1277,7 +1277,7 @@ httpdispatcher.onGet(
                 var aquariusCredentials = new AquariusCredentials(
                     {hostname: options.aquariusHostname,
                      userName: options.aquariusUserName,
-                     password: options.password},
+                     password: options.aquariusPassword},
                     {hostname: field.hostname,
                      userName: field.userName,
                      password: field.password}
@@ -1591,12 +1591,10 @@ httpdispatcher.onGet(
                     }
                 }
 
-                console.log(packageName + ': creating aquariusCredentials...');
-
                 var aquariusCredentials = new AquariusCredentials(
                     {hostname: options.aquariusHostname,
                      userName: options.aquariusUserName,
-                     password: options.password},
+                     password: options.aquariusPassword},
                     {hostname: field.hostname,
                      userName: field.userName,
                      password: field.password}
@@ -1610,12 +1608,6 @@ httpdispatcher.onGet(
                @callback
              */
             function (aquariusCredentials, callback) {
-                if (options.log)
-                    console.log(
-                        packageName + ': ' +
-                            JSON.stringify(aquariusCredentials)
-                    );
-
                 try {
                     getAQToken(
                         aquariusCredentials.hostname,
