@@ -13,6 +13,7 @@ import sys, urllib
 from datetime import datetime
 
 # aq2rdb modules
+from error_handler import error_handler
 from rdb_cfil import rdb_cfil
 from rdb_fill_beg_date import rdb_fill_beg_date
 from rdb_fill_beg_dtm import rdb_fill_beg_dtm
@@ -929,7 +930,9 @@ def rdb_out(
     # bad return (do a generic error message)
     #998
     irc = 3
-    nw_error_handler(irc, 'nwf_rdb_out', 'error',
-                     'doing something', 'something bad happened')
+    error_block = error_handler(
+        irc, 'nwf_rdb_out', 'error', 'doing something',
+        'something bad happened'
+    )
 
     goto_999()
