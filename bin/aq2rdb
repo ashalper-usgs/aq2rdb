@@ -217,7 +217,7 @@ def main():
     enddat = ' '
     loc_tz_cd = ' '
     loc_nu = ' '
-    ctlpath = ' '
+    ctlpath = None
     transport_cd = ' '
     titlline = ' '
     oblank = ' '
@@ -425,10 +425,6 @@ def main():
         # get the length of the location number
         if not xflag:
             loc_nu = xblank
-
-        # get the length of the control file pathname 
-        if not fflag:
-            ctlpath = fblank
 
         status = rdb_out(
             ctlpath, multiple, outpath, datatyp, rndsup, wyflag,
