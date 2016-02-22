@@ -41,7 +41,6 @@ def goto_999():
     global irc
     # Good return
     nwf_rdb_out = irc
-    sys.exit(0)
 
 def write_2120(agny, sid, parm):
     print "No PRIMARY DD for station \"" + agny + sid + \
@@ -287,7 +286,9 @@ def rdb_out(
                 )
                 irc = e.errno
             else:
-                print "response.getcode(): " + str(response.getcode())
+                # if there was an HTTP error
+                if 400 <= code or code < 600:
+                    return code
 
         elif datatyp == "UV":
             uvtyp = stat[0]
@@ -832,8 +833,8 @@ def rdb_out(
                 irc = e.errno
             else:
                 code = response.getcode()
-                if code < 400 or 500 <= code:
-                    print "response.getcode(): " + str(response.getcode())
+                # if there was an HTTP error
+                if 400 <= code or code < 600:
                     return code
 
         elif datatyp == "UV":
