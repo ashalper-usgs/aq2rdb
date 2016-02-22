@@ -95,23 +95,23 @@ def rdb_out(
             irc = nw_get_error_number()
             goto_999()              # ex-GOTO
 
-    # Set control file path
-    if len(ctlpath) > 128: goto_998() # ex-GOTO
-    ctlfile = ctlpath
+    if ctlpath != None:
+        if 128 < len(ctlpath):
+            goto_998() # ex-GOTO
 
-    addkey = (ctlfile != ' ' and not multiple) # set logical flag
+    addkey = (ctlpath != None and not multiple) # set logical flag
 
     # check for a control file
 
-    if ctlfile != ' ':          # using a control file - open it
-        irc = rdb_cfil(one, ctlfile, rtagny, sid,
-                       stat, bctdtm, ectdtm, nline)
+    if ctlpath != None:         # using a control file - open it
+        irc = rdb_cfil(one, ctlpath, rtagny, sid, stat, bctdtm,
+                       ectdtm, nline)
         #5
         if irc != 0: goto_999()          # ex-GOTO
         cdate, ctime = s_date()
         # WRITE (0,2010) cdate, ctime, ctlfile(1:nwf_strlen(ctlfile))
         #2010     FORMAT (A8,1X,A6,1X,'Processing control file: ',A)
-        print cdate + " " + ctime + " Processing control file: " + ctlfile
+        print cdate + " " + ctime + " Processing control file: " + ctlpath
         # get a line from the file
         first = True
         irc = rdb_cfil(two, datatyp, rtagny, sid, stat,
@@ -119,8 +119,8 @@ def rdb_out(
 
         #6
         if irc != 0:
-            irc = rdb_cfil(three, ctlfile, rtagny, sid,
-                           stat, bctdtm, ectdtm, nline)
+            irc = rdb_cfil(three, ctlpath, rtagny, sid, stat, bctdtm,
+                           ectdtm, nline)
             if not first:       # end of control file
                 s_mclos         # close things down and exit cleanly
                 # TODO: needs translation to Python I/O:
@@ -169,7 +169,7 @@ def rdb_out(
                     funit = sys.stdout
                 else:
                     if len(outpath) > 128:
-                        irc = rdb_cfil(three, ctlfile, rtagny, sid,
+                        irc = rdb_cfil(three, ctlpath, rtagny, sid,
                                        stat, bctdtm, ectdtm, nline) 
                         goto_998()
 
@@ -179,7 +179,7 @@ def rdb_out(
                     funit = open(rdbfile, 'w')
                     #7
                     if irc != 0:
-                        irc = rdb_cfil(three, ctlfile, rtagny, sid, 
+                        irc = rdb_cfil(three, ctlpath, rtagny, sid, 
                                        stat, bctdtm, ectdtm, nline)
                         goto_999()
 
@@ -249,7 +249,7 @@ def rdb_out(
                     " opening output file for line " + nline + ".\n" + \
                     rdbfile[0:rdblen - 1]
 
-                irc = rdb_cfil(three, ctlfile, rtagny, sid,
+                irc = rdb_cfil(three, ctlpath, rtagny, sid,
                                stat, bctdtm, ectdtm, nline)
                 s_mclos()
                 goto_999()
