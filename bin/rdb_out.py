@@ -831,7 +831,10 @@ def rdb_out(
                 )
                 irc = e.errno
             else:
-                print "response.getcode(): " + str(response.getcode())
+                code = response.getcode()
+                if code < 400 or 500 <= code:
+                    print "response.getcode(): " + str(response.getcode())
+                    return code
 
         elif datatyp == "UV":
 
