@@ -284,7 +284,7 @@ def rdb_out(
                     ': IOError from urllib.urlopen(\'' + url + '\'); ' +
                     'the error message was: ' + os.strerror(e.errno) + '\n'
                 )
-                irc = e.errno
+                return e.errno
             else:
                 # if there was an HTTP error
                 if 400 <= code or code < 600:
@@ -807,7 +807,7 @@ def rdb_out(
 
         if datatyp == "DV":
             # TODO: put hard-coded aq2rdb hostname/port here in
-            # config. file.
+            # configuration file.
             url = 'http://localhost:8081/aq2rdb/fdvrdbout?' + \
                   urllib.urlencode(
                       {'editable': 'true',
@@ -830,7 +830,7 @@ def rdb_out(
                     ': IOError from urllib.urlopen(\'' + url + '\'); ' +
                     'the error message was: ' + os.strerror(e.errno) + '\n'
                 )
-                irc = e.errno
+                return e.errno
             else:
                 code = response.getcode()
                 # if there was an HTTP error
