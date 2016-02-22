@@ -26,6 +26,7 @@ var moment = require('moment-timezone');
 // aq2rdb modules
 var aquarius = require('./aquarius');
 var fdvrdbout = require('./fdvrdbout').fdvrdbout;
+var rest = require('./rest');
 var rdbHeader = require('./rdbHeader');
 var site = require('./site');
 
@@ -446,67 +447,6 @@ var LocationIdentifier = function (text) {
     }
 
 } // LocationIdentifier
-
-/**
-   @function Call a REST Web service with an HTTP query; send response
-             via a callback.
-   @private
-   @param {string} host Host part of HTTP query URL.
-   @param {string} path Path part of HTTP query URL.
-   @param {object} field An array of attribute-value pairs to bind in
-          HTTP query URL.
-   @param {function} callback Callback function to call if/when
-          response from Web service is received.
-*/
-function httpQuery(host, path, obj, callback) {
-    /**
-       @description Handle response from HTTP query.
-       @callback
-    */
-    function httpQueryCallback(response) {
-        var messageBody = '';
-
-        // accumulate response
-        response.on(
-            'data',
-            function (chunk) {
-                messageBody += chunk;
-            });
-
-        response.on('end', function () {
-            callback(null, messageBody);
-            return;
-        });
-    }
-    
-    if (options.log === true) {
-        console.log(
-            packageName + '.httpQuery.obj: ' + JSON.stringify(obj)
-        );
-    }
-
-    path += '?' + querystring.stringify(obj);
-
-    if (options.log === true) {
-        console.log(packageName + ': querying http://' +
-                    host + path); 
-    }
-
-    var request = http.request({
-        host: host,
-        path: path
-    }, httpQueryCallback);
-
-    /**
-       @description Handle service invocation errors.
-    */
-    request.on('error', function (error) {
-        callback(error);
-        return;
-    });
-
-    request.end();
-} // httpQuery
 
 /**
    @function Call GetAQToken service to get AQUARIUS authentication
@@ -957,7 +897,7 @@ httpdispatcher.onGet(
                     obj.ComputationIdentifier = field.ComputationIdentifier;
                 
                 try {
-                    httpQuery(
+                    rest.query(
                         options.aquariusHostname,
                         aquarius.PREFIX + 'GetTimeSeriesDescriptionList',
                         obj,
@@ -1093,7 +1033,7 @@ httpdispatcher.onGet(
             */
             function (callback) {
                 try {
-                    httpQuery(
+                    rest.query(
                         options.aquariusHostname,
                         aquarius.PREFIX + 'GetQualifierList/',
                         {token: token,
@@ -1346,7 +1286,7 @@ httpdispatcher.onGet(
             */
             function (callback) {
                 try {
-                    httpQuery(
+                    rest.query(
                         options.aquariusHostname,
                         aquarius.PREFIX + 'GetTimeSeriesDescriptionList',
                         {token: token, format: 'json',
@@ -1733,7 +1673,6 @@ if (process.env.NODE_ENV === 'test') {
     module.exports._private = {
         handle: handle,
         jsonParseErrorMessage: jsonParseErrorMessage,
-        httpQuery: httpQuery,
         getAQToken: getAQToken,
         docRequest: docRequest,
         dvTableRow: dvTableRow,
