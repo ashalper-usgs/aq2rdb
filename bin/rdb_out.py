@@ -719,38 +719,6 @@ def rdb_out(
         # data type
         if sopt[11] == '2':
             uvtyp_prompted = True
-        if usdtyp == 'D':
-            datatyp = 'DV'
-            cflag = False
-        elif usdtyp == 'V':
-            datatyp = 'DV'
-            cflag = True
-        elif usdtyp == 'U':
-            datatyp = 'UV'
-            uvtyp = 'M'
-        elif usdtyp == 'N':
-            datatyp = 'UV'
-            uvtyp = 'N'
-        elif usdtyp == 'E':
-            datatyp = 'UV'
-            uvtyp = 'E'
-        elif usdtyp == 'R':
-            datatyp = 'UV'
-            uvtyp = 'R'
-        elif usdtyp == 'S':
-            datatyp = 'UV'
-            uvtyp = 'S'
-        elif usdtyp == 'C':
-            datatyp = 'UV'
-            uvtyp = 'C'
-        elif usdtyp == 'M':
-            datatyp = 'MS'
-        elif usdtyp == 'X':
-            datatyp = 'VT'
-        elif usdtyp == 'L':
-            datatyp = 'WL'
-        elif usdtyp == 'Q':
-            datatyp = 'QW'
 
         # date range for water years
         if sopt[8] == '4':
@@ -784,11 +752,6 @@ def rdb_out(
                 enddtm = '99999999999999'
             else:
                 enddtm = uedate + '235959'
-
-        # Restore contents of user buffer
-        if irc == 0:
-            usbuff = holdbuff[0:90]
-            s_mdus(nw_updt, irc, *998)
 
     else:
 
