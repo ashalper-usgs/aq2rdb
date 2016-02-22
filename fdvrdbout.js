@@ -100,64 +100,10 @@ module.exports = {
                 callback(null, waterServicesHostname, sid, log);
             },
             site.request,
-            /**
-               @function Receive and parse response from USGS Site Web
-                         Service.
-               @callback
-               @param {string} messageBody Message body of HTTP
-                               response from USGS
-               Site Web Service.
-               @param {function} callback Callback to call when complete.
-            */
-            function(messageBody, callback) {
-                var site = new Object;
-
-                /**
-                   @todo Here we're parsing RDB, which is messy, and
-                         would be nice to encapsulate.
-                */
-                try {
-                    // parse (station_nm,tz_cd,local_time_fg) from RDB
-                    // response
-                    var row = messageBody.split('\n');
-                    // RDB column names
-                    var columnName = row[row.length - 4].split('\t');
-                    // site column values are in last row of table
-                    var siteField = row[row.length - 2].split('\t');
-
-                    // the necessary site fields
-                    sagncy = siteField[columnName.indexOf('agency_cd')];
-                    sid = siteField[columnName.indexOf('site_no')];
-                    sname = siteField[columnName.indexOf('station_nm')];
-                    /**
-                       @todo nwts2rdb appeared to reference the time zone
-                       offset instead of the code (see smgtof
-                       processing below)? Need to figure out if this
-                       is still relevant.
-                    */
-                    site.tzCode = siteField[columnName.indexOf('tz_cd')];
-                    slstfl = siteField[columnName.indexOf('local_time_fg')];
-                }
-                catch (error) {
-                    /**
-                       @todo Need to research the USGS Site Web Service
-                       semantics for "site not found" assertion, and
-                       emulate this legacy code accordingly.
-
-                       if (irc !== 0) {
-                       sagncy = agyin;
-                       sid = station;
-                       sname = '*** NOT IN SITE FILE ***';
-                       smgtof = ' ';
-                       slstfl = ' ';
-                       }
-                    */
-                    callback(error);
-                    return;
-                }
-                callback(null, site);
-            },
+            site.receive,
             function (site, callback) {
+                console.log(JSON.stringify(site));
+
                 if (smgtof === ' ') {
                     // WRITE (smgtof,'(I3)') gmtof
                     smgtof = sprintf("%3d", gmtof);
