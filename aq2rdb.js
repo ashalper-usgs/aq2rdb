@@ -10,18 +10,16 @@
 'use strict';
 
 // Node.js modules
-var path = require('path');
+var async = require('async');
 var commandLineArgs = require('command-line-args');
+var fs = require('fs');
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
-var url = require('url');
-var querystring = require('querystring');
-/**
-   @see https://github.com/caolan/async
-*/
-var async = require('async');
-var fs = require('fs');
 var moment = require('moment-timezone');
+var path = require('path');
+var querystring = require('querystring');
+var sprintf = require("sprintf-js").sprintf;
+var url = require('url');
 
 // aq2rdb modules
 var aquarius = require('./aquarius');
@@ -568,18 +566,21 @@ function getAQToken(hostname, userName, password, callback) {
    @param {object} response Response object.
    @param {function} callback Callback function to call when complete.
 */
-function docRequest(url, name, response, callback) {
+function docRequest(url, servicePath, response, callback) {
     // if this is a documentation request
-    if (url === '/' + packageName + '/' + name) {
+    if (url === servicePath) {
         // read and serve the documentation page
-        fs.readFile('doc/' + name + '.html', function (error, html) {
-            if (error) {
-                callback(error);
-                return true;
-            }       
-            response.writeHeader(200, {"Content-Type": "text/html"});  
-            response.end(html);
-        });
+        fs.readFile(
+            'doc/' + path.basename(servicePath) + '.html',
+            function (error, html) {
+                if (error) {
+                    callback(error);
+                    return true;
+                }       
+                response.writeHeader(200, {"Content-Type": "text/html"});  
+                response.end(html);
+            }
+        );
         return true;
     }
     else
@@ -731,8 +732,7 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
 } // nwisVersusIANA
 
 /**
-   @description AQUARIUS Web service login credentials object
-                prototype.
+   @description AQUARIUS Web service login credentials object prototype.
    @class
    @private
 */
@@ -762,6 +762,231 @@ function AquariusCredentials (cli, http) {
 } // AquariusCredentials
 
 /**
+   @function Partial Node.js of legacy NWIS, RDB_OUT() Fortran
+             subroutine: "Top-level routine for outputting rdb format
+             data"
+   @param datatyp      (inp - C*(*)) rating type
+   @param rndsup       (inp - C*(*)) Y/N flag for rounding-suppressed
+   @param inwyflag     (inp - C*(*)) Y/N flag for water-year
+   @param incflag      (inp - C*(*)) Y/N flag for Computed DVs/Combined Datetimes (UVs)
+   @param invflag      (inp - C*(*)) Y/N flag for verbose dates and times
+   @param inagny       (inp - C*(*)) agency code
+   @param instnid      (inp - C*(*)) station number
+   @param INLOCNU      (inp - C*(*)) Location number
+   @param INSTAT       (inp - C*(*)) Statistics code
+   @param INTRANS      (inp - C*(*)) UV Transport code
+   @param BEGDAT       (inp - C*(*)) begin date
+   @param ENDDAT       (inp - C*(*)) end date
+   @param IN_LOC_TZ_CD (inp - C*(*)) time zone code
+   @param TITLLINE     (inp - C*(*)) title line (text)
+   @return (Integer*4) returns the error code from modules called (0 IF all OK)
+   @private
+ */
+function rdbOut(
+    response, datatyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
+    locnu, instat, intrans, begdat, enddat, inLocTzCd, titlline
+) {
+    console.log(
+        sprintf(
+ "datatyp=%s, rndsup=%s, wyflag=%s, cflag=%s, vflag=%s, inagny=%s, instnid=%s," +
+"locnu=%s, instat=%s, intrans=%s, begdat=%s, enddat=%s, inLocTzCd=%s, titlline=%s",
+            datatyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
+            locnu, instat, intrans, begdat, enddat, inLocTzCd, titlline
+        )
+    );
+
+    // string
+    var sopt, rdbfile, rtagny, sid;
+    var parm, stat, transportCd, uvtyp, inguvtyp, mstyp;
+    var mssav, vttyp, wltyp, pktyp, qwparm, qwmeth;
+    var begdate, enddate, begdtm, enddtm, bctdtm, ectdtm;
+    var cdate, ctime, tzCd, locTzCd, localTimeFg;
+
+    // integer
+    var ipu, irc, sensorTypeId, iyr, i;
+    var one = 1, two = 2, three = 3;
+
+    // Boolean
+    var needstrt, first, uvtypPrompted;
+
+    needstrt = false;
+    uvtypPrompted = false;
+    parm = undefined;
+    locTzCd = inLocTzCd;
+    if (locTzCd === undefined) locTzCd = 'LOC';
+
+    if (intrans === undefined) {
+        transportCd = undefined;
+    }
+    else {
+        transportCd = intrans.charAt(0).toUpperCase();
+    }
+
+    // init control argument
+    sopt = '10000000000000000000000000000000'.split('');
+    if (datatyp.length > 2)
+        datatyp = datatyp.substring(0, 2);
+         
+    datatyp = datatyp.toUpperCase();
+
+    // convert agency to 5 characters - default to USGS
+    if (inagny === undefined)
+        rtagny = 'USGS';
+    else {
+        if (inagny.length > 5)
+            rtagny = inagny.substring(0, 5);
+        else
+            rtagny = inagny;
+        rtagny = sprintf("%-5s", inagny);       
+    }
+    // convert station to 15 characters
+    if (instnid === undefined) {
+        needstrt = true;
+        if (datatyp === 'MS' || datatyp === 'PK' ||
+            datatyp === 'WL' || datatyp === 'QW')
+            sopt[4] = '1';
+        else
+            sopt[4] = '2';
+    }
+    else {
+        if (instnid.length > 15)
+            sid = instnid.substring(0, 15);
+        else
+            sid = instnid
+        sid = sprintf("%-5s", sid);
+    }
+
+    // DD is ignored for data types MS, PR, WL, and QW
+
+    if (datatyp !== 'MS' && datatyp !== 'PK' &&
+        datatyp !== 'WL' && datatyp !== 'QW') {
+
+        if ((datatyp !== 'VT') ||
+            (datatyp === 'VT' && (locnu === undefined))) {
+               needstrt = true;
+               sopt[4] = '2';
+        }
+        else {
+            parm = undefined;
+        }
+
+    }
+
+    // further processing depends on data type
+
+    if (datatyp === 'DV') {     // convert stat to 5 characters
+        if (instat === undefined) {
+            needstrt = true;
+            sopt[7] = '1';
+        }
+        else {
+            if (instat.length > 5)
+                stat = instat.substring(0, 5);
+            else
+                stat = instat;
+            stat = sprintf("%5s", stat).replace(' ', '0');
+        }
+    }
+
+    if (datatyp === 'DV' || datatyp === 'DC' ||
+        datatyp === 'SV' || datatyp === 'PK') {
+
+        // convert dates to 8 characters
+        if (begdat === undefined || enddat === undefined) {
+            needstrt = true;
+            if (wyflag)
+                sopt[8] = '4';
+            else
+                sopt[9] = '3';
+        }
+        else {
+            nw_rdb_fill_beg_date(wyflag, begdat, begdate);
+            nw_rdb_fill_end_date(wyflag, enddat, enddate);
+        }
+
+    }
+
+    if (datatyp === 'UV') {
+
+        uvtyp = instat.charAt(0);
+        if (uvtyp === 'm' || uvtyp === 'n' || uvtyp === 'e' ||
+            uvtyp === 'r' || uvtyp === 's' || uvtyp === 'c')
+            uvtyp = uvtyp.toUpperCase();
+
+        // convert date/times to 14 characters
+        if (begdat === undefined || enddat === undefined) {
+            needstrt = true;
+            if (wyflag)
+                sopt[8] = '4';
+            else
+                sopt[9] = '3';
+        }
+        else {
+            nw_rdb_fill_beg_dtm(wyflag, begdat, begdtm);
+            nw_rdb_fill_end_dtm(wyflag, enddat, enddtm);
+        }
+
+    }
+
+/*
+         !  Open output file
+         IF (outpath === ' ') THEN
+            funit = 6
+         ELSE
+            IF (len(outpath) > 128) GOTO 998
+            rdbfile = outpath(1:len(outpath))
+            s_file (' ', rdbfile, ' ', 'unknown', 'write', 0, 1,
+     *                  ipu, funit, irc, *90)
+90          IF (irc !== 0) THEN
+               WRITE (0,2130) rdbfile(1:nwf_strlen(rdbfile))
+2130           FORMAT (/,'Error ',I5,' opening output file:',/,3X,A,/)
+               GOTO 999
+            END IF
+         END IF
+
+         !  get data and output to files
+
+         IF (datatyp === 'DV') THEN
+
+            fdvrdbout (funit, .false., rndsup, vflag,
+     &                      cflag, rtagny, sid, ddid, stat, 
+     *                      begdate, enddate, irc)
+
+         ELSE IF (datatyp === 'UV') THEN
+
+            IF (uvtyp === 'M') inguvtyp = 'meas'
+            IF (uvtyp === 'N') inguvtyp = 'msar'
+            IF (uvtyp === 'E') inguvtyp = 'edit'
+            IF (uvtyp === 'R') inguvtyp = 'corr'
+            IF (uvtyp === 'S') inguvtyp = 'shift'
+            IF (uvtyp === 'C') inguvtyp = 'da'
+
+            fuvrdbout (funit, .false., rndsup, cflag,
+     *                      vflag, rtagny, sid, ddid, inguvtyp, 
+     *                      sensor_type_id, transportCd, begdtm, 
+     *                      enddtm, locTzCd, irc)
+
+         END IF
+
+      !  close files and exit
+997   s_mclos
+      s_sclose (funit, 'keep')
+      nw_disconnect
+      GOTO 999
+
+      !  bad return (do a generic error message)
+998   irc = 3
+      nw_error_handler (irc,'nwf_rdb_out','error',
+     *     'doing something','something bad happened')
+
+      !  Good return
+999   nwf_rdb_out = irc
+      RETURN
+      END
+*/
+} // rdbOut
+
+/**
    @description GetDVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
@@ -782,7 +1007,8 @@ httpdispatcher.onGet(
                @callback
             */
             function (callback) {
-                if (docRequest(request.url, 'GetDVTable', response, callback))
+                if (docRequest(request.url, '/aq2rdb/GetDVTable',
+                               response, callback))
                     return;
                 callback(null);
             },
@@ -817,7 +1043,7 @@ httpdispatcher.onGet(
                         return;
                     }
                 }
-                
+
                 if (locationIdentifier === undefined) {
                     callback('Required field "LocationIdentifier" not found');
                     return;
@@ -1161,346 +1387,54 @@ httpdispatcher.onGet(
     function (request, response) {
         var field, token, locationIdentifier, site, parameter;
 
-        /**
-           @see https://github.com/caolan/async
-        */
         async.waterfall([
-            /**
-               @description Check for documentation request.
-               @callback
-            */
             function (callback) {
-                if (docRequest(request.url, 'GetUVTable', response, callback))
+                if (docRequest(request.url, '/aq2rdb/GetUVTable',
+                               response, callback))
                     return;
                 callback(null);
             },
-            /**
-               @description Parse fields and values in GetUVTable URL.
-               @callback
-            */
             function (callback) {
-                try {
-                    field = url.parse(request.url, true).query;
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                for (var name in field) {
-                    if (isGetAQTokenField(name)) {
-                        // GetAQToken fields
-                    }
-                    else if (name === 'LocationIdentifier') {
-                        locationIdentifier =
-                            new LocationIdentifier(field.LocationIdentifier);
-                    }
-                    else if (name.match(/^(Parameter|QueryFrom|QueryTo)$/)) {
-                        // AQUARIUS fields
-                    }
-                    else {
-                        callback(new Error('Unknown field "' + name + '"'));
-                        return;
-                    }
-                }
-
-                if (locationIdentifier === undefined) {
-                    callback('Required field "LocationIdentifier" not found');
-                    return;
-                }
-
-                if (field.Parameter === undefined) {
-                    callback('Required field "Parameter" not found');
-                    return;
-                }
-
-                var aquariusCredentials = new AquariusCredentials(
-                    {hostname: options.aquariusHostname,
-                     userName: options.aquariusUserName,
-                     password: options.aquariusPassword},
-                    {hostname: field.hostname,
-                     userName: field.userName,
-                     password: field.password}
-                );
-
-                // proceed to next waterfall
-                callback(null, aquariusCredentials);
-            },
-            /**
-               @description Get AQUARIUS authentication token from
-                            GetAQToken service.
-               @callback
-            */
-            function (aquariusCredentials, callback) {
-                try {
-                    getAQToken(
-                        aquariusCredentials.hostname,
-                        aquariusCredentials.userName,
-                        aquariusCredentials.password,
-                        callback
-                    );
-                }
-                catch (error) {
-                    // abort & pass "error" to final callback
-                    callback(error);
-                }
-                // no callback here, because it is passed to
-                // getAQToken(), and called from there if successful
-            },
-            /**
-               @callback
-            */
-            function (messageBody, callback) {
-                token = messageBody;
-                callback(
-                    null, options.waterServicesHostname,
-                    locationIdentifier.siteNumber(), options.log
-                );
-            },
-            /**
-               @todo site.request() and site.receive() can be done in
-                     parallel with the requesting/receiving of time
-                     series descriptions below.
-            */
-            site.request,
-            site.receive,
-            function (receivedSite, callback) {
-                site = receivedSite; // set global
-                callback(null);
-            },
-            /**
-               @todo Query NWIS TZ table data here (probably via a
-                     self-referential Web service query as an interim
-                     measure), to find offset associated with
-                     site.tzCd, so we can reference UV times to "local
-                     time".
-            */
-            /**
-               @function Query AQUARIUS GetTimeSeriesDescriptionList
-                         service to get list of AQUARIUS, time series
-                         UniqueIds related to aq2rdb, GetUVTable
-                         location and parameter.
-               @callback
-               @param {function} callback async.waterfall() callback
-                      function.
-            */
-            function (callback) {
-                try {
-                    rest.query(
-                        options.aquariusHostname,
-                        aquarius.PREFIX + 'GetTimeSeriesDescriptionList',
-                        {token: token, format: 'json',
-                         LocationIdentifier: locationIdentifier.toString(),
-                         Parameter: field.Parameter,
-                         // AQUARIUS semantics here appear to be:
-                         // "Unknown" => "Unit Values"
-                         ComputationIdentifier: 'Unknown',
-                         ExtendedFilters:
-                         '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
-                        callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-            },
-            /**
-               @function Receive response from AQUARIUS
-                         GetTimeSeriesDescriptionList, then parse list
-                         of related TimeSeriesDescriptions to query
-                         AQUARIUS GetTimeSeriesCorrectedData service.
-               @callback
-               @param {string} messageBody Message body part of
-                      HTTP response from GetTimeSeriesDescriptionList.
-            */
-            function (messageBody, callback) {
-                var timeSeriesDescriptionListServiceResponse;
-
-                try {
-                    timeSeriesDescriptionListServiceResponse =
-                        JSON.parse(messageBody);
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                callback(
-                 null,
-                 timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
-                );
-            },
-            /**
-               @function For each AQUARIUS time series description,
-                         weed out non-UV, and non-primary ones.
-               @callback
-            */
-            function (timeSeriesDescriptions, callback) {
-                var timeSeriesDescription;
-
-                async.filter(
-                    timeSeriesDescriptions,
-                    function (timeSeriesDescription, callback) {
-                        if (timeSeriesDescription.ComputationPeriodIdentifier
-                            === 'Unknown') {
-                            callback(true);
-                        }
-                        else {
-                            callback(false);
-                        }
-                    },
-                    function (uvTimeSeriesDescriptions) {
-                        timeSeriesDescription = aquarius.distill(
-                            uvTimeSeriesDescriptions,
-                            locationIdentifier, callback
-                        );
-                    }
-                );
-                callback(null, timeSeriesDescription);
-            },
-            /**
-               @function Write RDB header to HTTP response.
-               @callback
-            */
-            function (callback) {
-                rdbHeader(response);
-                callback(null);
-            },
-            /**
-               @function Write RDB header body to HTTP response.
-               @callback
-            */
-            function (timeSeriesDescription, callback) {
-                response.write(
-                    aq2rdb.rdbHeaderBody(
-                        'NWIS-I UNIT-VALUES', site,
-                        timeSeriesDescription.SubLocationIdentifer,
-                        {start: aq2rdb.toNWISDatetimeFormat(field.QueryFrom),
-                         end: aq2rdb.toNWISDatetimeFormat(field.QueryTo)}
-                    ),
-                    'ascii'
-                );
-                callback(null, timeSeriesDescription);
-            },
-            /**
-               @callback
-            */
-            function (timeSeriesDescription, callback) {
-                response.write(
-                    'DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n' +
-                        '8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n', 'ascii'
-                );
-                callback(null, timeSeriesDescription.UniqueId);
-            },
-            /**
-               @callback
-            */
-            function (uniqueId, callback) {
-                try {
-                    aquarius.getTimeSeriesCorrectedData(
-                        token, uniqueId,
-                        field.QueryFrom, field.QueryTo, callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-            },
-            aquarius.parseTimeSeriesDataServiceResponse,
-            /**
-               @callback
-            */
-            function (timeSeriesDataServiceResponse, callback) {
-                async.each(
-                    timeSeriesDataServiceResponse.Points,
-                    /**
-                       @description Write an RDB row for one time
-                                    series point.
-                       @callback
-                    */
-                    function (point, callback) {
-                        var name, date, time, tz;
-
-                        /**
-                           @description Use site's time offset
-                                        spec. to derive the
-                                        appropriate IANA time zone
-                                        name.
-                        */
-                        try {
-                            name =
-                                tzName[site.tzCode][site.localTimeFlag];
-                        }
-                        catch (error) {
-                            callback(
-                                'Could not derive IANA time zone ' +
-                                    'name from site\'s time offset spec.'
-                            );
-                            return;
-                        }
-
-                        // correct some obscure time offset
-                        // incompatibility cases
-                        var p = nwisVersusIANA(
-                            point.Timestamp, name, site.tzCode,
-                            site.localTimeFlag
-                        );
-
-                        response.write(
-                            p.date + '\t' + p.time + '\t' + p.tz + '\t' +
-                                point.Value.Numeric + '\t' +
-                                point.Value.Numeric.toString().length + '\n'
-                        );
-                        callback(null);
-                    }
-                );
+                console.log('2nd callback');
                 callback(null);
             }
         ],
-        /**
-           @description node-async error handler function for
-                        outer-most, GetUVTable async.waterfall
-                        function.
-           @callback
-        */
-        function (error) {
-            if (error) {
-                handle(error, response);
+            /**
+               @description node-async error handler function for
+                            outer-most, GetUVTable async.waterfall
+                            function.
+               @callback
+            */
+            function (error) {
+                if (error) {
+                    handle(error, response);
+                }
+                response.end();
             }
-            response.end();
-        }
-        ); // async.waterfall
+        );
     }
 ); // GetUVTable
 
 /**
-   @description fdvrdbout endpoint service request handler.
+   @description aq2rdb endpoint service request handler.
 */
 httpdispatcher.onGet(
-    '/' + packageName + '/fdvrdbout',
+    '/' + packageName,
     /**
        @callback
     */
     function (request, response) {
-        var field;
+        var token, locationIdentifier, site, parameter;
 
         async.waterfall([
-            /**
-               @function Check for documentation request.
-               @callback
-            */
             function (callback) {
-                if (docRequest(request.url, 'fdvrdbout', response, callback))
+                if (docRequest(request.url, '/aq2rdb', response, callback))
                     return;
                 callback(null);
             },
-            /**
-               @description Parse fdvrdbout arguments.
-               @callback
-            */
             function (callback) {
+                var field;
+
                 try {
                     field = url.parse(request.url, true).query;
                 }
@@ -1509,99 +1443,53 @@ httpdispatcher.onGet(
                     return;
                 }
 
-                if (options.log)
-                    console.log(
-                        packageName + '.field: ' + JSON.stringify(field)
-                    );
-
                 for (var name in field) {
                     if (isGetAQTokenField(name)) {
                         // GetAQToken fields
                     }
-                    else if (
-                        name.match(
-    /^(editable|rndsup|addkey|vflag|compdv|agyin|station|stat|begdate|enddate)$/
-                        )
-                    ) {
-                        // fdvrdbout fields
+                    else if (name.match(/^(a|p|t|s|n|b|e)$/)) {
+                        // aq2rdb fields
                     }
                     else {
-                        callback(new Error('Unknown field "' + name + '"'));
+                        callback('Unknown field "' + name + '"');
                         return;
                     }
                 }
 
-                var aquariusCredentials = new AquariusCredentials(
-                    {hostname: options.aquariusHostname,
-                     userName: options.aquariusUserName,
-                     password: options.aquariusPassword},
-                    {hostname: field.hostname,
-                     userName: field.userName,
-                     password: field.password}
-                );
-
-                callback(null, aquariusCredentials);
-            },
-            /**
-               @description Get AQUARIUS authentication token from
-                            GetAQToken service.
-               @callback
-             */
-            function (aquariusCredentials, callback) {
-                try {
-                    getAQToken(
-                        aquariusCredentials.hostname,
-                        aquariusCredentials.userName,
-                        aquariusCredentials.password,
-                        callback
-                    );
-                }
-                catch (error) {
-                    // abort & pass "error" to final callback
-                    callback(error);
-                }
-                // no callback here, because it is passed to
-                // getAQToken(), and called from there if successful
-            },
-            function (token, callback) {
-                // call fdvrdbout() below
                 callback(
-                    null, options.waterServicesHostname, token,
-                    field.editable, field.rndsup, field.addkey,
-                    field.vflag, field.compdv, field.agyin,
-                    field.station, field.stat, field.begdate,
-                    field.enddate, options.log, response
+                    null, field.t, field.a, field.n, field.p, field.s,
+                    field.b, field.e
                 );
             },
-            fdvrdbout,
-            function(rtcode, callback) {
-                if (options.log)
-                    console.log(
-                        packageName + ': fdvrdbout.rtcode: ' +
-                            rtcode + '\n'
-                    );
+            function (
+                datatyp, agency, station, parm, stat, begdat, enddat,
+                callback
+            ) {
+                rdbOut(
+                    response, datatyp, undefined, undefined,
+                    undefined, undefined, agency, station, undefined,
+                    stat, undefined, begdat, enddat, undefined,
+                    undefined
+                );
                 callback(null);
             }
         ],
-        /**
-           @description node-async error handler function for
-                        outer-most, fdvrdbout async.waterfall
-                        function.
-           @callback
-        */
-        function (error) {
-            if (error) {
-                handle(error, response);
-                if (options.log)
-                    console.log(
-                        packageName + ': error: ' + error.message
-                    );
+            /**
+               @description node-async error handler function for
+                            outer-most, GetUVTable async.waterfall
+                            function.
+               @callback
+            */
+            function (error) {
+                console.log('error callback');
+                if (error) {
+                    handle(error, response);
+                }
+                response.end();
             }
-            response.end();
-        }
-      ); // async.waterfall
+        );
     }
-); // fdvrdbout
+); // GetUVTable
 
 /**
    @description Service dispatcher.
