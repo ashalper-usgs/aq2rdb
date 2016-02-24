@@ -15,7 +15,7 @@ var rdb = module.exports = {
        @function Node.js emulation of legacy NWIS, NW_RDB_HEADER(),
                  Fortran subroutine: "Write the rdb header lines to an
                  rdb file".
-       @param response  {object} HTTP response object to write to.
+       @param response {object} HTTP response object to write to.
     */
     header: function (response) {
         response.write(
@@ -31,8 +31,8 @@ var rdb = module.exports = {
 
     /**
        @function takes an input date with < 8 chars and fills it to 8 chars
-       @param wyflag  {Boolean} flag if Water Year
-       @param begdat  {string} input date (may be < 8 chars)
+       @param wyflag {Boolean} flag if Water Year
+       @param begdat {string} input date (may be < 8 chars)
     */
     fillBegDate: function (wyflag, begdat) {
         var iyr, begdate;
@@ -61,6 +61,47 @@ var rdb = module.exports = {
         begdate = sprintf("%8s").replace(' ', '0');
 
         return begdate;
-    } // fillBegDate
+    }, // fillBegDate
+
+    /**
+       @function Node.js emulation of legacy NWIS
+                 NW_RDB_FILL_BEG_DTM() Fortran subroutine: "takes an
+                 input date/time and fills it out to 14 chars".
+
+       @param wyflag {Boolean} flag if Water Year
+       @param begdat {string} input date/time (may be < 14 chars)
+    */
+    fillBegDtm: function(wyflag, begdat) {
+        var begdtm, iyr;
+
+        // convert date/times to 14 characters
+
+        if (wyflag) {           // output = "<year-1>1001"
+            if (begdat.length > 4)      // trim to just the year
+                begdtm = begdat.substring(0, 4);
+            else
+                begdtm = begdat;
+
+            iyr = parseInt(begdtm); // convert to numeric form
+            if (iyr <= 0)
+                begdtm = "00000000000000";
+            else
+                // write year-1, month=Oct, day=01
+                begdtm = sprintf("%4d1001000000", iyr - 1);
+
+            // Handle beginning of period - needs to be all zeros
+            if (begdtm.substring(0, 4) === "0000") begdtm = "00000000000000";
+        }
+        else {                  // regular year, not WY
+            if (begdat.length > 14)
+                begdtm = begdat.substring(0, 14);
+            else
+                begdtm = begdat;
+        }
+
+        begdtm = sprintf("%14s", begdtm).replace(' ', '0');
+
+        return begdtm;      
+    } // fillBegDtm
 
 } // rdb
