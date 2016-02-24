@@ -64,7 +64,7 @@ var rdb = module.exports = {
     }, // fillBegDate
 
     /**
-       @function Node.js emulation of legacy NWIS
+       @function Node.js emulation of legacy NWIS,
                  NW_RDB_FILL_BEG_DTM() Fortran subroutine: "takes an
                  input date/time and fills it out to 14 chars".
 
@@ -102,6 +102,52 @@ var rdb = module.exports = {
         begdtm = sprintf("%14s", begdtm).replace(' ', '0');
 
         return begdtm;      
-    } // fillBegDtm
+    }, // fillBegDtm
+
+    /**
+       @function Node.js emulation of legacy NWIS,
+                 NW_RDB_FILL_END_DTM() Fortran subroutine: "takes an
+                 input date/time and fills it out to 14 chars".
+       @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
+       @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+       @param wyflag {Boolean} flag if Water Year
+       @param enddat {string} input date/time (may be < 14 chars)
+    */
+    fillEndDtm: function (wyflag, enddat) {
+        var enddtm;
+
+        // convert date/times to 14 characters
+
+        if (wyflag) {           // output will be "<year>0930235959"
+
+            if (enddat.length > 4)
+                enddtm = enddat.substring(0, 4);
+            else
+                enddtm = enddat;
+
+            enddtm = sprintf("%4s0930235959", enddtm);
+            if (enddtm.substring(0, 4) === "9999")
+                enddtm = "99999999999999"; // end of period is all nines
+            
+        }
+        else {                  // output will be filled-out date/time
+
+            if (enddat.length > 14)
+                enddtm = enddat.substring(0, 14);
+            else
+                enddtm = enddat;
+
+        }
+
+        enddtm = sprintf("%14s", enddtm);
+        if (enddtm.substring(8, 14) === ' ') {
+            if (enddtm.substring(0, 8) === "99999999")
+                enddtm = enddtm.substr(0, 8) +  "999999";
+            else
+                enddtm = enddtm.substr(0, 8) + "235959";
+        }
+        enddtm = enddtm.replace(' ', '0');
+        return enddtm;
+    } // fillEndDtm
 
 } // rdb
