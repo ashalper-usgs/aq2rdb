@@ -24,8 +24,8 @@ var url = require('url');
 // aq2rdb modules
 var aquarius = require('./aquarius');
 var fdvrdbout = require('./fdvrdbout').fdvrdbout;
+var rdb = require('./rdb');
 var rest = require('./rest');
-var rdbHeader = require('./rdbHeader');
 var site = require('./site');
 
 /**
@@ -900,8 +900,8 @@ function rdbOut(
                 sopt[9] = '3';
         }
         else {
-            nw_rdb_fill_beg_date(wyflag, begdat, begdate);
-            nw_rdb_fill_end_date(wyflag, enddat, enddate);
+            begdate = rdb.fillBegDate(wyflag, begdat);
+            enddate = rdb.fillEndDate(wyflag, enddat);
         }
 
     }
@@ -922,8 +922,8 @@ function rdbOut(
                 sopt[9] = '3';
         }
         else {
-            nw_rdb_fill_beg_dtm(wyflag, begdat, begdtm);
-            nw_rdb_fill_end_dtm(wyflag, enddat, enddtm);
+            begdtm = rdb.fillBegDtm(wyflag, begdat);
+            enddtm = rdb.fillEndDtm(wyflag, enddat);
         }
 
     }
