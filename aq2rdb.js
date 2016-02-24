@@ -1208,7 +1208,7 @@ httpdispatcher.onGet(
                        @callback
                     */
                     function (callback) {
-                        rdbHeader(response);
+                        rdb.header(response);
                         callback(null);
                     },
                     /**
