@@ -784,39 +784,19 @@ function AquariusCredentials (cli, http) {
  */
 function rdbOut(
     response, datatyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
-    locnu, instat, intrans, begdat, enddat, inLocTzCd, titlline
+    locnu, instat, intrans, begdat, enddat, locTzCd, titlline
 ) {
-    if (options.log)
-        console.log(
-            sprintf(
-                "datatyp=%s, rndsup=%s, wyflag=%s, cflag=%s, " +
-                    "vflag=%s, inagny=%s, instnid=%s, locnu=%s, " +
-                    "instat=%s, intrans=%s, begdat=%s, enddat=%s, " +
-                    "inLocTzCd=%s, titlline=%s",
-                datatyp, rndsup, wyflag, cflag, vflag, inagny,
-                instnid, locnu, instat, intrans, begdat, enddat,
-                inLocTzCd, titlline
-        )
-    );
-
-    // string
     var sopt, rdbfile, rtagny, sid;
     var parm, stat, transportCd, uvtyp, inguvtyp, mstyp;
     var mssav, vttyp, wltyp, pktyp, qwparm, qwmeth;
     var begdate, enddate, begdtm, enddtm, bctdtm, ectdtm;
     var cdate, ctime, tzCd, locTzCd, localTimeFg;
-
-    // integer
     var ipu, irc, sensorTypeId, iyr, i;
     var one = 1, two = 2, three = 3;
+    var needstrt = false, first, uvtypPrompted = false;
 
-    // Boolean
-    var needstrt, first, uvtypPrompted;
-
-    needstrt = false;
-    uvtypPrompted = false;
     parm = undefined;
-    locTzCd = inLocTzCd;
+
     if (locTzCd === undefined) locTzCd = 'LOC';
 
     if (intrans === undefined) {
@@ -932,31 +912,34 @@ function rdbOut(
 
     }
 
-         // get data and output to files
+    // get data and output to files
 
-         if (datatyp === 'DV')
-             irc = fdvrdbout(
-                 response, false, rndsup, vflag, cflag, rtagny, sid,
-                 stat, begdate, enddate
-             );
-         else if (datatyp === 'UV') {
-             /**
-                @todo re-factor to an indexed array:
-              */
-            if (uvtyp === 'M') inguvtyp = "meas";
-            if (uvtyp === 'N') inguvtyp = "msar";
-            if (uvtyp === 'E') inguvtyp = "edit";
-            if (uvtyp === 'R') inguvtyp = "corr";
-            if (uvtyp === 'S') inguvtyp = "shift";
-            if (uvtyp === 'C') inguvtyp = "da";
+    if (datatyp === 'DV')
+        irc = fdvrdbout(
+            response, false, rndsup, vflag, cflag, rtagny, sid,
+            stat, begdate, enddate
+        );
+    else if (datatyp === 'UV') {
+        /**
+           @todo re-factor to an indexed array:
+        */
+        if (uvtyp === 'M') inguvtyp = "meas";
+        if (uvtyp === 'N') inguvtyp = "msar";
+        if (uvtyp === 'E') inguvtyp = "edit";
+        if (uvtyp === 'R') inguvtyp = "corr";
+        if (uvtyp === 'S') inguvtyp = "shift";
+        if (uvtyp === 'C') inguvtyp = "da";
 
-            irc = fuvrdbout(
-                response, false, rndsup, cflag, vflag, rtagny, sid,
-                inguvtyp, sensorTypeId, transportCd, begdtm, enddtm,
-                locTzCd
-            );
-
-         }
+        /**
+           @todo build a shunt over to GetUVTable for now
+        */
+        irc = fuvrdbout(
+            response, false, rndsup, cflag, vflag, rtagny, sid,
+            inguvtyp, sensorTypeId, transportCd, begdtm, enddtm,
+            locTzCd
+        );
+        
+    }
 /*
       !  close files and exit
 997   s_mclos
@@ -976,6 +959,334 @@ function rdbOut(
 */
     return irc;
 } // rdbOut
+
+function fuvrdbout(
+    response, editable, rndsup, cflag, vflag, rtagny, sid, inguvtyp,
+    sensorTypeId, transportCd, begdtm, enddtm, locTzCd
+)
+{
+    var token, locationIdentifier, parameter, rtcode;
+
+    if (options.log)
+        console.log(
+            sprintf(
+                "fuvrdbout(\n" +
+                    "   editable=%s, rndsup=%s, cflag=%s, vflag=%s,\n" +
+                    "   rtagny=%s, sid=%s, inguvtyp=%s,\n" +
+                    "   sensorTypeId=%s, transportCd=%s,\n" +
+                    "   begdtm=%s, enddtm=%s, locTzCd=%s\n" +
+                    ")\n",
+                editable, rndsup, cflag, vflag, rtagny, sid, inguvtyp,
+                sensorTypeId, transportCd, begdtm, enddtm, locTzCd
+        )
+    );
+
+    async.waterfall([
+        /**
+           @description Parse fields and values in GetUVTable URL.
+           @callback
+        */
+        function (callback) {
+            // TODO: construct AQUARIUS LocationIdentifier and
+            // Parameter here
+
+            if (rtagny === undefined) {
+                callback('Required field "rtagny" not found');
+                return;
+            }
+
+            if (sid === undefined) {
+                callback('Required field "sid" not found');
+                return;
+            }
+
+            // TODO: concatenation in argument is bad here; need to
+            // see if there's way to define constructors with
+            // different parameter "signatures"
+            locationIdentifier =
+                new LocationIdentifier(rtagny + '@' + sid);
+
+            // TODO: "parameter" somehow went MIA in fuvrdbout()
+            // formal parameters in translation from Fortran
+            if (parameter === undefined) {
+                callback('Required AQUARIUS field "Parameter" not found');
+                return;
+            }
+
+            var aquariusCredentials = new AquariusCredentials(
+                {hostname: options.aquariusHostname,
+                 userName: options.aquariusUserName,
+                 password: options.aquariusPassword},
+                {hostname: field.hostname,
+                 userName: field.userName,
+                 password: field.password}
+            );
+
+            // proceed to next waterfall
+            callback(null, aquariusCredentials);
+        },
+        /**
+           @description Get AQUARIUS authentication token from
+                        GetAQToken service.
+           @callback
+        */
+        function (aquariusCredentials, callback) {
+            try {
+                getAQToken(
+                    aquariusCredentials.hostname,
+                    aquariusCredentials.userName,
+                    aquariusCredentials.password,
+                    callback
+                );
+            }
+            catch (error) {
+                // abort & pass error object to final callback
+                callback(error);
+            }
+            // no callback here, because it is passed to
+            // getAQToken(), and called from there if successful
+        },
+        /**
+           @description Receive AQUARIUS authentication token and get
+                        required site information.
+           @callback
+        */
+        function (messageBody, callback) {
+            token = messageBody;
+            // (waterServicesHostname, number, log, callback)
+            callback(
+                null, options.waterServicesHostname,
+                locationIdentifier.siteNumber(), options.log
+            );
+        },
+        /**
+           @todo site.request() and site.receive() can be done in
+                 parallel with the requesting/receiving of time series
+                 descriptions below.
+        */
+        site.request,
+        site.receive,
+        function (receivedSite, callback) {
+            site = receivedSite; // set global
+            callback(null);
+        },
+        /**
+           @todo Query NWIS TZ table data here (probably via a
+                 self-referential Web service query as an interim
+                 measure), to find offset associated with site.tzCd,
+                 so we can reference UV times to "local time".
+        */
+        /**
+           @function Query AQUARIUS GetTimeSeriesDescriptionList
+                     service to get list of AQUARIUS, time series
+                     UniqueIds related to aq2rdb, GetUVTable location
+                     and parameter.
+           @callback
+           @param {function} callback async.waterfall() callback
+                  function.
+        */
+        function (callback) {
+            try {
+                rest.query(
+                    options.aquariusHostname,
+                    aquarius.PREFIX + 'GetTimeSeriesDescriptionList',
+                    {token: token, format: 'json',
+                     LocationIdentifier: locationIdentifier.toString(),
+                     Parameter: field.Parameter,
+                     // AQUARIUS semantics here appear to be:
+                     // "Unknown" => "Unit Values"
+                     ComputationIdentifier: 'Unknown',
+                     ExtendedFilters:
+                     '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
+                    callback
+                );
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+        },
+        /**
+           @function Receive response from AQUARIUS
+                     GetTimeSeriesDescriptionList, then parse list of
+                     related TimeSeriesDescriptions to query AQUARIUS
+                     GetTimeSeriesCorrectedData service.
+           @callback
+           @param {string} messageBody Message body part of HTTP
+                  response from GetTimeSeriesDescriptionList.
+        */
+        function (messageBody, callback) {
+            var timeSeriesDescriptionListServiceResponse;
+
+            try {
+                timeSeriesDescriptionListServiceResponse =
+                    JSON.parse(messageBody);
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+
+            callback(
+                null,
+                timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
+            );
+        },
+        /**
+           @function For each AQUARIUS time series description, weed
+                     out non-UV, and non-primary ones.
+           @callback
+        */
+        function (timeSeriesDescriptions, callback) {
+            var timeSeriesDescription;
+
+            async.filter(
+                timeSeriesDescriptions,
+                function (timeSeriesDescription, callback) {
+                    if (timeSeriesDescription.ComputationPeriodIdentifier ===
+                        'Unknown') {
+                        callback(true);
+                    }
+                    else {
+                        callback(false);
+                    }
+                },
+                function (uvTimeSeriesDescriptions) {
+                    timeSeriesDescription = aquarius.distill(
+                        uvTimeSeriesDescriptions, locationIdentifier,
+                        callback
+                    );
+                }
+            );
+            callback(null, timeSeriesDescription);
+        },
+        /**
+           @function Write RDB header to HTTP response.
+           @callback
+        */
+        function (callback) {
+            rdb.header(response);
+            callback(null);
+        },
+        /**
+           @function Write RDB header body to HTTP response.
+           @callback
+        */
+        function (timeSeriesDescription, callback) {
+            response.write(
+                aq2rdb.rdbHeaderBody(
+                    'NWIS-I UNIT-VALUES', site,
+                    timeSeriesDescription.SubLocationIdentifer,
+                    {start: aq2rdb.toNWISDatetimeFormat(field.QueryFrom),
+                     end: aq2rdb.toNWISDatetimeFormat(field.QueryTo)}
+                ),
+                'ascii'
+            );
+            callback(null, timeSeriesDescription);
+        },
+        /**
+           @description Write RDB column names and column data type
+                        definitions to HTTP response.
+           @callback
+        */
+        function (timeSeriesDescription, callback) {
+            response.write(
+                'DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n' +
+                    '8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n', 'ascii'
+            );
+            callback(null, timeSeriesDescription.UniqueId);
+        },
+        /**
+           @description Call AQUARIUS GetTimeSeriesCorrectedData
+                        service.
+           @callback
+        */
+        function (uniqueId, callback) {
+            try {
+                aquarius.getTimeSeriesCorrectedData(
+                    token, uniqueId, field.QueryFrom, field.QueryTo,
+                    callback
+                );
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+        },
+        /**
+           @description Receive response from AQUARIUS
+                        GetTimeSeriesCorrectedData service.
+           @callback
+        */
+        aquarius.parseTimeSeriesDataServiceResponse,
+        /**
+           @description Write time series data as RDB rows to HTTP
+                        response.
+           @callback
+        */
+        function (timeSeriesDataServiceResponse, callback) {
+            async.each(
+                timeSeriesDataServiceResponse.Points,
+                /**
+                   @description Write an RDB row for one time series
+                                point.
+                   @callback
+                */
+                function (point, callback) {
+                    var name, date, time, tz;
+
+                    /**
+                       @description Use site's time offset
+                                    specification to derive the
+                                    appropriate IANA time zone name.
+                       @see tzName initializer at global scope in this
+                            module.
+                    */
+                    try {
+                        name = tzName[site.tzCode][site.localTimeFlag];
+                    }
+                    catch (error) {
+                        callback(
+                            'Could not derive IANA time zone ' +
+                                'name from site\'s time offset spec.'
+                        );
+                        return;
+                    }
+
+                    // correct some obscure, NWIS vs. IANA time offset
+                    // incompatibility cases
+                    var p = nwisVersusIANA(
+                        point.Timestamp, name, site.tzCode,
+                        site.localTimeFlag
+                    );
+
+                    response.write(
+                        p.date + '\t' + p.time + '\t' + p.tz + '\t' +
+                            point.Value.Numeric + '\t' +
+                            point.Value.Numeric.toString().length + '\n'
+                    );
+                    callback(null);
+                }
+            );
+            callback(null);
+        }
+    ],
+        /**
+           @description node-async error handler function for
+                        outer-most, GetUVTable async.waterfall
+                        function.
+           @callback
+        */
+        function (error) {
+            if (error) {
+                handle(error, response);
+            }
+            response.end();
+        }
+    ); // async.waterfall
+
+    return rtcode;
+} // fuvrdbout
 
 /**
    @description GetDVTable endpoint service request handler.
