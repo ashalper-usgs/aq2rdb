@@ -786,12 +786,16 @@ function rdbOut(
     response, datatyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
     locnu, instat, intrans, begdat, enddat, inLocTzCd, titlline
 ) {
-    console.log(
-        sprintf(
- "datatyp=%s, rndsup=%s, wyflag=%s, cflag=%s, vflag=%s, inagny=%s, instnid=%s," +
-"locnu=%s, instat=%s, intrans=%s, begdat=%s, enddat=%s, inLocTzCd=%s, titlline=%s",
-            datatyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
-            locnu, instat, intrans, begdat, enddat, inLocTzCd, titlline
+    if (options.log)
+        console.log(
+            sprintf(
+                "datatyp=%s, rndsup=%s, wyflag=%s, cflag=%s, " +
+                    "vflag=%s, inagny=%s, instnid=%s, locnu=%s, " +
+                    "instat=%s, intrans=%s, begdat=%s, enddat=%s, " +
+                    "inLocTzCd=%s, titlline=%s",
+                datatyp, rndsup, wyflag, cflag, vflag, inagny,
+                instnid, locnu, instat, intrans, begdat, enddat,
+                inLocTzCd, titlline
         )
     );
 
@@ -928,46 +932,32 @@ function rdbOut(
 
     }
 
+         // get data and output to files
+
+         if (datatyp === 'DV')
+             irc = fdvrdbout(
+                 response, false, rndsup, vflag, cflag, rtagny, sid,
+                 stat, begdate, enddate
+             );
+         else if (datatyp === 'UV') {
+             /**
+                @todo re-factor to an indexed array:
+              */
+            if (uvtyp === 'M') inguvtyp = "meas";
+            if (uvtyp === 'N') inguvtyp = "msar";
+            if (uvtyp === 'E') inguvtyp = "edit";
+            if (uvtyp === 'R') inguvtyp = "corr";
+            if (uvtyp === 'S') inguvtyp = "shift";
+            if (uvtyp === 'C') inguvtyp = "da";
+
+            irc = fuvrdbout(
+                response, false, rndsup, cflag, vflag, rtagny, sid,
+                inguvtyp, sensorTypeId, transportCd, begdtm, enddtm,
+                locTzCd
+            );
+
+         }
 /*
-         !  Open output file
-         IF (outpath === ' ') THEN
-            funit = 6
-         ELSE
-            IF (len(outpath) > 128) GOTO 998
-            rdbfile = outpath(1:len(outpath))
-            s_file (' ', rdbfile, ' ', 'unknown', 'write', 0, 1,
-     *                  ipu, funit, irc, *90)
-90          IF (irc !== 0) THEN
-               WRITE (0,2130) rdbfile(1:nwf_strlen(rdbfile))
-2130           FORMAT (/,'Error ',I5,' opening output file:',/,3X,A,/)
-               GOTO 999
-            END IF
-         END IF
-
-         !  get data and output to files
-
-         IF (datatyp === 'DV') THEN
-
-            fdvrdbout (funit, .false., rndsup, vflag,
-     &                      cflag, rtagny, sid, ddid, stat, 
-     *                      begdate, enddate, irc)
-
-         ELSE IF (datatyp === 'UV') THEN
-
-            IF (uvtyp === 'M') inguvtyp = 'meas'
-            IF (uvtyp === 'N') inguvtyp = 'msar'
-            IF (uvtyp === 'E') inguvtyp = 'edit'
-            IF (uvtyp === 'R') inguvtyp = 'corr'
-            IF (uvtyp === 'S') inguvtyp = 'shift'
-            IF (uvtyp === 'C') inguvtyp = 'da'
-
-            fuvrdbout (funit, .false., rndsup, cflag,
-     *                      vflag, rtagny, sid, ddid, inguvtyp, 
-     *                      sensor_type_id, transportCd, begdtm, 
-     *                      enddtm, locTzCd, irc)
-
-         END IF
-
       !  close files and exit
 997   s_mclos
       s_sclose (funit, 'keep')
@@ -984,6 +974,7 @@ function rdbOut(
       RETURN
       END
 */
+    return irc;
 } // rdbOut
 
 /**
