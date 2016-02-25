@@ -20,9 +20,15 @@ Run the `npmbuild` script in the newly created source directory:
     
 This script is safe to run repeatedly, even if you have some or all required npm packages already installed.
 
+## Installing the npm Package
+
 ## Running
 aq2rdb is started from the Node.js interpreter like this:
 
-    node aq2rdb.js -p port -t aquariusTokenHostname -w waterServicesHostname -a aquariusHostname
+    node aq2rdb.js -p port -t aquariusTokenHostname -w waterServicesHostname \
+                   -a aquariusHostname --aquariusUserName aquariusUserName --aquariusPassword aquariusPassword
 
 where *port* is the TCP/IP port that aq2rdb will listen on for HTTP requests, *aquariusTokenHostname* is the host name of an aquarius-token server to query for AQUARIUS authentication tokens, *waterServicesHostname* is the host name of a USGS Web Services server to query for site data, and *aquariusHostname* is the host name of an AQUARIUS server to query for time series data.
+
+## Testing
+    http://localhost:8081/aq2rdb?p=00060&t=uv&s=C&n=12345678&b=20141001000000&e=20150930000000
