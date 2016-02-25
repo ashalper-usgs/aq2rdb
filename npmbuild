@@ -1,0 +1,19 @@
+#! /bin/sh
+#
+# File - npmbuild
+#
+# Purpose - Convenience shell script to build aq2rdb npm.
+#
+# Author - Andrew Halper <ashalper@usgs.gov>
+#
+
+# read version from package.json
+version=`grep '"version":' package.json | \
+    sed 's/[[:space:]]*"version":[[:space:]]*"\(.*\)".*/\1/'`
+
+# make directory references below shorter
+d=aq2rdb
+
+# make npm tarball
+(cd .. && \
+ tar -cvzf $d/aq2rdb-$version.tar.gz $d/*.js $d/doc $d/*.md $d/package.json)
