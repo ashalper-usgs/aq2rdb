@@ -174,13 +174,13 @@ var rdb = module.exports = {
        @param {string} titlline
     */
     out: function (
-        response, intyp, inrndsup, inwyflag, incflag, invflag, inagny,
+        response, intyp, inrndsup, wyflag, incflag, invflag, inagny,
         instnid, inddid, inlocnu, instat, intrans, begdat, enddat,
         inLocTzCd, titlline
     ) {
         // init control argument
         var sopt = "10000000000000000000000000000000".split("");
-        var datatyp, rtagny, needstrt, sid, stat;
+        var datatyp, rtagny, needstrt, sid, stat, usdate, uedate;
 
         if (intyp.length > 2)
             datatyp = intyp.substring(0, 2);
@@ -302,20 +302,19 @@ var rdb = module.exports = {
             rdonly = 1;
             //123         s_strt (sopt, *998)
             sopt[0] = '2';
-            rtdbnum = dbnum;    // get DB number first
 
-            if (sopt.charAt(4) === '1' || sopt.charAt(4) === '2') {
+            if (sopt[4] === '1' || sopt[4] === '2') {
                 rtagny = agency;        // get agency
                 sid = stnid;    // get stn ID
-                if (sopt.charAt(4) === '2')
+                if (sopt[4] === '2')
                     ddid = usddid; // and DD number
             }
 
             // stat code
-            if (sopt.charAt(7) === '1') stat = statcd;
+            if (sopt[7] === '1') stat = statcd;
 
             // data type
-            if (sopt.charAt(11) === '2') {
+            if (sopt[11] === '2') {
                 uvtyp_prompted = true;
                 if (usdtyp === 'D') {
                     datatyp = "DV";
@@ -364,7 +363,7 @@ var rdb = module.exports = {
             }
 
             // date range for water years
-            if (sopt.charAt(8) === '4') {
+            if (sopt[8] === '4') {
                 if (usyear === "9999") {
                     begdtm = "00000000000000";
                     begdate = "00000000";
@@ -385,7 +384,7 @@ var rdb = module.exports = {
             }
 
             // date range
-            if (sopt.charAt(9) === '3') {
+            if (sopt[9] === '3') {
                 begdate = usdate;
                 enddate = uedate;
                 begdtm = usdate + "000000";
@@ -398,7 +397,8 @@ var rdb = module.exports = {
         else {
             // get PRIMARY DD that goes with parm if parm supplied
             if (parm !== undefined && datatyp !== "VT") {
-                nwf_get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc);
+                // TODO: rtdbnum/db_no is obsolete in AQUARIUS
+                // nwf_get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc);
                 if (irc !== 0) {
                     //        WRITE (0,2120) rtagny, sid, parm
                     //2120    FORMAT (/,"No PRIMARY DD for station "",A5,A15,
@@ -442,9 +442,9 @@ var rdb = module.exports = {
             if (uvtyp === 'S') inguvtyp = "shift";
             if (uvtyp === 'C') inguvtyp = "da";
 
-            irc = fuvrdbout(response, false, rtdbnum, rndsup, cflag,
-                            vflag, addkey, rtagny, sid, ddid, inguvtyp, 
-                            sensor_type_id, transport_cd, begdtm, 
+            irc = fuvrdbout(response, false, rndsup, cflag, vflag,
+                            addkey, rtagny, sid, ddid, inguvtyp,
+                            sensor_type_id, transport_cd, begdtm,
                             enddtm, loc_tz_cd);
         }
 
