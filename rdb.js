@@ -174,8 +174,8 @@ var rdb = module.exports = {
        @param {string} titlline
     */
     out: function (
-        intyp, inrndsup, inwyflag, incflag, invflag, inagny, instnid,
-        inddid, inlocnu, instat, intrans, begdat, enddat,
+        response, intyp, inrndsup, inwyflag, incflag, invflag, inagny,
+        instnid, inddid, inlocnu, instat, intrans, begdat, enddat,
         inLocTzCd, titlline
     ) {
         // init control argument
@@ -263,9 +263,9 @@ var rdb = module.exports = {
             if (uvtyp === 'r') uvtyp = 'R';
             if (uvtyp === 's') uvtyp = 'S';
             if (uvtyp === 'c') uvtyp = 'C';
-            if (uvtyp !== 'M' .AND. uvtyp !== 'N' .AND. 
-                uvtyp !== 'E' .AND. uvtyp !== 'R' .AND. 
-                uvtyp !== 'S' .AND. uvtyp !== 'C') {
+            if (uvtyp !== 'M' && uvtyp !== 'N' && 
+                uvtyp !== 'E' && uvtyp !== 'R' && 
+                uvtyp !== 'S' && uvtyp !== 'C') {
                 // TODO: this is a prompt loop in legacy code;
                 // raise error here?
                 // 'Please answer "M", "N", "E", "R", "S", or "C".',
@@ -429,7 +429,7 @@ var rdb = module.exports = {
         //  get data and output to files
 
         if (datatyp === "DV") {
-            irc = fdvrdbout(funit, false, rndsup, addkey, vflag,
+            irc = fdvrdbout(response, false, rndsup, addkey, vflag,
                             cflag, rtagny, sid, ddid, stat, begdate,
                             enddate);
         }
@@ -442,7 +442,7 @@ var rdb = module.exports = {
             if (uvtyp === 'S') inguvtyp = "shift";
             if (uvtyp === 'C') inguvtyp = "da";
 
-            irc = fuvrdbout(funit, false, rtdbnum, rndsup, cflag,
+            irc = fuvrdbout(response, false, rtdbnum, rndsup, cflag,
                             vflag, addkey, rtagny, sid, ddid, inguvtyp, 
                             sensor_type_id, transport_cd, begdtm, 
                             enddtm, loc_tz_cd);
@@ -451,7 +451,7 @@ var rdb = module.exports = {
         /*
         //  close files and exit
         //997   s_mclos
-        s_sclose (funit, "keep")
+        s_sclose (response, "keep")
         nw_disconnect
         return irc;
 
