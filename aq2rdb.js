@@ -784,7 +784,7 @@ function AquariusCredentials (cli, http) {
  */
 function rdbOut(
     response, datatyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
-    locnu, instat, intrans, begdat, enddat, locTzCd, titlline
+    inddid, instat, intrans, begdat, enddat, locTzCd, titlline
 ) {
     var sopt, rdbfile, rtagny, sid;
     var parm, stat, transportCd, uvtyp, inguvtyp, mstyp;
@@ -930,9 +930,6 @@ function rdbOut(
         if (uvtyp === 'S') inguvtyp = "shift";
         if (uvtyp === 'C') inguvtyp = "da";
 
-        /**
-           @todo build a shunt over to GetUVTable for now
-        */
         irc = fuvrdbout(
             response, false, rndsup, cflag, vflag, rtagny, sid,
             inguvtyp, sensorTypeId, transportCd, begdtm, enddtm,
@@ -960,9 +957,15 @@ function rdbOut(
     return irc;
 } // rdbOut
 
+/**
+   @todo This shunts over to GetUVTable right now for development
+         expediency. Needs to be its own thing at some point. Very
+         half-baked right now.
+   @see fuvrdbout.js in this directory. The "long-game" version.
+*/
 function fuvrdbout(
-    response, editable, rndsup, cflag, vflag, rtagny, sid, inguvtyp,
-    sensorTypeId, transportCd, begdtm, enddtm, locTzCd
+    response, editable, rndsup, cflag, vflag, rtagny, sid, inddid,
+    inguvtyp, sensorTypeId, transportCd, begdtm, enddtm, locTzCd
 )
 {
     var token, locationIdentifier, parameter, rtcode;
@@ -1002,7 +1005,7 @@ function fuvrdbout(
 
             // TODO: concatenation in argument is bad here; need to
             // see if there's way to define constructors with
-            // different parameter "signatures"
+            // different parameter "signatures" in JavaScript
             locationIdentifier =
                 new LocationIdentifier(rtagny + '@' + sid);
 
@@ -1767,11 +1770,10 @@ httpdispatcher.onGet(
                 datatyp, agency, station, parm, stat, begdat, enddat,
                 callback
             ) {
-                rdbOut(
-                    response, datatyp, undefined, undefined,
-                    undefined, undefined, agency, station, undefined,
-                    stat, undefined, begdat, enddat, undefined,
-                    undefined
+                rdb.out(
+                    response, datatyp, false, false, false, false,
+                    agency, station, stat, false, begdat, enddat,
+                    undefined, ""
                 );
                 callback(null);
             }
@@ -1791,7 +1793,7 @@ httpdispatcher.onGet(
             }
         );
     }
-); // GetUVTable
+); // aq2rdb
 
 /**
    @description Service dispatcher.
