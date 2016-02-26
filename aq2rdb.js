@@ -784,15 +784,35 @@ function AquariusCredentials (cli, http) {
 */
 function rdbOut(
     response, intyp, rndsup, wyflag, cflag, vflag, inagny,
-    instnid, inddid, instat, begdat, enddat, titlline
+    instnid, inddid, instat, begdat, enddat, locTzCd, titlline
 ) {
+    var datatyp, rtagny, agency, sid, stat, uvtyp, inguvtyp;
+    var usdate, uedate, begdate, enddate, begdtm, enddtm;
+    var needstrt = false;
+    var uvtypPrompted = false;
+    var parm = undefined;
+    var ddid = undefined;
+    var irc;
+
+    if (locTzCd === undefined) locTzCd = 'LOC';
+
+    /**
+       @todo might not be needed:
+
+    if (intrans(1:1).EQ.' ')
+         transport_cd = ' '
+         sensor_type_id = NW_NI4
+      ELSE
+         transport_cd = intrans(1:1)
+         CALL s_upcase (transport_cd,1)
+         sensor_type_id = 0
+      END IF
+    */
+
     // init control argument
     var sopt = "10000000000000000000000000000000".split("");
-    var datatyp, rtagny, needstrt, agency, sid, parm, stat;
-    var uvtyp, inguvtyp, uvtypPrompted;
-    var usdate, uedate, begdate, enddate, begdtm, enddtm;
 
-    if (intyp.length > 2)
+    if (2 < intyp.length)
         datatyp = intyp.substring(0, 2);
     else
         datatyp = intyp;
@@ -863,12 +883,12 @@ function rdbOut(
     }
 
     if (datatyp === 'UV') {
-	
+        
         uvtyp = instat.charAt(0);
-	
-	if ("cemnrs".includes(uvtyp))
-	    uvtyp = uvtyp.toUpperCase();
-	else {
+        
+        if ("cemnrs".includes(uvtyp))
+            uvtyp = uvtyp.toUpperCase();
+        else {
             // TODO: this is a prompt loop in legacy code;
             // raise error here?
             // 'Please answer "M", "N", "E", "R", "S", or "C".',
@@ -922,7 +942,7 @@ function rdbOut(
     //  get data and output to files
 
     if (datatyp === "DV") {
-        irc = fdvrdbout(response, false, rndsup, addkey, vflag,
+        irc = fdvrdbout(response, false, rndsup, false, vflag,
                         cflag, rtagny, sid, ddid, stat, begdate,
                         enddate);
     }
@@ -935,10 +955,10 @@ function rdbOut(
         if (uvtyp === 'S') inguvtyp = "shift";
         if (uvtyp === 'C') inguvtyp = "da";
 
-        irc = fuvrdbout(response, false, rndsup, cflag, vflag,
-                        addkey, rtagny, sid, ddid, inguvtyp,
-                        sensor_type_id, transport_cd, begdtm,
-                        enddtm, loc_tz_cd);
+        irc = fuvrdbout(
+            response, false, rndsup, cflag, vflag, rtagny, sid, ddid,
+            inguvtyp, begdtm, enddtm, locTzCd
+        );
     }
 
     /*
@@ -968,7 +988,7 @@ function rdbOut(
 */
 function fuvrdbout(
     response, editable, rndsup, cflag, vflag, rtagny, sid, inddid,
-    inguvtyp, sensorTypeId, transportCd, begdtm, enddtm, locTzCd
+    inguvtyp, begdtm, enddtm, locTzCd
 )
 {
     var token, locationIdentifier, parameter, rtcode;
@@ -979,11 +999,10 @@ function fuvrdbout(
                 "fuvrdbout(\n" +
                     "   editable=%s, rndsup=%s, cflag=%s, vflag=%s,\n" +
                     "   rtagny=%s, sid=%s, inguvtyp=%s,\n" +
-                    "   sensorTypeId=%s, transportCd=%s,\n" +
                     "   begdtm=%s, enddtm=%s, locTzCd=%s\n" +
                     ")\n",
                 editable, rndsup, cflag, vflag, rtagny, sid, inguvtyp,
-                sensorTypeId, transportCd, begdtm, enddtm, locTzCd
+                begdtm, enddtm, locTzCd
         )
     );
 
@@ -1776,7 +1795,7 @@ httpdispatcher.onGet(
                 rdbOut(
                     response, datatyp, false, false, false, false,
                     agency, station, undefined, stat, begdat, enddat,
-                    ""
+                    undefined, ""
                 );
                 callback(null);
             }
