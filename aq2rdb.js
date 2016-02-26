@@ -42,37 +42,52 @@ var cli = commandLineArgs([
     /**
        @description Print version and exit.
     */
-    { name: 'version', alias: 'v', type: Boolean, defaultValue: false },
+    { name: "version", alias: 'v', type: Boolean, defaultValue: false },
     /**
        @description Enable logging.
     */
-    { name: 'log', alias: 'l', type: Boolean, defaultValue: false },
+    { name: "log", alias: 'l', type: Boolean, defaultValue: false },
     /**
        @description TCP/IP port that aq2rdb will listen on.
     */
-    {name: 'port', alias: 'p', type: Number, defaultValue: 8081},
+    {name: "port", alias: 'p', type: Number, defaultValue: 8081},
     /**
        @description DNS name of AQUARIUS Web service host.
     */
-    {name: 'aquariusHostname', alias: 'a', type: String},
+    {name: "aquariusHostname", alias: 'a', type: String,
+     defaultValue: "nwists.usgs.gov"},
     /**
        @description AQUARIUS Web service host, service account user
                     name.
     */
-    {name: 'aquariusUserName', type: String},
+    {name: "aquariusUserName", type: String},
     /**
        @description AQUARIUS Web service host, service account
                     password.
     */
-    {name: 'aquariusPassword', type: String},
+    {name: "aquariusPassword", type: String},
     /**
        @description DNS name of aquarius-token Web service host.
     */
-    {name: 'aquariusTokenHostname', alias: 't', type: String},
+    {name: "aquariusTokenHostname", alias: 't', type: String,
+     defaultValue: "localhost"},
     /**
        @description DNS name of USGS Water Services Web service host.
     */
-    {name: 'waterServicesHostname', alias: 'w', type: String}
+    {name: "waterServicesHostname", type: String,
+     defaultValue: "waterservices.usgs.gov"},
+    /**
+       @description DNS name of USGS NWIS service host.
+    */
+    {name: "waterDataHostname", type: String},
+    /**
+       @description USGS NWIS service host, service account user name.
+    */
+    {name: "waterDataUserName", type: String},
+    /**
+       @description DNS name of USGS NWIS service host.
+    */
+    {name: "waterDataPassword", type: String}
 ]);
 
 /**
@@ -902,17 +917,15 @@ function rdbOut(
 
     }
 
-    // get PRIMARY DD that goes with parm if parm supplied
-    if (parm !== undefined && datatyp !== "VT") {
-        // TODO: rtdbnum/db_no is obsolete in AQUARIUS
-        // nwf_get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc);
-        if (irc !== 0) {
-            //        WRITE (0,2120) rtagny, sid, parm
-            //2120    FORMAT (/,"No PRIMARY DD for station "",A5,A15,
-            //                "", parm "',A5,'".  Aborting.",/)
-            return irc;
-        }
-    }
+    // This is where, formerly, NWF_RDB_OUT():
+    // 
+    //    get PRIMARY DD that goes with parm if parm supplied
+    //
+    // Since the algorithmic equivalent is now deep within the bowels
+    // of fuvrdbout(), it is no longer here. This comment is just a
+    // reminder that it used to be here, in case it is later
+    // discovered that the primary identification is necessary before
+    // fuvrdbout() does it.
 
     // retrieving measured uvs and transport_cd not supplied,
     // prompt for it
@@ -1100,6 +1113,20 @@ function fuvrdbout(
                  so we can reference UV times to "local time".
         */
         /**
+           @function Query USGS-parameter-code-to-AQUARIUS-parameter
+                     Web service here to obtain AQUARIUS parameter
+                     from USGS parameter code.
+           @callback
+           @param {function} callback async.waterfall() callback
+                  function.
+        */
+        function (callback) {
+            /**
+               @todo see JIRA issue AQRDB-44.
+            */
+            callback(null);
+        },
+        /**
            @function Query AQUARIUS GetTimeSeriesDescriptionList
                      service to get list of AQUARIUS, time series
                      UniqueIds related to aq2rdb, GetUVTable location
@@ -1176,6 +1203,14 @@ function fuvrdbout(
                         callback(false);
                     }
                 },
+                /**
+                   @todo If aquarius.distill() can't find a primary
+                         record:
+
+                           WRITE (0,2120) rtagny, sid, parm
+                   2120    FORMAT (/,"No PRIMARY DD for station "",A5,A15,
+                                   "", parm "',A5,'".  Aborting.",/)
+                */
                 function (uvTimeSeriesDescriptions) {
                     timeSeriesDescription = aquarius.distill(
                         uvTimeSeriesDescriptions, locationIdentifier,
