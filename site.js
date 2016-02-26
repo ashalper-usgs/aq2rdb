@@ -24,17 +24,17 @@ var site = module.exports = {
     request: function (
         waterServicesHostname, agencyCode, siteNumber, log, callback
     ) {
-        console.log('site.request.agencyCode: ' + agencyCode);
-        console.log('site.request.siteNumber: ' + siteNumber);
         try {
             rest.query(
-                waterServicesHostname, '/nwis/site/',
-                {format: 'rdb',
+                waterServicesHostname, "/nwis/site/",
+                {format: "rdb",
                  site: agencyCode + ':' + siteNumber,
-                 siteOutput: 'expanded'}, log, callback
+                 siteOutput: "expanded"}, log, callback
             );
         }
         catch (error) {
+	    if (log)
+		console.log("site.request: error: " + error);
             callback(error);
         }
         return;
@@ -44,7 +44,7 @@ var site = module.exports = {
        @function Receive and parse response from USGS Site Web Service.
        @callback
        @param {string} messageBody Message body of HTTP response from USGS
-       Site Web Service.
+              Site Web Service.
        @param {function} callback Callback to call when complete.
     */
     receive: function(messageBody, callback) {
