@@ -1023,11 +1023,14 @@ function fuvrdbout(
                 return;
             }
 
-            // TODO: concatenation in argument is bad here; need to
-            // see if there's way to define constructors with
-            // different parameter "signatures" in JavaScript
+            /**
+               @todo concatenation in constructor argument is bad
+                     here; need to see if there's way to define
+                     constructors with different parameter
+                     "signatures" in JavaScript
+            */
             locationIdentifier =
-                new LocationIdentifier(rtagny + '@' + sid);
+                new LocationIdentifier(sid + '-' + rtagny);
 
             // TODO: "parameter" somehow went MIA in fuvrdbout()
             // formal parameters in translation from Fortran
@@ -1073,9 +1076,9 @@ function fuvrdbout(
         */
         function (messageBody, callback) {
             token = messageBody;
-            // (waterServicesHostname, number, log, callback)
             callback(
                 null, options.waterServicesHostname,
+                locationIdentifier.agencyCode(),
                 locationIdentifier.siteNumber(), options.log
             );
         },
@@ -1529,6 +1532,7 @@ httpdispatcher.onGet(
 
                 callback(
                     null, options.waterServicesHostname,
+                    locationIdentifier.agencyCode(),
                     locationIdentifier.siteNumber(), options.log
                 );
             },
