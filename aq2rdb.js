@@ -767,20 +767,19 @@ function AquariusCredentials (cli, http) {
              data".
    @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
    @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
-   @param {string} intyp rating (time series?) type
-   @param {Boolean} inrndsup 
-   @param {Boolean} inwyflag
-   @param {Boolean} incflag
+   @param {string} intyp Rating (time series?) type.
+   @param {Boolean} inrndsup Rounding suppression flag.
+   @param {Boolean} inwyflag Water year flag.
+   @param {Boolean} incflag Computed flag.
    @param {Boolean} invflag
-   @param {string} inagny
-   @param {string} instnid
-   @param {string} inddid
-   @param {string} inlocnu
-   @param {string} instat
-   @param {string} intrans
-   @param {string} begdat
-   @param {string} enddat,
-   @param {string} inLocTzCd
+   @param {string} inagny Site agency code.
+   @param {string} instnid Site number (a.k.a. "site ID").
+   @param {string} inddid Data descriptor number (a.k.a. "DD ID").
+   @param {string} inlocnu ADAPS location number.
+   @param {string} instat Statistic code.
+   @param {string} begdat Begin date/datetime.
+   @param {string} enddat End date/datetime.
+   @param {string} inLocTzCd Location time zone code.
    @param {string} titlline
 */
 function rdbOut(
@@ -798,7 +797,7 @@ function rdbOut(
     else
         datatyp = intyp;
 
-    datatyp = datatyp.toUpperCase(); // CALL s_upcase (datatyp,2)
+    datatyp = datatyp.toUpperCase();
 
     // convert agency to 5 characters - default to USGS
     if (inagny === undefined)
@@ -808,7 +807,7 @@ function rdbOut(
             rtagny = inagny.substring(0, 5);
         else
             rtagny = inagny;
-        rtagny = sprintf("%-5s", rtagny); // CALL s_jstrlf (rtagny,5)
+        rtagny = sprintf("%-5s", rtagny);
     }
 
     // convert station to 15 characters
@@ -819,7 +818,7 @@ function rdbOut(
             sid = instnid.substring(0, 15);
         else
             sid = instnid;
-        sid = sprintf("%-15s", sid); // CALL s_jstrlf (sid, 15)
+        sid = sprintf("%-15s", sid);
     }
 
     // DDID is only needed IF parm and loc number are not
@@ -864,19 +863,12 @@ function rdbOut(
     }
 
     if (datatyp === 'UV') {
-
+	
         uvtyp = instat.charAt(0);
-        // TODO: this residue of legacy code below can obviously
-        // be condensed
-        if (uvtyp === 'm') uvtyp = 'M';
-        if (uvtyp === 'n') uvtyp = 'N';
-        if (uvtyp === 'e') uvtyp = 'E';
-        if (uvtyp === 'r') uvtyp = 'R';
-        if (uvtyp === 's') uvtyp = 'S';
-        if (uvtyp === 'c') uvtyp = 'C';
-        if (uvtyp !== 'M' && uvtyp !== 'N' && 
-            uvtyp !== 'E' && uvtyp !== 'R' && 
-            uvtyp !== 'S' && uvtyp !== 'C') {
+	
+	if ("cemnrs".includes(uvtyp))
+	    uvtyp = uvtyp.toUpperCase();
+	else {
             // TODO: this is a prompt loop in legacy code;
             // raise error here?
             // 'Please answer "M", "N", "E", "R", "S", or "C".',
