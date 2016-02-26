@@ -7,6 +7,9 @@
 
 'use strict';
 
+var http = require('http');
+var querystring = require('querystring');
+
 /**
    @description AQUARIUS Web services path prefix.
    @constant
