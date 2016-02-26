@@ -30,19 +30,8 @@ var http = module.exports = {
                 return;
             });
         }
-        
-        if (options.log === true) {
-            console.log(
-                packageName + '.query.obj: ' + JSON.stringify(obj)
-            );
-        }
 
         path += '?' + querystring.stringify(obj);
-
-        if (options.log === true) {
-            console.log(packageName + ': querying http://' +
-                        host + path); 
-        }
 
         var request = http.request({
             host: host,
