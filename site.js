@@ -8,6 +8,8 @@
 
 var path = require('path');
 
+var rest = require('./rest');
+
 /**
    @description Public functions.
 */
@@ -25,7 +27,7 @@ var site = module.exports = {
             );
 
         try {
-            httpQuery(
+            rest.query(
                 waterServicesHostname, '/nwis/site/',
                 {format: 'rdb',
                  sites: number,
