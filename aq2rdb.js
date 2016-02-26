@@ -812,34 +812,19 @@ function rdbOut(
     // init control argument
     var sopt = "10000000000000000000000000000000".split("");
 
-    if (2 < intyp.length)
-        datatyp = intyp.substring(0, 2);
-    else
-        datatyp = intyp;
-
-    datatyp = datatyp.toUpperCase();
+    datatyp = intyp.substring(0, 2).toUpperCase();
 
     // convert agency to 5 characters - default to USGS
     if (inagny === undefined)
         rtagny = "USGS";
-    else {
-        if (inagny.length > 5)
-            rtagny = inagny.substring(0, 5);
-        else
-            rtagny = inagny;
-        rtagny = sprintf("%-5s", rtagny);
-    }
+    else
+        rtagny = inagny.substring(0, 5);
 
     // convert station to 15 characters
     if (instnid === undefined)
         needstrt = true;
-    else {
-        if (instnid.length > 15)            
-            sid = instnid.substring(0, 15);
-        else
-            sid = instnid;
-        sid = sprintf("%-15s", sid);
-    }
+    else 
+        sid = instnid.substring(0, 15);
 
     // DDID is only needed IF parm and loc number are not
     // specified
