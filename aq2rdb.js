@@ -826,26 +826,20 @@ function rdbOut(
     else 
         sid = instnid.substring(0, 15);
 
+    console.log('rdbOut.inddid: ' + inddid);
     // If type is VT, DDID is only needed IF parm and loc number are
     // not specified
-    if ((datatyp !== 'VT' && inddid === undefined) ||
-        (datatyp === 'VT' && inddid === undefined &&
-         (inddid.charAt(0) !== 'P' || inlocnu === undefined))) {
+    if (datatyp !== 'VT' && inddid === undefined) {
                needstrt = true;
                sopt[4] = '2';
     }
     else {
         // If ddid starts with "P", it is a parameter code, fill to 5
         // digits
-        if (inddid.startsWith('p') || inddid.startsWith('P')) {
-            if (inddid.length > 6)
-                parm = inddid.substring(1, 6);
-            else
-                parm = inddid.substr(1);
-
-            parm = sprintf("%5s", parm).replace(' ', '0');
-        }
+        if (inddid.startsWith('p') || inddid.startsWith('P'))
+            parm = sprintf("%5s", inddid.substring(1, 6)).replace(' ', '0');
     }
+    console.log('rdbOut.parm: ' + parm);
 
     // further processing depends on data type
 
@@ -954,8 +948,14 @@ function rdbOut(
         if (uvtyp === 'S') inguvtyp = "shift";
         if (uvtyp === 'C') inguvtyp = "da";
 
+        /**
+           @todo The legacy code was very free-and-easy about the
+                 association between parameter code and DD ID. The
+                 "parm" argument here might need to be changed back to
+                 "ddid" at some point.
+        */
         irc = fuvrdbout(
-            response, false, rndsup, cflag, vflag, rtagny, sid, ddid,
+            response, false, rndsup, cflag, vflag, rtagny, sid, parm,
             inguvtyp, begdtm, enddtm, locTzCd
         );
     }
@@ -996,12 +996,11 @@ function fuvrdbout(
         console.log(
             sprintf(
                 "fuvrdbout(\n" +
-                    "   editable=%s, rndsup=%s, cflag=%s, vflag=%s,\n" +
-                    "   rtagny=%s, sid=%s, inguvtyp=%s,\n" +
-                    "   begdtm=%s, enddtm=%s, locTzCd=%s\n" +
+"   response=%s, editable=%s, rndsup=%s, cflag=%s, vflag=%s, rtagny=%s, sid=%s, inddid=%s,\n" +
+                "   inguvtyp=%s, begdtm=%s, enddtm=%s, locTzCd=%s\n" +
                     ")\n",
-                editable, rndsup, cflag, vflag, rtagny, sid, inguvtyp,
-                begdtm, enddtm, locTzCd
+                response, editable, rndsup, cflag, vflag, rtagny, sid, inddid,
+                inguvtyp, begdtm, enddtm, locTzCd
         )
     );
 
@@ -1795,7 +1794,7 @@ httpdispatcher.onGet(
             ) {
                 rdbOut(
                     response, datatyp, false, false, false, false,
-                    agency, station, undefined, stat, begdat, enddat,
+                    agency, station, "P" + parm, stat, begdat, enddat,
                     undefined, ""
                 );
                 callback(null);
