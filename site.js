@@ -6,8 +6,10 @@
 
 'use strict';
 
+// Node.js modules
 var path = require('path');
 
+// aq2rdb modules
 var rest = require('./rest');
 
 /**
@@ -19,19 +21,17 @@ var site = module.exports = {
        @callback
        @param {string} siteNumber NWIS site number string.
     */
-    request: function (waterServicesHostname, number, log, callback) {
-        if (log)
-            console.log(
-                path.basename(process.argv[1]).slice(0, -3) +
-                    '.request.number: ' + number
-            );
-
+    request: function (
+        waterServicesHostname, agencyCode, siteNumber, log, callback
+    ) {
+        console.log('site.request.agencyCode: ' + agencyCode);
+        console.log('site.request.siteNumber: ' + siteNumber);
         try {
             rest.query(
                 waterServicesHostname, '/nwis/site/',
                 {format: 'rdb',
-                 sites: number,
-                 siteOutput: 'expanded'}, callback
+                 site: agencyCode + ':' + siteNumber,
+                 siteOutput: 'expanded'}, log, callback
             );
         }
         catch (error) {
