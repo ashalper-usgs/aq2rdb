@@ -21,7 +21,7 @@ var rest = module.exports = {
        @param {function} callback Callback function to call if/when
               response from Web service is received.
     */
-    query: function (host, path, obj, callback) {
+    query: function (host, path, obj, log, callback) {
         /**
            @description Handle response from HTTP query.
            @callback
@@ -43,6 +43,9 @@ var rest = module.exports = {
         }
 
         path += '?' + querystring.stringify(obj);
+
+	if (log)
+	    console.log('rest.query: http://' + host + path);
 
         var request = http.request({
             host: host,
