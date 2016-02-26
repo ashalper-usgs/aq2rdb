@@ -762,109 +762,82 @@ function AquariusCredentials (cli, http) {
 } // AquariusCredentials
 
 /**
-   @function Partial Node.js of legacy NWIS, RDB_OUT() Fortran
+   @function Node.js emulation of legacy NWIS, NWF_RDB_OUT() Fortran
              subroutine: "Top-level routine for outputting rdb format
-             data"
-   @param datatyp      (inp - C*(*)) rating type
-   @param rndsup       (inp - C*(*)) Y/N flag for rounding-suppressed
-   @param inwyflag     (inp - C*(*)) Y/N flag for water-year
-   @param incflag      (inp - C*(*)) Y/N flag for Computed DVs/Combined Datetimes (UVs)
-   @param invflag      (inp - C*(*)) Y/N flag for verbose dates and times
-   @param inagny       (inp - C*(*)) agency code
-   @param instnid      (inp - C*(*)) station number
-   @param INLOCNU      (inp - C*(*)) Location number
-   @param INSTAT       (inp - C*(*)) Statistics code
-   @param INTRANS      (inp - C*(*)) UV Transport code
-   @param BEGDAT       (inp - C*(*)) begin date
-   @param ENDDAT       (inp - C*(*)) end date
-   @param IN_LOC_TZ_CD (inp - C*(*)) time zone code
-   @param TITLLINE     (inp - C*(*)) title line (text)
-   @return (Integer*4) returns the error code from modules called (0 IF all OK)
-   @private
- */
+             data".
+   @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
+   @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+   @param {string} intyp rating (time series?) type
+   @param {Boolean} inrndsup 
+   @param {Boolean} inwyflag
+   @param {Boolean} incflag
+   @param {Boolean} invflag
+   @param {string} inagny
+   @param {string} instnid
+   @param {string} inddid
+   @param {string} inlocnu
+   @param {string} instat
+   @param {string} intrans
+   @param {string} begdat
+   @param {string} enddat,
+   @param {string} inLocTzCd
+   @param {string} titlline
+*/
 function rdbOut(
-    response, datatyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
-    inddid, instat, intrans, begdat, enddat, locTzCd, titlline
+    response, intyp, rndsup, wyflag, cflag, vflag, inagny,
+    instnid, inddid, instat, begdat, enddat, titlline
 ) {
-    var sopt, rdbfile, rtagny, sid;
-    var parm, stat, transportCd, uvtyp, inguvtyp, mstyp;
-    var mssav, vttyp, wltyp, pktyp, qwparm, qwmeth;
-    var begdate, enddate, begdtm, enddtm, bctdtm, ectdtm;
-    var cdate, ctime, tzCd, locTzCd, localTimeFg;
-    var ipu, irc, sensorTypeId, iyr, i;
-    var one = 1, two = 2, three = 3;
-    var needstrt = false, first, uvtypPrompted = false;
-
-    parm = undefined;
-
-    if (locTzCd === undefined) locTzCd = 'LOC';
-
-    if (intrans === undefined) {
-        transportCd = undefined;
-    }
-    else {
-        transportCd = intrans.charAt(0).toUpperCase();
-    }
-
     // init control argument
-    sopt = '10000000000000000000000000000000'.split('');
-    if (datatyp.length > 2)
-        datatyp = datatyp.substring(0, 2);
-         
-    datatyp = datatyp.toUpperCase();
+    var sopt = "10000000000000000000000000000000".split("");
+    var datatyp, rtagny, needstrt, agency, sid, parm, stat;
+    var uvtyp, inguvtyp, uvtypPrompted;
+    var usdate, uedate, begdate, enddate, begdtm, enddtm;
+
+    if (intyp.length > 2)
+        datatyp = intyp.substring(0, 2);
+    else
+        datatyp = intyp;
+
+    datatyp = datatyp.toUpperCase(); // CALL s_upcase (datatyp,2)
 
     // convert agency to 5 characters - default to USGS
     if (inagny === undefined)
-        rtagny = 'USGS';
+        rtagny = "USGS";
     else {
         if (inagny.length > 5)
             rtagny = inagny.substring(0, 5);
         else
             rtagny = inagny;
-        rtagny = sprintf("%-5s", inagny);       
+        rtagny = sprintf("%-5s", rtagny); // CALL s_jstrlf (rtagny,5)
     }
+
     // convert station to 15 characters
-    if (instnid === undefined) {
+    if (instnid === undefined)
         needstrt = true;
-        if (datatyp === 'MS' || datatyp === 'PK' ||
-            datatyp === 'WL' || datatyp === 'QW')
-            sopt[4] = '1';
-        else
-            sopt[4] = '2';
-    }
     else {
-        if (instnid.length > 15)
+        if (instnid.length > 15)            
             sid = instnid.substring(0, 15);
         else
-            sid = instnid
-        sid = sprintf("%-5s", sid);
+            sid = instnid;
+        sid = sprintf("%-15s", sid); // CALL s_jstrlf (sid, 15)
     }
 
-    // DD is ignored for data types MS, PR, WL, and QW
-
-    if (datatyp !== 'MS' && datatyp !== 'PK' &&
-        datatyp !== 'WL' && datatyp !== 'QW') {
-
-        if ((datatyp !== 'VT') ||
-            (datatyp === 'VT' && (locnu === undefined))) {
-               needstrt = true;
-               sopt[4] = '2';
-        }
-        else {
-            parm = undefined;
-        }
-
+    // DDID is only needed IF parm and loc number are not
+    // specified
+    if (inddid === undefined) {
+        needstrt = true;
+        sopt[4] = '2';
     }
 
     // further processing depends on data type
 
-    if (datatyp === 'DV') {     // convert stat to 5 characters
+    if (datatyp === 'DV') { // convert stat to 5 characters
         if (instat === undefined) {
             needstrt = true;
             sopt[7] = '1';
         }
         else {
-            if (instat.length > 5)
+            if (5 < instat.length)
                 stat = instat.substring(0, 5);
             else
                 stat = instat;
@@ -884,8 +857,8 @@ function rdbOut(
                 sopt[9] = '3';
         }
         else {
-            begdate = rdb.fillBegDate(wyflag, begdat);
-            enddate = rdb.fillEndDate(wyflag, enddat);
+            begdate = fillBegDate(wyflag, begdat);
+            enddate = fillEndDate(wyflag, enddat);
         }
 
     }
@@ -893,9 +866,21 @@ function rdbOut(
     if (datatyp === 'UV') {
 
         uvtyp = instat.charAt(0);
-        if (uvtyp === 'm' || uvtyp === 'n' || uvtyp === 'e' ||
-            uvtyp === 'r' || uvtyp === 's' || uvtyp === 'c')
-            uvtyp = uvtyp.toUpperCase();
+        // TODO: this residue of legacy code below can obviously
+        // be condensed
+        if (uvtyp === 'm') uvtyp = 'M';
+        if (uvtyp === 'n') uvtyp = 'N';
+        if (uvtyp === 'e') uvtyp = 'E';
+        if (uvtyp === 'r') uvtyp = 'R';
+        if (uvtyp === 's') uvtyp = 'S';
+        if (uvtyp === 'c') uvtyp = 'C';
+        if (uvtyp !== 'M' && uvtyp !== 'N' && 
+            uvtyp !== 'E' && uvtyp !== 'R' && 
+            uvtyp !== 'S' && uvtyp !== 'C') {
+            // TODO: this is a prompt loop in legacy code;
+            // raise error here?
+            // 'Please answer "M", "N", "E", "R", "S", or "C".',
+        }
 
         // convert date/times to 14 characters
         if (begdat === undefined || enddat === undefined) {
@@ -912,17 +897,45 @@ function rdbOut(
 
     }
 
-    // get data and output to files
+    // get PRIMARY DD that goes with parm if parm supplied
+    if (parm !== undefined && datatyp !== "VT") {
+        // TODO: rtdbnum/db_no is obsolete in AQUARIUS
+        // nwf_get_prdd(rtdbnum, rtagny, sid, parm, ddid, irc);
+        if (irc !== 0) {
+            //        WRITE (0,2120) rtagny, sid, parm
+            //2120    FORMAT (/,"No PRIMARY DD for station "",A5,A15,
+            //                "", parm "',A5,'".  Aborting.",/)
+            return irc;
+        }
+    }
 
-    if (datatyp === 'DV')
-        irc = fdvrdbout(
-            response, false, rndsup, vflag, cflag, rtagny, sid,
-            stat, begdate, enddate
-        );
-    else if (datatyp === 'UV') {
-        /**
-           @todo re-factor to an indexed array:
+    // retrieving measured uvs and transport_cd not supplied,
+    // prompt for it
+    if (uvtypPrompted && datatyp === "UV" &&
+        (uvtyp === "M' || uvtyp === 'N") &&
+        transport_cd === undefined) {
+        /*
+          nw_query_meas_uv_type(rtagny, sid, ddid, begdtm,
+          enddtm, loc_tz_cd, transport_cd,
+          sensor_type_id, *998)
+          if (transport_cd === undefined) {
+          WRITE (0,2150) rtagny, sid, ddid
+          2150      FORMAT (/,"No MEASURED UV data for station "",A5,A15,
+          "", DD "',A4,'".  Aborting.",/)
+          return irc;
+          END IF
         */
+    }
+
+    //  get data and output to files
+
+    if (datatyp === "DV") {
+        irc = fdvrdbout(response, false, rndsup, addkey, vflag,
+                        cflag, rtagny, sid, ddid, stat, begdate,
+                        enddate);
+    }
+    else if (datatyp === "UV") {
+        // TODO: replace legacy residue below with indexed array?
         if (uvtyp === 'M') inguvtyp = "meas";
         if (uvtyp === 'N') inguvtyp = "msar";
         if (uvtyp === 'E') inguvtyp = "edit";
@@ -930,31 +943,29 @@ function rdbOut(
         if (uvtyp === 'S') inguvtyp = "shift";
         if (uvtyp === 'C') inguvtyp = "da";
 
-        irc = fuvrdbout(
-            response, false, rndsup, cflag, vflag, rtagny, sid,
-            inguvtyp, sensorTypeId, transportCd, begdtm, enddtm,
-            locTzCd
-        );
-        
+        irc = fuvrdbout(response, false, rndsup, cflag, vflag,
+                        addkey, rtagny, sid, ddid, inguvtyp,
+                        sensor_type_id, transport_cd, begdtm,
+                        enddtm, loc_tz_cd);
     }
-/*
-      !  close files and exit
-997   s_mclos
-      s_sclose (funit, 'keep')
-      nw_disconnect
-      GOTO 999
 
-      !  bad return (do a generic error message)
-998   irc = 3
-      nw_error_handler (irc,'nwf_rdb_out','error',
-     *     'doing something','something bad happened')
-
-      !  Good return
-999   nwf_rdb_out = irc
-      RETURN
-      END
-*/
+    /*
+    //  close files and exit
+    //997   s_mclos
+    s_sclose (response, "keep")
+    nw_disconnect
     return irc;
+
+    //  bad return (do a generic error message)
+    //998   irc = 3
+    nw_error_handler (irc,"nwf_rdb_out","error",
+    "doing something","something bad happened")
+    */
+
+    // Good return
+    //999
+    return irc;
+
 } // rdbOut
 
 /**
@@ -1770,10 +1781,10 @@ httpdispatcher.onGet(
                 datatyp, agency, station, parm, stat, begdat, enddat,
                 callback
             ) {
-                rdb.out(
+                rdbOut(
                     response, datatyp, false, false, false, false,
-                    agency, station, stat, false, begdat, enddat,
-                    undefined, ""
+                    agency, station, undefined, stat, begdat, enddat,
+                    ""
                 );
                 callback(null);
             }
