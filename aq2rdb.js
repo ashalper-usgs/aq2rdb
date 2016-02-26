@@ -1327,6 +1327,8 @@ function fuvrdbout(
         */
         function (error) {
             if (error) {
+                if (log)
+                    console.log("fuvrdbout: error: " + error);
                 handle(error, response);
             }
             response.end();
