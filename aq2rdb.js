@@ -783,8 +783,8 @@ function AquariusCredentials (cli, http) {
    @param {string} titlline
 */
 function rdbOut(
-    response, intyp, rndsup, wyflag, cflag, vflag, inagny,
-    instnid, inddid, instat, begdat, enddat, locTzCd, titlline
+    response, intyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
+    inddid, instat, begdat, enddat, locTzCd, titlline
 ) {
     var datatyp, rtagny, agency, sid, stat, uvtyp, inguvtyp;
     var usdate, uedate, begdate, enddate, begdtm, enddtm;
@@ -826,11 +826,25 @@ function rdbOut(
     else 
         sid = instnid.substring(0, 15);
 
-    // DDID is only needed IF parm and loc number are not
-    // specified
-    if (inddid === undefined) {
-        needstrt = true;
-        sopt[4] = '2';
+    // If type is VT, DDID is only needed IF parm and loc number are
+    // not specified
+    if ((datatyp !== 'VT' && inddid === undefined) ||
+        (datatyp === 'VT' && inddid === undefined &&
+         (inddid.charAt(0) !== 'P' || inlocnu === undefined))) {
+               needstrt = true;
+               sopt[4] = '2';
+    }
+    else {
+        // If ddid starts with "P", it is a parameter code, fill to 5
+        // digits
+        if (inddid.startsWith('p') || inddid.startsWith('P')) {
+            if (inddid.length > 6)
+                parm = inddid.substring(1, 6);
+            else
+                parm = inddid.substr(1);
+
+            parm = sprintf("%5s", parm).replace(' ', '0');
+        }
     }
 
     // further processing depends on data type
@@ -1102,6 +1116,8 @@ function fuvrdbout(
                     aquarius.PREFIX + 'GetTimeSeriesDescriptionList',
                     {token: token, format: 'json',
                      LocationIdentifier: locationIdentifier.toString(),
+                     // TODO: need to figure out how parameter code
+                     // gets passed to FUVRDBOUT() in the legacy code:
                      Parameter: field.Parameter,
                      // AQUARIUS semantics here appear to be:
                      // "Unknown" => "Unit Values"
