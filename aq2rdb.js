@@ -751,29 +751,16 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
    @class
    @private
 */
-function AquariusCredentials (cli, http) {
+function AquariusCredentials (cli) {
     /**
        @todo Need some fallback logic here to read
              (hostname,userName,password) from encrypted configuration
              file if not provided as REST parameters in the service
              request, or on the command at service start-up.
     */
-    // if any of AQUARIUS (hostname,userName,password) are
-    // missing from the Web service request...
-    if (http.hostname === undefined ||
-        http.userName === undefined ||
-        http.password === undefined) {
-        // ...fall-back on the service start-up values
-        this.hostname = cli.hostname;
-        this.userName = cli.userName;
-        this.password = cli.password;
-    }
-    else {
-        // use the values provided in the HTTP query
-        this.hostname = http.hostname;
-        this.userName = http.userName;
-        this.password = http.password;
-    }
+    this.hostname = cli.hostname;
+    this.userName = cli.userName;
+    this.password = cli.password;
 } // AquariusCredentials
 
 /**
@@ -1044,7 +1031,7 @@ function fuvrdbout(
 
             // TODO: "parameter" somehow went MIA in fuvrdbout()
             // formal parameters in translation from Fortran
-            if (parameter === undefined) {
+            if (inddid === undefined) {
                 callback('Required AQUARIUS field "Parameter" not found');
                 return;
             }
@@ -1052,10 +1039,7 @@ function fuvrdbout(
             var aquariusCredentials = new AquariusCredentials(
                 {hostname: options.aquariusHostname,
                  userName: options.aquariusUserName,
-                 password: options.aquariusPassword},
-                {hostname: field.hostname,
-                 userName: field.userName,
-                 password: field.password}
+                 password: options.aquariusPassword}
             );
 
             // proceed to next waterfall
@@ -1122,9 +1106,12 @@ function fuvrdbout(
         */
         function (callback) {
             /**
-               @todo see JIRA issue AQRDB-44.
+               @todo USGS-parameter-code-to-AQUARIUS-parameter HTTP
+                     query goes here. Replace hard-coded, actual
+                     parameter in callback() below.
+               @see https://internal.cida.usgs.gov/jira/browse/NWED-124
             */
-            callback(null);
+            callback(null, "Discharge");
         },
         /**
            @function Query AQUARIUS GetTimeSeriesDescriptionList
@@ -1135,16 +1122,14 @@ function fuvrdbout(
            @param {function} callback async.waterfall() callback
                   function.
         */
-        function (callback) {
+        function (parameter, callback) {
             try {
                 rest.query(
                     options.aquariusHostname,
                     aquarius.PREFIX + 'GetTimeSeriesDescriptionList',
                     {token: token, format: 'json',
                      LocationIdentifier: locationIdentifier.toString(),
-                     // TODO: need to figure out how parameter code
-                     // gets passed to FUVRDBOUT() in the legacy code:
-                     Parameter: field.Parameter,
+                     Parameter: parameter,
                      // AQUARIUS semantics here appear to be:
                      // "Unknown" => "Unit Values"
                      ComputationIdentifier: 'Unknown',
