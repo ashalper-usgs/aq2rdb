@@ -20,7 +20,7 @@ var PREFIX = '/AQUARIUS/Publish/V2/';
    @param {function} callback Callback function to call if/when
           response from GetLocationData is received.
 */
-function getLocationData(token, locationIdentifier, callback) {
+function getLocationData(hostname, token, locationIdentifier, callback) {
     /**
        @description Handle response from GetLocationData.
        @callback
@@ -48,7 +48,7 @@ function getLocationData(token, locationIdentifier, callback) {
         );
 
     var request = http.request({
-        host: options.aquariusHostname,
+        host: hostname,
         path: path                
     }, getLocationDataCallback);
 
