@@ -1,14 +1,25 @@
-var http = module.exports = {
+/**
+ * @fileOverview Functions to facilitate REST HTTP queries.
+ *
+ * @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
+ */
+
+'use strict';
+
+var http = require('http');
+var querystring = require('querystring');
+
+var rest = module.exports = {
     /**
        @function Call a REST Web service with an HTTP query; send response
-       via a callback.
+                 via a callback.
        @private
        @param {string} host Host part of HTTP query URL.
        @param {string} path Path part of HTTP query URL.
        @param {object} field An array of attribute-value pairs to bind in
-       HTTP query URL.
+              HTTP query URL.
        @param {function} callback Callback function to call if/when
-       response from Web service is received.
+              response from Web service is received.
     */
     query: function (host, path, obj, callback) {
         /**
@@ -48,4 +59,4 @@ var http = module.exports = {
 
         request.end();
     } // query
-} // http
+} // rest
