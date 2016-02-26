@@ -11,54 +11,52 @@ var http = module.exports = {
        response from Web service is received.
     */
     query: function (host, path, obj, callback) {
-	console.log('httpQuery: ' + host + path);
-
-	/**
-	   @description Handle response from HTTP query.
-	   @callback
-	*/
-	function httpQueryCallback(response) {
+        /**
+           @description Handle response from HTTP query.
+           @callback
+        */
+        function queryCallback(response) {
             var messageBody = '';
 
             // accumulate response
             response.on(
-		'data',
-		function (chunk) {
+                'data',
+                function (chunk) {
                     messageBody += chunk;
-		});
+                });
 
             response.on('end', function () {
-		callback(null, messageBody);
-		return;
+                callback(null, messageBody);
+                return;
             });
-	}
-	
-	if (options.log === true) {
+        }
+        
+        if (options.log === true) {
             console.log(
-		packageName + '.httpQuery.obj: ' + JSON.stringify(obj)
+                packageName + '.query.obj: ' + JSON.stringify(obj)
             );
-	}
+        }
 
-	path += '?' + querystring.stringify(obj);
+        path += '?' + querystring.stringify(obj);
 
-	if (options.log === true) {
+        if (options.log === true) {
             console.log(packageName + ': querying http://' +
-			host + path); 
-	}
+                        host + path); 
+        }
 
-	var request = http.request({
+        var request = http.request({
             host: host,
             path: path
-	}, httpQueryCallback);
+        }, queryCallback);
 
-	/**
-	   @description Handle service invocation errors.
-	*/
-	request.on('error', function (error) {
+        /**
+           @description Handle service invocation errors.
+        */
+        request.on('error', function (error) {
             callback(error);
             return;
-	});
+        });
 
-	request.end();
+        request.end();
     } // query
 } // http
