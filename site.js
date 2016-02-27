@@ -26,7 +26,9 @@ var site = module.exports = {
     ) {
         try {
             rest.query(
-                waterServicesHostname, "/nwis/site/",
+                waterServicesHostname,
+ 		"GET",
+		"/nwis/site/",
                 {format: "rdb",
                  site: agencyCode + ':' + siteNumber,
                  siteOutput: "expanded"}, log, callback
