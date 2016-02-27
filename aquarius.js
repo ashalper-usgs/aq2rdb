@@ -14,7 +14,7 @@ var querystring = require('querystring');
    @description AQUARIUS Web services path prefix.
    @constant
 */
-var PREFIX = '/AQUARIUS/Publish/V2/';
+var PREFIX = "/AQUARIUS/Publish/V2/";
 
 /**
    @function Call AQUARIUS GetLocationData Web service.
@@ -29,7 +29,7 @@ function getLocationData(hostname, token, locationIdentifier, callback) {
        @callback
     */
     function getLocationDataCallback(response) {
-        var messageBody = '';
+        var messageBody = "";
 
         // accumulate response
         response.on(
@@ -91,7 +91,7 @@ function getTimeSeriesCorrectedData(
        @callback
     */
     function getTimeSeriesCorrectedDataCallback(response) {
-        var messageBody = '';
+        var messageBody = "";
         var timeSeriesCorrectedData;
 
         // accumulate response
