@@ -1113,7 +1113,9 @@ function fuvrdbout(
                      query goes here. Replace hard-coded, actual
                      parameter in callback() below.
                @see https://internal.cida.usgs.gov/jira/browse/NWED-124
+               @see https://nwisdata.usgs.gov/service/
             */
+            
             callback(null, "Discharge");
         },
         /**
@@ -1129,15 +1131,16 @@ function fuvrdbout(
             try {
                 rest.query(
                     options.aquariusHostname,
-                    aquarius.PREFIX + 'GetTimeSeriesDescriptionList',
-                    {token: token, format: 'json',
+                    "GET",
+                    aquarius.PREFIX + "GetTimeSeriesDescriptionList",
+                    {token: token, format: "json",
                      LocationIdentifier: locationIdentifier.toString(),
                      Parameter: parameter,
                      // AQUARIUS semantics here appear to be:
                      // "Unknown" => "Unit Values"
-                     ComputationIdentifier: 'Unknown',
+                     ComputationIdentifier: "Unknown",
                      ExtendedFilters:
-                     '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'},
+                     "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]"},
                     callback
                 );
             }
@@ -1184,7 +1187,7 @@ function fuvrdbout(
                 timeSeriesDescriptions,
                 function (timeSeriesDescription, callback) {
                     if (timeSeriesDescription.ComputationPeriodIdentifier ===
-                        'Unknown') {
+                        "Unknown") {
                         callback(true);
                     }
                     else {
@@ -1327,7 +1330,7 @@ function fuvrdbout(
         */
         function (error) {
             if (error) {
-                if (log)
+                if (options.log)
                     console.log("fuvrdbout: error: " + error);
                 handle(error, response);
             }
@@ -1477,6 +1480,7 @@ httpdispatcher.onGet(
                 try {
                     rest.query(
                         options.aquariusHostname,
+                        "GET",
                         aquarius.PREFIX + 'GetTimeSeriesDescriptionList',
                         obj,
                         callback
@@ -1614,9 +1618,10 @@ httpdispatcher.onGet(
                 try {
                     rest.query(
                         options.aquariusHostname,
-                        aquarius.PREFIX + 'GetQualifierList/',
+                        "GET",
+                        aquarius.PREFIX + "GetQualifierList/",
                         {token: token,
-                         format: 'json'}, callback
+                         format: "json"}, callback
                     );
                 }
                 catch (error) {
