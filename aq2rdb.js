@@ -79,7 +79,8 @@ var cli = commandLineArgs([
     /**
        @description DNS name of USGS NWIS service host.
     */
-    {name: "waterDataHostname", type: String},
+    {name: "waterDataHostname", type: String,
+     defaultValue: "nwisdata.usgs.gov"},
     /**
        @description USGS NWIS service host, service account user name.
     */
@@ -1115,8 +1116,25 @@ function fuvrdbout(
                @see https://internal.cida.usgs.gov/jira/browse/NWED-124
                @see https://nwisdata.usgs.gov/service/
             */
-            
-            callback(null, "Discharge");
+            try {
+                rest.query(
+                    options.waterDataHostname,
+                    "POST",
+                    "/service/auth/authenticate",
+                    {username: options.waterDataUserName,
+                     password: options.waterDataPassword},
+                    options.log,
+                    callback
+                );
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+        },
+        function (messageBody, callback) {
+            console.log("fuvrdbout.messageBody: " + messageBody);
+            callback(null);
         },
         /**
            @function Query AQUARIUS GetTimeSeriesDescriptionList
@@ -1133,14 +1151,15 @@ function fuvrdbout(
                     options.aquariusHostname,
                     "GET",
                     aquarius.PREFIX + "GetTimeSeriesDescriptionList",
-                    {token: token, format: "json",
+                    {token: token,
+                     format: "json",
                      LocationIdentifier: locationIdentifier.toString(),
                      Parameter: parameter,
                      // AQUARIUS semantics here appear to be:
                      // "Unknown" => "Unit Values"
                      ComputationIdentifier: "Unknown",
                      ExtendedFilters:
-                     "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]"},
+                        "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]"},
                     callback
                 );
             }
