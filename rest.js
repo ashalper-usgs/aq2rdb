@@ -58,7 +58,11 @@ var rest = module.exports = {
             });
         }
 
-        path += '?' + querystring.stringify(obj);
+        if (method === "GET")
+            path += '?' + querystring.stringify(obj);
+
+        if (method === "POST")
+            var chunk = querystring.stringify(obj);
 
         if (log)
             console.log("rest.query: http://" + host + path);
@@ -78,6 +82,9 @@ var rest = module.exports = {
             callback(error);
             return;
         });
+
+        if (method === "POST")
+            request.write(chunk);
 
         request.end();
     } // query
