@@ -22,7 +22,7 @@ var rest = module.exports = {
        @param {function} callback Callback function to call if/when
               response from Web service is received.
     */
-    query: function (host, path, obj, log, callback) {
+    query: function (host, method, path, obj, log, callback) {
         /**
            @description Handle response from HTTP query.
            @callback
@@ -38,34 +38,34 @@ var rest = module.exports = {
                 });
 
             response.on('end', function () {
-		if (log)
-		    console.log("rest.query.response.statusCode: " +
-				response.statusCode.toString());
-		if (response.statusCode === 404) {
-		    console.log("rest.query.callback: " + callback.toString());
-		    callback("Site not found at http://" + host + path);
-		}
-		else if (
-		    response.statusCode < 200 || 300 <= response.statuscode
-		)
-		    callback(
-			"Could not reference site at http://" + host +
-			    path + "; HTTP status code was: " +
-			    response.statusCode.toString()
-		    );
-		else
-		    callback(null, messageBody);
+                if (log)
+                    console.log("rest.query.response.statusCode: " +
+                                response.statusCode.toString());
+                if (response.statusCode === 404) {
+                    callback("Site not found at http://" + host + path);
+                }
+                else if (
+                    response.statusCode < 200 || 300 <= response.statuscode
+                )
+                    callback(
+                        "Could not reference site at http://" + host +
+                            path + "; HTTP status code was: " +
+                            response.statusCode.toString()
+                    );
+                else
+                    callback(null, messageBody);
                 return;
             });
         }
 
         path += '?' + querystring.stringify(obj);
 
-	if (log)
-	    console.log("rest.query: http://" + host + path);
+        if (log)
+            console.log("rest.query: http://" + host + path);
 
         var request = http.request({
             host: host,
+            method: method,
             path: path
         }, queryCallback);
 
@@ -73,8 +73,8 @@ var rest = module.exports = {
            @description Handle service invocation errors.
         */
         request.on("error", function (error) {
-	    if (log)
-		console.log("rest.query: " + error);
+            if (log)
+                console.log("rest.query: " + error);
             callback(error);
             return;
         });
