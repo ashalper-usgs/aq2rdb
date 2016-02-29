@@ -31,4 +31,4 @@ aq2rdb is started from the Node.js interpreter like this:
 where *port* is the TCP/IP port that aq2rdb will listen on for HTTP requests, *aquariusTokenHostname* is the host name of an aquarius-token server to query for AQUARIUS authentication tokens, *waterServicesHostname* is the host name of a USGS Web Services server to query for site data, and *aquariusHostname* is the host name of an AQUARIUS server to query for time series data.
 
 ## Testing
-    http://localhost:8081/aq2rdb?p=00060&t=uv&s=C&n=12345678&b=20141001000000&e=20150930000000
+    http://localhost:8081/aq2rdb?p=00060&t=uv&s=C&n=09380000&b=20141001000000&e=20150930000000
