@@ -1104,13 +1104,6 @@ function fuvrdbout(
                   function.
         */
         function (callback) {
-            /**
-               @todo USGS-parameter-code-to-AQUARIUS-parameter HTTP
-                     query goes here. Replace hard-coded, actual
-                     parameter in callback() below.
-               @see https://internal.cida.usgs.gov/jira/browse/NWED-124
-               @see https://nwisdata.usgs.gov/service/
-            */
             try {
                 rest.querySecure(
                     options.waterDataHostname,
@@ -1128,7 +1121,32 @@ function fuvrdbout(
             }
         },
         function (messageBody, callback) {
-            console.log("fuvrdbout.messageBody: " + messageBody);
+            var nwisRAAuthentication;
+
+            try {
+                nwisRAAuthentication = JSON.parse(messageBody);
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+
+            if (options.log)
+                console.log(
+                  "fuvrdbout().async.waterfall()." +
+                        "nwisRAAuthentication.tokenId: " +
+                        nwisRAAuthentication.tokenId
+                );
+            callback(null, nwisRAAuthentication.tokenId);
+        },
+        function (tokenId, callback) {
+            /**
+               @todo USGS-parameter-code-to-AQUARIUS-parameter HTTP
+                     query goes here. Replace hard-coded, actual
+                     parameter in callback() below.
+               @see https://nwisdata.usgs.gov/service/
+            */
+            console.log("fuvrdbout().async.waterfall().tokenId: " + tokenId);
             callback(null);
         },
         /**
