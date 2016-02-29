@@ -1112,7 +1112,7 @@ function fuvrdbout(
                @see https://nwisdata.usgs.gov/service/
             */
             try {
-                rest.query(
+                rest.querySecure(
                     options.waterDataHostname,
                     "POST",
                     "/service/auth/authenticate",
