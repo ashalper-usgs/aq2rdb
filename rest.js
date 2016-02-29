@@ -17,13 +17,15 @@ var rest = module.exports = {
                  response via a callback.
        @private
        @param {string} host Host part of HTTP query URL.
+       @param {string} method HTTP request method (e.g. "GET", "POST").
+       @param {object} HTTP requst headers.
        @param {string} path Path part of HTTP query URL.
        @param {object} field An array of attribute-value pairs to bind in
               HTTP query URL.
        @param {function} callback Callback function to call if/when
               response from Web service is received.
     */
-    query: function (host, method, path, obj, log, callback) {
+    query: function (host, method, headers, path, obj, log, callback) {
         /**
            @description Handle response from HTTP query.
            @callback
@@ -59,7 +61,7 @@ var rest = module.exports = {
             });
         }
 
-        if (method === "GET")
+        if (method === "GET" && obj !== undefined)
             path += '?' + querystring.stringify(obj);
 
         if (method === "POST")
@@ -71,6 +73,7 @@ var rest = module.exports = {
         var request = http.request({
             host: host,
             method: method,
+            headers: headers,
             path: path
         }, queryCallback);
 
@@ -95,13 +98,15 @@ var rest = module.exports = {
                  response via a callback.
        @private
        @param {string} host Host part of HTTP query URL.
+       @param {string} method HTTP request method (e.g. "GET", "POST").
+       @param {object} HTTP requst headers.
        @param {string} path Path part of HTTP query URL.
        @param {object} field An array of attribute-value pairs to bind in
               HTTP query URL.
        @param {function} callback Callback function to call if/when
               response from Web service is received.
     */
-    querySecure: function (host, method, path, obj, log, callback) {
+    querySecure: function (host, method, headers, path, obj, log, callback) {
         /**
            @description Handle response from HTTPS query.
            @callback
@@ -137,19 +142,19 @@ var rest = module.exports = {
             });
         }
 
-        if (method === "GET")
+        if (method === "GET" && obj !== undefined)
             path += '?' + querystring.stringify(obj);
 
         if (method === "POST")
             var chunk = querystring.stringify(obj);
 
         if (log)
-            console.log("rest.query: http://" + host + path);
+            console.log("rest.query: https://" + host + path);
 
         var request = https.request({
             host: host,
             method: method,
-            headers: {"content-type": "application/x-www-form-urlencoded"},
+            headers: headers,
             path: path
         }, queryCallback);
 
