@@ -1108,6 +1108,7 @@ function fuvrdbout(
                 rest.querySecure(
                     options.waterDataHostname,
                     "POST",
+                    {"content-type": "application/x-www-form-urlencoded"},
                     "/service/auth/authenticate",
                     {username: options.waterDataUserName,
                      password: options.waterDataPassword},
@@ -1140,13 +1141,37 @@ function fuvrdbout(
             callback(null, nwisRAAuthentication.tokenId);
         },
         function (tokenId, callback) {
-            /**
-               @todo USGS-parameter-code-to-AQUARIUS-parameter HTTP
-                     query goes here. Replace hard-coded, actual
-                     parameter in callback() below.
-               @see https://nwisdata.usgs.gov/service/
-            */
             console.log("fuvrdbout().async.waterfall().tokenId: " + tokenId);
+            try {
+                rest.querySecure(
+                    options.waterDataHostname,
+                    "GET",
+                    {"Authorization": "Bearer " + tokenId},
+                    "/service/reference/list/parameter/json",
+                    undefined,  // no HTTP query parameters
+                    options.log,
+                    callback
+                );
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+        },
+        function (messageBody, callback) {
+            var parameterTable;
+
+            try {
+                parameterTable = JSON.parse(messageBody);
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+            callback(null, parameterTable);
+        },
+        function (parameterTable, callback) {
+            console.log(JSON.stringify(parameterTable[0]));
             callback(null);
         },
         /**
