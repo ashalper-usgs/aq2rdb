@@ -149,6 +149,7 @@ var rest = module.exports = {
         var request = https.request({
             host: host,
             method: method,
+            headers: {"content-type": "application/x-www-form-urlencoded"},
             path: path
         }, queryCallback);
 
