@@ -27,16 +27,16 @@ var site = module.exports = {
         try {
             rest.query(
                 waterServicesHostname,
- 		"GET",
-		"/nwis/site/",
+                "GET",
+                "/nwis/site/",
                 {format: "rdb",
                  site: agencyCode + ':' + siteNumber,
                  siteOutput: "expanded"}, log, callback
             );
         }
         catch (error) {
-	    if (log)
-		console.log("site.request: error: " + error);
+            if (log)
+                console.log("site.request: error: " + error);
             callback(error);
         }
         return;
@@ -51,6 +51,8 @@ var site = module.exports = {
     */
     receive: function(messageBody, callback) {
         var site = new Object;
+
+        console.log("site.receive().messageBody: " + messageBody);
 
         /**
            @todo Here we're parsing RDB, which is messy, and would be nice
