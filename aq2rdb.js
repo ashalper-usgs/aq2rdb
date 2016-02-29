@@ -42,11 +42,11 @@ var cli = commandLineArgs([
     /**
        @description Print version and exit.
     */
-    { name: "version", alias: 'v', type: Boolean, defaultValue: false },
+    {name: "version", alias: 'v', type: Boolean, defaultValue: false},
     /**
        @description Enable logging.
     */
-    { name: "log", alias: 'l', type: Boolean, defaultValue: false },
+    {name: "log", alias: 'l', type: Boolean, defaultValue: false},
     /**
        @description TCP/IP port that aq2rdb will listen on.
     */
@@ -90,11 +90,6 @@ var cli = commandLineArgs([
     */
     {name: "waterDataPassword", type: String}
 ]);
-
-/**
-   @description Set of successfully parsed command line options.
-*/
-var options = cli.parse();
 
 /**
    @description A mapping of select NWIS time zone codes to IANA time
@@ -1885,6 +1880,23 @@ function handleRequest(request, response) {
     }
 }
 
+try {
+    /**
+       @description Set of successfully parsed command line options.
+    */
+    var options = cli.parse();
+}
+catch (error) {
+    /**
+       @todo Error message is too vague here; could be more specific
+             about which option(s) is/are unknown.
+     */
+    if (error.name === "UNKNOWN_OPTION") {
+        console.log(packageName + ": error: Unknown option");
+    }
+    process.exit(1);
+}
+
 /**
    @description Check for "version" CLI option.
 */
@@ -1927,6 +1939,7 @@ else {
         }
     });
 }
+
 
 /**
    @description Export module's private functions to test harness
