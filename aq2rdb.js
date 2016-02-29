@@ -1894,8 +1894,34 @@ catch (error) {
     if (error.name === "UNKNOWN_OPTION") {
         console.log(packageName + ": error: Unknown option");
     }
+    else {
+        console.log(
+            packageName +
+                ": error: Error when parsing command-line arguments: "
+                + error.name
+        );
+    }
     process.exit(1);
 }
+
+function required(options, propertyList) {
+    for (var i in propertyList){
+        if (options[propertyList[i]] === undefined) {
+            console.log(
+                packageName +
+                    ": required command-line argument " + "\"" +
+                    propertyList[i] + "\" not found"
+            );
+            process.exit(1);
+        }
+    }
+} // checkRequiredOption
+
+required(
+    options,
+    ["aquariusUserName", "aquariusPassword",
+     "waterDataUserName", "waterDataPassword"]
+);
 
 /**
    @description Check for "version" CLI option.
