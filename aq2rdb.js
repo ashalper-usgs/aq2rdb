@@ -1181,11 +1181,6 @@ function fuvrdbout(
                 );
 
             try {
-                if (options.log)
-                    console.log(
-                        packageName + ".callback: " + callback
-                    );
-
                 // make (agencyCode,siteNo) digestible by AQUARIUS
                 var locationIdentifier =
                     (rtagny === "USGS") ? sid : sid + '-' + rtagny;
@@ -1318,8 +1313,8 @@ function fuvrdbout(
         function (uniqueId, callback) {
             try {
                 aquarius.getTimeSeriesCorrectedData(
-                    token, uniqueId, field.QueryFrom, field.QueryTo,
-                    callback
+		    options.aquariusHostname, token, uniqueId,
+                    field.QueryFrom, field.QueryTo, callback
                 );
             }
             catch (error) {
@@ -1760,7 +1755,8 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     aquarius.getTimeSeriesCorrectedData(
-                        token, timeSeriesDescription.UniqueId,
+			options.aquariusHostname, token,
+                        timeSeriesDescription.UniqueId,
                         field.QueryFrom, field.QueryTo, callback
                     );
                 }
