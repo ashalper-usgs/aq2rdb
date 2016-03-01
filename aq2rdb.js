@@ -784,7 +784,7 @@ function rdbOut(
     response, intyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
     inddid, instat, begdat, enddat, locTzCd, titlline
 ) {
-    var datatyp, rtagny, agency, sid, stat, uvtyp, inguvtyp;
+    var datatyp, rtagny, agency, sid, stat, uvtyp;
     var usdate, uedate, begdate, enddate, begdtm, enddtm;
     var needstrt = false;
     var uvtypPrompted = false;
@@ -913,7 +913,7 @@ function rdbOut(
     // retrieving measured uvs and transport_cd not supplied,
     // prompt for it
     if (uvtypPrompted && datatyp === "UV" &&
-        (uvtyp === "M' || uvtyp === 'N") &&
+        (uvtyp === 'M' || uvtyp === 'N') &&
         transport_cd === undefined) {
         /*
           nw_query_meas_uv_type(rtagny, sid, ddid, begdtm,
@@ -936,14 +936,6 @@ function rdbOut(
                         enddate);
     }
     else if (datatyp === "UV") {
-        // TODO: replace legacy residue below with indexed array?
-        if (uvtyp === 'M') inguvtyp = "meas";
-        if (uvtyp === 'N') inguvtyp = "msar";
-        if (uvtyp === 'E') inguvtyp = "edit";
-        if (uvtyp === 'R') inguvtyp = "corr";
-        if (uvtyp === 'S') inguvtyp = "shift";
-        if (uvtyp === 'C') inguvtyp = "da";
-
         /**
            @todo The legacy code was very free-and-easy about the
                  association between parameter code and DD ID. The
@@ -952,7 +944,7 @@ function rdbOut(
         */
         irc = fuvrdbout(
             response, false, rndsup, cflag, vflag, rtagny, sid, parm,
-            inguvtyp, begdtm, enddtm, locTzCd
+            begdtm, enddtm, locTzCd
         );
     }
 
@@ -983,7 +975,7 @@ function rdbOut(
 */
 function fuvrdbout(
     response, editable, rndsup, cflag, vflag, rtagny, sid, inddid,
-    inguvtyp, begdtm, enddtm, locTzCd
+    begdtm, enddtm, locTzCd
 )
 {
     var token, locationIdentifier, parameter, rtcode;
@@ -996,11 +988,11 @@ function fuvrdbout(
                     "   response=%s, editable=%s, rndsup=%s, " +
                     "cflag=%s, vflag=%s, rtagny=%s, sid=%s, " +
                     "inddid=%s,\n" +
-                    "   inguvtyp=%s, begdtm=%s, enddtm=%s, " +
+                    "   begdtm=%s, enddtm=%s, " +
                     "locTzCd=%s\n" +
                     ")\n",
                 response, editable, rndsup, cflag, vflag, rtagny, sid,
-                inddid, inguvtyp, begdtm, enddtm, locTzCd
+                inddid, begdtm, enddtm, locTzCd
         )
     );
 
@@ -1407,7 +1399,10 @@ function fuvrdbout(
         function (error) {
             if (error) {
                 if (options.log)
-                    console.log("fuvrdbout: error: " + error);
+                    console.log(
+                        packageName + ".fuvrdbout(): error: "
+                        + error
+                    );
                 handle(error, response);
             }
             response.end();
