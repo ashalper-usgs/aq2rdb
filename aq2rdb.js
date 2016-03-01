@@ -189,6 +189,11 @@ function handle(error, response) {
         statusCode = 404;
     }
 
+    if (options.log) {
+        console.log(packageName + ".handle().response: " + response);
+        console.log(packageName + ".handle().error: " + typeof error);
+    }
+
     response.writeHead(statusCode, statusMessage,
                        {'Content-Length': statusMessage.length,
                         'Content-Type': 'text/plain'});
@@ -782,7 +787,7 @@ function AquariusCredentials (cli) {
 */
 function rdbOut(
     response, intyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
-    inddid, instat, begdat, enddat, locTzCd, titlline
+    inddid, instat, begdat, enddat, locTzCd, titlline, callback
 ) {
     var datatyp, rtagny, agency, sid, stat, uvtyp;
     var usdate, uedate, begdate, enddate, begdtm, enddtm;
@@ -963,7 +968,10 @@ function rdbOut(
 
     // Good return
     //999
-    return irc;
+    if (options.log)
+        console.log(packageName + ".rdbOut() returns");
+
+    callback(null, irc);
 
 } // rdbOut
 
@@ -980,6 +988,7 @@ function fuvrdbout(
 {
     var token, locationIdentifier, parameter, rtcode;
     var extendedFilters;
+    var timeSeriesDescription;
 
     if (options.log)
         console.log(
@@ -1007,19 +1016,19 @@ function fuvrdbout(
 
             if (rtagny === undefined) {
                 callback('Required field "rtagny" not found');
-                return;
+                return rtcode;
             }
 
             if (sid === undefined) {
                 callback('Required field "sid" not found');
-                return;
+                return rtcode;
             }
 
             // TODO: "parameter" somehow went MIA in fuvrdbout()
             // formal parameters in translation from Fortran
             if (inddid === undefined) {
                 callback('Required AQUARIUS field "Parameter" not found');
-                return;
+                return rtcode;
             }
 
             var aquariusCredentials = new AquariusCredentials(
@@ -1104,7 +1113,7 @@ function fuvrdbout(
             }
             catch (error) {
                 callback(error);
-                return;
+                return rtcode;
             }
         },
         function (messageBody, callback) {
@@ -1115,19 +1124,12 @@ function fuvrdbout(
             }
             catch (error) {
                 callback(error);
-                return;
+                return rtcode;
             }
 
-            if (options.log)
-                console.log(
-                  "fuvrdbout().async.waterfall()." +
-                        "nwisRAAuthentication.tokenId: " +
-                        nwisRAAuthentication.tokenId
-                );
             callback(null, nwisRAAuthentication.tokenId);
         },
         function (tokenId, callback) {
-            console.log("fuvrdbout().async.waterfall().tokenId: " + tokenId);
             try {
                 rest.querySecure(
                     options.waterDataHostname,
@@ -1142,7 +1144,7 @@ function fuvrdbout(
             }
             catch (error) {
                 callback(error);
-                return;
+                return rtcode;
             }
         },
         function (messageBody, callback) {
@@ -1153,7 +1155,7 @@ function fuvrdbout(
             }
             catch (error) {
                 callback(error);
-                return;
+                return rtcode;
             }
 
             parameter = parameters.records[0].PARM_ALIAS_NM;
@@ -1202,7 +1204,7 @@ function fuvrdbout(
             }
             catch (error) {
                 callback(error);
-                return;
+                return rtcode;
             }
         },
         /**
@@ -1223,7 +1225,7 @@ function fuvrdbout(
             }
             catch (error) {
                 callback(error);
-                return;
+                return rtcode;
             }
 
             callback(
@@ -1232,13 +1234,11 @@ function fuvrdbout(
             );
         },
         /**
-           @function For each AQUARIUS time series description, weed
-                     out non-UV, and non-primary ones.
+           @function Check for zero TimeSeriesDescriptions returned
+                     from AQUARIUS Web service query above.
            @callback
         */
         function (timeSeriesDescriptions, callback) {
-            var timeSeriesDescription;
-
             if (timeSeriesDescriptions.length === 0) {
                 callback(
                     "No time series description list found " +
@@ -1248,9 +1248,17 @@ function fuvrdbout(
                         ", ComputationIdentifier=Unknown, " +
                         "ExtendedFilters=" + extendedFilters
                 );
-                return;
+                return rtcode;
             }
 
+            callback(null, timeSeriesDescriptions);
+        },
+        /**
+           @function For each AQUARIUS time series description, weed
+                     out non-UV, and non-primary ones.
+           @callback
+        */
+        function (timeSeriesDescriptions, callback) {
             async.filter(
                 timeSeriesDescriptions,
                 function (timeSeriesDescription, callback) {
@@ -1277,7 +1285,7 @@ function fuvrdbout(
                     );
                 }
             );
-            callback(null, timeSeriesDescription);
+            callback(null);
         },
         /**
            @function Write RDB header to HTTP response.
@@ -1400,10 +1408,9 @@ function fuvrdbout(
             if (error) {
                 if (options.log)
                     console.log(
-                        packageName + ".fuvrdbout(): error: "
-                        + error
+                        packageName + ".fuvrdbout(): error: " + error
                     );
-                handle(error, response);
+                response.write(error);
             }
             response.end();
         }
@@ -1904,19 +1911,15 @@ httpdispatcher.onGet(
                 }
 
                 callback(
-                    null, field.t, field.a, field.n, field.p, field.s,
-                    field.b, field.e
+                    null, response, field.t, false, false, false,
+                    false, field.a, field.n, 'P' + field.p, field.s,
+                    field.b, field.e, undefined, ""
                 );
             },
-            function (
-                datatyp, agency, station, parm, stat, begdat, enddat,
-                callback
-            ) {
-                rdbOut(
-                    response, datatyp, false, false, false, false,
-                    agency, station, "P" + parm, stat, begdat, enddat,
-                    undefined, ""
-                );
+            rdbOut,             // declared at global scope above
+            function (irc, callback) {
+                if (options.log)
+                    console.log(packageName + ".aq2rdb.irc: " + irc);
                 callback(null);
             }
         ],
