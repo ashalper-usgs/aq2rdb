@@ -28,6 +28,7 @@ var site = module.exports = {
             rest.query(
                 waterServicesHostname,
                 "GET",
+                undefined,      // HTTP headers
                 "/nwis/site/",
                 {format: "rdb",
                  site: agencyCode + ':' + siteNumber,
