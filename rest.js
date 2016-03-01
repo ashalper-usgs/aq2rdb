@@ -49,14 +49,19 @@ var rest = module.exports = {
                 }
                 else if (
                     response.statusCode < 200 || 300 <= response.statuscode
-                )
+                ) {
                     callback(
                         "Could not reference site at http://" + host +
                             path + "; HTTP status code was: " +
                             response.statusCode.toString()
                     );
-                else
+		    return;
+		}
+                else {
+		    if (log)
+			console.log(callback);
                     callback(null, messageBody);
+		}
                 return;
             });
         }
@@ -82,7 +87,7 @@ var rest = module.exports = {
         */
         request.on("error", function (error) {
             if (log)
-                console.log("rest.query: " + error);
+                console.log("rest.query: error: " + error);
             callback(error);
             return;
         });
