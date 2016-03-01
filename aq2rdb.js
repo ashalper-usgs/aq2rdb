@@ -992,11 +992,14 @@ function fuvrdbout(
         console.log(
             sprintf(
                 "fuvrdbout(\n" +
-"   response=%s, editable=%s, rndsup=%s, cflag=%s, vflag=%s, rtagny=%s, sid=%s, inddid=%s,\n" +
-                "   inguvtyp=%s, begdtm=%s, enddtm=%s, locTzCd=%s\n" +
+                    "   response=%s, editable=%s, rndsup=%s, " +
+                    "cflag=%s, vflag=%s, rtagny=%s, sid=%s, " +
+                    "inddid=%s,\n" +
+                    "   inguvtyp=%s, begdtm=%s, enddtm=%s, " +
+                    "locTzCd=%s\n" +
                     ")\n",
-                response, editable, rndsup, cflag, vflag, rtagny, sid, inddid,
-                inguvtyp, begdtm, enddtm, locTzCd
+                response, editable, rndsup, cflag, vflag, rtagny, sid,
+                inddid, inguvtyp, begdtm, enddtm, locTzCd
         )
     );
 
@@ -1148,7 +1151,7 @@ function fuvrdbout(
                     "GET",
                     {"Authorization": "Bearer " + tokenId},
                     "/service/reference/list/parameter/json",
-                    undefined,  // no HTTP query parameters
+                    {"parameter.KeyValue": inddid},
                     options.log,
                     callback
                 );
@@ -1188,6 +1191,7 @@ function fuvrdbout(
                 rest.query(
                     options.aquariusHostname,
                     "GET",
+                    undefined,  // HTTP headers
                     aquarius.PREFIX + "GetTimeSeriesDescriptionList",
                     {token: token,
                      format: "json",
@@ -1398,6 +1402,19 @@ function fuvrdbout(
     return rtcode;
 } // fuvrdbout
 
+function required(options, propertyList) {
+    for (var i in propertyList){
+        if (options[propertyList[i]] === undefined) {
+            console.log(
+                packageName +
+                    ": required command-line argument " + "\"" +
+                    propertyList[i] + "\" not found"
+            );
+            process.exit(1);
+        }
+    }
+} // checkRequiredOption
+
 /**
    @description GetDVTable endpoint service request handler.
 */
@@ -1538,8 +1555,10 @@ httpdispatcher.onGet(
                     rest.query(
                         options.aquariusHostname,
                         "GET",
+                        undefined,      // HTTP headers
                         aquarius.PREFIX + 'GetTimeSeriesDescriptionList',
                         obj,
+                        options.log,
                         callback
                     );
                 }
@@ -1676,9 +1695,11 @@ httpdispatcher.onGet(
                     rest.query(
                         options.aquariusHostname,
                         "GET",
+                        undefined,      // HTTP headers
                         aquarius.PREFIX + "GetQualifierList/",
-                        {token: token,
-                         format: "json"}, callback
+                        {token: token, format: "json"},
+                        options.log,
+                        callback
                     );
                 }
                 catch (error) {
@@ -1946,25 +1967,6 @@ catch (error) {
     }
     process.exit(1);
 }
-
-function required(options, propertyList) {
-    for (var i in propertyList){
-        if (options[propertyList[i]] === undefined) {
-            console.log(
-                packageName +
-                    ": required command-line argument " + "\"" +
-                    propertyList[i] + "\" not found"
-            );
-            process.exit(1);
-        }
-    }
-} // checkRequiredOption
-
-required(
-    options,
-    ["aquariusUserName", "aquariusPassword",
-     "waterDataUserName", "waterDataPassword"]
-);
 
 /**
    @description Check for "version" CLI option.
