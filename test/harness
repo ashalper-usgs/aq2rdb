@@ -47,13 +47,13 @@ endpoint GetDVTable "shahDoobie=Discharge.ft^3/s.Mean@09380000"
 echo
 endpoint GetDVTable "timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&computed=trued"
 echo
-endpoint GetDVTable "userName=$userName&password=not4passwurd&timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&computed=true"
+endpoint GetDVTable "timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000&computed=true"
 echo
-endpoint GetDVTable "userName=$userName&password=$password&LocationIdentifier=09380000&Parameter=Discharge&QueryFrom=2015-01-01T00%3A00%3A00-07%3A00&QueryTo=2015-01-03T00%3A00%3A00-07%3A00"
+endpoint GetDVTable "LocationIdentifier=09380000&Parameter=Discharge&QueryFrom=2015-01-01T00%3A00%3A00-07%3A00&QueryTo=2015-01-03T00%3A00%3A00-07%3A00"
 echo
-endpoint GetDVTable "userName=$userName&password=$password&LocationIdentifier=09380000&QueryFrom=2015-01-01T00%3A00%3A00-07%3A00&QueryTo=2015-01-03T00%3A00%3A00-07%3A00"
+endpoint GetDVTable "LocationIdentifier=09380000&QueryFrom=2015-01-01T00%3A00%3A00-07%3A00&QueryTo=2015-01-03T00%3A00%3A00-07%3A00"
 echo
-endpoint GetDVTable "userName=$userName&password=$password&LocationIdentifier=01010000&Parameter=Discharge&QueryFrom=1995-12-31T00%3A00%3A00-07%3A00&QueryTo=1996-12-31T00%3A00%3A00-07%3A00"
+endpoint GetDVTable "LocationIdentifier=01010000&Parameter=Discharge&QueryFrom=1995-12-31T00%3A00%3A00-07%3A00&QueryTo=1996-12-31T00%3A00%3A00-07%3A00"
 
 if [ "$1" = -l ]; then
     kill $aq2rdb
