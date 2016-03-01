@@ -1140,8 +1140,9 @@ function fuvrdbout(
                     options.waterDataHostname,
                     "GET",
                     {"Authorization": "Bearer " + tokenId},
-                    "/service/reference/list/parameter/json",
-                    {"parameter.KeyValue": inddid},
+                    "/service/data/view/parameters/json",
+                    {"parameters.PARM_ALIAS_CD": "AQNAME",
+                     "parameters.PARM_CD": inddid},
                     options.log,
                     callback
                 );
@@ -1152,27 +1153,16 @@ function fuvrdbout(
             }
         },
         function (messageBody, callback) {
-            var parameterRow;
+            var parameters;
 
             try {
-                parameterRow = JSON.parse(messageBody);
+                parameters = JSON.parse(messageBody);
             }
             catch (error) {
                 callback(error);
                 return;
             }
-            callback(null, parameterRow[0]);
-        },
-        function (parameter, callback) {
-            if (options.log)
-                console.log(
-                    packageName +
-                        ".fuvrdbout().parameter.DisplayValue: " +
-                        parameter.DisplayValue
-                );
-            // second (Node.js) parameter here converts NWIS-RA
-            // parameter.DisplayValue to AQUARIUS "Parameter"
-            callback(null, parameter.DisplayValue.split(" - ")[1]);
+            callback(null, parameters.records[0].PARM_ALIAS_NM);
         },
         /**
            @function Query AQUARIUS GetTimeSeriesDescriptionList
