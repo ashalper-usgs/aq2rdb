@@ -1162,19 +1162,23 @@ function fuvrdbout(
             }
         },
         function (messageBody, callback) {
-            var parameterTable;
+            var parameterRow;
 
             try {
-                parameterTable = JSON.parse(messageBody);
+                parameterRow = JSON.parse(messageBody);
             }
             catch (error) {
                 callback(error);
                 return;
             }
-            callback(null, parameterTable);
+            callback(null, parameterRow[0]);
         },
-        function (parameterTable, callback) {
-            console.log(JSON.stringify(parameterTable[0]));
+        function (parameter, callback) {
+            if (options.log)
+                console.log(
+                    "fuvrdbout().parameter.DisplayValue: " +
+                        parameter.DisplayValue
+                );
             callback(null);
         },
         /**
