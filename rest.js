@@ -44,6 +44,7 @@ var rest = module.exports = {
                 if (log)
                     console.log("rest.query.response.statusCode: " +
                                 response.statusCode.toString());
+
                 if (response.statusCode === 404) {
                     callback("Site not found at http://" + host + path);
                 }
@@ -51,17 +52,22 @@ var rest = module.exports = {
                     response.statusCode < 200 || 300 <= response.statuscode
                 ) {
                     callback(
-                        "Could not reference site at http://" + host +
-                            path + "; HTTP status code was: " +
+                        "Could not successfully query service at " +
+                            "http://" + host + path +
+                            "; HTTP status code was: " +
                             response.statusCode.toString()
                     );
-		    return;
-		}
+                    return;
+                }
                 else {
-		    if (log)
-			console.log(callback);
+                    if (log)
+                        console.log(
+                            "rest.query.queryCallback.callback: " +
+                                callback
+                        );
                     callback(null, messageBody);
-		}
+                }
+
                 return;
             });
         }
