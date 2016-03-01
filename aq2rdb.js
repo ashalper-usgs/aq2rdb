@@ -987,6 +987,7 @@ function fuvrdbout(
 )
 {
     var token, locationIdentifier, parameter, rtcode;
+    var extendedFilters;
 
     if (options.log)
         console.log(
@@ -1162,7 +1163,9 @@ function fuvrdbout(
                 callback(error);
                 return;
             }
-            callback(null, parameters.records[0].PARM_ALIAS_NM);
+
+            parameter = parameters.records[0].PARM_ALIAS_NM;
+            callback(null);
         },
         /**
            @function Query AQUARIUS GetTimeSeriesDescriptionList
@@ -1173,19 +1176,22 @@ function fuvrdbout(
            @param {function} callback async.waterfall() callback
                   function.
         */
-        function (parameter, callback) {
+        function (callback) {
             if (options.log)
                 console.log(
                     packageName + ".fuvrdbout().parameter: " +
                         parameter
                 );
 
-            try {
-                // make (agencyCode,siteNo) digestible by AQUARIUS
-                var locationIdentifier =
-                    (rtagny === "USGS") ? sid : sid + '-' + rtagny;
+            // make (agencyCode,siteNo) digestible by AQUARIUS
+            locationIdentifier =
+                (rtagny === "USGS") ? sid : sid + '-' + rtagny;
+            // not sure what this does
+            extendedFilters =
+                "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]";
 
-                rest.query(
+             try {
+               rest.query(
                     options.aquariusHostname,
                     "GET",
                     undefined,  // HTTP headers
@@ -1197,8 +1203,8 @@ function fuvrdbout(
                      // AQUARIUS semantics here appear to be:
                      // "Unknown" => "Unit Values"
                      ComputationIdentifier: "Unknown",
-                     ExtendedFilters:
-                        "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]"},
+                     ExtendedFilters: extendedFilters},
+                    options.log,
                     callback
                 );
             }
@@ -1240,6 +1246,18 @@ function fuvrdbout(
         */
         function (timeSeriesDescriptions, callback) {
             var timeSeriesDescription;
+
+            if (timeSeriesDescriptions.length === 0) {
+                callback(
+                    "No time series description list found " +
+                        "for LocationIdentifier=" +
+                        locationIdentifier + ", Parameter=" +
+                        parameter +
+                        ", ComputationIdentifier=Unknown, " +
+                        "ExtendedFilters=" + extendedFilters
+                );
+                return;
+            }
 
             async.filter(
                 timeSeriesDescriptions,
@@ -1313,7 +1331,7 @@ function fuvrdbout(
         function (uniqueId, callback) {
             try {
                 aquarius.getTimeSeriesCorrectedData(
-		    options.aquariusHostname, token, uniqueId,
+                    options.aquariusHostname, token, uniqueId,
                     field.QueryFrom, field.QueryTo, callback
                 );
             }
@@ -1755,7 +1773,7 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     aquarius.getTimeSeriesCorrectedData(
-			options.aquariusHostname, token,
+                        options.aquariusHostname, token,
                         timeSeriesDescription.UniqueId,
                         field.QueryFrom, field.QueryTo, callback
                     );
