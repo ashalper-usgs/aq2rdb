@@ -1096,85 +1096,6 @@ function fuvrdbout(
                  so we can reference UV times to "local time".
         */
         /**
-           @function Query USGS-parameter-code-to-AQUARIUS-parameter
-                     Web service here to obtain AQUARIUS parameter
-                     from USGS parameter code.
-           @callback
-           @param {function} callback async.waterfall() callback
-                  function.
-        */
-        function (callback) {
-            try {
-                rest.querySecure(
-                    options.waterDataHostname,
-                    "POST",
-                    {"content-type": "application/x-www-form-urlencoded"},
-                    "/service/auth/authenticate",
-                    {username: options.waterDataUserName,
-                     password: options.waterDataPassword},
-                    options.log,
-                    callback
-                );
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-        },
-        function (messageBody, callback) {
-            var nwisRAAuthentication;
-
-            try {
-                nwisRAAuthentication = JSON.parse(messageBody);
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-
-            if (options.log)
-                console.log(
-                  "fuvrdbout().async.waterfall()." +
-                        "nwisRAAuthentication.tokenId: " +
-                        nwisRAAuthentication.tokenId
-                );
-            callback(null, nwisRAAuthentication.tokenId);
-        },
-        function (tokenId, callback) {
-            console.log("fuvrdbout().async.waterfall().tokenId: " + tokenId);
-            try {
-                rest.querySecure(
-                    options.waterDataHostname,
-                    "GET",
-                    {"Authorization": "Bearer " + tokenId},
-                    "/service/reference/list/parameter/json",
-                    undefined,  // no HTTP query parameters
-                    options.log,
-                    callback
-                );
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-        },
-        function (messageBody, callback) {
-            var parameterTable;
-
-            try {
-                parameterTable = JSON.parse(messageBody);
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-            callback(null, parameterTable);
-        },
-        function (parameterTable, callback) {
-            console.log(JSON.stringify(parameterTable[0]));
-            callback(null);
-        },
-        /**
            @function Query AQUARIUS GetTimeSeriesDescriptionList
                      service to get list of AQUARIUS, time series
                      UniqueIds related to aq2rdb, GetUVTable location
@@ -1397,6 +1318,19 @@ function fuvrdbout(
 
     return rtcode;
 } // fuvrdbout
+
+function required(options, propertyList) {
+    for (var i in propertyList){
+        if (options[propertyList[i]] === undefined) {
+            console.log(
+                packageName +
+                    ": required command-line argument " + "\"" +
+                    propertyList[i] + "\" not found"
+            );
+            process.exit(1);
+        }
+    }
+} // checkRequiredOption
 
 /**
    @description GetDVTable endpoint service request handler.
@@ -1947,25 +1881,6 @@ catch (error) {
     process.exit(1);
 }
 
-function required(options, propertyList) {
-    for (var i in propertyList){
-        if (options[propertyList[i]] === undefined) {
-            console.log(
-                packageName +
-                    ": required command-line argument " + "\"" +
-                    propertyList[i] + "\" not found"
-            );
-            process.exit(1);
-        }
-    }
-} // checkRequiredOption
-
-required(
-    options,
-    ["aquariusUserName", "aquariusPassword",
-     "waterDataUserName", "waterDataPassword"]
-);
-
 /**
    @description Check for "version" CLI option.
 */
@@ -1991,24 +1906,117 @@ if (options.version === true) {
     });
 }
 else {
-    /**
-       @description Create HTTP server to host the service.
-    */
-    var server = http.createServer(handleRequest);
-
-    /**
-       @description Start listening for requests.
-    */ 
-    server.listen(options.port, function () {
-        if (options.log === true) {
-            console.log(
-                packageName + ': Server listening on: http://localhost:' +
-                    options.port.toString()
+    async.waterfall([
+        function (callback) {
+            required(
+                options,
+                ["aquariusUserName", "aquariusPassword",
+                 "waterDataUserName", "waterDataPassword"]
             );
-        }
-    });
-}
+            callback(null);
+        },
+        /**
+           @function Query USGS-parameter-code-to-AQUARIUS-parameter
+                     Web service here to obtain AQUARIUS parameter
+                     from USGS parameter code.
+           @callback
+           @param {function} callback async.waterfall() callback
+                  function.
+        */
+        function (callback) {
+            try {
+                rest.querySecure(
+                    options.waterDataHostname,
+                    "POST",
+                    {"content-type": "application/x-www-form-urlencoded"},
+                    "/service/auth/authenticate",
+                    {username: options.waterDataUserName,
+                     password: options.waterDataPassword},
+                    options.log,
+                    callback
+                );
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+        },
+        function (messageBody, callback) {
+            var nwisRAAuthentication;
 
+            try {
+                nwisRAAuthentication = JSON.parse(messageBody);
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+
+            if (options.log)
+                console.log(
+                  "fuvrdbout().async.waterfall()." +
+                        "nwisRAAuthentication.tokenId: " +
+                        nwisRAAuthentication.tokenId
+                );
+            callback(null, nwisRAAuthentication.tokenId);
+        },
+        function (tokenId, callback) {
+            console.log("fuvrdbout().async.waterfall().tokenId: " + tokenId);
+            try {
+                rest.querySecure(
+                    options.waterDataHostname,
+                    "GET",
+                    {"Authorization": "Bearer " + tokenId},
+                    "/service/reference/list/parameter/json",
+                    undefined,  // no HTTP query parameters
+                    options.log,
+                    callback
+                );
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+        },
+        function (messageBody, callback) {
+            var parameterTable;
+
+            try {
+                parameterTable = JSON.parse(messageBody);
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+            callback(null, parameterTable);
+        },
+        function (parameterTable, callback) {
+            console.log(JSON.stringify(parameterTable[0]));
+            callback(null);
+        },
+        function (callback) {
+            /**
+               @description Create HTTP server to host the service.
+            */
+            var server = http.createServer(handleRequest);
+
+            /**
+               @description Start listening for requests.
+            */ 
+            server.listen(options.port, function () {
+                if (options.log === true) {
+                    console.log(
+                        packageName +
+                            ": Server listening on: http://localhost:" +
+                            options.port.toString()
+                    );
+                }
+            });
+
+            callback(null);
+        }
+    ]);
+}
 
 /**
    @description Export module's private functions to test harness
