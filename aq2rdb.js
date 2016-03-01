@@ -1176,10 +1176,13 @@ function fuvrdbout(
         function (parameter, callback) {
             if (options.log)
                 console.log(
-                    "fuvrdbout().parameter.DisplayValue: " +
+                    packageName +
+			".fuvrdbout().parameter.DisplayValue: " +
                         parameter.DisplayValue
                 );
-            callback(null);
+	    // second (Node.js) parameter here converts NWIS-RA
+	    // parameter.DisplayValue to AQUARIUS "Parameter"
+            callback(null, parameter.DisplayValue.split(" - ")[1]);
         },
         /**
            @function Query AQUARIUS GetTimeSeriesDescriptionList
@@ -1191,12 +1194,24 @@ function fuvrdbout(
                   function.
         */
         function (parameter, callback) {
+	    if (options.log)
+		console.log(
+		    packageName + ".fuvrdbout().parameter: " +
+			parameter
+		);
+
             try {
+		if (options.log)
+		    console.log(
+			packageName + ".options.aquariusHostname: " +
+			    options.aquariusHostname
+		    );
+
                 rest.query(
                     options.aquariusHostname,
                     "GET",
                     undefined,  // HTTP headers
-                    aquarius.PREFIX + "GetTimeSeriesDescriptionList",
+                    "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
                     {token: token,
                      format: "json",
                      LocationIdentifier: locationIdentifier.toString(),
@@ -1560,7 +1575,7 @@ httpdispatcher.onGet(
                         options.aquariusHostname,
                         "GET",
                         undefined,      // HTTP headers
-                        aquarius.PREFIX + 'GetTimeSeriesDescriptionList',
+                        "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
                         obj,
                         options.log,
                         callback
@@ -1700,7 +1715,7 @@ httpdispatcher.onGet(
                         options.aquariusHostname,
                         "GET",
                         undefined,      // HTTP headers
-                        aquarius.PREFIX + "GetQualifierList/",
+                        "/AQUARIUS/Publish/V2/GetQualifierList/",
                         {token: token, format: "json"},
                         options.log,
                         callback
@@ -1731,8 +1746,8 @@ httpdispatcher.onGet(
                 if (qualifierListServiceResponse === undefined) {
                     callback(
                         'Could not get remark codes from http://' +
-                            options.aquariusHostname + aquarius.PREFIX +
-                            'GetQualifierList/'
+                            options.aquariusHostname +
+			    "/AQUARIUS/Publish/V2/GetQualifierList/"
                     );
                     return;
                 }
