@@ -60,11 +60,6 @@ var rest = module.exports = {
                     return;
                 }
                 else {
-                    if (log)
-                        console.log(
-                            "rest.query.queryCallback.callback: " +
-                                callback
-                        );
                     callback(null, messageBody);
                 }
 
