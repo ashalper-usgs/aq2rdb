@@ -1022,15 +1022,6 @@ function fuvrdbout(
                 return;
             }
 
-            /**
-               @todo concatenation in constructor argument is bad
-                     here; need to see if there's way to define
-                     constructors with different parameter
-                     "signatures" in JavaScript
-            */
-            locationIdentifier =
-                new LocationIdentifier(sid + '-' + rtagny);
-
             // TODO: "parameter" somehow went MIA in fuvrdbout()
             // formal parameters in translation from Fortran
             if (inddid === undefined) {
@@ -1076,9 +1067,8 @@ function fuvrdbout(
         function (messageBody, callback) {
             token = messageBody;
             callback(
-                null, options.waterServicesHostname,
-                locationIdentifier.agencyCode(),
-                locationIdentifier.siteNumber(), options.log
+                null, options.waterServicesHostname, rtagny, sid,
+                options.log
             );
         },
         /**
@@ -1177,11 +1167,11 @@ function fuvrdbout(
             if (options.log)
                 console.log(
                     packageName +
-			".fuvrdbout().parameter.DisplayValue: " +
+                        ".fuvrdbout().parameter.DisplayValue: " +
                         parameter.DisplayValue
                 );
-	    // second (Node.js) parameter here converts NWIS-RA
-	    // parameter.DisplayValue to AQUARIUS "Parameter"
+            // second (Node.js) parameter here converts NWIS-RA
+            // parameter.DisplayValue to AQUARIUS "Parameter"
             callback(null, parameter.DisplayValue.split(" - ")[1]);
         },
         /**
@@ -1194,18 +1184,21 @@ function fuvrdbout(
                   function.
         */
         function (parameter, callback) {
-	    if (options.log)
-		console.log(
-		    packageName + ".fuvrdbout().parameter: " +
-			parameter
-		);
+            if (options.log)
+                console.log(
+                    packageName + ".fuvrdbout().parameter: " +
+                        parameter
+                );
 
             try {
-		if (options.log)
-		    console.log(
-			packageName + ".options.aquariusHostname: " +
-			    options.aquariusHostname
-		    );
+                if (options.log)
+                    console.log(
+                        packageName + ".callback: " + callback
+                    );
+
+                // make (agencyCode,siteNo) digestible by AQUARIUS
+                var locationIdentifier =
+                    (rtagny === "USGS") ? sid : sid + '-' + rtagny;
 
                 rest.query(
                     options.aquariusHostname,
@@ -1214,7 +1207,7 @@ function fuvrdbout(
                     "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
                     {token: token,
                      format: "json",
-                     LocationIdentifier: locationIdentifier.toString(),
+                     LocationIdentifier: locationIdentifier,
                      Parameter: parameter,
                      // AQUARIUS semantics here appear to be:
                      // "Unknown" => "Unit Values"
@@ -1747,7 +1740,7 @@ httpdispatcher.onGet(
                     callback(
                         'Could not get remark codes from http://' +
                             options.aquariusHostname +
-			    "/AQUARIUS/Publish/V2/GetQualifierList/"
+                            "/AQUARIUS/Publish/V2/GetQualifierList/"
                     );
                     return;
                 }
