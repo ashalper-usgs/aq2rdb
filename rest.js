@@ -123,7 +123,7 @@ var rest = module.exports = {
 
             response.on('end', function () {
                 if (log)
-                    console.log("rest.query.response.statusCode: " +
+                    console.log("rest.querySecure.response.statusCode: " +
                                 response.statusCode.toString());
                 if (response.statusCode === 404) {
                     callback("Site not found at http://" + host + path);
@@ -149,7 +149,7 @@ var rest = module.exports = {
             var chunk = querystring.stringify(obj);
 
         if (log)
-            console.log("rest.query: https://" + host + path);
+            console.log("rest.querySecure: https://" + host + path);
 
         var request = https.request({
             host: host,
@@ -163,7 +163,7 @@ var rest = module.exports = {
         */
         request.on("error", function (error) {
             if (log)
-                console.log("rest.query: " + error);
+                console.log("rest.querySecure: " + error);
             callback(error);
             return;
         });
