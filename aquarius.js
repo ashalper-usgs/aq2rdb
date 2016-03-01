@@ -28,20 +28,20 @@ var aquarius = module.exports = {
 
             // accumulate response
             response.on(
-                'data',
+                "data",
                 function (chunk) {
                     messageBody += chunk;
                 });
 
-            response.on('end', function () {
+            response.on("end", function () {
                 callback(null, messageBody);
                 return;
             });
         }
         
-        var path = PREFIX + 'GetLocationData?' +
+        var path = "/AQUARIUS/Publish/V2/GetLocationData?" +
             querystring.stringify(
-                {token: token, format: 'json',
+                {token: token, format: "json",
                  LocationIdentifier: locationIdentifier}
             );
 
@@ -54,7 +54,7 @@ var aquarius = module.exports = {
            @description Handle GetTimeSeriesDescriptionList service
                         invocation errors.
         */
-        request.on('error', function (error) {
+        request.on("error", function (error) {
             callback(error);
             return;
         });
@@ -79,7 +79,8 @@ var aquarius = module.exports = {
               GetTimeSeriesCorrectedData service responds.
     */
     getTimeSeriesCorrectedData: function (
-        token, timeSeriesUniqueId, queryFrom, queryTo, callback
+        aquariusHostname, token, timeSeriesUniqueId, queryFrom,
+        queryTo, callback
     ) {
         /**
            @description Handle response from GetTimeSeriesCorrectedData.
@@ -91,26 +92,26 @@ var aquarius = module.exports = {
 
             // accumulate response
             response.on(
-                'data',
+                "data",
                 function (chunk) {
                     messageBody += chunk;
                 });
 
-            response.on('end', function () {
+            response.on("end", function () {
                 callback(null, messageBody);
                 return;
             });
         } // getTimeSeriesCorrectedDataCallback
 
-        var path = PREFIX + 'GetTimeSeriesCorrectedData?' +
+        var path = "/AQUARIUS/Publish/V2/GetTimeSeriesCorrectedData?" +
             querystring.stringify(
-                {token: token, format: 'json',
+                {token: token, format: "json",
                  TimeSeriesUniqueId: timeSeriesUniqueId,
                  QueryFrom: queryFrom, QueryTo: queryTo}
             );
 
         var request = http.request({
-            host: options.aquariusHostname,
+            host: aquariusHostname,
             path: path
         }, getTimeSeriesCorrectedDataCallback);
 
@@ -118,7 +119,7 @@ var aquarius = module.exports = {
            @description Handle GetTimeSeriesCorrectedData service
            invocation errors.
         */
-        request.on('error', function (error) {
+        request.on("error", function (error) {
             callback(error);
             return;
         });
@@ -195,9 +196,9 @@ var aquarius = module.exports = {
                         function (extendedAttribute, callback) {
                             // if this time series description is
                             // (hopefully) the (only) primary one
-                            if (extendedAttribute.Name === 'PRIMARY_FLAG'
+                            if (extendedAttribute.Name === "PRIMARY_FLAG"
                                 &&
-                                extendedAttribute.Value === 'Primary') {
+                                extendedAttribute.Value === "Primary") {
                                 callback(true);
                             }
                             else {
