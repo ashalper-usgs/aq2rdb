@@ -1192,10 +1192,13 @@ function fuvrdbout(
         function (error) {
             if (error) {
                 console.log(packageName + ".fuvrdbout().error: " + error);
-                response.write("# " + packageName + ": " + error, "ascii");
+                // relay error to caller async.waterfall()
+                callback(error);
             }
-            // return control to async.waterfall() that called me
-            callback(null, rtcode);
+            else {
+                // return control to async.waterfall() that called me
+                callback(null, rtcode);
+            }
         }
     ); // async.waterfall
     return;
@@ -1940,7 +1943,7 @@ httpdispatcher.onGet(
                             "\" in rdbOut()"
                     );
                 }
-                // no callback() call here because it is in
+                // no callback() call here because it is invoked in
                 // conditional above
             },
             fuvrdbout,
@@ -1966,8 +1969,9 @@ httpdispatcher.onGet(
                 if (options.log)
                     console.log(packageName + ".a2rdb/: error callback");
                 if (error)
-                    handle(error, response);
-                response.end();
+                    response.end("# " + packageName + ": " + error, "ascii");
+                else
+                    response.end();
             }
         );
     }
