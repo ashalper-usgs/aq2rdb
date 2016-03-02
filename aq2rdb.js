@@ -1881,6 +1881,19 @@ httpdispatcher.onGet(
                     */
                 }
 
+                callback(
+                    null,
+                    datatyp, rndsup, cflag, vflag, rtagny, sid, ddid,
+                    stat, begdate, enddate, parm, begdtm, enddtm, locTzCd,
+                    irc
+                );
+            },
+            function (
+                datatyp, rndsup, cflag, vflag, rtagny, sid, ddid,
+                stat, begdate, enddate, parm, begdtm, enddtm, locTzCd,
+                irc,
+                callback
+            ) {
                 //  get data and output to files
 
                 if (datatyp === "DV") {
@@ -1914,9 +1927,7 @@ httpdispatcher.onGet(
                 if (options.log)
                     console.log(packageName + ".rdbOut() proceeds");
 
-                callback(null, irc);
-
-            }, // rdbOut
+            }, // rdbOut (logically)
             function (irc, callback) {
                 if (options.log)
                     console.log(packageName + ".aq2rdb.irc: " + irc);
