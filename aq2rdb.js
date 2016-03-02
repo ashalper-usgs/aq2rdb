@@ -797,19 +797,19 @@ function fuvrdbout(
 
             if (rtagny === undefined) {
                 callback('Required field "rtagny" not found');
-                return rtcode;
+                return;
             }
 
             if (sid === undefined) {
                 callback('Required field "sid" not found');
-                return rtcode;
+                return;
             }
 
             // TODO: "parameter" somehow went MIA in fuvrdbout()
             // formal parameters in translation from Fortran
             if (inddid === undefined) {
                 callback('Required AQUARIUS field "Parameter" not found');
-                return rtcode;
+                return;
             }
 
             var aquariusCredentials = new AquariusCredentials(
@@ -894,7 +894,7 @@ function fuvrdbout(
             }
             catch (error) {
                 callback(error);
-                return rtcode;
+                return;
             }
         },
         function (messageBody, callback) {
@@ -905,7 +905,7 @@ function fuvrdbout(
             }
             catch (error) {
                 callback(error);
-                return rtcode;
+                return;
             }
 
             callback(null, nwisRAAuthentication.tokenId);
@@ -925,7 +925,7 @@ function fuvrdbout(
             }
             catch (error) {
                 callback(error);
-                return rtcode;
+                return;
             }
         },
         function (messageBody, callback) {
@@ -936,7 +936,7 @@ function fuvrdbout(
             }
             catch (error) {
                 callback(error);
-                return rtcode;
+                return;
             }
 
             parameter = parameters.records[0].PARM_ALIAS_NM;
@@ -985,7 +985,7 @@ function fuvrdbout(
             }
             catch (error) {
                 callback(error);
-                return rtcode;
+                return;
             }
         },
         /**
@@ -1006,7 +1006,7 @@ function fuvrdbout(
             }
             catch (error) {
                 callback(error);
-                return rtcode;
+                return;
             }
 
             callback(
@@ -1021,6 +1021,10 @@ function fuvrdbout(
         */
         function (timeSeriesDescriptions, callback) {
             if (timeSeriesDescriptions.length === 0) {
+                /**
+                   @todo Might be more helpful to have "...found at
+                         <URL>" in this message.
+                */
                 callback(
                     "No time series description list found " +
                         "for LocationIdentifier=" +
@@ -1029,7 +1033,7 @@ function fuvrdbout(
                         ", ComputationIdentifier=Unknown, " +
                         "ExtendedFilters=" + extendedFilters
                 );
-                return rtcode;
+                return;
             }
 
             callback(null, timeSeriesDescriptions);
@@ -1188,10 +1192,7 @@ function fuvrdbout(
         function (error) {
             if (error) {
                 console.log(packageName + ".fuvrdbout().error: " + error);
-                response.end("# " + packageName + ": " + error, "ascii");
-            }
-            else {
-                response.end();
+                response.write("# " + packageName + ": " + error, "ascii");
             }
             // return control to async.waterfall() that called me
             callback(null, rtcode);
@@ -1962,7 +1963,8 @@ httpdispatcher.onGet(
                @callback
             */
             function (error) {
-                console.log(packageName + ".a2rdb/: error callback");
+                if (options.log)
+                    console.log(packageName + ".a2rdb/: error callback");
                 if (error)
                     handle(error, response);
                 response.end();
