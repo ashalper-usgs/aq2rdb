@@ -25,10 +25,19 @@ This script is safe to run repeatedly, even if you have some or all required npm
 ## Running
 aq2rdb is started from the Node.js interpreter like this:
 
-    node aq2rdb.js -p port -t aquariusTokenHostname -w waterServicesHostname \
-                   -a aquariusHostname --aquariusUserName aquariusUserName --aquariusPassword aquariusPassword
+    node aq2rdb.js --aquariusUserName aquariusUserName \
+                   --aquariusPassword aquariusPassword \
+                   --waterDataUserName waterDataUserName \
+                   --waterDataPassword waterDataPassword
 
-where *port* is the TCP/IP port that aq2rdb will listen on for HTTP requests, *aquariusTokenHostname* is the host name of an aquarius-token server to query for AQUARIUS authentication tokens, *waterServicesHostname* is the host name of a USGS Web Services server to query for site data, and *aquariusHostname* is the host name of an AQUARIUS server to query for time series data.
+where *aquariusUserName* is the user name of an AQUARIUS account under
+which aq2rdb will query AQUARIUS Web services, *aquariusPassword* is
+the password for this account; *waterDataUserName* is the user name of
+an NWIS-RA account under which aq2rdb will query NWIS-RA Web services,
+and *waterDataPassword* is the password for this account.
+
+Other aq2rdb command-line arguments have reasonable default values,
+but may be overridden by specifying them.
 
 ## Testing
     http://localhost:8081/aq2rdb?p=00060&t=uv&s=C&n=09380000&b=20141001000000&e=20150930000000
