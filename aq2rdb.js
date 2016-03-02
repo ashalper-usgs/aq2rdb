@@ -143,7 +143,8 @@ tzName['ZP6'] =   {N: 'Etc/GMT+6',  Y: 'Etc/GMT+6'};
 /**
    @function Error handler.
    @param {object} error "Error" object.
-   @param {object} response IncomingMessage object created by http.Server.
+   @param {object} response IncomingMessage object created by Node.js
+          http.Server.
 */ 
 function handle(error, response) {
     var statusMessage, statusCode;
@@ -384,7 +385,8 @@ var aq2rdb = module.exports = {
 /**
    @function Error messager for JSON parse errors.
    @private
-   @param {object} response IncomingMessage object created by http.Server.
+   @param {object} response IncomingMessage object created by Node.js
+                   http.Server.
    @param {string} message Error message to display in an RDB comment.
 */
 function jsonParseErrorMessage(response, message) {
@@ -579,7 +581,8 @@ function getAQToken(hostname, userName, password, callback) {
    @private
    @param {string} url Endpoint URL.
    @param {string} name Endpoint name.
-   @param {object} response Response object.
+   @param {object} response IncomingMessage object created by Node.js
+                   http.Server.
    @param {function} callback Callback function to call when complete.
 */
 function docRequest(url, servicePath, response, callback) {
@@ -763,217 +766,6 @@ function AquariusCredentials (cli) {
     this.userName = cli.userName;
     this.password = cli.password;
 } // AquariusCredentials
-
-/**
-   @function Node.js emulation of legacy NWIS, NWF_RDB_OUT() Fortran
-             subroutine: "Top-level routine for outputting rdb format
-             data".
-   @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
-   @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
-   @param {string} intyp Rating (time series?) type.
-   @param {Boolean} inrndsup Rounding suppression flag.
-   @param {Boolean} inwyflag Water year flag.
-   @param {Boolean} incflag Computed flag.
-   @param {Boolean} invflag
-   @param {string} inagny Site agency code.
-   @param {string} instnid Site number (a.k.a. "site ID").
-   @param {string} inddid Data descriptor number (a.k.a. "DD ID").
-   @param {string} inlocnu ADAPS location number.
-   @param {string} instat Statistic code.
-   @param {string} begdat Begin date/datetime.
-   @param {string} enddat End date/datetime.
-   @param {string} inLocTzCd Location time zone code.
-   @param {string} titlline
-*/
-function rdbOut(
-    response, intyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
-    inddid, instat, begdat, enddat, locTzCd, titlline, callback
-) {
-    var datatyp, rtagny, agency, sid, stat, uvtyp;
-    var usdate, uedate, begdate, enddate, begdtm, enddtm;
-    var needstrt = false;
-    var uvtypPrompted = false;
-    var parm = undefined;
-    var ddid = undefined;
-    var irc;
-
-    if (locTzCd === undefined) locTzCd = 'LOC';
-
-    /**
-       @todo might not be needed:
-
-    if (intrans(1:1).EQ.' ')
-         transport_cd = ' '
-         sensor_type_id = NW_NI4
-      ELSE
-         transport_cd = intrans(1:1)
-         CALL s_upcase (transport_cd,1)
-         sensor_type_id = 0
-      END IF
-    */
-
-    // init control argument
-    var sopt = "10000000000000000000000000000000".split("");
-
-    datatyp = intyp.substring(0, 2).toUpperCase();
-
-    // convert agency to 5 characters - default to USGS
-    if (inagny === undefined)
-        rtagny = "USGS";
-    else
-        rtagny = inagny.substring(0, 5);
-
-    // convert station to 15 characters
-    if (instnid === undefined)
-        needstrt = true;
-    else 
-        sid = instnid.substring(0, 15);
-
-    console.log('rdbOut.inddid: ' + inddid);
-    // If type is VT, DDID is only needed IF parm and loc number are
-    // not specified
-    if (datatyp !== 'VT' && inddid === undefined) {
-               needstrt = true;
-               sopt[4] = '2';
-    }
-    else {
-        // If ddid starts with "P", it is a parameter code, fill to 5
-        // digits
-        if (inddid.startsWith('p') || inddid.startsWith('P'))
-            parm = sprintf("%5s", inddid.substring(1, 6)).replace(' ', '0');
-    }
-    console.log('rdbOut.parm: ' + parm);
-
-    // further processing depends on data type
-
-    if (datatyp === 'DV') { // convert stat to 5 characters
-        if (instat === undefined) {
-            needstrt = true;
-            sopt[7] = '1';
-        }
-        else {
-            if (5 < instat.length)
-                stat = instat.substring(0, 5);
-            else
-                stat = instat;
-            stat = sprintf("%5s", stat).replace(' ', '0');
-        }
-    }
-
-    if (datatyp === 'DV' || datatyp === 'DC' ||
-        datatyp === 'SV' || datatyp === 'PK') {
-
-        // convert dates to 8 characters
-        if (begdat === undefined || enddat === undefined) {
-            needstrt = true;
-            if (wyflag)
-                sopt[8] = '4';
-            else
-                sopt[9] = '3';
-        }
-        else {
-            begdate = fillBegDate(wyflag, begdat);
-            enddate = fillEndDate(wyflag, enddat);
-        }
-
-    }
-
-    if (datatyp === 'UV') {
-        
-        uvtyp = instat.charAt(0);
-        
-        if ("cemnrs".includes(uvtyp))
-            uvtyp = uvtyp.toUpperCase();
-        else {
-            // TODO: this is a prompt loop in legacy code;
-            // raise error here?
-            // 'Please answer "M", "N", "E", "R", "S", or "C".',
-        }
-
-        // convert date/times to 14 characters
-        if (begdat === undefined || enddat === undefined) {
-            needstrt = true;
-            if (wyflag)
-                sopt[8] = '4';
-            else
-                sopt[9] = '3';
-        }
-        else {
-            begdtm = rdb.fillBegDtm(wyflag, begdat);
-            enddtm = rdb.fillEndDtm(wyflag, enddat);
-        }
-
-    }
-
-    // This is where, formerly, NWF_RDB_OUT():
-    // 
-    //    get PRIMARY DD that goes with parm if parm supplied
-    //
-    // Since the algorithmic equivalent is now deep within the bowels
-    // of fuvrdbout(), it is no longer here. This comment is just a
-    // reminder that it used to be here, in case it is later
-    // discovered that the primary identification is necessary before
-    // fuvrdbout() does it.
-
-    // retrieving measured uvs and transport_cd not supplied,
-    // prompt for it
-    if (uvtypPrompted && datatyp === "UV" &&
-        (uvtyp === 'M' || uvtyp === 'N') &&
-        transport_cd === undefined) {
-        /*
-          nw_query_meas_uv_type(rtagny, sid, ddid, begdtm,
-          enddtm, loc_tz_cd, transport_cd,
-          sensor_type_id, *998)
-          if (transport_cd === undefined) {
-          WRITE (0,2150) rtagny, sid, ddid
-          2150      FORMAT (/,"No MEASURED UV data for station "",A5,A15,
-          "", DD "',A4,'".  Aborting.",/)
-          return irc;
-          END IF
-        */
-    }
-
-    //  get data and output to files
-
-    if (datatyp === "DV") {
-        irc = fdvrdbout(response, false, rndsup, false, vflag,
-                        cflag, rtagny, sid, ddid, stat, begdate,
-                        enddate);
-    }
-    else if (datatyp === "UV") {
-        /**
-           @todo The legacy code was very free-and-easy about the
-                 association between parameter code and DD ID. The
-                 "parm" argument here might need to be changed back to
-                 "ddid" at some point.
-        */
-        irc = fuvrdbout(
-            response, false, rndsup, cflag, vflag, rtagny, sid, parm,
-            begdtm, enddtm, locTzCd
-        );
-    }
-
-    /*
-    //  close files and exit
-    //997   s_mclos
-    s_sclose (response, "keep")
-    nw_disconnect
-    return irc;
-
-    //  bad return (do a generic error message)
-    //998   irc = 3
-    nw_error_handler (irc,"nwf_rdb_out","error",
-    "doing something","something bad happened")
-    */
-
-    // Good return
-    //999
-    if (options.log)
-        console.log(packageName + ".rdbOut() returns");
-
-    callback(null, irc);
-
-} // rdbOut
 
 /**
    @todo This shunts over to GetUVTable right now for development
@@ -1410,7 +1202,7 @@ function fuvrdbout(
                     console.log(
                         packageName + ".fuvrdbout(): error: " + error
                     );
-                response.write(error);
+                handle(error, response);
             }
             response.end();
         }
@@ -1916,7 +1708,216 @@ httpdispatcher.onGet(
                     field.b, field.e, undefined, ""
                 );
             },
-            rdbOut,             // declared at global scope above
+            /**
+               @function Node.js emulation of legacy NWIS,
+                         NWF_RDB_OUT() Fortran subroutine: "Top-level
+                         routine for outputting rdb format data".
+               @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
+               @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+               @param {object} response IncomingMessage object created
+                      by Node.js http.Server.
+               @param {string} intyp Rating (time series?) type.
+               @param {Boolean} inrndsup Rounding suppression flag.
+               @param {Boolean} inwyflag Water year flag.
+               @param {Boolean} incflag Computed flag.
+               @param {Boolean} invflag
+               @param {string} inagny Site agency code.
+               @param {string} instnid Site number (a.k.a. "site ID").
+               @param {string} inddid Data descriptor number (a.k.a. "DD ID").
+               @param {string} inlocnu ADAPS location number.
+               @param {string} instat Statistic code.
+               @param {string} begdat Begin date/datetime.
+               @param {string} enddat End date/datetime.
+               @param {string} inLocTzCd Location time zone code.
+               @param {string} titlline
+            */
+            function rdbOut(
+                response, intyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
+                inddid, instat, begdat, enddat, locTzCd, titlline, callback
+            ) {
+                var datatyp, rtagny, agency, sid, stat, uvtyp;
+                var usdate, uedate, begdate, enddate, begdtm, enddtm;
+                var needstrt = false;
+                var uvtypPrompted = false;
+                var parm = undefined;
+                var ddid = undefined;
+                var irc;
+
+                if (locTzCd === undefined) locTzCd = 'LOC';
+
+                /**
+                   @todo might not be needed:
+
+                   if (intrans(1:1).EQ.' ')
+                   transport_cd = ' '
+                   sensor_type_id = NW_NI4
+                   ELSE
+                   transport_cd = intrans(1:1)
+                   CALL s_upcase (transport_cd,1)
+                   sensor_type_id = 0
+                   END IF
+                */
+
+                // init control argument
+                var sopt = "10000000000000000000000000000000".split("");
+
+                datatyp = intyp.substring(0, 2).toUpperCase();
+
+                // convert agency to 5 characters - default to USGS
+                if (inagny === undefined)
+                    rtagny = "USGS";
+                else
+                    rtagny = inagny.substring(0, 5);
+
+                // convert station to 15 characters
+                if (instnid === undefined)
+                    needstrt = true;
+                else 
+                    sid = instnid.substring(0, 15);
+
+                console.log('rdbOut.inddid: ' + inddid);
+                // If type is VT, DDID is only needed IF parm and loc
+                // number are not specified
+                if (datatyp !== 'VT' && inddid === undefined) {
+                    needstrt = true;
+                    sopt[4] = '2';
+                }
+                else {
+                    // If ddid starts with "P", it is a parameter
+                    // code, fill to 5 digits
+                    if (inddid.startsWith('p') || inddid.startsWith('P'))
+                        parm = sprintf(
+                            "%5s", inddid.substring(1, 6)
+                        ).replace(' ', '0');
+                }
+                console.log('rdbOut.parm: ' + parm);
+
+                // further processing depends on data type
+
+                if (datatyp === 'DV') { // convert stat to 5 characters
+                    if (instat === undefined) {
+                        needstrt = true;
+                        sopt[7] = '1';
+                    }
+                    else {
+                        if (5 < instat.length)
+                            stat = instat.substring(0, 5);
+                        else
+                            stat = instat;
+                        stat = sprintf("%5s", stat).replace(' ', '0');
+                    }
+                }
+
+                if (datatyp === 'DV' || datatyp === 'DC' ||
+                    datatyp === 'SV' || datatyp === 'PK') {
+
+                    // convert dates to 8 characters
+                    if (begdat === undefined || enddat === undefined) {
+                        needstrt = true;
+                        if (wyflag)
+                            sopt[8] = '4';
+                        else
+                            sopt[9] = '3';
+                    }
+                    else {
+                        begdate = fillBegDate(wyflag, begdat);
+                        enddate = fillEndDate(wyflag, enddat);
+                    }
+
+                }
+
+                if (datatyp === 'UV') {
+                    
+                    uvtyp = instat.charAt(0);
+                    
+                    if ("cemnrs".includes(uvtyp))
+                        uvtyp = uvtyp.toUpperCase();
+                    else {
+                        // TODO: this is a prompt loop in legacy code;
+                        // raise error here?
+                        // 'Please answer "M", "N", "E", "R", "S", or "C".',
+                    }
+
+                    // convert date/times to 14 characters
+                    if (begdat === undefined || enddat === undefined) {
+                        needstrt = true;
+                        if (wyflag)
+                            sopt[8] = '4';
+                        else
+                            sopt[9] = '3';
+                    }
+                    else {
+                        begdtm = rdb.fillBegDtm(wyflag, begdat);
+                        enddtm = rdb.fillEndDtm(wyflag, enddat);
+                    }
+
+                }
+
+                // This is where, formerly, NWF_RDB_OUT():
+                // 
+                //    get PRIMARY DD that goes with parm if parm supplied
+                //
+                // Since the algorithmic equivalent is now deep within
+                // the bowels of fuvrdbout(), it is no longer
+                // here. This comment is just a reminder that it used
+                // to be here, in case it is later discovered that the
+                // primary identification is necessary before
+                // fuvrdbout() does it.
+
+                // retrieving measured uvs and transport_cd not
+                // supplied, prompt for it
+                if (uvtypPrompted && datatyp === "UV" &&
+                    (uvtyp === 'M' || uvtyp === 'N') &&
+                    transport_cd === undefined) {
+                    /*
+                      nw_query_meas_uv_type(rtagny, sid, ddid, begdtm,
+                      enddtm, loc_tz_cd, transport_cd,
+                      sensor_type_id, *998)
+                      if (transport_cd === undefined) {
+                      WRITE (0,2150) rtagny, sid, ddid
+                      2150      FORMAT (/,"No MEASURED UV data for station "",A5,A15,
+                      "", DD "',A4,'".  Aborting.",/)
+                      return irc;
+                      END IF
+                    */
+                }
+
+                //  get data and output to files
+
+                if (datatyp === "DV") {
+                    /**
+                       @todo This call likely needs to be nested in
+                             async.waterfall() function.
+                    */
+                    irc = fdvrdbout(
+                        response, false, rndsup, false, vflag, cflag,
+                        rtagny, sid, ddid, stat, begdate, enddate
+                    );
+                }
+                else if (datatyp === "UV") {
+                    /**
+                       @todo This call likely needs to be nested in
+                             async.waterfall() function.
+                    */
+                    /**
+                       @todo The legacy code was very free-and-easy
+                             about the association between parameter
+                             code and DD ID. The "parm" argument here
+                             might need to be changed back to "ddid"
+                             at some point.
+                    */
+                    irc = fuvrdbout(
+                        response, false, rndsup, cflag, vflag, rtagny,
+                        sid, parm, begdtm, enddtm, locTzCd
+                    );
+                }
+
+                if (options.log)
+                    console.log(packageName + ".rdbOut() proceeds");
+
+                callback(null, irc);
+
+            }, // rdbOut
             function (irc, callback) {
                 if (options.log)
                     console.log(packageName + ".aq2rdb.irc: " + irc);
