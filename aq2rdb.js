@@ -1026,12 +1026,20 @@ function fuvrdbout(
                          <URL>" in this message.
                 */
                 callback(
-                    "No time series description list found " +
-                        "for LocationIdentifier=" +
-                        locationIdentifier + ", Parameter=" +
-                        parameter +
-                        ", ComputationIdentifier=Unknown, " +
-                        "ExtendedFilters=" + extendedFilters
+                    "No time series description list found at " +
+                        url.format({
+                            protocol: "http",
+                            host: options.aquariusHostname,
+                            pathname:
+                            "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
+                            query:
+                            {token: token,
+                             format: "json",
+                             LocationIdentifier: locationIdentifier,
+                             Parameter: parameter,
+                             ComputationIdentifier: "Unknown",
+                             ExtendedFilters: extendedFilters}
+                        })
                 );
                 return;
             }
@@ -1991,6 +1999,8 @@ function handleRequest(request, response) {
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
+        if (options.log)
+            console.log(packageName + ".handleRequest().error: " + error);
         handle(error, response);
     }
 }
