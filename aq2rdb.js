@@ -775,7 +775,7 @@ function AquariusCredentials (cli) {
 */
 function fuvrdbout(
     response, editable, rndsup, cflag, vflag, rtagny, sid, inddid,
-    begdtm, enddtm, locTzCd
+    begdtm, enddtm, locTzCd, callback
 )
 {
     var token, locationIdentifier, parameter, rtcode;
@@ -786,11 +786,9 @@ function fuvrdbout(
         console.log(
             sprintf(
                 "fuvrdbout(\n" +
-                    "   response=%s, editable=%s, rndsup=%s, " +
-                    "cflag=%s, vflag=%s, rtagny=%s, sid=%s, " +
-                    "inddid=%s,\n" +
-                    "   begdtm=%s, enddtm=%s, " +
-                    "locTzCd=%s\n" +
+                    "   response=%s, editable=%s, rndsup=%s,\n" +
+                    "   cflag=%s, vflag=%s, rtagny=%s, sid=%s, inddid=%s,\n" +
+                    "   begdtm=%s, enddtm=%s, locTzCd=%s\n" +
                     ")\n",
                 response, editable, rndsup, cflag, vflag, rtagny, sid,
                 inddid, begdtm, enddtm, locTzCd
@@ -1208,7 +1206,7 @@ function fuvrdbout(
         }
     ); // async.waterfall
 
-    return rtcode;
+    callback(null, rtcode);
 } // fuvrdbout
 
 function required(options, propertyList) {
@@ -1881,6 +1879,9 @@ httpdispatcher.onGet(
                     */
                 }
 
+                // proceed to (logical) remainder of rdbOut(), which
+                // involves I/O (via "response" object), and thus must
+                // be in its own async.waterfall() function below
                 callback(
                     null,
                     datatyp, rndsup, cflag, vflag, rtagny, sid, ddid,
@@ -1898,13 +1899,17 @@ httpdispatcher.onGet(
 
                 if (datatyp === "DV") {
                     /**
-                       @todo This call likely needs to be nested in
-                             async.waterfall() function.
+                       @todo This call still needs asyncification [see
+                             call to fuvrdbout references below]. The
+                             call here will not synchronize correctly
+                             in its present state.
                     */
                     irc = fdvrdbout(
                         response, false, rndsup, false, vflag, cflag,
                         rtagny, sid, ddid, stat, begdate, enddate
                     );
+
+                    callback(null, irc);
                 }
                 else if (datatyp === "UV") {
                     /**
@@ -1918,15 +1923,40 @@ httpdispatcher.onGet(
                              might need to be changed back to "ddid"
                              at some point.
                     */
+                    /*
                     irc = fuvrdbout(
                         response, false, rndsup, cflag, vflag, rtagny,
                         sid, parm, begdtm, enddtm, locTzCd
                     );
-                }
+                    */
+                    if (options.log)
+                        console.log(
+                            packageName + ".rdbOut(): calling " +
+                                "callback to call fuvrdbout()"
+                        );
 
+                        callback(
+                            null, response, false, rndsup, cflag,
+                            vflag, rtagny, sid, parm, begdtm, enddtm,
+                            locTzCd
+                        );
+                }
+                else {
+                    // error
+                    callback(
+                        "Invalid data type value \"" + datatyp +
+                            "\" in rdbOut()"
+                    );
+                }
+                // no callback() call here because it is in
+                // conditional above
+            },
+            fuvrdbout,
+            function (irc, callback) {
                 if (options.log)
                     console.log(packageName + ".rdbOut() proceeds");
 
+                callback(null, irc);
             }, // rdbOut (logically)
             function (irc, callback) {
                 if (options.log)
