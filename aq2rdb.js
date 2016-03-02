@@ -146,7 +146,7 @@ tzName['ZP6'] =   {N: 'Etc/GMT+6',  Y: 'Etc/GMT+6'};
    @param {object} response IncomingMessage object created by Node.js
           http.Server.
 */ 
-function handle(error, response) {
+function handle(error) {
     var statusMessage, statusCode;
 
     /**
@@ -190,16 +190,7 @@ function handle(error, response) {
         statusCode = 404;
     }
 
-    if (options.log) {
-        console.log(packageName + ".handle().response: " + response);
-        console.log(packageName + ".handle().error: " + typeof error);
-    }
-
-    response.writeHead(statusCode, statusMessage,
-                       {'Content-Length': statusMessage.length,
-                        'Content-Type': 'text/plain'});
-    response.end(statusMessage, 'ascii');
-    return;
+    return [statusCode, statusMessage];
 } // handle
 
 /**
@@ -1190,23 +1181,23 @@ function fuvrdbout(
     ],
         /**
            @description node-async error handler function for
-                        outer-most, GetUVTable async.waterfall
+                        outer-most, fuvrdbout() async.waterfall
                         function.
            @callback
         */
         function (error) {
             if (error) {
-                if (options.log)
-                    console.log(
-                        packageName + ".fuvrdbout(): error: " + error
-                    );
-                handle(error, response);
+                console.log(packageName + ".fuvrdbout().error: " + error);
+                response.end("# " + packageName + ": " + error, "ascii");
             }
-            response.end();
+            else {
+                response.end();
+            }
+            // return control to async.waterfall() that called me
+            callback(null, rtcode);
         }
     ); // async.waterfall
-
-    callback(null, rtcode);
+    return;
 } // fuvrdbout
 
 function required(options, propertyList) {
@@ -1929,17 +1920,17 @@ httpdispatcher.onGet(
                         sid, parm, begdtm, enddtm, locTzCd
                     );
                     */
-                    if (options.log)
+                    if (options.log) {
                         console.log(
                             packageName + ".rdbOut(): calling " +
                                 "callback to call fuvrdbout()"
                         );
-
-                        callback(
-                            null, response, false, rndsup, cflag,
-                            vflag, rtagny, sid, parm, begdtm, enddtm,
-                            locTzCd
-                        );
+                    }
+                    callback(
+                        null, response, false, rndsup, cflag,
+                        vflag, rtagny, sid, parm, begdtm, enddtm,
+                        locTzCd
+                    );
                 }
                 else {
                     // error
@@ -1954,7 +1945,7 @@ httpdispatcher.onGet(
             fuvrdbout,
             function (irc, callback) {
                 if (options.log)
-                    console.log(packageName + ".rdbOut() proceeds");
+                    console.log(packageName + "aq2rdb/rdbOut() proceeds");
 
                 callback(null, irc);
             }, // rdbOut (logically)
@@ -1971,10 +1962,9 @@ httpdispatcher.onGet(
                @callback
             */
             function (error) {
-                console.log('error callback');
-                if (error) {
+                console.log(packageName + ".a2rdb/: error callback");
+                if (error)
                     handle(error, response);
-                }
                 response.end();
             }
         );
