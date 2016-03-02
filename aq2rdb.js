@@ -1703,9 +1703,9 @@ httpdispatcher.onGet(
                 }
 
                 callback(
-                    null, response, field.t, false, false, false,
-                    false, field.a, field.n, 'P' + field.p, field.s,
-                    field.b, field.e, undefined, ""
+                    null, field.t, false, false, false, false,
+                    field.a, field.n, 'P' + field.p, field.s, field.b,
+                    field.e, undefined, ""
                 );
             },
             /**
@@ -1714,13 +1714,11 @@ httpdispatcher.onGet(
                          routine for outputting rdb format data".
                @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
                @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
-               @param {object} response IncomingMessage object created
-                      by Node.js http.Server.
                @param {string} intyp Rating (time series?) type.
-               @param {Boolean} inrndsup Rounding suppression flag.
-               @param {Boolean} inwyflag Water year flag.
-               @param {Boolean} incflag Computed flag.
-               @param {Boolean} invflag
+               @param {Boolean} rndsup Rounding suppression flag.
+               @param {Boolean} wyflag Water year flag.
+               @param {Boolean} cflag Computed flag.
+               @param {Boolean} vflag Verbose dates and times flag.
                @param {string} inagny Site agency code.
                @param {string} instnid Site number (a.k.a. "site ID").
                @param {string} inddid Data descriptor number (a.k.a. "DD ID").
@@ -1732,8 +1730,9 @@ httpdispatcher.onGet(
                @param {string} titlline
             */
             function rdbOut(
-                response, intyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
-                inddid, instat, begdat, enddat, locTzCd, titlline, callback
+                intyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
+                inddid, instat, begdat, enddat, locTzCd, titlline,
+                callback
             ) {
                 var datatyp, rtagny, agency, sid, stat, uvtyp;
                 var usdate, uedate, begdate, enddate, begdtm, enddtm;
