@@ -53,11 +53,9 @@ var site = module.exports = {
     receive: function(messageBody, callback) {
         var site = new Object;
 
-        console.log("site.receive().messageBody: " + messageBody);
-
         /**
-           @todo Here we're parsing RDB, which is messy, and would be nice
-           to encapsulate.
+           @todo Here we're parsing RDB, which is messy, and would be
+                 nice to encapsulate.
         */
         try {
             // parse (station_nm,tz_cd,local_time_fg) from RDB
