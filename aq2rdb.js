@@ -758,12 +758,6 @@ function AquariusCredentials (cli) {
     this.password = cli.password;
 } // AquariusCredentials
 
-/**
-   @todo This shunts over to GetUVTable right now for development
-         expediency. Needs to be its own thing at some point. Very
-         half-baked right now.
-   @see fuvrdbout.js in this directory. The "long-game" version.
-*/
 function fuvrdbout(
     response, editable, rndsup, cflag, vflag, rtagny, sid, inddid,
     begdtm, enddtm, locTzCd, callback
@@ -975,9 +969,8 @@ function fuvrdbout(
                      format: "json",
                      LocationIdentifier: locationIdentifier,
                      Parameter: parameter,
-                     // AQUARIUS semantics here appear to be:
-                     // "Unknown" => "Unit Values"
-                     ComputationIdentifier: "Unknown",
+                     ComputationIdentifier: "Instantaneous",
+                     ComputationPeriodIdentifier: "Points",
                      ExtendedFilters: extendedFilters},
                     options.log,
                     callback
@@ -1037,7 +1030,8 @@ function fuvrdbout(
                              format: "json",
                              LocationIdentifier: locationIdentifier,
                              Parameter: parameter,
-                             ComputationIdentifier: "Unknown",
+                             ComputationIdentifier: "Instantaneous",
+                             ComputationIdentifier: "Points",
                              ExtendedFilters: extendedFilters}
                         })
                 );
@@ -1056,7 +1050,7 @@ function fuvrdbout(
                 timeSeriesDescriptions,
                 function (timeSeriesDescription, callback) {
                     if (timeSeriesDescription.ComputationPeriodIdentifier ===
-                        "Unknown") {
+                        "Points") {
                         callback(true);
                     }
                     else {
@@ -1351,12 +1345,12 @@ httpdispatcher.onGet(
             */
             function (callback) {
                 var obj =
-                    {token: token, format: 'json',
+                    {token: token, format: "json",
                      LocationIdentifier: locationIdentifier.toString(),
                      Parameter: field.Parameter,
-                     ComputationPeriodIdentifier: 'Daily',
+                     ComputationPeriodIdentifier: "Daily",
                      ExtendedFilters:
-                     '[{FilterName:ACTIVE_FLAG,FilterValue:Y}]'};
+                     "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]"};
 
                 if (field.ComputationIdentifier !== undefined)
                     obj.ComputationIdentifier = field.ComputationIdentifier;
