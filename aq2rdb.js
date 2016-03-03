@@ -477,32 +477,32 @@ var LocationIdentifier = function (text) {
 function getAQToken(hostname, userName, password, callback) {
 
     if (hostname === undefined) {
-        callback('Required field "hostname" not found');
+        callback('GetAQToken: Required field "hostname" not found');
         return;
     }
 
     if (hostname === '') {
-        callback('Required field "hostname" must have a value');
+        callback('GetAQToken: Required field "hostname" must have a value');
         return;
     }
 
     if (userName === undefined) {
-        callback('Required field "userName" not found');
+        callback('GetAQToken: Required field "userName" not found');
         return;
     }
 
     if (userName === '') {
-        callback('Required field "userName" must have a value');
+        callback('GetAQToken: Required field "userName" must have a value');
         return;
     }
 
     if (password === undefined) {
-        callback('Required field "password" not found');
+        callback('GetAQToken: Required field "password" not found');
         return;
     }
 
     if (password === '') {
-        callback('Required field "password" must have a value');
+        callback('GetAQToken: Required field "password" must have a value');
         return;
     }
 
@@ -558,10 +558,8 @@ function getAQToken(hostname, userName, password, callback) {
     request.on('error', function (error) {
         var statusMessage;
 
-        if (options.log === true) {
-            console.log(packageName + ': ' + error);
-        }
-
+        log("getAQToken().request.on()", error);
+        
         if (error.message === 'connect ECONNREFUSED') {
             callback('Could not connect to GetAQToken service for ' +
                      'AQUARIUS authentication token');
@@ -970,13 +968,9 @@ httpdispatcher.onGet(
                         timeSeriesDescriptions, locationIdentifier, callback
                     );
 
-                if (options.log === true) {
-                    console.log(
-                        packageName + '.locationIdentifier: ' +
-                            locationIdentifier
-                    );
-                }
-
+                log("httpdispatcher.onGet().GetDVTable.locationIdentifier",
+                    locationIdentifier);
+                
                 callback(
                     null, options.waterServicesHostname,
                     locationIdentifier.agencyCode(),
@@ -1197,7 +1191,10 @@ httpdispatcher.onGet(
                 callback(null);
             },
             function (callback) {
-                console.log('2nd callback');
+                /**
+                   @todo See if code can be factored-out of "/aq2rdb"
+                         endpoint to (re-)implement GetUVTable.
+                */
                 callback(null);
             }
         ],
@@ -1229,12 +1226,9 @@ httpdispatcher.onGet(
         var token, agencyCode, siteNumber, locationIdentifier;
         var waterServicesSite, parameterCode, parameter;
 
-        if (options.log)
-            console.log(
-                packageName + ".httpdispatcher.onGet/" + packageName +
-                    ".request: " + request
-            );
-
+        log("httpdispatcher.onGet(/" + packageName + ", (request))",
+            request);
+        
         async.waterfall([
             function (callback) {
                 if (docRequest(request.url, '/aq2rdb', response, callback))
@@ -1485,12 +1479,8 @@ httpdispatcher.onGet(
                         siteNumber, parm, begdtm, enddtm, locTzCd
                     );
                     */
-                    if (options.log) {
-                        console.log(
-                            packageName + ".rdbOut(): calling " +
-                                "callback to call fuvrdbout()"
-                        );
-                    }
+                    log("rdbOut()",
+                        "calling callback to call fuvrdbout()");
                     callback(
                         null, response, false, rndsup, cflag, vflag,
                         agencyCode, siteNumber, begdtm, enddtm,
@@ -1514,19 +1504,21 @@ httpdispatcher.onGet(
                 var parameter, rtcode;
                 var extendedFilters, timeSeriesDescription;
 
-                if (options.log)
-                    console.log(
-                        sprintf(
-                            "fuvrdbout(\n" +
-                                "   response=%s, editable=%s, rndsup=%s,\n" +
-                                "   cflag=%s, vflag=%s, agencyCode=%s, siteNumber=%s,\n" +
-                                "   begdtm=%s, enddtm=%s, locTzCd=%s\n" +
-                                ")",
-                            response, editable, rndsup, cflag, vflag, agencyCode, siteNumber,
-                            begdtm, enddtm, locTzCd
-                        )
-                    );
-
+                log("httpdispatcher.onGet(/" + packageName +
+                    ", ().async.waterfall()[]",
+                    sprintf(
+                        "fuvrdbout(\n" +
+                            "   response=%s, editable=%s, rndsup=%s,\n" +
+                            "   cflag=%s, vflag=%s, agencyCode=%s, " +
+                            "siteNumber=%s,\n" +
+                            "   begdtm=%s, enddtm=%s, locTzCd=%s\n" +
+                            ")",
+                        response, editable, rndsup, cflag, vflag,
+                        agencyCode, siteNumber, begdtm, enddtm,
+                        locTzCd
+                    )
+                );
+                
                 // TODO: construct AQUARIUS LocationIdentifier and
                 // Parameter here
 
@@ -1585,12 +1577,10 @@ httpdispatcher.onGet(
             function (messageBody, callback) {
                 token = messageBody;
 
-                if (options.log)
-                    console.log(
-                        packageName + "httpdispatcher.onGet/" +
-                            packageName + ".token: " + token
-                    );
-
+                log("httpdispatcher.onGet(\"/" + packageName +
+                    "\", ().async.waterfall([]().token))",
+                    token);
+                
                 callback(
                     null, options.waterServicesHostname, agencyCode,
                     siteNumber, options.log
