@@ -326,9 +326,9 @@ var aq2rdb = module.exports = {
    @private
    @param {string} message Log message.
 */ 
-function log(locator, message) {
+function log(prefix, message) {
     if (options.log)
-        console.log(packageName + '.' + locator + ": " + message);
+        console.log(prefix + ": " + message);
 } // log
 
 /**
@@ -360,7 +360,8 @@ function handle(error) {
             'reference on the ' + packageName + ' server';
         statusCode = 500;
 
-        log("handle()", error.toString().replace(/: (\w+)/, ': "$1"'));
+        log(packageName + ".handle()",
+            error.toString().replace(/: (\w+)/, ': "$1"'));
     }
     else if (typeof error === 'string') {
         statusMessage = '# ' + packageName + ': ' + error;
@@ -520,9 +521,9 @@ function getAQToken(hostname, userName, password, callback) {
 
         // Response complete; token received.
         response.on('end', function () {
-            log("getAQToken().getAQTokenCallback().messageBody",
+            log(packageName + ".getAQToken().getAQTokenCallback().messageBody",
                 messageBody);
-            log("getAQToken().getAQTokenCallback().callback",
+            log(packageName + ".getAQToken().getAQTokenCallback().callback",
                 callback);
             callback(null, messageBody);
             return;
@@ -533,7 +534,8 @@ function getAQToken(hostname, userName, password, callback) {
     var path = '/services/GetAQToken?';
     var uriString = 'http://' + hostname + '/AQUARIUS/';
 
-    log("getAQToken()", "querying http://" + hostname + ":" + port +
+    log(packageName + ".getAQToken()",
+        "querying http://" + hostname + ":" + port +
         path + "..., AQUARIUS server at " + uriString);
 
     // make sure to not reveal user-name/passwords in log
@@ -558,7 +560,7 @@ function getAQToken(hostname, userName, password, callback) {
     request.on('error', function (error) {
         var statusMessage;
 
-        log("getAQToken().request.on()", error);
+        log(packageName + ".getAQToken().request.on()", error);
         
         if (error.message === 'connect ECONNREFUSED') {
             callback('Could not connect to GetAQToken service for ' +
@@ -968,7 +970,8 @@ httpdispatcher.onGet(
                         timeSeriesDescriptions, locationIdentifier, callback
                     );
 
-                log("httpdispatcher.onGet().GetDVTable.locationIdentifier",
+                log(packageName +
+                    ".httpdispatcher.onGet().GetDVTable.locationIdentifier",
                     locationIdentifier);
                 
                 callback(
@@ -1226,8 +1229,8 @@ httpdispatcher.onGet(
         var token, agencyCode, siteNumber, locationIdentifier;
         var waterServicesSite, parameterCode, parameter;
 
-        log("httpdispatcher.onGet(/" + packageName + ", (request))",
-            request);
+        log(packageName + ".httpdispatcher.onGet(/" + packageName +
+            ", (request))", request);
         
         async.waterfall([
             function (callback) {
@@ -1335,7 +1338,7 @@ httpdispatcher.onGet(
                 else 
                     siteNumber = instnid.substring(0, 15);
 
-                log("rdbOut().parameterCode", parameterCode);
+                log(packageName + ".rdbOut().parameterCode", parameterCode);
 
                 // further processing depends on data type
 
@@ -1479,7 +1482,7 @@ httpdispatcher.onGet(
                         siteNumber, parm, begdtm, enddtm, locTzCd
                     );
                     */
-                    log("rdbOut()",
+                    log(packageName + ".rdbOut()",
                         "calling callback to call fuvrdbout()");
                     callback(
                         null, response, false, rndsup, cflag, vflag,
@@ -1504,7 +1507,7 @@ httpdispatcher.onGet(
                 var parameter, rtcode;
                 var extendedFilters, timeSeriesDescription;
 
-                log("httpdispatcher.onGet(/" + packageName +
+                log(packageName + ".httpdispatcher.onGet(/" + packageName +
                     ", ().async.waterfall()[]",
                     sprintf(
                         "fuvrdbout(\n" +
@@ -1577,7 +1580,7 @@ httpdispatcher.onGet(
             function (messageBody, callback) {
                 token = messageBody;
 
-                log("httpdispatcher.onGet(\"/" + packageName +
+                log(packageName + ".httpdispatcher.onGet(\"/" + packageName +
                     "\", ().async.waterfall([]().token))",
                     token);
                 
@@ -1607,8 +1610,8 @@ httpdispatcher.onGet(
                @todo Query NWIS TZ table data here (probably via a
                      self-referential Web service query as an interim
                      measure), to find offset associated with
-                     waterServicesSite.tzCd, so we can reference UV times to "local
-                     time".
+                     waterServicesSite.tzCd, so we can reference UV
+                     times to "local time".
             */
             /**
                @function Query
@@ -1692,12 +1695,10 @@ httpdispatcher.onGet(
                       function.
             */
             function (callback) {
-                if (options.log)
-                    console.log(
-                        packageName + ".fuvrdbout().parameter: " +
-                            parameter
-                    );
-
+                log(packageName + ".httpdispatcher.onGet(\"/" + packageName +
+                    "\", ().async.waterfall([].fuvrdbout().parameter))",
+                    parameter);
+                
                 // make (agencyCode,siteNo) digestible by AQUARIUS
                 locationIdentifier = (agencyCode === "USGS") ?
                     siteNumber : siteNumber + '-' + agencyCode;
@@ -1935,17 +1936,12 @@ httpdispatcher.onGet(
                         callback(null);
                     }
                 );
-                callback(null);
-            }, // fuvrdbout
-            function (callback) {
-                if (options.log)
-                    console.log(packageName + "aq2rdb/rdbOut() proceeds");
-
                 callback(null, irc);
-            }, // rdbOut (logically)
+            }, // fuvrdbout
             function (irc, callback) {
-                if (options.log)
-                    console.log(packageName + ".aq2rdb.irc: " + irc);
+                log(packageName + ".httpdispatcher.onGet(\"/" + packageName +
+                    "\", ().async.waterfall([].().irc))",
+                    irc);
                 callback(null);
             }
         ],
@@ -1963,7 +1959,7 @@ httpdispatcher.onGet(
                     );
                 else
                     response.end();
-                log("httpdispatcher.onGet(\"/" + packageName +
+                log(packageName + ".httpdispatcher.onGet(\"/" + packageName +
                     "\", ().async.waterfall([], (error))", error);
             }
         );
@@ -1975,15 +1971,15 @@ httpdispatcher.onGet(
 */ 
 function handleRequest(request, response) {
     try {
-        log("handleRequest().request.url: ", request.url);
+        log(packageName + ".handleRequest().request.url: ", request.url);
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
-        var locator = "handleRequest().error";
-        var msg = packageName + '.' + locator + ": " + error;
+        var prefix = "handleRequest().error";
+        var msg = packageName + '.' + prefix + ": " + error;
 
         response.end("# " + msg, "ascii");
-        log(locator, error);
+        log(prefix, error);
     }
 }
 
@@ -2027,9 +2023,8 @@ if (options.version === true) {
             pkg = JSON.parse(json);
         }
         catch (error) {
-            if (options.log === true) {
-                console.log(packageName + ": " + error);
-            }
+            log(packageName + ".fs.readFile(\"package.json\", (error))",
+                error);
             return;
         }
 
@@ -2046,12 +2041,8 @@ else {
        @description Start listening for requests.
     */ 
     server.listen(options.port, function () {
-        if (options.log === true) {
-            console.log(
-                packageName + ": Server listening on: http://localhost:" +
-                    options.port.toString()
-            );
-        }
+        log(packageName, ": Server listening on: http://localhost:" +
+            options.port.toString());
     });
 }
 
