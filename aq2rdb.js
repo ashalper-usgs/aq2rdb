@@ -764,8 +764,7 @@ function fuvrdbout(
 )
 {
     var token, locationIdentifier, parameter, rtcode;
-    var extendedFilters;
-    var timeSeriesDescription;
+    var extendedFilters, timeSeriesDescription;
 
     if (options.log)
         console.log(
@@ -1086,13 +1085,12 @@ function fuvrdbout(
            @function Write RDB header body to HTTP response.
            @callback
         */
-        function (timeSeriesDescription, callback) {
+        function (callback) {
             response.write(
                 aq2rdb.rdbHeaderBody(
                     'NWIS-I UNIT-VALUES', site,
                     timeSeriesDescription.SubLocationIdentifer,
-                    {start: aq2rdb.toNWISDatetimeFormat(field.QueryFrom),
-                     end: aq2rdb.toNWISDatetimeFormat(field.QueryTo)}
+                    {start: begdtm, end: enddtm}
                 ),
                 'ascii'
             );
@@ -1116,10 +1114,13 @@ function fuvrdbout(
            @callback
         */
         function (uniqueId, callback) {
+            var queryFrom = moment(begdtm).format();
+            var queryTo = moment(enddtm).format();
+
             try {
                 aquarius.getTimeSeriesCorrectedData(
                     options.aquariusHostname, token, uniqueId,
-                    field.QueryFrom, field.QueryTo, callback
+                    queryFrom, queryTo, callback
                 );
             }
             catch (error) {
