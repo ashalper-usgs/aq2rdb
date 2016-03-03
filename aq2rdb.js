@@ -141,59 +141,6 @@ tzName['ZP5'] =   {N: 'Etc/GMT+5',  Y: 'Etc/GMT+5'};
 tzName['ZP6'] =   {N: 'Etc/GMT+6',  Y: 'Etc/GMT+6'};
 
 /**
-   @function Error handler.
-   @param {object} error "Error" object.
-   @param {object} response IncomingMessage object created by Node.js
-          http.Server.
-*/ 
-function handle(error) {
-    var statusMessage, statusCode;
-
-    /**
-       @see https://nodejs.org/api/errors.html#errors_error_code
-    */
-    if (error.code === 'ECONNREFUSED') {
-        statusMessage = '# ' + packageName +
-            ': Connection error; a common cause of this ' +
-            'is GetAQToken being unreachable';
-        /**
-           @description "Bad Gateway"
-           @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
-        */
-        statusCode = 502;
-    }
-    else if (error instanceof ReferenceError) {
-        statusMessage =
-            '# ' + packageName + ': There is an undefined ' +
-            'reference on the ' + packageName + ' server';
-        statusCode = 500;
-
-        if (options.log === true) {
-            console.log(packageName + ': ' +
-                        error.toString().replace(/: (\w+)/, ': "$1"'));
-        }
-    }
-    else if (typeof error === 'string') {
-        statusMessage = '# ' + packageName + ': ' + error;
-        /**
-           @default HTTP error status code.
-           @todo It would be nice to refine this. Too generic now.
-        */
-        statusCode = 404;
-    }
-    else {
-        statusMessage = '# ' + packageName + ': ' + error.message;
-        /**
-           @default HTTP error status code.
-           @todo It would be nice to refine this. Too generic now.
-        */
-        statusCode = 404;
-    }
-
-    return [statusCode, statusMessage];
-} // handle
-
-/**
    @description Public functions.
 */
 var aq2rdb = module.exports = {
@@ -374,6 +321,68 @@ var aq2rdb = module.exports = {
 }; // public functions
 
 /**
+   @function This module's logging function, mostly for convenience
+             purposes.
+   @private
+   @param {string} message Log message.
+*/ 
+function log(prefix, message) {
+    if (options.log)
+        console.log(packageName + '.' + prefix + ": " + message);
+} // log
+
+/**
+   @function Error handler.
+   @private
+   @param {object} error "Error" object.
+   @param {object} response IncomingMessage object created by Node.js
+          http.Server.
+*/ 
+function handle(error) {
+    var statusMessage, statusCode;
+
+    /**
+       @see https://nodejs.org/api/errors.html#errors_error_code
+    */
+    if (error.code === 'ECONNREFUSED') {
+        statusMessage = '# ' + packageName +
+            ': Connection error; a common cause of this ' +
+            'is GetAQToken being unreachable';
+        /**
+           @description "Bad Gateway"
+           @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
+        */
+        statusCode = 502;
+    }
+    else if (error instanceof ReferenceError) {
+        statusMessage =
+            '# ' + packageName + ': There is an undefined ' +
+            'reference on the ' + packageName + ' server';
+        statusCode = 500;
+
+        log("handle()", error.toString().replace(/: (\w+)/, ': "$1"'));
+    }
+    else if (typeof error === 'string') {
+        statusMessage = '# ' + packageName + ': ' + error;
+        /**
+           @default HTTP error status code.
+           @todo It would be nice to refine this. Too generic now.
+        */
+        statusCode = 404;
+    }
+    else {
+        statusMessage = '# ' + packageName + ': ' + error.message;
+        /**
+           @default HTTP error status code.
+           @todo It would be nice to refine this. Too generic now.
+        */
+        statusCode = 404;
+    }
+
+    return [statusCode, statusMessage];
+} // handle
+
+/**
    @function Error messager for JSON parse errors.
    @private
    @param {object} response IncomingMessage object created by Node.js
@@ -511,18 +520,10 @@ function getAQToken(hostname, userName, password, callback) {
 
         // Response complete; token received.
         response.on('end', function () {
-            if (options.log) {
-                console.log(
-                    packageName +
-                        ".getAQToken().getAQTokenCallback().messageBody: " +
-                        messageBody
-                );
-                console.log(
-                    packageName +
-                        ".getAQToken().getAQTokenCallback().callback:\n" +
-                        "            " + callback
-                );
-            }
+            log("getAQToken().getAQTokenCallback().messageBody",
+                messageBody);
+            log("getAQToken().getAQTokenCallback().callback",
+                callback);
             callback(null, messageBody);
             return;
         });
@@ -532,12 +533,8 @@ function getAQToken(hostname, userName, password, callback) {
     var path = '/services/GetAQToken?';
     var uriString = 'http://' + hostname + '/AQUARIUS/';
 
-    if (options.log === true) {
-        console.log(
-            packageName + ': querying http://' + hostname + ':' +
-                port + path + '..., AQUARIUS server at ' + uriString
-        );
-    }
+    log("getAQToken()", "querying http://" + hostname + ":" + port +
+        path + "..., AQUARIUS server at " + uriString);
 
     // make sure to not reveal user-name/passwords in log
     path += querystring.stringify(
@@ -1229,7 +1226,8 @@ httpdispatcher.onGet(
        @callback
     */
     function (request, response) {
-        var token, agencyCode, siteNumber, locationIdentifier, s, parameter;
+        var token, agencyCode, siteNumber, locationIdentifier;
+        var waterServicesSite, parameterCode, parameter;
 
         if (options.log)
             console.log(
@@ -1267,10 +1265,16 @@ httpdispatcher.onGet(
                     }
                 }
 
+                /**
+                   @todo Need to check downstream depedendencies below
+                         on presence of former "P" prefix of this value.
+                */
+                parameterCode = field.p;
+
                 callback(
                     null, field.t, false, false, false, false,
-                    field.a, field.n, 'P' + field.p, field.s, field.b,
-                    field.e, undefined, ""
+                    field.a, field.n, field.s, field.b, field.e,
+                    undefined, ""
                 );
             },
             /**
@@ -1286,7 +1290,6 @@ httpdispatcher.onGet(
                @param {Boolean} vflag Verbose dates and times flag.
                @param {string} inagny Site agency code.
                @param {string} instnid Site number (a.k.a. "site ID").
-               @param {string} inddid Data descriptor number (a.k.a. "DD ID").
                @param {string} inlocnu ADAPS location number.
                @param {string} instat Statistic code.
                @param {string} begdat Begin date/datetime.
@@ -1296,8 +1299,7 @@ httpdispatcher.onGet(
             */
             function rdbOut(
                 intyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
-                inddid, instat, begdat, enddat, locTzCd, titlline,
-                callback
+                instat, begdat, enddat, locTzCd, titlline, callback
             ) {
                 var datatyp, stat, uvtyp;
                 var usdate, uedate, begdate, enddate, begdtm, enddtm;
@@ -1339,22 +1341,23 @@ httpdispatcher.onGet(
                 else 
                     siteNumber = instnid.substring(0, 15);
 
-                console.log('rdbOut.inddid: ' + inddid);
+                log("rdbOut().parameterCode", parameterCode);
+
                 // If type is VT, DDID is only needed IF parm and loc
                 // number are not specified
-                if (datatyp !== 'VT' && inddid === undefined) {
+                if (datatyp !== 'VT' && parameterCode === undefined) {
                     needstrt = true;
                     sopt[4] = '2';
                 }
                 else {
                     // If ddid starts with "P", it is a parameter
                     // code, fill to 5 digits
-                    if (inddid.startsWith('p') || inddid.startsWith('P'))
+                    if (parameterCode.startsWith('p') || parameterCode.startsWith('P'))
                         parm = sprintf(
-                            "%5s", inddid.substring(1, 6)
+                            "%5s", parameterCode.substring(1, 6)
                         ).replace(' ', '0');
                 }
-                console.log('rdbOut.parm: ' + parm);
+                log("rdbOut().parm" + parm);
 
                 // further processing depends on data type
 
@@ -1503,8 +1506,8 @@ httpdispatcher.onGet(
                         );
                     }
                     callback(
-                        null, response, false, rndsup, cflag,
-                        vflag, agencyCode, siteNumber, parm, begdtm, enddtm,
+                        null, response, false, rndsup, cflag, vflag,
+                        agencyCode, siteNumber, begdtm, enddtm,
                         locTzCd
                     );
                 }
@@ -1519,8 +1522,8 @@ httpdispatcher.onGet(
                 // conditional above
             },
             function fuvrdbout(
-                response, editable, rndsup, cflag, vflag, agencyCode, siteNumber,
-                inddid, begdtm, enddtm, locTzCd, callback
+                response, editable, rndsup, cflag, vflag, agencyCode,
+                siteNumber, begdtm, enddtm, locTzCd, callback
             ) {
                 var parameter, rtcode;
                 var extendedFilters, timeSeriesDescription;
@@ -1530,11 +1533,11 @@ httpdispatcher.onGet(
                         sprintf(
                             "fuvrdbout(\n" +
                                 "   response=%s, editable=%s, rndsup=%s,\n" +
-                                "   cflag=%s, vflag=%s, agencyCode=%s, siteNumber=%s, inddid=%s,\n" +
+                                "   cflag=%s, vflag=%s, agencyCode=%s, siteNumber=%s,\n" +
                                 "   begdtm=%s, enddtm=%s, locTzCd=%s\n" +
                                 ")",
                             response, editable, rndsup, cflag, vflag, agencyCode, siteNumber,
-                            inddid, begdtm, enddtm, locTzCd
+                            begdtm, enddtm, locTzCd
                         )
                     );
 
@@ -1553,7 +1556,7 @@ httpdispatcher.onGet(
 
                 // TODO: "parameter" somehow went MIA in fuvrdbout()
                 // formal parameters in translation from Fortran
-                if (inddid === undefined) {
+                if (parameterCode === undefined) {
                     callback('Required AQUARIUS field "Parameter" not found');
                     return;
                 }
@@ -1621,14 +1624,14 @@ httpdispatcher.onGet(
             site.request,
             site.receive,
             function (receivedSite, callback) {
-                site = receivedSite; // set global
+                waterServicesSite = receivedSite; // set global
                 callback(null);
             },
             /**
                @todo Query NWIS TZ table data here (probably via a
                      self-referential Web service query as an interim
                      measure), to find offset associated with
-                     s.tzCd, so we can reference UV times to "local
+                     waterServicesSite.tzCd, so we can reference UV times to "local
                      time".
             */
             /**
@@ -1679,7 +1682,7 @@ httpdispatcher.onGet(
                         {"Authorization": "Bearer " + tokenId},
                         "/service/data/view/parameters/json",
                         {"parameters.PARM_ALIAS_CD": "AQNAME",
-                         "parameters.PARM_CD": inddid},
+                         "parameters.PARM_CD": parameterCode},
                         options.log,
                         callback
                     );
@@ -1930,7 +1933,8 @@ httpdispatcher.onGet(
                            module.
                         */
                         try {
-                            name = tzName[s.tzCode][s.localTimeFlag];
+                            name =
+             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag];
                         }
                         catch (error) {
                             callback(
@@ -1943,8 +1947,8 @@ httpdispatcher.onGet(
                         // correct some obscure, NWIS vs. IANA time offset
                         // incompatibility cases
                         var p = nwisVersusIANA(
-                            point.Timestamp, name, s.tzCode,
-                            s.localTimeFlag
+                            point.Timestamp, name, waterServicesSite.tzCode,
+                            waterServicesSite.localTimeFlag
                         );
 
                         response.write(
