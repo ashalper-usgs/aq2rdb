@@ -326,9 +326,9 @@ var aq2rdb = module.exports = {
    @private
    @param {string} message Log message.
 */ 
-function log(prefix, message) {
+function log(locator, message) {
     if (options.log)
-        console.log(packageName + '.' + prefix + ": " + message);
+        console.log(packageName + '.' + locator + ": " + message);
 } // log
 
 /**
@@ -1956,8 +1956,6 @@ httpdispatcher.onGet(
                @callback
             */
             function (error) {
-                if (options.log)
-                    console.log(packageName + ".a2rdb/: error callback");
                 if (error)
                     response.end(
                         "# " + packageName + ": " + error + '\n',
@@ -1965,6 +1963,8 @@ httpdispatcher.onGet(
                     );
                 else
                     response.end();
+                log("httpdispatcher.onGet(\"/" + packageName +
+                    "\", ().async.waterfall([], (error))", error);
             }
         );
     }
@@ -1975,21 +1975,15 @@ httpdispatcher.onGet(
 */ 
 function handleRequest(request, response) {
     try {
-        if (options.log === true) {
-            console.log(
-                packageName + ".handleRequest().request.url: " +
-                    request.url
-            );
-        }
+        log("handleRequest().request.url: ", request.url);
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
-        var msg = packageName + ".handleRequest().error: " + error;
+        var locator = "handleRequest().error";
+        var msg = packageName + '.' + locator + ": " + error;
 
         response.end("# " + msg, "ascii");
-
-        if (options.log)
-            console.log(msg);
+        log(locator, error);
     }
 }
 
@@ -2006,6 +2000,7 @@ catch (error) {
      */
     if (error.name === "UNKNOWN_OPTION") {
         console.log(packageName + ": error: Unknown option");
+        console.log(cli.getUsage());
     }
     else {
         console.log(
