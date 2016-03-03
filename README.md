@@ -40,4 +40,4 @@ Other aq2rdb command-line arguments have reasonable default values,
 but may be overridden by specifying them.
 
 ## Testing
-    http://localhost:8081/aq2rdb?p=00060&t=uv&s=C&n=09380000&b=20141001000000&e=20150930000000
+    curl 'http://localhost:8081/aq2rdb?p=00060&t=uv&s=C&n=09380000&b=20141001000000&e=20150930000000'
