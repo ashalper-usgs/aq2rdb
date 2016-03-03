@@ -1343,22 +1343,6 @@ httpdispatcher.onGet(
 
                 log("rdbOut().parameterCode", parameterCode);
 
-                // If type is VT, DDID is only needed IF parm and loc
-                // number are not specified
-                if (datatyp !== 'VT' && parameterCode === undefined) {
-                    needstrt = true;
-                    sopt[4] = '2';
-                }
-                else {
-                    // If ddid starts with "P", it is a parameter
-                    // code, fill to 5 digits
-                    if (parameterCode.startsWith('p') || parameterCode.startsWith('P'))
-                        parm = sprintf(
-                            "%5s", parameterCode.substring(1, 6)
-                        ).replace(' ', '0');
-                }
-                log("rdbOut().parm" + parm);
-
                 // further processing depends on data type
 
                 if (datatyp === 'DV') { // convert stat to 5 characters
@@ -1397,7 +1381,9 @@ httpdispatcher.onGet(
                     
                     uvtyp = instat.charAt(0);
                     
-                    if ("cemnrs".includes(uvtyp))
+                    if (uvtyp === 'c' || uvtyp === 'e' ||
+                        uvtyp === 'm' || uvtyp === 'n' ||
+                        uvtyp === 'r' || uvtyp === 's')
                         uvtyp = uvtyp.toUpperCase();
                     else {
                         // TODO: this is a prompt loop in legacy code;
@@ -1802,7 +1788,7 @@ httpdispatcher.onGet(
                                  LocationIdentifier: locationIdentifier,
                                  Parameter: parameter,
                                  ComputationIdentifier: "Instantaneous",
-                                 ComputationIdentifier: "Points",
+                                 ComputationPeriodIdentifier: "Points",
                                  ExtendedFilters: extendedFilters}
                             })
                     );
@@ -1983,7 +1969,10 @@ httpdispatcher.onGet(
                 if (options.log)
                     console.log(packageName + ".a2rdb/: error callback");
                 if (error)
-                    response.end("# " + packageName + ": " + error, "ascii");
+                    response.end(
+                        "# " + packageName + ": " + error + '\n',
+                        "ascii"
+                    );
                 else
                     response.end();
             }
