@@ -511,6 +511,12 @@ function getAQToken(hostname, userName, password, callback) {
 
         // Response complete; token received.
         response.on('end', function () {
+            if (options.log)
+                console.log(
+                    packageName +
+                        ".getAQToken().getAQTokenCallback().messageBody: " +
+                        messageBody
+                );
             callback(null, messageBody);
             return;
         });
@@ -773,7 +779,7 @@ function fuvrdbout(
                     "   response=%s, editable=%s, rndsup=%s,\n" +
                     "   cflag=%s, vflag=%s, rtagny=%s, sid=%s, inddid=%s,\n" +
                     "   begdtm=%s, enddtm=%s, locTzCd=%s\n" +
-                    ")\n",
+                    ")",
                 response, editable, rndsup, cflag, vflag, rtagny, sid,
                 inddid, begdtm, enddtm, locTzCd
         )
@@ -1114,6 +1120,8 @@ function fuvrdbout(
            @callback
         */
         function (uniqueId, callback) {
+            // convert NWIS datetime format to ISO format for
+            // digestion by AQUARIUS
             var queryFrom = moment(begdtm).format();
             var queryTo = moment(enddtm).format();
 
@@ -1204,7 +1212,6 @@ function fuvrdbout(
             }
         }
     ); // async.waterfall
-    return;
 } // fuvrdbout
 
 function required(options, propertyList) {
