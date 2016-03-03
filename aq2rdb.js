@@ -511,12 +511,18 @@ function getAQToken(hostname, userName, password, callback) {
 
         // Response complete; token received.
         response.on('end', function () {
-            if (options.log)
+            if (options.log) {
                 console.log(
                     packageName +
                         ".getAQToken().getAQTokenCallback().messageBody: " +
                         messageBody
                 );
+                console.log(
+                    packageName +
+                        ".getAQToken().getAQTokenCallback().callback:\n" +
+                        "            " + callback
+                );
+            }
             callback(null, messageBody);
             return;
         });
@@ -1956,6 +1962,12 @@ httpdispatcher.onGet(
                 // no callback() call here because it is invoked in
                 // conditional above
             },
+            /**
+               @todo Probably should re-factor fuvrdbout() into
+                     segments of anonymous functions as elements in
+                     this async.waterfall() to alleviate a nasty
+                     synchronization bug we have right now.
+            */
             fuvrdbout,
             function (irc, callback) {
                 if (options.log)
