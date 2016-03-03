@@ -1229,7 +1229,7 @@ httpdispatcher.onGet(
        @callback
     */
     function (request, response) {
-        var token, locationIdentifier, site, parameter;
+        var token, agencyCode, siteNumber, locationIdentifier, s, parameter;
 
         if (options.log)
             console.log(
@@ -1299,7 +1299,7 @@ httpdispatcher.onGet(
                 inddid, instat, begdat, enddat, locTzCd, titlline,
                 callback
             ) {
-                var datatyp, rtagny, agency, sid, stat, uvtyp;
+                var datatyp, stat, uvtyp;
                 var usdate, uedate, begdate, enddate, begdtm, enddtm;
                 var needstrt = false;
                 var uvtypPrompted = false;
@@ -1329,15 +1329,15 @@ httpdispatcher.onGet(
 
                 // convert agency to 5 characters - default to USGS
                 if (inagny === undefined)
-                    rtagny = "USGS";
+                    agencyCode = "USGS";
                 else
-                    rtagny = inagny.substring(0, 5);
+                    agencyCode = inagny.substring(0, 5);
 
                 // convert station to 15 characters
                 if (instnid === undefined)
                     needstrt = true;
                 else 
-                    sid = instnid.substring(0, 15);
+                    siteNumber = instnid.substring(0, 15);
 
                 console.log('rdbOut.inddid: ' + inddid);
                 // If type is VT, DDID is only needed IF parm and loc
@@ -1434,11 +1434,11 @@ httpdispatcher.onGet(
                     (uvtyp === 'M' || uvtyp === 'N') &&
                     transport_cd === undefined) {
                     /*
-                      nw_query_meas_uv_type(rtagny, sid, ddid, begdtm,
+                      nw_query_meas_uv_type(agencyCode, siteNumber, ddid, begdtm,
                       enddtm, loc_tz_cd, transport_cd,
                       sensor_type_id, *998)
                       if (transport_cd === undefined) {
-                      WRITE (0,2150) rtagny, sid, ddid
+                      WRITE (0,2150) agencyCode, siteNumber, ddid
                       2150      FORMAT (/,"No MEASURED UV data for station "",A5,A15,
                       "", DD "',A4,'".  Aborting.",/)
                       return irc;
@@ -1451,13 +1451,13 @@ httpdispatcher.onGet(
                 // be in its own async.waterfall() function below
                 callback(
                     null,
-                    datatyp, rndsup, cflag, vflag, rtagny, sid, ddid,
+                    datatyp, rndsup, cflag, vflag, agencyCode, siteNumber, ddid,
                     stat, begdate, enddate, parm, begdtm, enddtm, locTzCd,
                     irc
                 );
             },
             function (
-                datatyp, rndsup, cflag, vflag, rtagny, sid, ddid,
+                datatyp, rndsup, cflag, vflag, agencyCode, siteNumber, ddid,
                 stat, begdate, enddate, parm, begdtm, enddtm, locTzCd,
                 irc,
                 callback
@@ -1470,11 +1470,11 @@ httpdispatcher.onGet(
                              call to fuvrdbout references below]. The
                              call here will not synchronize correctly
                              in its present state.
-                    */
                     irc = fdvrdbout(
                         response, false, rndsup, false, vflag, cflag,
-                        rtagny, sid, ddid, stat, begdate, enddate
+                        agencyCode, siteNumber, ddid, stat, begdate, enddate
                     );
+                    */
 
                     callback(null, irc);
                 }
@@ -1492,8 +1492,8 @@ httpdispatcher.onGet(
                     */
                     /*
                     irc = fuvrdbout(
-                        response, false, rndsup, cflag, vflag, rtagny,
-                        sid, parm, begdtm, enddtm, locTzCd
+                        response, false, rndsup, cflag, vflag, agencyCode,
+                        siteNumber, parm, begdtm, enddtm, locTzCd
                     );
                     */
                     if (options.log) {
@@ -1504,7 +1504,7 @@ httpdispatcher.onGet(
                     }
                     callback(
                         null, response, false, rndsup, cflag,
-                        vflag, rtagny, sid, parm, begdtm, enddtm,
+                        vflag, agencyCode, siteNumber, parm, begdtm, enddtm,
                         locTzCd
                     );
                 }
@@ -1519,7 +1519,7 @@ httpdispatcher.onGet(
                 // conditional above
             },
             function fuvrdbout(
-                response, editable, rndsup, cflag, vflag, rtagny, sid,
+                response, editable, rndsup, cflag, vflag, agencyCode, siteNumber,
                 inddid, begdtm, enddtm, locTzCd, callback
             ) {
                 var parameter, rtcode;
@@ -1530,10 +1530,10 @@ httpdispatcher.onGet(
                         sprintf(
                             "fuvrdbout(\n" +
                                 "   response=%s, editable=%s, rndsup=%s,\n" +
-                                "   cflag=%s, vflag=%s, rtagny=%s, sid=%s, inddid=%s,\n" +
+                                "   cflag=%s, vflag=%s, agencyCode=%s, siteNumber=%s, inddid=%s,\n" +
                                 "   begdtm=%s, enddtm=%s, locTzCd=%s\n" +
                                 ")",
-                            response, editable, rndsup, cflag, vflag, rtagny, sid,
+                            response, editable, rndsup, cflag, vflag, agencyCode, siteNumber,
                             inddid, begdtm, enddtm, locTzCd
                         )
                     );
@@ -1541,13 +1541,13 @@ httpdispatcher.onGet(
                 // TODO: construct AQUARIUS LocationIdentifier and
                 // Parameter here
 
-                if (rtagny === undefined) {
-                    callback('Required field "rtagny" not found');
+                if (agencyCode === undefined) {
+                    callback('Required field "agencyCode" not found');
                     return;
                 }
 
-                if (sid === undefined) {
-                    callback('Required field "sid" not found');
+                if (siteNumber === undefined) {
+                    callback('Required field "siteNumber" not found');
                     return;
                 }
 
@@ -1603,14 +1603,20 @@ httpdispatcher.onGet(
                     );
 
                 callback(
-                    null, options.waterServicesHostname, rtagny, sid,
-                    options.log
+                    null, options.waterServicesHostname, agencyCode,
+                    siteNumber, options.log
                 );
             },
             /**
                @todo site.request() and site.receive() can be done in
                      parallel with the requesting/receiving of time
                      series descriptions below.
+            */
+            /**
+               @todo Post re-factor, "site" is no longer in scope here, so:
+
+                       aq2rdb.handleRequest().error: TypeError: Cannot
+                       read property 'request' of undefined
             */
             site.request,
             site.receive,
@@ -1622,7 +1628,7 @@ httpdispatcher.onGet(
                @todo Query NWIS TZ table data here (probably via a
                      self-referential Web service query as an interim
                      measure), to find offset associated with
-                     site.tzCd, so we can reference UV times to "local
+                     s.tzCd, so we can reference UV times to "local
                      time".
             */
             /**
@@ -1714,8 +1720,9 @@ httpdispatcher.onGet(
                     );
 
                 // make (agencyCode,siteNo) digestible by AQUARIUS
-                locationIdentifier =
-                    (rtagny === "USGS") ? sid : sid + '-' + rtagny;
+                locationIdentifier = (agencyCode === "USGS") ?
+                    siteNumber : siteNumber + '-' + agencyCode;
+
                 // not sure what this does
                 extendedFilters =
                     "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]";
@@ -1823,7 +1830,7 @@ httpdispatcher.onGet(
                        @todo If aquarius.distill() can't find a primary
                        record:
 
-                       WRITE (0,2120) rtagny, sid, parm
+                       WRITE (0,2120) agencyCode, siteNumber, parm
                        2120    FORMAT (/,"No PRIMARY DD for station "",A5,A15,
                        "", parm "',A5,'".  Aborting.",/)
                     */
@@ -1923,7 +1930,7 @@ httpdispatcher.onGet(
                            module.
                         */
                         try {
-                            name = tzName[site.tzCode][site.localTimeFlag];
+                            name = tzName[s.tzCode][s.localTimeFlag];
                         }
                         catch (error) {
                             callback(
@@ -1936,8 +1943,8 @@ httpdispatcher.onGet(
                         // correct some obscure, NWIS vs. IANA time offset
                         // incompatibility cases
                         var p = nwisVersusIANA(
-                            point.Timestamp, name, site.tzCode,
-                            site.localTimeFlag
+                            point.Timestamp, name, s.tzCode,
+                            s.localTimeFlag
                         );
 
                         response.write(
