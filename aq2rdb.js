@@ -770,456 +770,6 @@ function AquariusCredentials (cli) {
     this.password = cli.password;
 } // AquariusCredentials
 
-function fuvrdbout(
-    response, editable, rndsup, cflag, vflag, rtagny, sid, inddid,
-    begdtm, enddtm, locTzCd, callback
-)
-{
-    var token, locationIdentifier, parameter, rtcode;
-    var extendedFilters, timeSeriesDescription;
-
-    if (options.log)
-        console.log(
-            sprintf(
-                "fuvrdbout(\n" +
-                    "   response=%s, editable=%s, rndsup=%s,\n" +
-                    "   cflag=%s, vflag=%s, rtagny=%s, sid=%s, inddid=%s,\n" +
-                    "   begdtm=%s, enddtm=%s, locTzCd=%s\n" +
-                    ")",
-                response, editable, rndsup, cflag, vflag, rtagny, sid,
-                inddid, begdtm, enddtm, locTzCd
-        )
-    );
-
-    async.waterfall([
-        /**
-           @description Parse fields and values in GetUVTable URL.
-           @callback
-        */
-        function (callback) {
-            // TODO: construct AQUARIUS LocationIdentifier and
-            // Parameter here
-
-            if (rtagny === undefined) {
-                callback('Required field "rtagny" not found');
-                return;
-            }
-
-            if (sid === undefined) {
-                callback('Required field "sid" not found');
-                return;
-            }
-
-            // TODO: "parameter" somehow went MIA in fuvrdbout()
-            // formal parameters in translation from Fortran
-            if (inddid === undefined) {
-                callback('Required AQUARIUS field "Parameter" not found');
-                return;
-            }
-
-            var aquariusCredentials = new AquariusCredentials(
-                {hostname: options.aquariusHostname,
-                 userName: options.aquariusUserName,
-                 password: options.aquariusPassword}
-            );
-
-            // proceed to next waterfall
-            callback(null, aquariusCredentials);
-        },
-        /**
-           @description Get AQUARIUS authentication token from
-                        GetAQToken service.
-           @callback
-        */
-        function (aquariusCredentials, callback) {
-            try {
-                getAQToken(
-                    aquariusCredentials.hostname,
-                    aquariusCredentials.userName,
-                    aquariusCredentials.password,
-                    callback
-                );
-            }
-            catch (error) {
-                // abort & pass error object to final callback
-                callback(error);
-            }
-            // no callback here, because it is passed to
-            // getAQToken(), and called from there if successful
-        },
-        /**
-           @description Receive AQUARIUS authentication token and get
-                        required site information.
-           @callback
-        */
-        function (messageBody, callback) {
-            token = messageBody;
-            callback(
-                null, options.waterServicesHostname, rtagny, sid,
-                options.log
-            );
-        },
-        /**
-           @todo site.request() and site.receive() can be done in
-                 parallel with the requesting/receiving of time series
-                 descriptions below.
-        */
-        site.request,
-        site.receive,
-        function (receivedSite, callback) {
-            site = receivedSite; // set global
-            callback(null);
-        },
-        /**
-           @todo Query NWIS TZ table data here (probably via a
-                 self-referential Web service query as an interim
-                 measure), to find offset associated with site.tzCd,
-                 so we can reference UV times to "local time".
-        */
-        /**
-           @function Query USGS-parameter-code-to-AQUARIUS-parameter
-                     Web service here to obtain AQUARIUS parameter
-                     from USGS parameter code.
-           @callback
-           @param {function} callback async.waterfall() callback
-                  function.
-        */
-        function (callback) {
-            try {
-                rest.querySecure(
-                    options.waterDataHostname,
-                    "POST",
-                    {"content-type": "application/x-www-form-urlencoded"},
-                    "/service/auth/authenticate",
-                    {username: options.waterDataUserName,
-                     password: options.waterDataPassword},
-                    options.log,
-                    callback
-                );
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-        },
-        function (messageBody, callback) {
-            var nwisRAAuthentication;
-
-            try {
-                nwisRAAuthentication = JSON.parse(messageBody);
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-
-            callback(null, nwisRAAuthentication.tokenId);
-        },
-        function (tokenId, callback) {
-            try {
-                rest.querySecure(
-                    options.waterDataHostname,
-                    "GET",
-                    {"Authorization": "Bearer " + tokenId},
-                    "/service/data/view/parameters/json",
-                    {"parameters.PARM_ALIAS_CD": "AQNAME",
-                     "parameters.PARM_CD": inddid},
-                    options.log,
-                    callback
-                );
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-        },
-        function (messageBody, callback) {
-            var parameters;
-
-            try {
-                parameters = JSON.parse(messageBody);
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-
-            parameter = parameters.records[0].PARM_ALIAS_NM;
-            callback(null);
-        },
-        /**
-           @function Query AQUARIUS GetTimeSeriesDescriptionList
-                     service to get list of AQUARIUS, time series
-                     UniqueIds related to aq2rdb, GetUVTable location
-                     and parameter.
-           @callback
-           @param {function} callback async.waterfall() callback
-                  function.
-        */
-        function (callback) {
-            if (options.log)
-                console.log(
-                    packageName + ".fuvrdbout().parameter: " +
-                        parameter
-                );
-
-            // make (agencyCode,siteNo) digestible by AQUARIUS
-            locationIdentifier =
-                (rtagny === "USGS") ? sid : sid + '-' + rtagny;
-            // not sure what this does
-            extendedFilters =
-                "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]";
-
-             try {
-               rest.query(
-                    options.aquariusHostname,
-                    "GET",
-                    undefined,  // HTTP headers
-                    "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                    {token: token,
-                     format: "json",
-                     LocationIdentifier: locationIdentifier,
-                     Parameter: parameter,
-                     ComputationIdentifier: "Instantaneous",
-                     ComputationPeriodIdentifier: "Points",
-                     ExtendedFilters: extendedFilters},
-                    options.log,
-                    callback
-                );
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-        },
-        /**
-           @function Receive response from AQUARIUS
-                     GetTimeSeriesDescriptionList, then parse list of
-                     related TimeSeriesDescriptions to query AQUARIUS
-                     GetTimeSeriesCorrectedData service.
-           @callback
-           @param {string} messageBody Message body part of HTTP
-                  response from GetTimeSeriesDescriptionList.
-        */
-        function (messageBody, callback) {
-            var timeSeriesDescriptionListServiceResponse;
-
-            try {
-                timeSeriesDescriptionListServiceResponse =
-                    JSON.parse(messageBody);
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-
-            callback(
-                null,
-                timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
-            );
-        },
-        /**
-           @function Check for zero TimeSeriesDescriptions returned
-                     from AQUARIUS Web service query above.
-           @callback
-        */
-        function (timeSeriesDescriptions, callback) {
-            if (timeSeriesDescriptions.length === 0) {
-                /**
-                   @todo Might be more helpful to have "...found at
-                         <URL>" in this message.
-                */
-                callback(
-                    "No time series description list found at " +
-                        url.format({
-                            protocol: "http",
-                            host: options.aquariusHostname,
-                            pathname:
-                            "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                            query:
-                            {token: token,
-                             format: "json",
-                             LocationIdentifier: locationIdentifier,
-                             Parameter: parameter,
-                             ComputationIdentifier: "Instantaneous",
-                             ComputationIdentifier: "Points",
-                             ExtendedFilters: extendedFilters}
-                        })
-                );
-                return;
-            }
-
-            callback(null, timeSeriesDescriptions);
-        },
-        /**
-           @function For each AQUARIUS time series description, weed
-                     out non-UV, and non-primary ones.
-           @callback
-        */
-        function (timeSeriesDescriptions, callback) {
-            async.filter(
-                timeSeriesDescriptions,
-                function (timeSeriesDescription, callback) {
-                    if (timeSeriesDescription.ComputationPeriodIdentifier ===
-                        "Points") {
-                        callback(true);
-                    }
-                    else {
-                        callback(false);
-                    }
-                },
-                /**
-                   @todo If aquarius.distill() can't find a primary
-                         record:
-
-                           WRITE (0,2120) rtagny, sid, parm
-                   2120    FORMAT (/,"No PRIMARY DD for station "",A5,A15,
-                                   "", parm "',A5,'".  Aborting.",/)
-                */
-                function (uvTimeSeriesDescriptions) {
-                    timeSeriesDescription = aquarius.distill(
-                        uvTimeSeriesDescriptions, locationIdentifier,
-                        callback
-                    );
-                }
-            );
-            callback(null);
-        },
-        /**
-           @function Write RDB header to HTTP response.
-           @callback
-        */
-        function (callback) {
-            rdb.header(response);
-            callback(null);
-        },
-        /**
-           @function Write RDB header body to HTTP response.
-           @callback
-        */
-        function (callback) {
-            response.write(
-                aq2rdb.rdbHeaderBody(
-                    'NWIS-I UNIT-VALUES', site,
-                    timeSeriesDescription.SubLocationIdentifer,
-                    {start: begdtm, end: enddtm}
-                ),
-                'ascii'
-            );
-            callback(null, timeSeriesDescription);
-        },
-        /**
-           @description Write RDB column names and column data type
-                        definitions to HTTP response.
-           @callback
-        */
-        function (timeSeriesDescription, callback) {
-            response.write(
-                'DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n' +
-                    '8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n', 'ascii'
-            );
-            callback(null, timeSeriesDescription.UniqueId);
-        },
-        /**
-           @description Call AQUARIUS GetTimeSeriesCorrectedData
-                        service.
-           @callback
-        */
-        function (uniqueId, callback) {
-            // convert NWIS datetime format to ISO format for
-            // digestion by AQUARIUS
-            var queryFrom = moment(begdtm).format();
-            var queryTo = moment(enddtm).format();
-
-            try {
-                aquarius.getTimeSeriesCorrectedData(
-                    options.aquariusHostname, token, uniqueId,
-                    queryFrom, queryTo, callback
-                );
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-        },
-        /**
-           @description Receive response from AQUARIUS
-                        GetTimeSeriesCorrectedData service.
-           @callback
-        */
-        aquarius.parseTimeSeriesDataServiceResponse,
-        /**
-           @description Write time series data as RDB rows to HTTP
-                        response.
-           @callback
-        */
-        function (timeSeriesDataServiceResponse, callback) {
-            async.each(
-                timeSeriesDataServiceResponse.Points,
-                /**
-                   @description Write an RDB row for one time series
-                                point.
-                   @callback
-                */
-                function (point, callback) {
-                    var name, date, time, tz;
-
-                    /**
-                       @description Use site's time offset
-                                    specification to derive the
-                                    appropriate IANA time zone name.
-                       @see tzName initializer at global scope in this
-                            module.
-                    */
-                    try {
-                        name = tzName[site.tzCode][site.localTimeFlag];
-                    }
-                    catch (error) {
-                        callback(
-                            'Could not derive IANA time zone ' +
-                                'name from site\'s time offset spec.'
-                        );
-                        return;
-                    }
-
-                    // correct some obscure, NWIS vs. IANA time offset
-                    // incompatibility cases
-                    var p = nwisVersusIANA(
-                        point.Timestamp, name, site.tzCode,
-                        site.localTimeFlag
-                    );
-
-                    response.write(
-                        p.date + '\t' + p.time + '\t' + p.tz + '\t' +
-                            point.Value.Numeric + '\t' +
-                            point.Value.Numeric.toString().length + '\n'
-                    );
-                    callback(null);
-                }
-            );
-            callback(null);
-        }
-    ],
-        /**
-           @description node-async error handler function for
-                        outer-most, fuvrdbout() async.waterfall
-                        function.
-           @callback
-        */
-        function (error) {
-            if (error) {
-                console.log(packageName + ".fuvrdbout().error: " + error);
-                // relay error to caller async.waterfall()
-                callback(error);
-            }
-            else {
-                // return control to async.waterfall() that called me
-                callback(null, rtcode);
-            }
-        }
-    ); // async.waterfall
-} // fuvrdbout
-
 function required(options, propertyList) {
     for (var i in propertyList){
         if (options[propertyList[i]] === undefined) {
@@ -1681,6 +1231,12 @@ httpdispatcher.onGet(
     function (request, response) {
         var token, locationIdentifier, site, parameter;
 
+        if (options.log)
+            console.log(
+                packageName + ".httpdispatcher.onGet/" + packageName +
+                    ".request: " + request
+            );
+
         async.waterfall([
             function (callback) {
                 if (docRequest(request.url, '/aq2rdb', response, callback))
@@ -1962,14 +1518,439 @@ httpdispatcher.onGet(
                 // no callback() call here because it is invoked in
                 // conditional above
             },
+            function fuvrdbout(
+                response, editable, rndsup, cflag, vflag, rtagny, sid,
+                inddid, begdtm, enddtm, locTzCd, callback
+            ) {
+                var parameter, rtcode;
+                var extendedFilters, timeSeriesDescription;
+
+                if (options.log)
+                    console.log(
+                        sprintf(
+                            "fuvrdbout(\n" +
+                                "   response=%s, editable=%s, rndsup=%s,\n" +
+                                "   cflag=%s, vflag=%s, rtagny=%s, sid=%s, inddid=%s,\n" +
+                                "   begdtm=%s, enddtm=%s, locTzCd=%s\n" +
+                                ")",
+                            response, editable, rndsup, cflag, vflag, rtagny, sid,
+                            inddid, begdtm, enddtm, locTzCd
+                        )
+                    );
+
+                // TODO: construct AQUARIUS LocationIdentifier and
+                // Parameter here
+
+                if (rtagny === undefined) {
+                    callback('Required field "rtagny" not found');
+                    return;
+                }
+
+                if (sid === undefined) {
+                    callback('Required field "sid" not found');
+                    return;
+                }
+
+                // TODO: "parameter" somehow went MIA in fuvrdbout()
+                // formal parameters in translation from Fortran
+                if (inddid === undefined) {
+                    callback('Required AQUARIUS field "Parameter" not found');
+                    return;
+                }
+
+                var aquariusCredentials = new AquariusCredentials(
+                    {hostname: options.aquariusHostname,
+                     userName: options.aquariusUserName,
+                     password: options.aquariusPassword}
+                );
+
+                // proceed to next waterfall
+                callback(null, aquariusCredentials);
+            },
             /**
-               @todo Probably should re-factor fuvrdbout() into
-                     segments of anonymous functions as elements in
-                     this async.waterfall() to alleviate a nasty
-                     synchronization bug we have right now.
+               @description Get AQUARIUS authentication token from
+                            GetAQToken service.
+                            @callback
             */
-            fuvrdbout,
-            function (irc, callback) {
+            function (aquariusCredentials, callback) {
+                try {
+                    getAQToken(
+                        aquariusCredentials.hostname,
+                        aquariusCredentials.userName,
+                        aquariusCredentials.password,
+                        callback
+                    );
+                }
+                catch (error) {
+                    // abort & pass error object to final callback
+                    callback(error);
+                }
+                // no callback here, because it is passed to
+                // getAQToken(), and called from there if successful
+            },
+            /**
+               @description Receive AQUARIUS authentication token and
+                            get required site information.
+                            @callback
+            */
+            function (messageBody, callback) {
+                token = messageBody;
+
+                if (options.log)
+                    console.log(
+                        packageName + "httpdispatcher.onGet/" +
+                            packageName + ".token: " + token
+                    );
+
+                callback(
+                    null, options.waterServicesHostname, rtagny, sid,
+                    options.log
+                );
+            },
+            /**
+               @todo site.request() and site.receive() can be done in
+                     parallel with the requesting/receiving of time
+                     series descriptions below.
+            */
+            site.request,
+            site.receive,
+            function (receivedSite, callback) {
+                site = receivedSite; // set global
+                callback(null);
+            },
+            /**
+               @todo Query NWIS TZ table data here (probably via a
+                     self-referential Web service query as an interim
+                     measure), to find offset associated with
+                     site.tzCd, so we can reference UV times to "local
+                     time".
+            */
+            /**
+               @function Query
+                         USGS-parameter-code-to-AQUARIUS-parameter Web
+                         service here to obtain AQUARIUS parameter
+                         from USGS parameter code.
+               @callback
+               @param {function} callback async.waterfall() callback
+                      function.
+            */
+            function (callback) {
+                try {
+                    rest.querySecure(
+                        options.waterDataHostname,
+                        "POST",
+                        {"content-type": "application/x-www-form-urlencoded"},
+                        "/service/auth/authenticate",
+                        {username: options.waterDataUserName,
+                         password: options.waterDataPassword},
+                        options.log,
+                        callback
+                    );
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+            },
+            function (messageBody, callback) {
+                var nwisRAAuthentication;
+
+                try {
+                    nwisRAAuthentication = JSON.parse(messageBody);
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+
+                callback(null, nwisRAAuthentication.tokenId);
+            },
+            function (tokenId, callback) {
+                try {
+                    rest.querySecure(
+                        options.waterDataHostname,
+                        "GET",
+                        {"Authorization": "Bearer " + tokenId},
+                        "/service/data/view/parameters/json",
+                        {"parameters.PARM_ALIAS_CD": "AQNAME",
+                         "parameters.PARM_CD": inddid},
+                        options.log,
+                        callback
+                    );
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+            },
+            function (messageBody, callback) {
+                var parameters;
+
+                try {
+                    parameters = JSON.parse(messageBody);
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+
+                parameter = parameters.records[0].PARM_ALIAS_NM;
+                callback(null);
+            },
+            /**
+               @function Query AQUARIUS GetTimeSeriesDescriptionList
+                         service to get list of AQUARIUS, time series
+                         UniqueIds related to aq2rdb, GetUVTable
+                         location and parameter.
+               @callback
+               @param {function} callback async.waterfall() callback
+                      function.
+            */
+            function (callback) {
+                if (options.log)
+                    console.log(
+                        packageName + ".fuvrdbout().parameter: " +
+                            parameter
+                    );
+
+                // make (agencyCode,siteNo) digestible by AQUARIUS
+                locationIdentifier =
+                    (rtagny === "USGS") ? sid : sid + '-' + rtagny;
+                // not sure what this does
+                extendedFilters =
+                    "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]";
+
+                try {
+                    rest.query(
+                        options.aquariusHostname,
+                        "GET",
+                        undefined,  // HTTP headers
+                        "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
+                        {token: token,
+                         format: "json",
+                         LocationIdentifier: locationIdentifier,
+                         Parameter: parameter,
+                         ComputationIdentifier: "Instantaneous",
+                         ComputationPeriodIdentifier: "Points",
+                         ExtendedFilters: extendedFilters},
+                        options.log,
+                        callback
+                    );
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+            },
+            /**
+               @function Receive response from AQUARIUS
+                         GetTimeSeriesDescriptionList, then parse list
+                         of related TimeSeriesDescriptions to query
+                         AQUARIUS GetTimeSeriesCorrectedData service.
+               @callback
+               @param {string} messageBody Message body part of HTTP
+                      response from GetTimeSeriesDescriptionList.
+            */
+            function (messageBody, callback) {
+                var timeSeriesDescriptionListServiceResponse;
+
+                try {
+                    timeSeriesDescriptionListServiceResponse =
+                        JSON.parse(messageBody);
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+
+                callback(
+                    null,
+                timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
+                );
+            },
+            /**
+               @function Check for zero TimeSeriesDescriptions returned
+               from AQUARIUS Web service query above.
+               @callback
+            */
+            function (timeSeriesDescriptions, callback) {
+                if (timeSeriesDescriptions.length === 0) {
+                    /**
+                       @todo Might be more helpful to have "...found at
+                       <URL>" in this message.
+                    */
+                    callback(
+                        "No time series description list found at " +
+                            url.format({
+                                protocol: "http",
+                                host: options.aquariusHostname,
+                                pathname:
+                        "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
+                                query:
+                                {token: token,
+                                 format: "json",
+                                 LocationIdentifier: locationIdentifier,
+                                 Parameter: parameter,
+                                 ComputationIdentifier: "Instantaneous",
+                                 ComputationIdentifier: "Points",
+                                 ExtendedFilters: extendedFilters}
+                            })
+                    );
+                    return;
+                }
+
+                callback(null, timeSeriesDescriptions);
+            },
+            /**
+               @function For each AQUARIUS time series description,
+                         weed out non-UV, and non-primary ones.
+               @callback
+            */
+            function (timeSeriesDescriptions, callback) {
+                async.filter(
+                    timeSeriesDescriptions,
+                    function (timeSeriesDescription, callback) {
+                        if
+                        (timeSeriesDescription.ComputationPeriodIdentifier
+                        === "Points") {
+                            callback(true);
+                        }
+                        else {
+                            callback(false);
+                        }
+                    },
+                    /**
+                       @todo If aquarius.distill() can't find a primary
+                       record:
+
+                       WRITE (0,2120) rtagny, sid, parm
+                       2120    FORMAT (/,"No PRIMARY DD for station "",A5,A15,
+                       "", parm "',A5,'".  Aborting.",/)
+                    */
+                function (uvTimeSeriesDescriptions) {
+                    timeSeriesDescription = aquarius.distill(
+                        uvTimeSeriesDescriptions, locationIdentifier,
+                        callback
+                    );
+                }
+            );
+                callback(null);
+            },
+            /**
+               @function Write RDB header to HTTP response.
+               @callback
+            */
+            function (callback) {
+                rdb.header(response);
+                callback(null);
+            },
+            /**
+               @function Write RDB header body to HTTP response.
+               @callback
+            */
+            function (callback) {
+                response.write(
+                    aq2rdb.rdbHeaderBody(
+                        'NWIS-I UNIT-VALUES', site,
+                        timeSeriesDescription.SubLocationIdentifer,
+                        {start: begdtm, end: enddtm}
+                    ),
+                    'ascii'
+                );
+                callback(null, timeSeriesDescription);
+            },
+            /**
+               @description Write RDB column names and column data type
+               definitions to HTTP response.
+               @callback
+            */
+            function (timeSeriesDescription, callback) {
+                response.write(
+                    'DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n' +
+                        '8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n', 'ascii'
+                );
+                callback(null, timeSeriesDescription.UniqueId);
+            },
+            /**
+               @description Call AQUARIUS GetTimeSeriesCorrectedData
+               service.
+               @callback
+            */
+            function (uniqueId, callback) {
+                // convert NWIS datetime format to ISO format for
+                // digestion by AQUARIUS
+                var queryFrom = moment(begdtm).format();
+                var queryTo = moment(enddtm).format();
+
+                try {
+                    aquarius.getTimeSeriesCorrectedData(
+                        options.aquariusHostname, token, uniqueId,
+                        queryFrom, queryTo, callback
+                    );
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+            },
+            /**
+               @description Receive response from AQUARIUS
+                            GetTimeSeriesCorrectedData service.
+               @callback
+            */
+            aquarius.parseTimeSeriesDataServiceResponse,
+            /**
+               @description Write time series data as RDB rows to HTTP
+               response.
+               @callback
+            */
+            function (timeSeriesDataServiceResponse, callback) {
+                async.each(
+                    timeSeriesDataServiceResponse.Points,
+                    /**
+                       @description Write an RDB row for one time
+                                    series point.
+                       @callback
+                    */
+                    function (point, callback) {
+                        var name, date, time, tz;
+
+                        /**
+                           @description Use site's time offset
+                           specification to derive the
+                           appropriate IANA time zone name.
+                           @see tzName initializer at global scope in this
+                           module.
+                        */
+                        try {
+                            name = tzName[site.tzCode][site.localTimeFlag];
+                        }
+                        catch (error) {
+                            callback(
+                                'Could not derive IANA time zone ' +
+                                    'name from site\'s time offset spec.'
+                            );
+                            return;
+                        }
+
+                        // correct some obscure, NWIS vs. IANA time offset
+                        // incompatibility cases
+                        var p = nwisVersusIANA(
+                            point.Timestamp, name, site.tzCode,
+                            site.localTimeFlag
+                        );
+
+                        response.write(
+                            p.date + '\t' + p.time + '\t' + p.tz + '\t' +
+                                point.Value.Numeric + '\t' +
+                                point.Value.Numeric.toString().length + '\n'
+                        );
+                        callback(null);
+                    }
+                );
+                callback(null);
+            }, // fuvrdbout
+            function (callback) {
                 if (options.log)
                     console.log(packageName + "aq2rdb/rdbOut() proceeds");
 
@@ -2006,16 +1987,19 @@ function handleRequest(request, response) {
     try {
         if (options.log === true) {
             console.log(
-                packageName + '.handleRequest.request.url: ' +
+                packageName + ".handleRequest().request.url: " +
                     request.url
             );
         }
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
+        var msg = packageName + ".handleRequest().error: " + error;
+
+        response.end("# " + msg, "ascii");
+
         if (options.log)
-            console.log(packageName + ".handleRequest().error: " + error);
-        handle(error, response);
+            console.log(msg);
     }
 }
 
@@ -2047,7 +2031,7 @@ catch (error) {
    @description Check for "version" CLI option.
 */
 if (options.version === true) {
-    fs.readFile('package.json', function (error, json) {
+    fs.readFile("package.json", function (error, json) {
         if (error) {
             callback(error);
             return;
@@ -2059,7 +2043,7 @@ if (options.version === true) {
         }
         catch (error) {
             if (options.log === true) {
-                console.log(packageName + ': ' + error);
+                console.log(packageName + ": " + error);
             }
             return;
         }
@@ -2079,7 +2063,7 @@ else {
     server.listen(options.port, function () {
         if (options.log === true) {
             console.log(
-                packageName + ': Server listening on: http://localhost:' +
+                packageName + ": Server listening on: http://localhost:" +
                     options.port.toString()
             );
         }
@@ -2092,7 +2076,7 @@ else {
                 only.
    @see http://engineering.clever.com/2014/07/29/testing-private-functions-in-javascript-modules/
 */
-if (process.env.NODE_ENV === 'test') {
+if (process.env.NODE_ENV === "test") {
     module.exports._private = {
         handle: handle,
         jsonParseErrorMessage: jsonParseErrorMessage,
