@@ -781,6 +781,45 @@ function required(options, propertyList) {
 } // checkRequiredOption
 
 /**
+   @function Parse aq2rdb?t=UV endpoint's fields. Proceed to next
+             async.waterfall() function if successful.
+   @private
+   @callback
+   @param {object} requestURL request.url object to parse.
+   @param {function} node-async callback.
+*/
+function parseUVFields(requestURL, callback) {
+    var field;
+
+    try {
+        field = url.parse(requestURL, true).query;
+    }
+    catch (error) {
+        callback(error);
+        return;
+    }
+
+    for (var name in field) {
+        if (isGetAQTokenField(name)) {
+            // GetAQToken fields
+        }
+        else if (name.match(/^(a|p|t|s|n|b|e)$/)) {
+            // aq2rdb fields
+        }
+        else {
+            callback('Unknown field "' + name + '"');
+            return;
+        }
+    }
+
+    // pass parsed field values to next async.waterfall() function
+    callback(
+        null, field.t, false, false, false, false, field.a, field.n,
+        field.p, field.s, field.b, field.e, undefined, ""
+    );
+} // parseUVFields
+
+/**
    @description GetDVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
@@ -1227,7 +1266,14 @@ httpdispatcher.onGet(
     */
     function (request, response) {
         var token, agencyCode, siteNumber, locationIdentifier;
-        var waterServicesSite, parameterCode, parameter, extendedFilters;
+        var waterServicesSite;
+        /**
+           @todo Need to check downstream depedendencies in aq2rdb
+           endpoint's async.waterfall function on presence of former
+           "P" prefix of this value.
+        */
+        var parameterCode;
+        var parameter, extendedFilters;
         var timeSeriesDescription, begdtm, enddtm, irc;
 
         log(packageName + ".httpdispatcher.onGet(/" + packageName +
@@ -1237,44 +1283,9 @@ httpdispatcher.onGet(
             function (callback) {
                 if (docRequest(request.url, '/aq2rdb', response, callback))
                     return;
-                callback(null);
+                callback(null, request.url);
             },
-            function (callback) {
-                var field;
-
-                try {
-                    field = url.parse(request.url, true).query;
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                for (var name in field) {
-                    if (isGetAQTokenField(name)) {
-                        // GetAQToken fields
-                    }
-                    else if (name.match(/^(a|p|t|s|n|b|e)$/)) {
-                        // aq2rdb fields
-                    }
-                    else {
-                        callback('Unknown field "' + name + '"');
-                        return;
-                    }
-                }
-
-                /**
-                   @todo Need to check downstream depedendencies below
-                         on presence of former "P" prefix of this value.
-                */
-                parameterCode = field.p;
-
-                callback(
-                    null, field.t, false, false, false, false,
-                    field.a, field.n, field.s, field.b, field.e,
-                    undefined, ""
-                );
-            },
+            parseUVFields,
             /**
                @function Node.js emulation of legacy NWIS,
                          NWF_RDB_OUT() Fortran subroutine: "Top-level
@@ -1288,7 +1299,8 @@ httpdispatcher.onGet(
                @param {Boolean} vflag Verbose dates and times flag.
                @param {string} inagny Site agency code.
                @param {string} instnid Site number (a.k.a. "site ID").
-               @param {string} inlocnu ADAPS location number.
+               @param {string} inddid Parameter code [and sometimes DD
+                      number in NWF_RDB_OUT()]
                @param {string} instat Statistic code.
                @param {string} begdat Begin date/datetime.
                @param {string} enddat End date/datetime.
@@ -1297,13 +1309,13 @@ httpdispatcher.onGet(
             */
             function rdbOut(
                 intyp, rndsup, wyflag, cflag, vflag, inagny, instnid,
-                instat, begdat, enddat, locTzCd, titlline, callback
+                inddid, instat, begdat, enddat, locTzCd, titlline,
+                callback
             ) {
                 var datatyp, stat, uvtyp;
                 var usdate, uedate, begdate, enddate;
                 var needstrt = false;
                 var uvtypPrompted = false;
-                var parm = undefined;
                 var ddid = undefined;
 
                 if (locTzCd === undefined) locTzCd = 'LOC';
@@ -1337,6 +1349,9 @@ httpdispatcher.onGet(
                     needstrt = true;
                 else 
                     siteNumber = instnid.substring(0, 15);
+
+                // unfortunate artifact of translating legacy code
+                parameterCode = inddid;
 
                 log(packageName + ".rdbOut().parameterCode", parameterCode);
 
@@ -1441,13 +1456,12 @@ httpdispatcher.onGet(
                 // be in its own async.waterfall() function below
                 callback(
                     null, datatyp, rndsup, cflag, vflag, agencyCode,
-                    siteNumber, ddid, stat, begdate, enddate, parm,
-                    locTzCd
+                    siteNumber, ddid, stat, begdate, enddate, locTzCd
                 );
             },
             function (
                 datatyp, rndsup, cflag, vflag, agencyCode, siteNumber,
-                ddid, stat, begdate, enddate, parm, locTzCd, callback
+                ddid, stat, begdate, enddate, locTzCd, callback
             ) {
                 //  get data and output to files
 
@@ -1473,14 +1487,12 @@ httpdispatcher.onGet(
                     /**
                        @todo The legacy code was very free-and-easy
                              about the association between parameter
-                             code and DD ID. The "parm" argument here
-                             might need to be changed back to "ddid"
-                             at some point.
+                             code and DD ID.
                     */
                     /*
                     irc = fuvrdbout(
                         response, false, rndsup, cflag, vflag, agencyCode,
-                        siteNumber, parm, begdtm, enddtm, locTzCd
+                        siteNumber, begdtm, enddtm, locTzCd
                     );
                     */
                     log(packageName + ".rdbOut()",
