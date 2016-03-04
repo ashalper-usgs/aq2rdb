@@ -1227,7 +1227,8 @@ httpdispatcher.onGet(
     */
     function (request, response) {
         var token, agencyCode, siteNumber, locationIdentifier;
-        var waterServicesSite, parameterCode, parameter;
+        var waterServicesSite, parameterCode, parameter, extendedFilters;
+        var timeSeriesDescription, begdtm, enddtm;
 
         log(packageName + ".httpdispatcher.onGet(/" + packageName +
             ", (request))", request);
@@ -1299,7 +1300,7 @@ httpdispatcher.onGet(
                 instat, begdat, enddat, locTzCd, titlline, callback
             ) {
                 var datatyp, stat, uvtyp;
-                var usdate, uedate, begdate, enddate, begdtm, enddtm;
+                var usdate, uedate, begdate, enddate;
                 var needstrt = false;
                 var uvtypPrompted = false;
                 var parm = undefined;
@@ -1442,13 +1443,12 @@ httpdispatcher.onGet(
                 callback(
                     null, datatyp, rndsup, cflag, vflag, agencyCode,
                     siteNumber, ddid, stat, begdate, enddate, parm,
-                    begdtm, enddtm, locTzCd, irc
+                    locTzCd, irc
                 );
             },
             function (
                 datatyp, rndsup, cflag, vflag, agencyCode, siteNumber,
-                ddid, stat, begdate, enddate, parm, begdtm, enddtm,
-                locTzCd, irc, callback
+                ddid, stat, begdate, enddate, parm, locTzCd, irc, callback
             ) {
                 //  get data and output to files
 
@@ -1488,8 +1488,7 @@ httpdispatcher.onGet(
                         "calling callback to call fuvrdbout()");
                     callback(
                         null, response, false, rndsup, cflag, vflag,
-                        agencyCode, siteNumber, begdtm, enddtm,
-                        locTzCd
+                        agencyCode, siteNumber, locTzCd
                     );
                 }
                 else {
@@ -1504,10 +1503,9 @@ httpdispatcher.onGet(
             },
             function fuvrdbout(
                 response, editable, rndsup, cflag, vflag, agencyCode,
-                siteNumber, begdtm, enddtm, locTzCd, callback
+                siteNumber, locTzCd, callback
             ) {
                 var parameter, rtcode;
-                var extendedFilters, timeSeriesDescription;
 
                 log(packageName + ".httpdispatcher.onGet(/" + packageName +
                     ", ().async.waterfall()[]",
@@ -1516,11 +1514,10 @@ httpdispatcher.onGet(
                             "   response=%s, editable=%s, rndsup=%s,\n" +
                             "   cflag=%s, vflag=%s, agencyCode=%s, " +
                             "siteNumber=%s,\n" +
-                            "   begdtm=%s, enddtm=%s, locTzCd=%s\n" +
+                            "   locTzCd=%s\n" +
                             ")",
                         response, editable, rndsup, cflag, vflag,
-                        agencyCode, siteNumber, begdtm, enddtm,
-                        locTzCd
+                        agencyCode, siteNumber, locTzCd
                     )
                 );
                 
