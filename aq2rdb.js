@@ -1218,7 +1218,7 @@ httpdispatcher.onGet(
 ); // GetUVTable
 
 /**
-   @description aq2rdb endpoint service request handler.
+   @description aq2rdb endpoint, service request handler.
 */
 httpdispatcher.onGet(
     '/' + packageName,
@@ -1376,16 +1376,20 @@ httpdispatcher.onGet(
 
                 if (datatyp === 'UV') {
                     
-                    uvtyp = instat.charAt(0);
+                    uvtyp = instat.charAt(0).toUpperCase();
                     
-                    if (uvtyp === 'c' || uvtyp === 'e' ||
-                        uvtyp === 'm' || uvtyp === 'n' ||
-                        uvtyp === 'r' || uvtyp === 's')
-                        uvtyp = uvtyp.toUpperCase();
-                    else {
-                        // TODO: this is a prompt loop in legacy code;
-                        // raise error here?
-                        // 'Please answer "M", "N", "E", "R", "S", or "C".',
+                    if (! (uvtyp === 'C' || uvtyp === 'E' ||
+                           uvtyp === 'M' || uvtyp === 'N' ||
+                           uvtyp === 'R' || uvtyp === 'S')) {
+                        // Position of this is an artifact of the
+                        // nwts2rdb legacy code: it might need to be
+                        // moved earlier in HTTP query parameter
+                        // validation code.
+                        callback(
+                            'UV type code must be ' +
+                                '"M", "N", "E", "R", "S", or "C"'
+                        );
+                        return;
                     }
 
                     // convert date/times to 14 characters
@@ -1436,17 +1440,15 @@ httpdispatcher.onGet(
                 // involves I/O (via "response" object), and thus must
                 // be in its own async.waterfall() function below
                 callback(
-                    null,
-                    datatyp, rndsup, cflag, vflag, agencyCode, siteNumber, ddid,
-                    stat, begdate, enddate, parm, begdtm, enddtm, locTzCd,
-                    irc
+                    null, datatyp, rndsup, cflag, vflag, agencyCode,
+                    siteNumber, ddid, stat, begdate, enddate, parm,
+                    begdtm, enddtm, locTzCd, irc
                 );
             },
             function (
-                datatyp, rndsup, cflag, vflag, agencyCode, siteNumber, ddid,
-                stat, begdate, enddate, parm, begdtm, enddtm, locTzCd,
-                irc,
-                callback
+                datatyp, rndsup, cflag, vflag, agencyCode, siteNumber,
+                ddid, stat, begdate, enddate, parm, begdtm, enddtm,
+                locTzCd, irc, callback
             ) {
                 //  get data and output to files
 
