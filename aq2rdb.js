@@ -1024,6 +1024,173 @@ function rdbOut(
 } // rdbOut
 
 /**
+   @function Get a TimeSeriesDescription object from AQUARIUS.
+   @private
+   @param {string} token AQUARIUS authentication token.
+   @param {string} agencyCode USGS agency code.
+   @param {string} siteNumber USGS site number.
+   @param {string} AQUARIUS parameter.
+   @param {function} outerCallback Callback function to call when complete.
+*/
+function getTimeSeriesDescription(
+    token, agencyCode, siteNumber, parameter, outerCallback
+) {
+    var locationIdentifier, extendedFilters, timeSeriesDescription;
+
+    async.waterfall([
+        /**
+           @function Query AQUARIUS GetTimeSeriesDescriptionList
+                     service to get list of AQUARIUS, time series
+                     UniqueIds related to aq2rdb, GetUVTable location
+                     and parameter.
+           @callback
+           @param {function} callback async.waterfall() callback
+           function.
+        */
+        function (callback) {
+            log(packageName + ".getTimeSeriesDescription()",
+                parameter);
+            
+            // make (agencyCode,siteNo) digestible by AQUARIUS
+            locationIdentifier = (agencyCode === "USGS") ?
+                siteNumber : siteNumber + '-' + agencyCode;
+
+            // not sure what this does
+            extendedFilters =
+                "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]";
+
+            try {
+                rest.query(
+                    options.aquariusHostname,
+                    "GET",
+                    undefined,  // HTTP headers
+                    "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
+                    {token: token,
+                     format: "json",
+                     LocationIdentifier: locationIdentifier,
+                     Parameter: parameter,
+                     ComputationIdentifier: "Instantaneous",
+                     ComputationPeriodIdentifier: "Points",
+                     ExtendedFilters: extendedFilters},
+                    options.log,
+                    callback
+                );
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+        },
+        /**
+           @function Receive response from AQUARIUS
+                     GetTimeSeriesDescriptionList, then parse list of
+                     related TimeSeriesDescriptions to query AQUARIUS
+                     GetTimeSeriesCorrectedData service.
+           @callback
+           @param {string} messageBody Message body part of HTTP
+                  response from GetTimeSeriesDescriptionList.
+        */
+        function (messageBody, callback) {
+            var timeSeriesDescriptionListServiceResponse;
+
+            try {
+                timeSeriesDescriptionListServiceResponse =
+                    JSON.parse(messageBody);
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+
+            callback(
+                null,
+                timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
+            );
+        },
+        /**
+           @function Check for zero TimeSeriesDescriptions returned
+                     from AQUARIUS Web service query above.
+           @callback
+        */
+        function (timeSeriesDescriptions, callback) {
+            if (timeSeriesDescriptions.length === 0) {
+                /**
+                   @todo Might be more helpful to have "...found at
+                   <URL>" in this message.
+                */
+                callback(
+                    "No time series description list found at " +
+                        url.format({
+                            protocol: "http",
+                            host: options.aquariusHostname,
+                            pathname:
+                            "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
+                            query:
+                            {token: token,
+                             format: "json",
+                             LocationIdentifier: locationIdentifier,
+                             Parameter: parameter,
+                             ComputationIdentifier: "Instantaneous",
+                             ComputationPeriodIdentifier: "Points",
+                             ExtendedFilters: extendedFilters}
+                        })
+                );
+                return;
+            }
+
+            callback(null, timeSeriesDescriptions);
+        },
+        /**
+           @function For each AQUARIUS time series description, weed
+                     out non-UV, and non-primary ones.
+           @callback
+        */
+        function (timeSeriesDescriptions, callback) {
+            /**
+               @todo Now that AQUARIUS accepts
+                     ComputationPeriodIdentifier=Points [see
+                     url.format() call above], some/all of
+                     this might no longer be necessary.
+            */
+            async.filter(
+                timeSeriesDescriptions,
+                function (timeSeriesDescription, callback) {
+                    if (timeSeriesDescription.ComputationPeriodIdentifier
+                         === "Points") {
+                            callback(true);
+                        }
+                    else {
+                        callback(false);
+                    }
+                },
+                /**
+                   @todo If aquarius.distill() can't find a primary
+                   record:
+
+                   WRITE (0,2120) agencyCode, siteNumber, parm
+                   2120    FORMAT (/,"No PRIMARY DD for station "",A5,A15,
+                   "", parm "',A5,'".  Aborting.",/)
+                */
+                function (uvTimeSeriesDescriptions) {
+                    timeSeriesDescription = aquarius.distill(
+                        uvTimeSeriesDescriptions, locationIdentifier,
+                        callback
+                    );
+                }
+            );
+            callback(null);
+        },
+    ],
+        function(error) {
+            if (error)
+                outerCallback(error);
+            else
+                outerCallback(null, timeSeriesDescription);
+        }
+    );
+} // getTimeSeriesDescription
+
+/**
    @description GetDVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
@@ -1689,179 +1856,53 @@ httpdispatcher.onGet(
                 }
 
                 parameter = parameters.records[0].PARM_ALIAS_NM;
-                callback(null);
-            },
-            /**
-               @function Query AQUARIUS GetTimeSeriesDescriptionList
-                         service to get list of AQUARIUS, time series
-                         UniqueIds related to aq2rdb, GetUVTable
-                         location and parameter.
-               @callback
-               @param {function} callback async.waterfall() callback
-                      function.
-            */
-            function (callback) {
-                log(packageName + ".httpdispatcher.onGet(\"/" + packageName +
-                    "\", ().async.waterfall([].fuvrdbout().parameter))",
-                    parameter);
-                
-                // make (agencyCode,siteNo) digestible by AQUARIUS
-                locationIdentifier = (agencyCode === "USGS") ?
-                    siteNumber : siteNumber + '-' + agencyCode;
 
-                // not sure what this does
-                extendedFilters =
-                    "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]";
-
-                try {
-                    rest.query(
-                        options.aquariusHostname,
-                        "GET",
-                        undefined,  // HTTP headers
-                        "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                        {token: token,
-                         format: "json",
-                         LocationIdentifier: locationIdentifier,
-                         Parameter: parameter,
-                         ComputationIdentifier: "Instantaneous",
-                         ComputationPeriodIdentifier: "Points",
-                         ExtendedFilters: extendedFilters},
-                        options.log,
-                        callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
+                callback(null, token, agencyCode, siteNumber, parameter);
             },
+            getTimeSeriesDescription,
             /**
-               @function Receive response from AQUARIUS
-                         GetTimeSeriesDescriptionList, then parse list
-                         of related TimeSeriesDescriptions to query
-                         AQUARIUS GetTimeSeriesCorrectedData service.
-               @callback
-               @param {string} messageBody Message body part of HTTP
-                      response from GetTimeSeriesDescriptionList.
-            */
-            function (messageBody, callback) {
-                var timeSeriesDescriptionListServiceResponse;
-
-                try {
-                    timeSeriesDescriptionListServiceResponse =
-                        JSON.parse(messageBody);
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                callback(
-                    null,
-                timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
-                );
-            },
-            /**
-               @function Check for zero TimeSeriesDescriptions returned
-               from AQUARIUS Web service query above.
-               @callback
-            */
-            function (timeSeriesDescriptions, callback) {
-                if (timeSeriesDescriptions.length === 0) {
-                    /**
-                       @todo Might be more helpful to have "...found at
-                       <URL>" in this message.
-                    */
-                    callback(
-                        "No time series description list found at " +
-                            url.format({
-                                protocol: "http",
-                                host: options.aquariusHostname,
-                                pathname:
-                        "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                                query:
-                                {token: token,
-                                 format: "json",
-                                 LocationIdentifier: locationIdentifier,
-                                 Parameter: parameter,
-                                 ComputationIdentifier: "Instantaneous",
-                                 ComputationPeriodIdentifier: "Points",
-                                 ExtendedFilters: extendedFilters}
-                            })
-                    );
-                    return;
-                }
-
-                callback(null, timeSeriesDescriptions);
-            },
-            /**
-               @function For each AQUARIUS time series description,
-                         weed out non-UV, and non-primary ones.
-               @callback
-            */
-            function (timeSeriesDescriptions, callback) {
-                async.filter(
-                    timeSeriesDescriptions,
-                    function (timeSeriesDescription, callback) {
-                        if
-                        (timeSeriesDescription.ComputationPeriodIdentifier
-                        === "Points") {
-                            callback(true);
-                        }
-                        else {
-                            callback(false);
-                        }
-                    },
-                    /**
-                       @todo If aquarius.distill() can't find a primary
-                       record:
-
-                       WRITE (0,2120) agencyCode, siteNumber, parm
-                       2120    FORMAT (/,"No PRIMARY DD for station "",A5,A15,
-                       "", parm "',A5,'".  Aborting.",/)
-                    */
-                function (uvTimeSeriesDescriptions) {
-                    timeSeriesDescription = aquarius.distill(
-                        uvTimeSeriesDescriptions, locationIdentifier,
-                        callback
-                    );
-                }
-            );
-                callback(null);
-            },
-            /**
-               @function Write RDB header to HTTP response.
-               @callback
-            */
-            function (callback) {
-                rdb.header(response);
-                callback(null);
-            },
-            /**
-               @function Write RDB header body to HTTP response.
-               @callback
-            */
-            function (callback) {
-                response.write(
-                    aq2rdb.rdbHeaderBody(
-                        'NWIS-I UNIT-VALUES', waterServicesSite,
-                        timeSeriesDescription.SubLocationIdentifer,
-                        {start: begdtm, end: enddtm}
-                    ),
-                    'ascii'
-                );
-                callback(null, timeSeriesDescription);
-            },
-            /**
-               @description Write RDB column names and column data type
-               definitions to HTTP response.
+               @description Write RDB column names and column data
+                            type definitions to HTTP response.
                @callback
             */
             function (timeSeriesDescription, callback) {
-                response.write(
-                    'DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n' +
-                        '8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n', 'ascii'
-                );
+                /**
+                   @todo At least the first two functions here could
+                         do with re-factoring into a single
+                         rdbHeader() function.
+                */
+                async.waterfall([
+                    /**
+                       @function Write RDB header to HTTP response.
+                       @callback
+                    */
+                    function (callback) {
+                        rdb.header(response);
+                        callback(null);
+                    },
+                    /**
+                       @function Write RDB header body to HTTP response.
+                       @callback
+                    */
+                    function (callback) {
+                        response.write(
+                            aq2rdb.rdbHeaderBody(
+                                'NWIS-I UNIT-VALUES', waterServicesSite,
+                                timeSeriesDescription.SubLocationIdentifer,
+                                {start: begdtm, end: enddtm}
+                            ),
+                            'ascii'
+                        );
+                        callback(null);
+                    },
+                    function (callback) {
+                        response.write(
+                "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
+                                "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n", "ascii"
+                        );
+                        callback(null);
+                    }
+                ]);
                 callback(null, timeSeriesDescription.UniqueId);
             },
             /**
