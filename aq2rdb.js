@@ -1024,6 +1024,52 @@ function rdbOut(
 } // rdbOut
 
 /**
+   @function Request NWIS-RA authorization token.
+*/
+function getNWISRAAuthenticationTokenId(outerCallback) {
+    var nwisRAAuthentication;
+
+    async.waterfall([
+        function (callback) {
+            try {
+                rest.querySecure(
+                    options.waterDataHostname,
+                    "POST",
+                    {"content-type": "application/x-www-form-urlencoded"},
+                    "/service/auth/authenticate",
+                    {username: options.waterDataUserName,
+                     password: options.waterDataPassword},
+                    options.log,
+                    callback
+                );
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+        },
+        function (messageBody, callback) {
+            try {
+                nwisRAAuthentication = JSON.parse(messageBody);
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+
+            callback(null);
+        }
+    ],
+        function (error) {
+            if (error)
+                outerCallback(error);
+            else
+                outerCallback(null, nwisRAAuthentication.tokenId);
+        }
+    );
+} // getNWISRAAuthenticationTokenId
+
+/**
    @function Get a TimeSeriesDescription object from AQUARIUS.
    @private
    @param {string} token AQUARIUS authentication token.
@@ -1786,46 +1832,17 @@ httpdispatcher.onGet(
                      waterServicesSite.tzCd, so we can reference UV
                      times to "local time".
             */
+            getNWISRAAuthenticationTokenId,
             /**
                @function Query
                          USGS-parameter-code-to-AQUARIUS-parameter Web
                          service here to obtain AQUARIUS parameter
                          from USGS parameter code.
                @callback
+               @param {string} NWIS-RA authorization token.
                @param {function} callback async.waterfall() callback
                       function.
             */
-            function (callback) {
-                try {
-                    rest.querySecure(
-                        options.waterDataHostname,
-                        "POST",
-                        {"content-type": "application/x-www-form-urlencoded"},
-                        "/service/auth/authenticate",
-                        {username: options.waterDataUserName,
-                         password: options.waterDataPassword},
-                        options.log,
-                        callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-            },
-            function (messageBody, callback) {
-                var nwisRAAuthentication;
-
-                try {
-                    nwisRAAuthentication = JSON.parse(messageBody);
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                callback(null, nwisRAAuthentication.tokenId);
-            },
             function (tokenId, callback) {
                 try {
                     rest.querySecure(
@@ -1907,13 +1924,18 @@ httpdispatcher.onGet(
             },
             /**
                @description Call AQUARIUS GetTimeSeriesCorrectedData
-               service.
+                            service.
                @callback
             */
             function (uniqueId, callback) {
+		/**
+		   @todo Need to catch date errors here, or convert to
+		         moment earlier on (and catch errors).
+		*/
                 // convert NWIS datetime format to ISO format for
                 // digestion by AQUARIUS
                 var queryFrom = moment(begdtm).format();
+		log(packageName + ".enddtm: " + enddtm);
                 var queryTo = moment(enddtm).format();
 
                 try {
@@ -1935,7 +1957,7 @@ httpdispatcher.onGet(
             aquarius.parseTimeSeriesDataServiceResponse,
             /**
                @description Write time series data as RDB rows to HTTP
-               response.
+                            response.
                @callback
             */
             function (timeSeriesDataServiceResponse, callback) {
@@ -1951,10 +1973,11 @@ httpdispatcher.onGet(
 
                         /**
                            @description Use site's time offset
-                           specification to derive the
-                           appropriate IANA time zone name.
-                           @see tzName initializer at global scope in this
-                           module.
+                                        specification to derive the
+                                        appropriate IANA time zone
+                                        name.  @see tzName initializer
+                                        at global scope in this
+                                        module.
                         */
                         try {
                             name =
@@ -1977,7 +2000,7 @@ httpdispatcher.onGet(
 
                         response.write(
                             p.date + '\t' + p.time + '\t' + p.tz + '\t' +
-                                point.Value.Numeric + '\t' +
+                                Math.round(point.Value.Numeric) + '\t' +
                                 point.Value.Numeric.toString().length + '\n'
                         );
                         callback(null);
