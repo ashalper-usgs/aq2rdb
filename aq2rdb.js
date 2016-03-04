@@ -1228,7 +1228,7 @@ httpdispatcher.onGet(
     function (request, response) {
         var token, agencyCode, siteNumber, locationIdentifier;
         var waterServicesSite, parameterCode, parameter, extendedFilters;
-        var timeSeriesDescription, begdtm, enddtm;
+        var timeSeriesDescription, begdtm, enddtm, irc;
 
         log(packageName + ".httpdispatcher.onGet(/" + packageName +
             ", (request))", request);
@@ -1305,7 +1305,6 @@ httpdispatcher.onGet(
                 var uvtypPrompted = false;
                 var parm = undefined;
                 var ddid = undefined;
-                var irc;
 
                 if (locTzCd === undefined) locTzCd = 'LOC';
 
@@ -1443,12 +1442,12 @@ httpdispatcher.onGet(
                 callback(
                     null, datatyp, rndsup, cflag, vflag, agencyCode,
                     siteNumber, ddid, stat, begdate, enddate, parm,
-                    locTzCd, irc
+                    locTzCd
                 );
             },
             function (
                 datatyp, rndsup, cflag, vflag, agencyCode, siteNumber,
-                ddid, stat, begdate, enddate, parm, locTzCd, irc, callback
+                ddid, stat, begdate, enddate, parm, locTzCd, callback
             ) {
                 //  get data and output to files
 
@@ -1464,7 +1463,7 @@ httpdispatcher.onGet(
                     );
                     */
 
-                    callback(null, irc);
+                    callback(null);
                 }
                 else if (datatyp === "UV") {
                     /**
@@ -1935,9 +1934,9 @@ httpdispatcher.onGet(
                         callback(null);
                     }
                 );
-                callback(null, irc);
+                callback(null);
             }, // fuvrdbout
-            function (irc, callback) {
+            function (callback) {
                 log(packageName + ".httpdispatcher.onGet(\"/" + packageName +
                     "\", ().async.waterfall([].().irc))",
                     irc);
