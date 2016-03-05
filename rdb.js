@@ -12,21 +12,150 @@ var sprintf = require("sprintf-js").sprintf;
 
 var rdb = module.exports = {
     /**
-       @function Node.js emulation of legacy NWIS, NW_RDB_HEADER(),
-                 Fortran subroutine: "Write the rdb header lines to an
-                 rdb file".
+       @function Create RDB header block.
+       @public
+       @param {string} fileType Type of time series data (e.g. "NWIS-I
+              DAILY-VALUES").
+       @param {object} site USGS site object.
+       @param {string} subLocationIdentifer Sublocation identifier.
+       @param {object} range Time series query date range.
        @param response {object} HTTP response object to write to.
     */
-    header: function (response) {
-        response.write(
-            '# //UNITED STATES GEOLOGICAL SURVEY ' +
-                '      http://water.usgs.gov/\n' +
-                '# //NATIONAL WATER INFORMATION SYSTEM ' +
-                '    http://water.usgs.gov/data.html\n' +
-                '# //DATA ARE PROVISIONAL AND SUBJECT TO ' +
-                'CHANGE UNTIL PUBLISHED BY USGS\n' +
-        '# //RETRIEVED: ' + moment().format('YYYY-MM-DD HH:mm:ss') + '\n'
-        );
+    header: function (
+        fileType, site, subLocationIdentifer, range, callback
+    ) {
+        var header =
+            "# //UNITED STATES GEOLOGICAL SURVEY " +
+                "      http://water.usgs.gov/\n" +
+                "# //NATIONAL WATER INFORMATION SYSTEM " +
+                "    http://water.usgs.gov/data.html\n" +
+                "# //DATA ARE PROVISIONAL AND SUBJECT TO " +
+                "CHANGE UNTIL PUBLISHED BY USGS\n" +
+        "# //RETRIEVED: " + moment().format("YYYY-MM-DD HH:mm:ss") + '\n';
+
+        /**
+           @author <a href="mailto:bdgarner@usgs.gov">Bradley Garner</a>
+    
+           @todo
+           
+           Andy,
+           I know I've mentioned before we consider going to a release
+           without all of these, and then let aggressive testing find the
+           gaps.  I still think that's a fine idea that aligns with the
+           spirit of minimally viable product.
+           
+           How do we do this?  Here's an example.
+           
+           Consider RNDARY="2222233332".  There is nothing like this
+           easily available from AQUARIUS API. Yet, AQ API does have the
+           new rounding specification, the next & improved evolution in
+           how we think of rounding; it looks like SIG(3) as one example.
+           Facing this, I can see 3 approaches, in increasing order of
+           complexity:
+             1) Just stop.  Stop serving RNDARY="foo", assuming most
+                people "just wanted the data"
+             2) New field. Replace RNDARY with a new element like
+                RNDSPEC="foo", which simply relays the new AQUARIUS
+                RoundingSpec.
+             3) Backward compatibility. Write code that converts a AQ
+                rounding spec to a 10-digit NWIS rounding array.  Painful,
+                full of assumptions & edge cases.  But surely doable.
+          
+           In the agile and minimum-vial-product [sic] spirits, I'd
+           propose leaning toward (1) as a starting point.  As user
+           testing and interaction informs us to the contrary, consider
+           (2) or (3) for some fields.  But recognize that option (2) is
+           always the most expensive one, so we should do it judiciously
+           and only when it's been demonstrated there's a user story
+           driving it.
+          
+           The above logic should work for every field in this header
+           block.
+          
+           Having said all that, some fields are trivially easy to find in
+           the AQUARIUS API--that is, option (3) is especially easy, so
+           maybe just do them.  In increasing order of difficulty (and
+           therefore increasing degrees of warranted-ness):
+          
+            - LOCATION NAME="foo"  ... This would be the
+              SubLocationIdentifer in a GetTimeSeriesDescriptionList()
+              call.
+            - PARAMETER LNAME="foo" ... is just Parameter as returned by
+              GetTimeSeriesDescriptionList()
+            - STATISTIC LNAME="foo" ... is ComputationIdentifier +
+              ComputationPeriodIdentifier in
+              GetTimeSeriesDescriptionList(), although the names will
+              shift somewhat from what they would have been in ADAPS which
+              might complicate things.
+            - DD LABEL="foo" ... Except for the confusing carryover of the
+              DD semantic, this should just be some combination of
+              Identifier + Label + Comment + Description from
+              GetTimeSeriesDescriptionList().  How to combine them, I'm
+              not sure, but it should be determinable
+            - DD DDID="foo" ...  When and if the extended attribute
+              ADAPS_DD is populated in GetTimeSeriesDescriptionList(),
+              this is easily populated.  But I think we should wean people
+              off this.
+            - Note: Although AGING fields might seem simple at first blush
+              (the Approvals[] struct from GetTimeSeriesCorrectedData())
+              the logic for emulating this old ADAPS format likely would
+              get messy in a hurry.
+        */
+
+        header +=
+            '# //FILE TYPE="' + fileType + '" ' + 'EDITABLE=NO\n' +
+            '# //STATION AGENCY="' + site.agencyCode +
+            '" NUMBER="' + site.number + '       " ' +
+            'TIME_ZONE="' + site.tzCode + '" DST_FLAG=' +
+            site.localTimeFlag + '\n' +
+            '# //STATION NAME="' + site.name + '"\n';
+    
+        /**
+           @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+    
+           @since 2015-11-11T16:31-07:00
+    
+           @todo
+    
+           I think that "# //LOCATION NUMBER=0 NAME="Default"" would
+           change to:
+           
+           # //SUBLOCATION NAME="sublocation name"
+           
+           and would be omitted if it were the default sublocation and
+           had no name.
+        */
+        if (subLocationIdentifer !== undefined) {
+            header += '# //SUBLOCATION ID="' + subLocationIdentifer + '"\n';
+        }
+    
+        /**
+           @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+    
+           @since 2015-11-11T16:31-07:00
+    
+           I would be against continuing the DDID field since only
+           migrated timeseries will have ADAPS_DD populated.  Instead
+           we should probably replace the "# //DD" lines with "#
+           //TIMESERIES" lines, maybe something like:
+           
+           # //TIMESERIES IDENTIFIER="Discharge, ft^3/s@12345678"
+           
+           and maybe some other information.
+        */
+        header += '# //RANGE START="';
+        if (range.start !== undefined) {
+            header += range.start;
+        }
+        header += '"';
+    
+        header += ' END="';
+        if (range.end !== undefined) {
+            header += range.end;
+        }
+        header += '"\n';
+
+        callback(null, header);
     }, // header
 
     /**
