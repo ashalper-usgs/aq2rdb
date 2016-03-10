@@ -104,11 +104,11 @@ var rdb = module.exports = {
 
         header +=
             '# //FILE TYPE="' + fileType + '" ' + 'EDITABLE=NO\n' +
-            '# //STATION AGENCY="' + site.agencyCode +
-            '" NUMBER="' + site.number + '       " ' +
-            'TIME_ZONE="' + site.tzCode + '" DST_FLAG=' +
-            site.localTimeFlag + '\n' +
-            '# //STATION NAME="' + site.name + '"\n';
+            sprintf(
+        '# //STATION AGENCY="%-5s" NUMBER="%-15s" TIME_ZONE="%s" DST_FLAG=%s\n',
+                site.agencyCode, site.number, site.tzCode,
+                site.localTimeFlag
+            ) + '# //STATION NAME="' + site.name + '"\n';
     
         /**
            @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
@@ -144,9 +144,10 @@ var rdb = module.exports = {
            and maybe some other information.
         */
 
-	header += '# //PARAMETER CODE="' + parameter.code +
-	    '" SNAME="' + parameter.name + '"\n';
-	    
+        header += '# //PARAMETER CODE="' + parameter.code +
+            '" SNAME="' + parameter.name + '"\n' +
+            '# //PARAMETER LNAME="' + parameter.description + '"\n';
+            
         header += '# //RANGE START="';
         if (range.start !== undefined) {
             header += range.start;
