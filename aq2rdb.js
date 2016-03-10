@@ -1319,6 +1319,9 @@ httpdispatcher.onGet(
                        @callback
                     */
                     function (callback) {
+                        /**
+                           @todo actual parameters need to be corrected
+                         */
                         rdb.header(response);
                         callback(null);
                     },
@@ -1732,9 +1735,17 @@ httpdispatcher.onGet(
                     return;
                 }
 
-                parameter = parameters.records[0].PARM_ALIAS_NM;
+                // load fields we need into something more coherent
+                parameter = {
+                    code: parameters.records[0].PARM_CD,
+                    name: parameters.records[0].PARM_NM,
+                    aquariusParameter: parameters.records[0].PARM_ALIAS_NM
+                };
 
-                callback(null, token, agencyCode, siteNumber, parameter);
+                callback(
+                    null, token, agencyCode, siteNumber,
+                    parameter.aquariusParameter
+                );
             },
             getTimeSeriesDescription,
             /**
@@ -1753,6 +1764,7 @@ httpdispatcher.onGet(
                             null, "NWIS-I UNIT-VALUES",
                             waterServicesSite,
                             timeSeriesDescription.SubLocationIdentifer,
+                            parameter,
                             {start: begdtm, end: enddtm}
                         );
                     },
