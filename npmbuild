@@ -14,6 +14,7 @@ version=`grep '"version":' package.json | \
 # make directory references below shorter
 d=aq2rdb
 
+files="$d/*.js $d/doc $d/*.md $d/package.json"
+
 # make npm tarball
-(cd .. && \
- tar -cvzf $d/aq2rdb-$version.tar.gz $d/*.js $d/doc $d/*.md $d/package.json)
+(cd .. && chmod 644 $files && tar -cvzf $d/aq2rdb-$version.tar.gz $files)
