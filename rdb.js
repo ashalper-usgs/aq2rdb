@@ -22,7 +22,7 @@ var rdb = module.exports = {
        @param response {object} HTTP response object to write to.
     */
     header: function (
-        fileType, site, subLocationIdentifer, range, callback
+        fileType, site, subLocationIdentifer, parameter, range, callback
     ) {
         var header =
             "# //UNITED STATES GEOLOGICAL SURVEY " +
@@ -143,6 +143,10 @@ var rdb = module.exports = {
            
            and maybe some other information.
         */
+
+	header += '# //PARAMETER CODE="' + parameter.code +
+	    '" SNAME="' + parameter.name + '"\n';
+	    
         header += '# //RANGE START="';
         if (range.start !== undefined) {
             header += range.start;
