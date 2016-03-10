@@ -1739,6 +1739,7 @@ httpdispatcher.onGet(
                 parameter = {
                     code: parameters.records[0].PARM_CD,
                     name: parameters.records[0].PARM_NM,
+		    description: parameters.records[0].PARM_DS,
                     aquariusParameter: parameters.records[0].PARM_ALIAS_NM
                 };
 
