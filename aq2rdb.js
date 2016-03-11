@@ -649,7 +649,7 @@ function parseUVFields(requestURL, callback) {
     }
 
     for (var name in field) {
-        if (name.match(/^(a|p|t|s|n|b|e)$/)) {
+        if (name.match(/^(a|p|t|s|n|b|e|l)$/)) {
             // aq2rdb fields
         }
         else {
@@ -661,7 +661,7 @@ function parseUVFields(requestURL, callback) {
     // pass parsed field values to next async.waterfall() function
     callback(
         null, field.t, false, false, false, false, field.a, field.n,
-        field.p, field.s, field.b, field.e, undefined, ""
+        field.p, field.s, field.b, field.e, field.l, ""
     );
 } // parseUVFields
 
