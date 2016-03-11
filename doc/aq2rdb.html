@@ -1,10 +1,11 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
+      "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
-  <head>
-    <title>aq2rdb</title>
-    <style type="text/css">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=iso-8859-1" />
+  <title>aq2rdb</title>
+  <style type="text/css">
       /*<![CDATA[*/
         body  {
             background-color:white;
@@ -161,223 +162,222 @@
                 }
   /*]]>*/
     </style>
-  </head>
+</head>
 
-  <body>
-    <a id="logo" href="http://usgs.gov" title="USGS"></a>
+<body>
+<a id="logo" href="http://usgs.gov" title="USGS"></a> 
 
-    <h1>aq2rdb</h1>
+<h1>aq2rdb</h1>
 
-    <div class="operation">
-      <div>
-        <h2>GetDVTable</h2>
-	<!-- TODO: convert to div(s): -->
-        <table class="routes" summary="A list of routes for this Web service.">
-          <caption>
-            The following routes are available for this service:
-          </caption>
-          <tbody>
-            <tr>
-              <th>GET</th>
-              <th>/GetDVTable</th>
-              <td></td>
-              <td></td>
-            </tr>
-          </tbody>
-        </table>
+<div class="operation">
 
-        <table class="params"
-               summary="GetDVTable Web service, formal parameters.">
-          <caption>
-            <b>GetDVTable</b> Request Parameters:
-          </caption>
+<div>
+<h2>aq2rdb</h2>
+<!-- TODO: convert to div(s): -->
 
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Parameter</th>
-              <th>Data Type</th>
-              <th>Required</th>
-              <th>Description</th>
-            </tr>
-          </thead>
+<table class="routes" summary="A list of routes for this Web service.">
+  <caption>The following routes are available for this service: </caption>
+  <tbody>
+    <tr>
+      <th>GET</th>
+      <th>/aq2rdb</th>
+      <td></td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
 
-          <tbody>
-            <tr>
-              <td>userName</td>
-              <td>query</td>
-              <td>string</td>
-              <td>Yes</td>
-              <td>AQUARIUS user name.</td>
-            </tr>
+<table class="params" summary="aq2rdb Web service, formal parameters.">
+  <caption><b>aq2rdb</b> Request Parameters: </caption>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Parameter</th>
+      <th>Data Type</th>
+      <th>Required</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>userName</td>
+      <td>query</td>
+      <td>string</td>
+      <td>No</td>
+      <td>AQUARIUS user name.</td>
+    </tr>
+    <tr>
+      <td>password</td>
+      <td>query</td>
+      <td>string</td>
+      <td>No</td>
+      <td>AQUARIUS password.</td>
+    </tr>
+    <tr>
+      <td>t</td>
+      <td>query</td>
+      <td>string</td>
+      <td>Yes</td>
+      <td>Time series data type.</td>
+    </tr>
+    <tr>
+      <td>a</td>
+      <td>query</td>
+      <td>string</td>
+      <td>No</td>
+      <td>USGS agency code.</td>
+    </tr>
+    <tr>
+      <td>n</td>
+      <td>query</td>
+      <td>string</td>
+      <td>No</td>
+      <td>USGS site number.</td>
+    </tr>
+    <tr>
+      <td>p</td>
+      <td>query</td>
+      <td>string</td>
+      <td>No</td>
+      <td>USGS parameter code.</td>
+    </tr>
+    <tr>
+      <td>s</td>
+      <td>query</td>
+      <td>string</td>
+      <td>No</td>
+      <td>Statistic.</td>
+    </tr>
+    <tr>
+      <td>b</td>
+      <td>query</td>
+      <td>date</td>
+      <td>No</td>
+      <td>Begin date. The begin date (or date/time) of a time series query
+        interval. The strings "<code>00000000</code>" and
+        "<code>00000000000000</code>" can be provided to specify the interval
+        predicate "indefinitely in the past" (a.k.a. "since the beginning of
+        time").</td>
+    </tr>
+    <tr>
+      <td>s</td>
+      <td>query</td>
+      <td>date</td>
+      <td>No</td>
+      <td>End date. The end date (or date/time) of a time series query
+        interval. The strings "<code>99999999</code>" and
+        "<code>99999999999999</code>" can be provided to specify the interval
+        predicate "indefinitely in the future" (a.k.a. "until the end of
+      time").</td>
+    </tr>
+  </tbody>
+</table>
 
-            <tr>
-              <td>password</td>
-              <td>query</td>
-              <td>string</td>
-              <td>Yes</td>
-              <td>AQUARIUS password.</td>
-            </tr>
+<div style="width: 56em;">
 
-            <tr>
-              <td>LocationIdentifier</td>
-              <td>query</td>
-              <td>string</td>
-              <td>Yes</td>
-              <td><a href="http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDescriptionServiceRequest">AQUARIUS location identifier.</a></td>
-            </tr>
+<div>
+<b>aq2rdb</b> Response: </div>
 
-            <tr>
-              <td>Parameter</td>
-              <td>query</td>
-              <td>string</td>
-              <td>No</td>
-              <td><a href="http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDescriptionServiceRequest">AQUARIUS parameter.</a></td>
-            </tr>
+<p>The aq2rdb response, when successful, returns an <a
+href="http://pubs.usgs.gov/of/2003/ofr03123/6.4rdb_format.pdf">RDB</a> file
+(MIME content type &ldquo;text/plain&rdquo;). The RDB file begins with a
+sequence of RDB comment lines, forming a &ldquo;header block&rdquo;, which
+contain additional structured data related to all values in the subsequent
+table. </p>
 
-            <tr>
-              <td>ComputationIdentifier</td>
-              <td>query</td>
-              <td>string</td>
-              <td>No</td>
-              <td><a href="http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDescriptionServiceRequest">AQUARIUS computation identifier.</a></td>
-            </tr>
-            
-            <tr>
-              <td>QueryFrom</td>
-              <td>query</td>
-              <td><a href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a> time string</td>
-              <td>No</td>
-              <td><a href="http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDataCorrectedServiceRequest">AQUARIUS start datetime.</a></td>
-            </tr>
+<p>If unsuccessful, aq2rdb will attempt to respond with an error message
+included in a single RDB comment line.</p>
 
-            <tr>
-              <td>QueryTo</td>
-              <td>query</td>
-              <td><a href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a> time string</td>
-              <td>No</td>
-              <td><a href="http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDataCorrectedServiceRequest">AQUARIUS end datetime.</a></td>
-            </tr>
-          </tbody>
-        </table>
+<p>An example header block (for a daily values query), is:</p>
 
-	<div style="width: 56em;">
-        <div>
-          <b>GetDVTable</b> Response:
-        </div>
-        <p>
-          The GetDVTable response, when successful, returns
-an <a href="http://pubs.usgs.gov/of/2003/ofr03123/6.4rdb_format.pdf">RDB</a>
-file (MIME content type &ldquo;text/plain&rdquo;). The RDB file begins
-with a sequence of RDB comment lines, forming a &ldquo;header
-block&rdquo;, which contain additional data relevant to all daily
-values in the subsequent table.
-        </p>
+<p style="padding-left: 2em;"><code># //UNITED STATES GEOLOGICAL SURVEY
+http://water.usgs.gov/<br />
+# //NATIONAL WATER INFORMATION SYSTEM http://water.usgs.gov/data.html<br />
+# //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS<br />
+# //RETRIEVED: 2015-11-16 20:54:43Z<br />
+# //FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=NO<br />
+# //STATION AGENCY="USGS" NUMBER="01010000 " TIME_ZONE="EST" DST_FLAG=Y<br />
+# //STATION NAME="St. John River at Ninemile Bridge, Maine"<br />
+# //RANGE START="19960101" END="19970101"<br />
+</code> </p>
 
-	<p>If unsuccessful, aq2rdb will attempt to respond with an
-	error message included in a single RDB comment line.</p>
+<p>The <code>RETRIEVED</code> field contains the time that the aq2rdb query was
+made. Please note that unlike nwts2rdb, the <code>RETRIEVED</code> time is
+always expressed in UTC (&ldquo;Z&rdquo; is the U.S. military time zone
+abbreviation for the ±00:00 time offset), as it is not feasible for aq2rdb to
+accurately detect the local time zone of the Web service client making the
+request.</p>
 
-	<p>An example header block, is:</p>
+<p>The remaining header block fields are a subset of those output by the NWIS
+<a href="http://nwis.usgs.gov/nwisdocs5_1/adaps/5.command_line.pdf#53">nwts2rdb
+program</a>.</p>
 
-	<p style="padding-left: 2em;">
-	<code>
-# //UNITED STATES GEOLOGICAL SURVEY       http://water.usgs.gov/<br/>
-# //NATIONAL WATER INFORMATION SYSTEM     http://water.usgs.gov/data.html<br/>
-# //DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS<br/>
-# //RETRIEVED: 2015-11-16 20:54:43Z<br/>
-# //FILE TYPE=&quot;NWIS-I DAILY-VALUES&quot; EDITABLE=NO<br/>
-# //STATION AGENCY=&quot;USGS&quot; NUMBER=&quot;01010000       &quot; TIME_ZONE=&quot;EST&quot; DST_FLAG=Y<br/>
-# //STATION NAME=&quot;St. John River at Ninemile Bridge, Maine&quot;<br/>
-# //RANGE START=&quot;19960101&quot; END=&quot;19970101&quot;<br/>
-	</code>
-	</p>
-	<p>The <code>RETRIEVED</code> field contains the time that the
-	aq2rdb query was made. Please note that unlike nwts2rdb,
-	the <code>RETRIEVED</code> time is always expressed in UTC
-	(&ldquo;Z&rdquo; is the U.S. military time zone abbreviation
-	for the &plusmn;00:00 time offset), as it would not be accurate for
-	aq2rdb to attempt to detect the local time zone of the Web
-	service client requesting the daily values file.</p>
+<p>The columns included in the RDB table are:</p>
+</div>
 
-	<p>The remaining header block fields are a subset of those
-	output by the
-	NWIS <a href="http://nwis.usgs.gov/nwisdocs5_1/adaps/5.command_line.pdf#53">nwts2rdb
-	program</a>.</p>
-
-	<p>The columns included in the RDB table are:</p>
-	</div>
-        <table class="params"
-               summary="GetDVTable Web service, response fields.">
-
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Parameter</th>
-              <th>Data Type</th>
-              <th>Required</th>
-              <th>Description</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            <tr>
-              <td>DATE</td>
-              <td>RDB column</td>
-              <td>8D</td>
-              <td>Yes</td>
-              <td>Daily value date.</td>
-            </tr>
-            
-            <tr>
-              <td>TIME</td>
-              <td>RDB column</td>
-              <td>6S</td>
-              <td>No</td>
-              <td>Daily value time.</td>
-            </tr>
-
-            <tr>
-              <td>VALUE</td>
-              <td>RDB column</td>
-              <td>16N</td>
-              <td>No</td>
-              <td>Daily value.</td>
-            </tr>
-
-            <tr>
-              <td>REMARK</td>
-              <td>RDB column</td>
-              <td>1S</td>
-              <td>No</td>
-              <td>Remark code.</td>
-            </tr>
-
-            <tr>
-              <td>FLAGS</td>
-              <td>RDB column</td>
-              <td>32S</td>
-              <td>No</td>
-              <td>Flags.</td>
-            </tr>
-
-            <tr>
-              <td>TYPE</td>
-              <td>RDB column</td>
-              <td>1S</td>
-              <td>No</td>
-              <td>Type.</td>
-            </tr>
-
-            <tr>
-              <td>QA</td>
-              <td>RDB column</td>
-              <td>1S</td>
-              <td>No</td>
-              <td>QA.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </body>
+<table class="params" summary="aq2rdb Web service, response fields.">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Parameter</th>
+      <th>Data Type</th>
+      <th>Required</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>DATE</td>
+      <td>RDB column</td>
+      <td>8D</td>
+      <td>Yes</td>
+      <td>Daily value date.</td>
+    </tr>
+    <tr>
+      <td>TIME</td>
+      <td>RDB column</td>
+      <td>6S</td>
+      <td>No</td>
+      <td>Daily value time.</td>
+    </tr>
+    <tr>
+      <td>VALUE</td>
+      <td>RDB column</td>
+      <td>16N</td>
+      <td>No</td>
+      <td>Daily value.</td>
+    </tr>
+    <tr>
+      <td>REMARK</td>
+      <td>RDB column</td>
+      <td>1S</td>
+      <td>No</td>
+      <td>Remark code.</td>
+    </tr>
+    <tr>
+      <td>FLAGS</td>
+      <td>RDB column</td>
+      <td>32S</td>
+      <td>No</td>
+      <td>Flags.</td>
+    </tr>
+    <tr>
+      <td>TYPE</td>
+      <td>RDB column</td>
+      <td>1S</td>
+      <td>No</td>
+      <td>Type.</td>
+    </tr>
+    <tr>
+      <td>QA</td>
+      <td>RDB column</td>
+      <td>1S</td>
+      <td>No</td>
+      <td>QA.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</body>
 </html>
