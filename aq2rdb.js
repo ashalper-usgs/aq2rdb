@@ -261,17 +261,6 @@ function jsonParseErrorMessage(response, message) {
 }
 
 /**
-   @description Detect presence of GetAQToken field.
-   @private
-*/
-function isGetAQTokenField(name) {
-    if (name == 'userName' || name == 'password')
-        return true;
-    else
-        return false;
-}
-
-/**
    @description LocationIdentifier object prototype.
    @class
    @private
@@ -660,10 +649,7 @@ function parseUVFields(requestURL, callback) {
     }
 
     for (var name in field) {
-        if (isGetAQTokenField(name)) {
-            // GetAQToken fields
-        }
-        else if (name.match(/^(a|p|t|s|n|b|e)$/)) {
+        if (name.match(/^(a|p|t|s|n|b|e)$/)) {
             // aq2rdb fields
         }
         else {
@@ -1166,10 +1152,7 @@ httpdispatcher.onGet(
                 }
 
                 for (var name in field) {
-                    if (isGetAQTokenField(name)) {
-                        // GetAQToken fields
-                    }
-                    else if (name === 'LocationIdentifier') {
+                    if (name === 'LocationIdentifier') {
                         locationIdentifier =
                             new LocationIdentifier(field.LocationIdentifier);
                     }
