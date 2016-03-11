@@ -192,7 +192,7 @@ var rdb = module.exports = {
                 begdate = begdat;
         }
 
-        begdate = sprintf("%8s").replace(' ', '0');
+        begdate = sprintf("%8s", begdate).replace(/ /g, '0');
 
         return begdate;
     }, // fillBegDate
