@@ -455,7 +455,7 @@ function docRequest(url, servicePath, response, callback) {
                 if (error) {
                     callback(error);
                     return true;
-                }       
+                }
                 response.writeHeader(200, {"Content-Type": "text/html"});  
                 response.end(html);
             }
@@ -1095,6 +1095,36 @@ function getTimeSeriesDescription(
         }
     );
 } // getTimeSeriesDescription
+
+/**
+   @description Parse version number from "package.json" and pass to a
+                callback function.
+   @private
+   @param {function} Callback function to call if successful.
+ */
+function getVersion(callback) {
+    fs.readFile("package.json", function (error, json) {
+        if (error) {
+            callback(error);
+            return;
+        }
+        
+        var pkg;
+        try {
+            pkg = JSON.parse(json);
+        }
+        catch (error) {
+            log(
+                packageName +
+                    "getVersion().fs.readFile(\"package.json\", (error))",
+                error
+            );
+            return;
+        }
+
+        callback(pkg.version);  // pass version number to callback function
+    });
+} // getVersion
 
 /**
    @description GetDVTable endpoint service request handler.
@@ -1739,7 +1769,7 @@ httpdispatcher.onGet(
                 parameter = {
                     code: parameters.records[0].PARM_CD,
                     name: parameters.records[0].PARM_NM,
-		    description: parameters.records[0].PARM_DS,
+                    description: parameters.records[0].PARM_DS,
                     aquariusParameter: parameters.records[0].PARM_ALIAS_NM
                 };
 
@@ -1896,6 +1926,36 @@ httpdispatcher.onGet(
 ); // aq2rdb
 
 /**
+   @description version endpoint, service request handler.
+*/
+httpdispatcher.onGet(
+    '/' + packageName + '/version',
+    /**
+       @callback
+    */
+    function (request, response) {
+        getVersion(function (version) {
+            response.writeHeader(200, {"Content-Type": "text/html"});  
+            response.end(
+                '<?xml version="1.0" encoding="iso-8859-1"?>\n' +
+                    '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"\n' +
+                    '      "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">\n' +
+                    '<html xmlns="http://www.w3.org/1999/xhtml">\n' +
+                    '<head>\n' +
+                    '  <meta http-equiv="content-type" ' +
+                    '   content="text/html; charset=iso-8859-1" />\n' +
+                    '  <title>aq2rdb Version</title>\n' +
+                    '</head>\n' +
+                    '<body>\n' +
+                    '<p>' + version + '</p>\n' +
+                    '</body>\n' +
+                    '</html>\n'
+            );
+        });
+    }
+); // version
+
+/**
    @description Service dispatcher.
 */ 
 function handleRequest(request, response) {
@@ -1941,24 +2001,7 @@ catch (error) {
    @description Check for "version" CLI option.
 */
 if (options.version === true) {
-    fs.readFile("package.json", function (error, json) {
-        if (error) {
-            callback(error);
-            return;
-        }
-   
-        var pkg;
-        try {
-            pkg = JSON.parse(json);
-        }
-        catch (error) {
-            log(packageName + ".fs.readFile(\"package.json\", (error))",
-                error);
-            return;
-        }
-
-        console.log(pkg.version);
-    });
+    getVersion(function (version) {console.log(version);});
 }
 else {
     /**
@@ -1974,7 +2017,6 @@ else {
             options.port.toString());
     });
 }
-
 
 /**
    @description Export module's private functions to test harness
