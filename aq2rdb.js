@@ -370,10 +370,6 @@ function getAQToken(hostname, userName, password, callback) {
 
         // Response complete; token received.
         response.on('end', function () {
-            log(packageName + ".getAQToken().getAQTokenCallback().messageBody",
-                messageBody);
-            log(packageName + ".getAQToken().getAQTokenCallback().callback",
-                callback);
             callback(null, messageBody);
             return;
         });
@@ -1800,15 +1796,34 @@ httpdispatcher.onGet(
                @callback
             */
             function (uniqueId, callback) {
-                /**
-                   @todo Need to catch date errors here, or convert to
-                         moment earlier on (and catch errors).
-                */
+                var queryFrom, queryTo;
+
+                log(packageName + ".begdtm", begdtm);
+                log(packageName + ".enddtm", enddtm);
+
                 // convert NWIS datetime format to ISO format for
                 // digestion by AQUARIUS
-                var queryFrom = moment(begdtm).format();
-                log(packageName + ".enddtm: " + enddtm);
-                var queryTo = moment(enddtm).format();
+
+		try {
+		    queryFrom = moment(begdtm).format();
+		}
+		catch (error) {
+		    log(packageName + ".error", error);
+		    callback(error);
+		    return;
+		}
+
+		try {
+                    queryTo = moment(enddtm).format();
+		}
+		catch (error) {
+		    log(packageName + ".error", error);
+		    callback(error);
+		    return;
+		}
+
+		log(packageName + ".queryFrom", queryFrom);
+		log(packageName + ".queryTo", queryTo);
 
                 try {
                     aquarius.getTimeSeriesCorrectedData(
