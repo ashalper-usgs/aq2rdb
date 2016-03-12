@@ -22,6 +22,7 @@ var sprintf = require("sprintf-js").sprintf;
 var url = require('url');
 
 // aq2rdb modules
+var adaps = require('./adaps');
 var aquarius = require('./aquarius');
 var fdvrdbout = require('./fdvrdbout').fdvrdbout;
 var rdb = require('./rdb');
@@ -686,8 +687,7 @@ function rdbOut(
     dataType, rndsup, wyflag, cflag, vflag, agencyCode, siteNumber,
     parameterCode, instat, begdat, enddat, locTzCd, titlline, callback
 ) {
-    var datatyp, stat, uvtyp;
-    var usdate, uedate, begdate, enddate, begdtm, enddtm;
+    var datatyp, stat, uvtyp, interval;
     var uvtypPrompted = false;
 
     if (locTzCd === undefined) locTzCd = 'LOC';
@@ -747,8 +747,7 @@ function rdbOut(
                 sopt[9] = '3';
         }
         else {
-            begdate = fillBegDate(wyflag, begdat);
-            enddate = fillEndDate(wyflag, enddat);
+            interval = new adaps.IntervalDay(begdat, enddat, wyflag);
         }
 
     }
@@ -779,8 +778,7 @@ function rdbOut(
                 sopt[9] = '3';
         }
         else {
-            begdtm = rdb.fillBegDtm(wyflag, begdat);
-            enddtm = rdb.fillEndDtm(wyflag, enddat);
+            interval = new adaps.IntervalSecond(begdat, enddat, wyflag);
         }
 
     }
@@ -852,7 +850,7 @@ function rdbOut(
             "calling callback to call fuvrdbout()");
         callback(
             null, false, rndsup, cflag, vflag, agencyCode, siteNumber,
-            parameterCode, begdtm, enddtm, locTzCd
+            parameterCode, interval, locTzCd
         );
     }
     else {
@@ -1563,11 +1561,11 @@ httpdispatcher.onGet(
         */
         var parameterCode;
         var parameter, extendedFilters;
-        var timeSeriesDescription, begdtm, enddtm, irc;
+        var timeSeriesDescription, during, irc;
 
         log(packageName + ".httpdispatcher.onGet(/" + packageName +
             ", (request))", request);
-        
+
         async.waterfall([
             function (callback) {
                 if (docRequest(request.url, '/aq2rdb', response, callback))
@@ -1585,7 +1583,7 @@ httpdispatcher.onGet(
             },
             */
             function fuvrdbout(
-                editable, rndsup, cflag, vflag, a, s, p, b, e,
+                editable, rndsup, cflag, vflag, a, s, p, interval,
                 locTzCd, callback
             ) {
                 // save values in outer scope to avoid passing these
@@ -1595,8 +1593,7 @@ httpdispatcher.onGet(
                 agencyCode = a;
                 siteNumber = s;
                 parameterCode = p;
-                begdtm = b;
-                enddtm = e;
+                during = interval;
                 var parameter, rtcode;
 
                 log(packageName + ".httpdispatcher.onGet(/" + packageName +
@@ -1775,7 +1772,7 @@ httpdispatcher.onGet(
                             waterServicesSite,
                             timeSeriesDescription.SubLocationIdentifer,
                             parameter,
-                            {start: begdtm, end: enddtm}
+                            {start: during.from, end: during.to}
                         );
                     },
                     rdb.header,
@@ -1798,32 +1795,32 @@ httpdispatcher.onGet(
             function (uniqueId, callback) {
                 var queryFrom, queryTo;
 
-                log(packageName + ".begdtm", begdtm);
-                log(packageName + ".enddtm", enddtm);
+                log(packageName + ".during.from", during.from);
+                log(packageName + ".during.to", during.to);
 
                 // convert NWIS datetime format to ISO format for
                 // digestion by AQUARIUS
 
-		try {
-		    queryFrom = moment(begdtm).format();
-		}
-		catch (error) {
-		    log(packageName + ".error", error);
-		    callback(error);
-		    return;
-		}
+                try {
+                    queryFrom = moment(during.from).format();
+                }
+                catch (error) {
+                    log(packageName + ".error", error);
+                    callback(error);
+                    return;
+                }
 
-		try {
-                    queryTo = moment(enddtm).format();
-		}
-		catch (error) {
-		    log(packageName + ".error", error);
-		    callback(error);
-		    return;
-		}
+                try {
+                    queryTo = moment(during.to).format();
+                }
+                catch (error) {
+                    log(packageName + ".error", error);
+                    callback(error);
+                    return;
+                }
 
-		log(packageName + ".queryFrom", queryFrom);
-		log(packageName + ".queryTo", queryTo);
+                log(packageName + ".queryFrom", queryFrom);
+                log(packageName + ".queryTo", queryTo);
 
                 try {
                     aquarius.getTimeSeriesCorrectedData(
