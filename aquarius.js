@@ -72,9 +72,11 @@ var aquarius = module.exports = {
        @param {string} queryFrom AQUARIUS GetTimeSeriesCorrectedData
               service TimeSeriesDataCorrectedServiceRequest.QueryFrom
               parameter.
-       @param {string} QueryTo AQUARIUS GetTimeSeriesCorrectedData
+       @param {string} queryTo AQUARIUS GetTimeSeriesCorrectedData
               service TimeSeriesDataCorrectedServiceRequest.QueryTo
               parameter.
+       @param {Boolean} applyRounding Set Web service "ApplyRounding"
+              parameter to "true" (string) if true; "false" otherwise.
        @param {function} callback Callback to call if/when
               GetTimeSeriesCorrectedData service responds.
     */
