@@ -1799,16 +1799,39 @@ httpdispatcher.onGet(
                @callback
             */
             function (uniqueId, callback) {
-                var queryFrom, queryTo;
+                var name, queryFrom, queryTo;
 
                 log(packageName + ".during.from", during.from);
                 log(packageName + ".during.to", during.to);
 
-                // convert NWIS datetime format to ISO format for
-                // digestion by AQUARIUS
+                /**
+                   @description Use site's time offset
+                   specification to derive the
+                   appropriate IANA time zone
+                   name.  @see tzName initializer
+                   at global scope in this
+                   module.
+                */
+                try {
+                    name =
+            tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag];
+                }
+                catch (error) {
+                    callback(
+                        'Could not derive IANA time zone ' +
+                            'name from site\'s time offset spec.'
+                    );
+                    return;
+                }
+
+                // Convert NWIS datetime format to ISO format for
+                // digestion by AQUARIUS. Offset times from time zone
+                // of site to UTC to get correct results from
+                // AQUARIUS.  See
+                // http://momentjs.com/timezone/docs/#/using-timezones/
 
                 try {
-                    queryFrom = moment(during.from).format();
+                    queryFrom = moment.tz(during.from, name).format();
                 }
                 catch (error) {
                     log(packageName + ".error", error);
@@ -1817,7 +1840,7 @@ httpdispatcher.onGet(
                 }
 
                 try {
-                    queryTo = moment(during.to).format();
+                    queryTo = moment.tz(during.to, name).format();
                 }
                 catch (error) {
                     log(packageName + ".error", error);
@@ -1831,7 +1854,7 @@ httpdispatcher.onGet(
                 try {
                     aquarius.getTimeSeriesCorrectedData(
                         options.aquariusHostname, token, uniqueId,
-                        queryFrom, queryTo, !rndsup, callback
+                        queryFrom, queryTo, ! rndsup, callback
                     );
                 }
                 catch (error) {
