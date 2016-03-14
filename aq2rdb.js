@@ -646,7 +646,7 @@ function parseUVFields(requestURL, callback) {
     }
 
     for (var name in field) {
-        if (name.match(/^(a|p|t|s|n|b|e|l)$/)) {
+        if (name.match(/^(a|p|t|s|n|b|e|l|r|w)$/)) {
             // aq2rdb fields
         }
         else {
@@ -655,9 +655,12 @@ function parseUVFields(requestURL, callback) {
         }
     }
 
+    // default "rounding suppression flag"
+    var rndsup = (field.r === undefined) ? false : field.r;
+
     // pass parsed field values to next async.waterfall() function
     callback(
-        null, field.t, false, false, false, false, field.a, field.n,
+        null, field.t, rndsup, field.w, false, false, field.a, field.n,
         field.p, field.s, field.b, field.e, field.l, ""
     );
 } // parseUVFields
@@ -1561,7 +1564,7 @@ httpdispatcher.onGet(
         */
         var parameterCode;
         var parameter, extendedFilters;
-        var timeSeriesDescription, during, irc;
+        var timeSeriesDescription, during, rndsup, irc;
 
         log(packageName + ".httpdispatcher.onGet(/" + packageName +
             ", (request))", request);
@@ -1583,7 +1586,7 @@ httpdispatcher.onGet(
             },
             */
             function fuvrdbout(
-                editable, rndsup, cflag, vflag, a, s, p, interval,
+                editable, r, cflag, vflag, a, s, p, interval,
                 locTzCd, callback
             ) {
                 // save values in outer scope to avoid passing these
@@ -1594,6 +1597,7 @@ httpdispatcher.onGet(
                 siteNumber = s;
                 parameterCode = p;
                 during = interval;
+                rndsup = r;
                 var parameter, rtcode;
 
                 log(packageName + ".httpdispatcher.onGet(/" + packageName +
@@ -1767,6 +1771,8 @@ httpdispatcher.onGet(
                        @callback
                     */
                     function (callback) {
+                        // (indirectly) call rdb.header() (below) with
+                        // these arguments
                         callback(
                             null, "NWIS-I UNIT-VALUES",
                             waterServicesSite,
@@ -1825,7 +1831,7 @@ httpdispatcher.onGet(
                 try {
                     aquarius.getTimeSeriesCorrectedData(
                         options.aquariusHostname, token, uniqueId,
-                        queryFrom, queryTo, callback
+                        queryFrom, queryTo, !rndsup, callback
                     );
                 }
                 catch (error) {
