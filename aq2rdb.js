@@ -1804,34 +1804,17 @@ httpdispatcher.onGet(
                 log(packageName + ".during.from", during.from);
                 log(packageName + ".during.to", during.to);
 
-                /**
-                   @description Use site's time offset
-                   specification to derive the
-                   appropriate IANA time zone
-                   name.  @see tzName initializer
-                   at global scope in this
-                   module.
-                */
-                try {
-                    name =
-            tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag];
-                }
-                catch (error) {
-                    callback(
-                        'Could not derive IANA time zone ' +
-                            'name from site\'s time offset spec.'
-                    );
-                    return;
-                }
-
                 // Convert NWIS datetime format to ISO format for
                 // digestion by AQUARIUS. Offset times from time zone
-                // of site to UTC to get correct results from
-                // AQUARIUS.  See
+                // of site to UTC to get correct results. See
                 // http://momentjs.com/timezone/docs/#/using-timezones/
 
                 try {
-                    queryFrom = moment.tz(during.from, name).format();
+                    queryFrom =
+                        moment.tz(
+                            during.from,
+                            waterServicesSite.tzCode
+                        ).format();
                 }
                 catch (error) {
                     log(packageName + ".error", error);
@@ -1840,7 +1823,10 @@ httpdispatcher.onGet(
                 }
 
                 try {
-                    queryTo = moment.tz(during.to, name).format();
+                    queryTo = moment.tz(
+                        during.to,
+                        waterServicesSite.tzCode
+                    ).format();
                 }
                 catch (error) {
                     log(packageName + ".error", error);
@@ -1852,6 +1838,9 @@ httpdispatcher.onGet(
                 log(packageName + ".queryTo", queryTo);
 
                 try {
+                    // Note: "rndsup" value is inverted here for
+                    // semantic compatibility with AQUARIUS's
+                    // "ApplyRounding" parameter.
                     aquarius.getTimeSeriesCorrectedData(
                         options.aquariusHostname, token, uniqueId,
                         queryFrom, queryTo, ! rndsup, callback
@@ -1882,37 +1871,12 @@ httpdispatcher.onGet(
                        @callback
                     */
                     function (point, callback) {
-                        var name, date, time, tz;
-
-                        /**
-                           @description Use site's time offset
-                                        specification to derive the
-                                        appropriate IANA time zone
-                                        name.  @see tzName initializer
-                                        at global scope in this
-                                        module.
-                        */
-                        try {
-                            name =
-             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag];
-                        }
-                        catch (error) {
-                            callback(
-                                'Could not derive IANA time zone ' +
-                                    'name from site\'s time offset spec.'
-                            );
-                            return;
-                        }
-
-                        // correct some obscure, NWIS vs. IANA time offset
-                        // incompatibility cases
-                        var p = nwisVersusIANA(
-                            point.Timestamp, name, waterServicesSite.tzCode,
-                            waterServicesSite.localTimeFlag
-                        );
+                        var m = moment(point.Timestamp);
 
                         response.write(
-                            p.date + '\t' + p.time + '\t' + p.tz + '\t' +
+                            m.format("YYYYMMDD") + '\t' +
+                                m.format("hhmmss") + '\t' +
+                                waterServicesSite.tzCode + '\t' +
                                 Math.round(point.Value.Numeric) + '\t' +
                                 point.Value.Numeric.toString().length + '\n'
                         );
