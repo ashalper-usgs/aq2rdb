@@ -80,7 +80,7 @@ var aquarius = module.exports = {
     */
     getTimeSeriesCorrectedData: function (
         aquariusHostname, token, timeSeriesUniqueId, queryFrom,
-        queryTo, callback
+        queryTo, applyRounding, callback
     ) {
         /**
            @description Handle response from GetTimeSeriesCorrectedData.
@@ -107,7 +107,8 @@ var aquarius = module.exports = {
             querystring.stringify(
                 {token: token, format: "json",
                  TimeSeriesUniqueId: timeSeriesUniqueId,
-                 QueryFrom: queryFrom, QueryTo: queryTo}
+                 QueryFrom: queryFrom, QueryTo: queryTo,
+                 ApplyRounding: applyRounding.toString()}
             );
 
         var request = http.request({
