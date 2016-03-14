@@ -200,20 +200,6 @@
   </thead>
   <tbody>
     <tr>
-      <td>userName</td>
-      <td>query</td>
-      <td>string</td>
-      <td>No</td>
-      <td>AQUARIUS user name.</td>
-    </tr>
-    <tr>
-      <td>password</td>
-      <td>query</td>
-      <td>string</td>
-      <td>No</td>
-      <td>AQUARIUS password.</td>
-    </tr>
-    <tr>
       <td>t</td>
       <td>query</td>
       <td>string</td>
@@ -273,6 +259,23 @@
         "<code>99999999999999</code>" can be provided to specify the date and
         date/time interval predicates "indefinitely in the future" (a.k.a.
         "until the end of time"), respectively.</td>
+    </tr>
+    <tr>
+      <td>r</td>
+      <td>query</td>
+      <td>string</td>
+      <td>No</td>
+      <td>Rounding suppression flag. "<code>N</code>" to enable rounding (the
+        default); "<code>Y</code>" to disable rounding.</td>
+    </tr>
+    <tr>
+      <td>w</td>
+      <td>query</td>
+      <td>string</td>
+      <td>No</td>
+      <td>Water year flag. "<code>N</code>" to reference date/time intervals to
+        Gregorian Calendar year boundaries (the default); "<code>Y</code>" to
+        reference date/time intervals to USGS water year boundaries.</td>
     </tr>
   </tbody>
 </table>
