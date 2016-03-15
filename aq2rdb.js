@@ -1979,16 +1979,11 @@ httpdispatcher.onGet(
                         // (NWIS) time zone spec.
                         m = moment.tz(point.Timestamp, zone);
 
-                        /**
-                           @todo Math.round() call below is not
-                                 backwards-compatible with nwts2rdb's
-                                 rounding algorithm.
-                         */
                         response.write(
                             m.format("YYYYMMDD") + '\t' +
                                 m.format("HHmmss") + '\t' +
                                 waterServicesSite.tzCode + '\t' +
-                                Math.round(point.Value.Numeric) + '\t' +
+                                point.Value.Numeric + '\t' +
                                 point.Value.Numeric.toString().length + '\n'
                         );
                         callback(null);
