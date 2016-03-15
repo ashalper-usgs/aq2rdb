@@ -872,52 +872,6 @@ function rdbOut(
 } // rdbOut
 
 /**
-   @function Request NWIS-RA authorization token.
-*/
-function getNWISRAAuthenticationTokenId(outerCallback) {
-    var nwisRAAuthentication;
-
-    async.waterfall([
-        function (callback) {
-            try {
-                rest.querySecure(
-                    options.waterDataHostname,
-                    "POST",
-                    {"content-type": "application/x-www-form-urlencoded"},
-                    "/service/auth/authenticate",
-                    {username: options.waterDataUserName,
-                     password: options.waterDataPassword},
-                    options.log,
-                    callback
-                );
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-        },
-        function (messageBody, callback) {
-            try {
-                nwisRAAuthentication = JSON.parse(messageBody);
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-
-            callback(null);
-        }
-    ],
-        function (error) {
-            if (error)
-                outerCallback(error);
-            else
-                outerCallback(null, nwisRAAuthentication.tokenId);
-        }
-    );
-} // getNWISRAAuthenticationTokenId
-
-/**
    @function Get a TimeSeriesDescription object from AQUARIUS.
    @private
    @param {string} token AQUARIUS authentication token.
@@ -1706,14 +1660,6 @@ httpdispatcher.onGet(
                 callback(null);
             },
             /**
-               @todo Query NWIS TZ table data here (probably via a
-                     self-referential Web service query as an interim
-                     measure), to find offset associated with
-                     waterServicesSite.tzCd, so we can reference UV
-                     times to "local time".
-            */
-            getNWISRAAuthenticationTokenId,
-            /**
                @function Query
                          USGS-parameter-code-to-AQUARIUS-parameter Web
                          service here to obtain AQUARIUS parameter
@@ -1723,12 +1669,12 @@ httpdispatcher.onGet(
                @param {function} callback async.waterfall() callback
                       function.
             */
-            function (tokenId, callback) {
+            function (callback) {
                 try {
                     rest.querySecure(
                         options.waterDataHostname,
                         "GET",
-                        {"Authorization": "Bearer " + tokenId},
+                        {"Authorization": "Bearer " + nwisRA.tokenId()},
                         "/service/data/view/parameters/json",
                         {"parameters.PARM_ALIAS_CD": "AQNAME",
                          "parameters.PARM_CD": parameterCode},
@@ -2018,7 +1964,51 @@ catch (error) {
 /**
    @todo NWISRA prototype constructor
 */
-var NWISRA = function () {
+var NWISRA = function (hostname, userName, password, log, callback) {
+    var authentication;
+
+    async.waterfall([
+        function (cb) {
+            try {
+                rest.querySecure(
+                    hostname,
+                    "POST",
+                    {"content-type": "application/x-www-form-urlencoded"},
+                    "/service/auth/authenticate",
+                    {username: userName, password: password},
+                    log,
+                    cb
+                );
+            }
+            catch (error) {
+                cb(error);
+                return;
+            }
+        },
+        function (messageBody, cb) {
+            try {
+                authentication = JSON.parse(messageBody);
+            }
+            catch (error) {
+                cb(error);
+                return;
+            }
+
+            cb(null);
+        }
+    ],
+        function (error) {
+            if (error)
+                callback(error);
+            else
+                callback(null);
+        }
+    );
+
+    this.tokenId = function () {
+        return authentication.tokenId;
+    }
+
 } // NWISRA
 
 /**
@@ -2036,15 +2026,23 @@ else {
     async.waterfall([
         function (callback) {
             try {
-                nwisRA = new NWISRA();
+                nwisRA = new NWISRA(
+                    options.waterDataHostname,
+                    options.waterDataUserName,
+                    options.waterDataPassword, options.log, callback
+                );
             }
             catch (error) {
                 callback(error);
                 return;
             }
-            callback(null);
+            // no callback here; it is called from NWISRA() when complete
         },
         function (callback) {
+            log(
+                packageName,
+                "Received NWIS-RA authentication token successfully"
+            );
             callback(null);
         }
     ],
@@ -2054,13 +2052,16 @@ else {
                 return;
             }
             else {
-            /**
-               @description Start listening for requests.
-            */ 
-            server.listen(options.port, function () {
-                log(packageName, ": Server listening on: http://localhost:" +
-                    options.port.toString());
-            });
+                /**
+                   @description Start listening for requests.
+                */ 
+                server.listen(options.port, function () {
+                    log(
+                        packageName,
+                        ": Server listening on: http://localhost:" +
+                        options.port.toString()
+                    );
+                });
             }
         }
     );
