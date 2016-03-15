@@ -598,9 +598,128 @@ var AQUARIUS = function (hostname, userName, password, callback) {
 
     request.end();
 
+    /**
+       @method AQUARIUS authentication token.
+     */
     this.token = function () {
         return token;
     }
+
+    /**
+       @method Call AQUARIUS GetLocationData Web service.
+       @param {string} locationIdentifier AQUARIUS location identifier.
+       @param {function} callback Callback function to call if/when
+              response from GetLocationData is received.
+    */
+    this.getLocationData = function (locationIdentifier, callback) {
+        /**
+           @description Handle response from GetLocationData.
+           @callback
+        */
+        function getLocationDataCallback(response) {
+            var messageBody = "";
+
+            // accumulate response
+            response.on(
+                "data",
+                function (chunk) {
+                    messageBody += chunk;
+                });
+
+            response.on("end", function () {
+                callback(null, messageBody);
+                return;
+            });
+        }
+        
+        var path = "/AQUARIUS/Publish/V2/GetLocationData?" +
+            querystring.stringify(
+                {token: token, format: "json",
+                 LocationIdentifier: locationIdentifier}
+            );
+
+        var request = http.request({
+            host: hostname,
+            path: path                
+        }, getLocationDataCallback);
+
+        /**
+           @description Handle GetTimeSeriesDescriptionList service
+                        invocation errors.
+        */
+        request.on("error", function (error) {
+            callback(error);
+            return;
+        });
+
+        request.end();
+    } // getLocationData
+
+    /**
+       @method Call AQUARIUS GetTimeSeriesCorrectedData Web service.
+       @param {string} timeSeriesUniqueId AQUARIUS
+              GetTimeSeriesCorrectedData service
+              TimeSeriesDataCorrectedServiceRequest.TimeSeriesUniqueId
+              parameter.
+       @param {string} queryFrom AQUARIUS GetTimeSeriesCorrectedData
+              service TimeSeriesDataCorrectedServiceRequest.QueryFrom
+              parameter.
+       @param {string} queryTo AQUARIUS GetTimeSeriesCorrectedData
+              service TimeSeriesDataCorrectedServiceRequest.QueryTo
+              parameter.
+       @param {Boolean} applyRounding Set Web service "ApplyRounding"
+              parameter to "true" (string) if true; "false" otherwise.
+       @param {function} callback Callback to call if/when
+              GetTimeSeriesCorrectedData service responds.
+    */
+    this.getTimeSeriesCorrectedData = function (
+        timeSeriesUniqueId, queryFrom, queryTo, applyRounding, callback
+    ) {
+        /**
+           @description Handle response from GetTimeSeriesCorrectedData.
+           @callback
+        */
+        function getTimeSeriesCorrectedDataCallback(response) {
+            var messageBody = "";
+            var timeSeriesCorrectedData;
+
+            // accumulate response
+            response.on(
+                "data",
+                function (chunk) {
+                    messageBody += chunk;
+                });
+
+            response.on("end", function () {
+                callback(null, messageBody);
+                return;
+            });
+        } // getTimeSeriesCorrectedDataCallback
+
+        var path = "/AQUARIUS/Publish/V2/GetTimeSeriesCorrectedData?" +
+            querystring.stringify(
+                {token: token, format: "json",
+                 TimeSeriesUniqueId: timeSeriesUniqueId,
+                 QueryFrom: queryFrom, QueryTo: queryTo,
+                 ApplyRounding: applyRounding.toString()}
+            );
+
+        var request = http.request({
+            host: hostname,
+            path: path
+        }, getTimeSeriesCorrectedDataCallback);
+
+        /**
+           @description Handle GetTimeSeriesCorrectedData service
+           invocation errors.
+        */
+        request.on("error", function (error) {
+            callback(error);
+            return;
+        });
+
+        request.end();
+    } // getTimeSeriesCorrectedData
 
 } // AQUARIUS
 
@@ -1349,8 +1468,7 @@ httpdispatcher.onGet(
             */
             function (callback) {
                 try {
-                    aquarius.getTimeSeriesCorrectedData(
-                        aq.hostname, aq.token(),
+                    aq.getTimeSeriesCorrectedData(
                         timeSeriesDescription.UniqueId,
                         field.QueryFrom, field.QueryTo, callback
                     );
@@ -1478,14 +1596,6 @@ httpdispatcher.onGet(
             },
             parseUVFields,
             rdbOut,
-            /*
-            function (
-                datatyp, rndsup, cflag, vflag, agencyCode, siteNumber,
-                parameterCode, stat, begdate, enddate, locTzCd,
-                callback
-            ) {
-            },
-            */
             function fuvrdbout(
                 editable, r, cflag, vflag, a, s, p, interval,
                 locTzCd, callback
@@ -1689,9 +1799,9 @@ httpdispatcher.onGet(
                     // Note: "rndsup" value is inverted here for
                     // semantic compatibility with AQUARIUS's
                     // "ApplyRounding" parameter.
-                    aquarius.getTimeSeriesCorrectedData(
-                        aq.hostname, aq.token(), uniqueId,
-                        queryFrom, queryTo, ! rndsup, callback
+                    aq.getTimeSeriesCorrectedData(
+                        uniqueId, queryFrom, queryTo, ! rndsup,
+                        callback
                     );
                 }
                 catch (error) {
