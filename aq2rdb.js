@@ -92,6 +92,8 @@ var cli = commandLineArgs([
     {name: "waterDataPassword", type: String}
 ]);
 
+var nwisRA;                     // NWIS-RA object (see "NWISRA" prototype)
+
 /**
    @description A mapping of select NWIS time zone codes to IANA time
                 zone names (referenced by moment-timezone
@@ -102,6 +104,9 @@ var cli = commandLineArgs([
    @constant
 */
 var tzName = Object();
+/**
+   @todo Need to check moment.tz() for "N"
+*/
 tzName['AFT'] =   {N: 'Asia/Kabul', Y: 'Asia/Kabul'};
 tzName['AKST'] =  {N: 'Etc/GMT-9',  Y: 'America/Anchorage'};
 tzName['AST'] =   {N: 'Etc/GMT-4',  Y: 'America/Glace_Bay'};
@@ -114,12 +119,12 @@ tzName['EST'] =   {N: 'Etc/GMT-5',  Y: 'America/New_York'};
 tzName['GMT'] =   {N: 'Etc/GMT+0',  Y: 'Europe/London'};
 tzName['GST'] =   {N: 'Etc/GMT+10', Y: 'Pacific/Guam'};
 tzName['HST'] =   {N: 'Etc/GMT-10', Y: 'HST'};
-// NWIS "International Date Line, East"
+// NWIS's "International Date Line, East":
 tzName['IDLE'] =  {N: 'Etc/GMT+12', Y: 'Etc/GMT+12'};
-// NWIS "International Date Line, West"
+// NWIS's "International Date Line, West":
 tzName['IDLW'] =  {N: 'Etc/GMT-12', Y: 'Etc/GMT-12'};
 tzName['JST'] =   {N: 'Etc/GMT+9',  Y: 'Asia/Tokyo'};
-tzName['MST'] =   {N: 'Etc/GMT-7',  Y: 'America/Denver'};
+tzName['MST'] =   {N: 'America/Phoenix',  Y: 'America/Denver'};
 // moment-timezone has no support for UTC-03:30 (in the context of
 // Northern Hemisphere summer), which would be the mapping of NWIS'
 // (NST,N) [i.e., "Newfoundland Standard Time, local time not
@@ -1873,12 +1878,34 @@ httpdispatcher.onGet(
                        @callback
                     */
                     function (point, callback) {
-                        var m = moment(point.Timestamp);
+                        var zone, m;
+                        var tzCode = waterServicesSite.tzCode;
+                        var localTimeFlag = waterServicesSite.localTimeFlag;
 
-                        log(packageName + ".point.Timestamp", point.Timestamp.substr(0, 19));
+                        try {
+                            zone = tzName[tzCode][localTimeFlag];
+                        }
+                        catch (error) {
+                            callback(
+                                "Could not look up IANA time zone " +
+                                    "name for site time zone spec. " +
+                                    "(" + tzCode + "," + localTimeFlag + ")"
+                            );
+                            return;
+                        }
+
+                        // reference AQUARIUS timestamp to site's
+                        // (NWIS) time zone spec.
+                        m = moment.tz(point.Timestamp, zone);
+
+                        /**
+                           @todo Math.round() call below is not
+                                 backwards-compatible with nwts2rdb's
+                                 rounding algorithm.
+                         */
                         response.write(
                             m.format("YYYYMMDD") + '\t' +
-                                m.format("hhmmss") + '\t' +
+                                m.format("HHmmss") + '\t' +
                                 waterServicesSite.tzCode + '\t' +
                                 Math.round(point.Value.Numeric) + '\t' +
                                 point.Value.Numeric.toString().length + '\n'
@@ -1989,6 +2016,12 @@ catch (error) {
 }
 
 /**
+   @todo NWISRA prototype constructor
+*/
+var NWISRA = function () {
+} // NWISRA
+
+/**
    @description Check for "version" CLI option.
 */
 if (options.version === true) {
@@ -2000,13 +2033,37 @@ else {
     */
     var server = http.createServer(handleRequest);
 
-    /**
-       @description Start listening for requests.
-    */ 
-    server.listen(options.port, function () {
-        log(packageName, ": Server listening on: http://localhost:" +
-            options.port.toString());
-    });
+    async.waterfall([
+        function (callback) {
+            try {
+                nwisRA = new NWISRA();
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+            callback(null);
+        },
+        function (callback) {
+            callback(null);
+        }
+    ],
+        function (error) {
+            if (error) {
+                log(packageName, error);
+                return;
+            }
+            else {
+            /**
+               @description Start listening for requests.
+            */ 
+            server.listen(options.port, function () {
+                log(packageName, ": Server listening on: http://localhost:" +
+                    options.port.toString());
+            });
+            }
+        }
+    );
 }
 
 /**
