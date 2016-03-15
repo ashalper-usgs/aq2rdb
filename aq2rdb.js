@@ -1061,36 +1061,16 @@ function rdbOut(
     //  get data and output to files
 
     if (dataType === "DV") {
-        /**
-           @todo This call still needs asyncification [see
-           call to fuvrdbout references below]. The
-           call here will not synchronize correctly
-           in its present state.
-           irc = fdvrdbout(
-           response, false, rndsup, false, vflag, cflag,
-           agencyCode, siteNumber, ddid, stat, begdate, enddate
-           );
-        */
-        callback(null);
+        callback(
+            null, false, rndsup, cflag, vflag, agencyCode, siteNumber,
+            parameterCode, interval, locTzCd
+        );
     }
     else if (dataType === "UV") {
         /**
-           @todo This call likely needs to be nested in
-           async.waterfall() function.
+           @todo The legacy code was very free-and-easy about the
+                 association between parameter code and DD ID.
         */
-        /**
-           @todo The legacy code was very free-and-easy
-           about the association between parameter
-           code and DD ID.
-        */
-        /*
-          irc = fuvrdbout(
-          response, false, rndsup, cflag, vflag, agencyCode,
-          siteNumber, begdtm, enddtm, locTzCd
-          );
-        */
-        log(packageName + ".rdbOut()",
-            "calling callback to call fuvrdbout()");
         callback(
             null, false, rndsup, cflag, vflag, agencyCode, siteNumber,
             parameterCode, interval, locTzCd
