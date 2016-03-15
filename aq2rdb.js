@@ -1417,7 +1417,7 @@ httpdispatcher.onGet(
                 // if we didn't get the remark codes domain table
                 if (qualifierListServiceResponse === undefined) {
                     callback(
-                        'Could not get remark codes from http://' +
+                        "Could not get remark codes from http://" +
                             options.aquariusHostname +
                             "/AQUARIUS/Publish/V2/GetQualifierList/"
                     );
@@ -1481,7 +1481,7 @@ httpdispatcher.onGet(
                                 remarkCodes,
           timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
                             ),
-                            'ascii'
+                            "ascii"
                         );
                         callback(null);
                     }
@@ -1508,7 +1508,7 @@ httpdispatcher.onGet(
    @description GetUVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
-    '/' + packageName + '/GetUVTable',
+    '/' + packageName + "/GetUVTable",
     /**
        @callback
     */
@@ -1517,7 +1517,7 @@ httpdispatcher.onGet(
 
         async.waterfall([
             function (callback) {
-                if (docRequest(request.url, '/aq2rdb/GetUVTable',
+                if (docRequest(request.url, "/aq2rdb/GetUVTable",
                                response, callback))
                     return;
                 callback(null);
@@ -1571,7 +1571,7 @@ httpdispatcher.onGet(
 
         async.waterfall([
             function (callback) {
-                if (docRequest(request.url, '/aq2rdb', response, callback))
+                if (docRequest(request.url, "/aq2rdb", response, callback))
                     return;
                 callback(null, request.url);
             },
@@ -1618,19 +1618,21 @@ httpdispatcher.onGet(
                 // Parameter here
 
                 if (agencyCode === undefined) {
-                    callback('Required field "agencyCode" not found');
+                    callback("Required field \"agencyCode\" not found");
                     return;
                 }
 
                 if (siteNumber === undefined) {
-                    callback('Required field "siteNumber" not found');
+                    callback("Required field \"siteNumber\" not found");
                     return;
                 }
 
                 // TODO: "parameter" somehow went MIA in fuvrdbout()
                 // formal parameters in translation from Fortran
                 if (parameterCode === undefined) {
-                    callback('Required AQUARIUS field "Parameter" not found');
+                    callback(
+                        "Required AQUARIUS field \"Parameter\" not found"
+                    );
                     return;
                 }
 
@@ -1873,6 +1875,7 @@ httpdispatcher.onGet(
                     function (point, callback) {
                         var m = moment(point.Timestamp);
 
+                        log(packageName + ".point.Timestamp", point.Timestamp.substr(0, 19));
                         response.write(
                             m.format("YYYYMMDD") + '\t' +
                                 m.format("hhmmss") + '\t' +
