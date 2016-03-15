@@ -92,7 +92,11 @@ var cli = commandLineArgs([
     {name: "waterDataPassword", type: String}
 ]);
 
-var nwisRA;                     // NWIS-RA object (see "NWISRA" prototype)
+/**
+   @todo need to merge this object with "aquarius" module, required above
+ */
+var aq;                     // AQUARIUS object
+var nwisRA;                 // NWIS-RA object (see "NWISRA" prototype)
 
 /**
    @description A mapping of select NWIS time zone codes to IANA time
@@ -321,112 +325,6 @@ var LocationIdentifier = function (text) {
 } // LocationIdentifier
 
 /**
-   @function Call GetAQToken service to get AQUARIUS authentication
-             token.
-   @private
-   @param {string} hostname AQUARIUS TCP/IP host name.
-   @param {string} userName AQUARIUS user name.
-   @param {string} password AQUARIUS password.
-   @param {function} callback Callback function to call if/when
-          GetAQToken responds.
-*/
-function getAQToken(hostname, userName, password, callback) {
-
-    if (hostname === undefined) {
-        callback('GetAQToken: Required field "hostname" not found');
-        return;
-    }
-
-    if (hostname === '') {
-        callback('GetAQToken: Required field "hostname" must have a value');
-        return;
-    }
-
-    if (userName === undefined) {
-        callback('GetAQToken: Required field "userName" not found');
-        return;
-    }
-
-    if (userName === '') {
-        callback('GetAQToken: Required field "userName" must have a value');
-        return;
-    }
-
-    if (password === undefined) {
-        callback('GetAQToken: Required field "password" not found');
-        return;
-    }
-
-    if (password === '') {
-        callback('GetAQToken: Required field "password" must have a value');
-        return;
-    }
-
-    /**
-       @description GetAQToken service response callback.
-       @callback
-    */
-    function getAQTokenCallback(response) {
-        var messageBody = '';
-
-        // accumulate response
-        response.on('data', function (chunk) {
-            messageBody += chunk;
-        });
-
-        // Response complete; token received.
-        response.on('end', function () {
-            callback(null, messageBody);
-            return;
-        });
-    } // getAQTokenCallback
-
-    var port = '8080';
-    var path = '/services/GetAQToken?';
-    var uriString = 'http://' + hostname + '/AQUARIUS/';
-
-    log(packageName + ".getAQToken()",
-        "querying http://" + hostname + ":" + port +
-        path + "..., AQUARIUS server at " + uriString);
-
-    // make sure to not reveal user-name/passwords in log
-    path += querystring.stringify(
-        {userName: userName, password: password,
-         uriString: uriString}
-    );
-
-    /**
-       @description GetAQToken service request for AQUARIUS
-                    authentication token needed for AQUARIUS API.
-    */
-    var request = http.request({
-        host: options.aquariusTokenHostname,
-        port: port,             // TODO: make a CLI parameter?
-        path: path
-    }, getAQTokenCallback);
-
-    /**
-       @description Handle GetAQToken service invocation errors.
-    */
-    request.on('error', function (error) {
-        var statusMessage;
-
-        log(packageName + ".getAQToken().request.on()", error);
-        
-        if (error.message === 'connect ECONNREFUSED') {
-            callback('Could not connect to GetAQToken service for ' +
-                     'AQUARIUS authentication token');
-        }
-        else {
-            callback(error);
-        }
-        return;
-    });
-
-    request.end();
-} // getAQToken
-
-/**
    @function Check for documentation request, and serve documentation
              if appropriate.
    @private
@@ -601,22 +499,110 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
     return p;
 } // nwisVersusIANA
 
-/**
-   @description AQUARIUS Web service login credentials object prototype.
-   @class
-   @private
-*/
-function AquariusCredentials (cli) {
+var AQUARIUS = function (hostname, userName, password, callback) {
+    if (hostname === undefined) {
+        callback('AQUARIUS(): Required field "hostname" not found');
+        return;
+    }
+
+    if (hostname === '') {
+        callback('AQUARIUS(): Required field "hostname" must have a value');
+        return;
+    }
+
+    this.hostname = hostname;
+
+    if (userName === undefined) {
+        callback('AQUARIUS(): Required field "userName" not found');
+        return;
+    }
+
+    if (userName === '') {
+        callback('AQUARIUS(): Required field "userName" must have a value');
+        return;
+    }
+
+    if (password === undefined) {
+        callback('AQUARIUS(): Required field "password" not found');
+        return;
+    }
+
+    if (password === '') {
+        callback('AQUARIUS(): Required field "password" must have a value');
+        return;
+    }
+
+    var token;
+
     /**
-       @todo Need some fallback logic here to read
-             (hostname,userName,password) from encrypted configuration
-             file if not provided as REST parameters in the service
-             request, or on the command at service start-up.
+       @description GetAQToken service response callback.
+       @callback
     */
-    this.hostname = cli.hostname;
-    this.userName = cli.userName;
-    this.password = cli.password;
-} // AquariusCredentials
+    function getAQTokenCallback(response) {
+        var messageBody = '';
+
+        // accumulate response
+        response.on('data', function (chunk) {
+            messageBody += chunk;
+        });
+
+        // Response complete; token received.
+        response.on('end', function () {
+            token = messageBody;
+            callback(null);
+            return;
+        });
+    } // getAQTokenCallback
+
+    var port = '8080';
+    var path = '/services/GetAQToken?';
+    var uriString = 'http://' + hostname + '/AQUARIUS/';
+
+    log(packageName + ".AQUARIUS()",
+        "querying http://" + hostname + ":" + port +
+        path + "..., AQUARIUS server at " + uriString);
+
+    // make sure to not reveal user-name/passwords in log
+    path += querystring.stringify(
+        {userName: userName, password: password,
+         uriString: uriString}
+    );
+
+    /**
+       @description GetAQToken service request for AQUARIUS
+                    authentication token needed for AQUARIUS API.
+    */
+    var request = http.request({
+        host: options.aquariusTokenHostname,
+        port: port,             // TODO: make a CLI parameter?
+        path: path
+    }, getAQTokenCallback);
+
+    /**
+       @description Handle GetAQToken service invocation errors.
+    */
+    request.on('error', function (error) {
+        var statusMessage;
+
+        log(packageName + ".AQUARIUS().request.on()", error);
+        
+        if (error.message === 'connect ECONNREFUSED') {
+            callback("Could not connect to GetAQToken service for " +
+                     "AQUARIUS authentication token");
+        }
+        else {
+            callback(error);
+        }
+        return;
+    });
+
+    request.end();
+
+    this.token = function () {
+        return token;
+    }
+
+} // AQUARIUS
 
 function required(options, propertyList) {
     for (var i in propertyList){
@@ -909,11 +895,11 @@ function getTimeSeriesDescription(
 
             try {
                 rest.query(
-                    options.aquariusHostname,
+                    aq.hostname,
                     "GET",
                     undefined,  // HTTP headers
                     "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                    {token: token,
+                    {token: aq.token(),
                      format: "json",
                      LocationIdentifier: locationIdentifier,
                      Parameter: parameter,
@@ -970,11 +956,11 @@ function getTimeSeriesDescription(
                     "No time series description list found at " +
                         url.format({
                             protocol: "http",
-                            host: options.aquariusHostname,
+                            host: aq.hostname,
                             pathname:
                             "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
                             query:
-                            {token: token,
+                            {token: aq.token(),
                              format: "json",
                              LocationIdentifier: locationIdentifier,
                              Parameter: parameter,
@@ -1133,51 +1119,7 @@ httpdispatcher.onGet(
                     return;
                 }
 
-                var aquariusCredentials = new AquariusCredentials(
-                    {hostname: options.aquariusHostname,
-                     userName: options.aquariusUserName,
-                     password: options.aquariusPassword},
-                    {hostname: field.hostname,
-                     userName: field.userName,
-                     password: field.password}
-                );
-
                 // proceed to next waterfall
-                callback(null, aquariusCredentials);
-            },
-            /**
-               @function Get AQUARIUS authentication token from
-                         GetAQToken service.
-               @callback
-            */
-            function (aquariusCredentials, callback) {
-                try {
-                    getAQToken(
-                        aquariusCredentials.hostname,
-                        aquariusCredentials.userName,
-                        aquariusCredentials.password,
-                        callback
-                    );
-                }
-                catch (error) {
-                    // abort & pass "error" to final callback
-                    callback(error);
-                    return;
-                }
-                // no callback here, because it is passed to
-                // getAQToken(), and called from there if successful
-            },
-            /**
-               @function Receive AQUARIUS authentication token from
-                         GetAQToken service.
-               @callback
-               @param {string} messageBody Message body of response
-                      from GetAQToken.
-               @param {function} callback async.waterfall() callback
-                      function.
-            */
-            function (messageBody, callback) {
-                token = messageBody;
                 callback(null);
             },
             /**
@@ -1191,7 +1133,7 @@ httpdispatcher.onGet(
             */
             function (callback) {
                 var obj =
-                    {token: token, format: "json",
+                    {token: aq.token(), format: "json",
                      LocationIdentifier: locationIdentifier.toString(),
                      Parameter: field.Parameter,
                      ComputationPeriodIdentifier: "Daily",
@@ -1203,7 +1145,7 @@ httpdispatcher.onGet(
                 
                 try {
                     rest.query(
-                        options.aquariusHostname,
+                        aq.hostname,
                         "GET",
                         undefined,      // HTTP headers
                         "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
@@ -1343,11 +1285,11 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     rest.query(
-                        options.aquariusHostname,
+                        aq.hostname,
                         "GET",
                         undefined,      // HTTP headers
                         "/AQUARIUS/Publish/V2/GetQualifierList/",
-                        {token: token, format: "json"},
+                        {token: aq.token(), format: "json"},
                         options.log,
                         callback
                     );
@@ -1377,7 +1319,7 @@ httpdispatcher.onGet(
                 if (qualifierListServiceResponse === undefined) {
                     callback(
                         "Could not get remark codes from http://" +
-                            options.aquariusHostname +
+                            aq.hostname +
                             "/AQUARIUS/Publish/V2/GetQualifierList/"
                     );
                     return;
@@ -1408,7 +1350,7 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     aquarius.getTimeSeriesCorrectedData(
-                        options.aquariusHostname, token,
+                        aq.hostname, aq.token(),
                         timeSeriesDescription.UniqueId,
                         field.QueryFrom, field.QueryTo, callback
                     );
@@ -1595,48 +1537,6 @@ httpdispatcher.onGet(
                     return;
                 }
 
-                var aquariusCredentials = new AquariusCredentials(
-                    {hostname: options.aquariusHostname,
-                     userName: options.aquariusUserName,
-                     password: options.aquariusPassword}
-                );
-
-                // proceed to next waterfall
-                callback(null, aquariusCredentials);
-            },
-            /**
-               @description Get AQUARIUS authentication token from
-                            GetAQToken service.
-                            @callback
-            */
-            function (aquariusCredentials, callback) {
-                try {
-                    getAQToken(
-                        aquariusCredentials.hostname,
-                        aquariusCredentials.userName,
-                        aquariusCredentials.password,
-                        callback
-                    );
-                }
-                catch (error) {
-                    // abort & pass error object to final callback
-                    callback(error);
-                }
-                // no callback here, because it is passed to
-                // getAQToken(), and called from there if successful
-            },
-            /**
-               @description Receive AQUARIUS authentication token and
-                            get required site information.
-                            @callback
-            */
-            function (messageBody, callback) {
-                token = messageBody;
-
-                log(packageName + ".httpdispatcher.onGet(\"/" + packageName +
-                    "\", ().async.waterfall([]().token))",
-                    token);
-                
                 callback(
                     null, options.waterServicesHostname, agencyCode,
                     siteNumber, options.log
@@ -1754,12 +1654,10 @@ httpdispatcher.onGet(
             function (uniqueId, callback) {
                 var name, queryFrom, queryTo;
 
-                log(packageName + ".during.from", during.from);
-                log(packageName + ".during.to", during.to);
-
                 // Convert NWIS datetime format to ISO format for
-                // digestion by AQUARIUS. Offset times from time zone
-                // of site to UTC to get correct results. See
+                // digestion by AQUARIUS REST query. Offset times from
+                // time zone of site to UTC to get correct
+                // results. See
                 // http://momentjs.com/timezone/docs/#/using-timezones/
 
                 try {
@@ -1787,15 +1685,12 @@ httpdispatcher.onGet(
                     return;
                 }
 
-                log(packageName + ".queryFrom", queryFrom);
-                log(packageName + ".queryTo", queryTo);
-
                 try {
                     // Note: "rndsup" value is inverted here for
                     // semantic compatibility with AQUARIUS's
                     // "ApplyRounding" parameter.
                     aquarius.getTimeSeriesCorrectedData(
-                        options.aquariusHostname, token, uniqueId,
+                        aq.hostname, aq.token(), uniqueId,
                         queryFrom, queryTo, ! rndsup, callback
                     );
                 }
@@ -2024,6 +1919,9 @@ else {
     var server = http.createServer(handleRequest);
 
     async.waterfall([
+        /**
+           @todo the next four functions can be done in parallel safely.
+        */
         function (callback) {
             try {
                 nwisRA = new NWISRA(
@@ -2033,8 +1931,10 @@ else {
                 );
             }
             catch (error) {
-                callback(error);
-                return;
+                if (error) {
+                    callback(error);
+                    return;
+                }
             }
             // no callback here; it is called from NWISRA() when complete
         },
@@ -2042,6 +1942,28 @@ else {
             log(
                 packageName,
                 "Received NWIS-RA authentication token successfully"
+            );
+            callback(null);
+        },
+        function (callback) {
+            try {
+                aq = new AQUARIUS(
+                    options.aquariusHostname,
+                    options.aquariusUserName,
+                    options.aquariusPassword, callback
+                );
+            }
+            catch (error) {
+                if (error) {
+                    callback(error);
+                    return;
+                }
+            }
+        },
+        function (callback) {
+            log(
+                packageName,
+                "Received AQUARIUS authentication token successfully"
             );
             callback(null);
         }
@@ -2076,7 +1998,6 @@ if (process.env.NODE_ENV === "test") {
     module.exports._private = {
         handle: handle,
         jsonParseErrorMessage: jsonParseErrorMessage,
-        getAQToken: getAQToken,
         docRequest: docRequest,
         dvTableRow: dvTableRow,
         nwisVersusIANA: nwisVersusIANA
