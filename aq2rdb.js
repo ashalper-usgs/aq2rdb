@@ -1918,10 +1918,7 @@ else {
     */
     var server = http.createServer(handleRequest);
 
-    async.waterfall([
-        /**
-           @todo the next four functions can be done in parallel safely.
-        */
+    async.parallel([
         function (callback) {
             try {
                 nwisRA = new NWISRA(
@@ -1939,13 +1936,6 @@ else {
             // no callback here; it is called from NWISRA() when complete
         },
         function (callback) {
-            log(
-                packageName,
-                "Received NWIS-RA authentication token successfully"
-            );
-            callback(null);
-        },
-        function (callback) {
             try {
                 aq = new AQUARIUS(
                     options.aquariusHostname,
@@ -1959,13 +1949,6 @@ else {
                     return;
                 }
             }
-        },
-        function (callback) {
-            log(
-                packageName,
-                "Received AQUARIUS authentication token successfully"
-            );
-            callback(null);
         }
     ],
         function (error) {
@@ -1974,6 +1957,14 @@ else {
                 return;
             }
             else {
+                log(
+                    packageName,
+                    "Received NWIS-RA authentication token successfully"
+                );
+                log(
+                    packageName,
+                    "Received AQUARIUS authentication token successfully"
+                );
                 /**
                    @description Start listening for requests.
                 */ 
