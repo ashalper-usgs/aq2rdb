@@ -18,11 +18,15 @@ var rdb = module.exports = {
               DAILY-VALUES").
        @param {object} site USGS site object.
        @param {string} subLocationIdentifer Sublocation identifier.
-       @param {object} range Time series query date range.
+       @param {object} parameter USGS parameter (a.k.a. "PARM") object.
+       @param {object} type Code and name of type of values
+                       [e.g. ("C","COMPUTED")].
+       @param {object} range Time series query, date range.
        @param response {object} HTTP response object to write to.
     */
     header: function (
-        fileType, site, subLocationIdentifer, parameter, range, callback
+        fileType, site, subLocationIdentifer, parameter, type, range,
+        callback
     ) {
         var header =
             "# //UNITED STATES GEOLOGICAL SURVEY " +
@@ -144,10 +148,14 @@ var rdb = module.exports = {
            and maybe some other information.
         */
 
-        header += '# //PARAMETER CODE="' + parameter.code +
-            '" SNAME="' + parameter.name + '"\n' +
-            '# //PARAMETER LNAME="' + parameter.description + '"\n';
-            
+        header += "# //PARAMETER CODE=\"" + parameter.code +
+            "\" SNAME=\"" + parameter.name + "\"\n" +
+            "# //PARAMETER LNAME=\"" + parameter.description + "\"\n";
+
+        if (type)
+            header += "# //TYPE CODE=" + type.code + " NAME=" +
+                      type.name + "\n";
+           
         header += '# //RANGE START="';
         if (range.start !== undefined) {
             header += range.start;
@@ -158,7 +166,11 @@ var rdb = module.exports = {
         if (range.end !== undefined) {
             header += range.end;
         }
-        header += '"\n';
+        /**
+           @todo ZONE value should probably be a passed-in parameter
+                 at some point.
+        */
+        header += "\" ZONE=\"LOC\"\n";
 
         callback(null, header);
     }, // header
