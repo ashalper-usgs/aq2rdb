@@ -1460,10 +1460,14 @@ httpdispatcher.onGet(
                     */
                     function (callback) {
                         /**
-                           @todo actual parameters need to be corrected
+                           @todo some actual parameters here likely need to
+                           be corrected
                          */
-                        rdb.header(response);
-                        callback(null);
+                        rdb.header(
+                            "NWIS-I DAILY-VALUES", site,
+                            subLocationIdentifer, parameter, range,
+                            callback
+                        );
                     },
                     /**
                        @function Write RDB body to HTTP response.
@@ -1851,6 +1855,12 @@ httpdispatcher.onGet(
                             waterServicesSite,
                             timeSeriesDescription.SubLocationIdentifer,
                             parameter,
+                            /**
+                               @todo this is pragmatically hard-coded
+                               now, but there is a relationship to
+                               "cflag" value above.
+                             */
+                            {code: 'C', name: "COMPUTED"},
                             {start: during.from, end: during.to}
                         );
                     },
