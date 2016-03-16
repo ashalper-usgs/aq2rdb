@@ -91,10 +91,7 @@ var cli = commandLineArgs([
     {name: "waterDataPassword", type: String}
 ]);
 
-/**
-   @todo need to merge this object with "aquarius" module, required above
- */
-var aq;                     // AQUARIUS object
+var aquarius;               // AQUARIUS object
 var nwisRA;                 // NWIS-RA object (see "NWISRA" prototype)
 
 /**
@@ -1124,11 +1121,11 @@ function getTimeSeriesDescription(
 
             try {
                 rest.query(
-                    aq.hostname,
+                    aquarius.hostname,
                     "GET",
                     undefined,  // HTTP headers
                     "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                    {token: aq.token(),
+                    {token: aquarius.token(),
                      format: "json",
                      LocationIdentifier: locationIdentifier,
                      Parameter: parameter,
@@ -1185,11 +1182,11 @@ function getTimeSeriesDescription(
                     "No time series description list found at " +
                         url.format({
                             protocol: "http",
-                            host: aq.hostname,
+                            host: aquarius.hostname,
                             pathname:
                             "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
                             query:
-                            {token: aq.token(),
+                            {token: aquarius.token(),
                              format: "json",
                              LocationIdentifier: locationIdentifier,
                              Parameter: parameter,
@@ -1235,7 +1232,7 @@ function getTimeSeriesDescription(
                    "", parm "',A5,'".  Aborting.",/)
                 */
                 function (uvTimeSeriesDescriptions) {
-                    timeSeriesDescription = aq.distill(
+                    timeSeriesDescription = aquarius.distill(
                         uvTimeSeriesDescriptions, locationIdentifier,
                         callback
                     );
@@ -1362,7 +1359,7 @@ httpdispatcher.onGet(
             */
             function (callback) {
                 var obj =
-                    {token: aq.token(), format: "json",
+                    {token: aquarius.token(), format: "json",
                      LocationIdentifier: locationIdentifier.toString(),
                      Parameter: field.Parameter,
                      ComputationPeriodIdentifier: "Daily",
@@ -1374,7 +1371,7 @@ httpdispatcher.onGet(
                 
                 try {
                     rest.query(
-                        aq.hostname,
+                        aquarius.hostname,
                         "GET",
                         undefined,      // HTTP headers
                         "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
@@ -1422,7 +1419,7 @@ httpdispatcher.onGet(
             */
             function (timeSeriesDescriptions, callback) {
                 timeSeriesDescription =
-                    aq.distill(
+                    aquarius.distill(
                         timeSeriesDescriptions, locationIdentifier, callback
                     );
 
@@ -1518,11 +1515,11 @@ httpdispatcher.onGet(
             function (callback) {
                 try {
                     rest.query(
-                        aq.hostname,
+                        aquarius.hostname,
                         "GET",
                         undefined,      // HTTP headers
                         "/AQUARIUS/Publish/V2/GetQualifierList/",
-                        {token: aq.token(), format: "json"},
+                        {token: aquarius.token(), format: "json"},
                         options.log,
                         callback
                     );
@@ -1552,7 +1549,7 @@ httpdispatcher.onGet(
                 if (qualifierListServiceResponse === undefined) {
                     callback(
                         "Could not get remark codes from http://" +
-                            aq.hostname +
+                            aquarius.hostname +
                             "/AQUARIUS/Publish/V2/GetQualifierList/"
                     );
                     return;
@@ -1582,7 +1579,7 @@ httpdispatcher.onGet(
             */
             function (callback) {
                 try {
-                    aq.getTimeSeriesCorrectedData(
+                    aquarius.getTimeSeriesCorrectedData(
                         timeSeriesDescription.UniqueId,
                         field.QueryFrom, field.QueryTo, callback
                     );
@@ -1592,7 +1589,7 @@ httpdispatcher.onGet(
                     return;
                 }
             },
-            aq.parseTimeSeriesDataServiceResponse,
+            aquarius.parseTimeSeriesDataServiceResponse,
             /**
                @function Write each RDB row to HTTP response.
                @callback
@@ -1919,7 +1916,7 @@ httpdispatcher.onGet(
                     // Note: "rndsup" value is inverted here for
                     // semantic compatibility with AQUARIUS's
                     // "ApplyRounding" parameter.
-                    aq.getTimeSeriesCorrectedData(
+                    aquarius.getTimeSeriesCorrectedData(
                         uniqueId, queryFrom, queryTo, ! rndsup,
                         callback
                     );
@@ -1934,7 +1931,7 @@ httpdispatcher.onGet(
                             GetTimeSeriesCorrectedData service.
                @callback
             */
-            aq.parseTimeSeriesDataServiceResponse,
+            aquarius.parseTimeSeriesDataServiceResponse,
             /**
                @description Write time series data as RDB rows to HTTP
                             response.
@@ -2164,7 +2161,7 @@ else {
         },
         function (callback) {
             try {
-                aq = new AQUARIUS(
+                aquarius = new AQUARIUS(
                     options.aquariusHostname,
                     options.aquariusUserName,
                     options.aquariusPassword, callback
