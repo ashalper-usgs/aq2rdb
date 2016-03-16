@@ -653,23 +653,13 @@ var AQUARIUS = function (hostname, userName, password, callback) {
 
     /**
        @method Call AQUARIUS GetTimeSeriesCorrectedData Web service.
-       @param {string} timeSeriesUniqueId AQUARIUS
-              GetTimeSeriesCorrectedData service
-              TimeSeriesDataCorrectedServiceRequest.TimeSeriesUniqueId
-              parameter.
-       @param {string} queryFrom AQUARIUS GetTimeSeriesCorrectedData
-              service TimeSeriesDataCorrectedServiceRequest.QueryFrom
-              parameter.
-       @param {string} queryTo AQUARIUS GetTimeSeriesCorrectedData
-              service TimeSeriesDataCorrectedServiceRequest.QueryTo
-              parameter.
-       @param {Boolean} applyRounding Set Web service "ApplyRounding"
-              parameter to "true" (string) if true; "false" otherwise.
+       @param {object} parameters AQUARIUS
+              GetTimeSeriesCorrectedData service HTTP parameters.
        @param {function} callback Callback to call if/when
               GetTimeSeriesCorrectedData service responds.
     */
     this.getTimeSeriesCorrectedData = function (
-        timeSeriesUniqueId, queryFrom, queryTo, applyRounding, callback
+        parameters, callback
     ) {
         /**
            @description Handle response from GetTimeSeriesCorrectedData.
@@ -692,13 +682,18 @@ var AQUARIUS = function (hostname, userName, password, callback) {
             });
         } // getTimeSeriesCorrectedDataCallback
 
+        // these parameters span every GetTimeSeriesCorrectedData
+        // call, so they're not passed in
+        parameters["token"] = token;
+        parameters["format"] = "json";
+
         var path = "/AQUARIUS/Publish/V2/GetTimeSeriesCorrectedData?" +
-            querystring.stringify(
-                {token: token, format: "json",
-                 TimeSeriesUniqueId: timeSeriesUniqueId,
-                 QueryFrom: queryFrom, QueryTo: queryTo,
-                 ApplyRounding: applyRounding.toString()}
-            );
+            querystring.stringify(parameters);
+
+        log(
+            packageName + ".AQUARIUS.getTimeSeriesCorrectedData()::URL",
+            "http://" + hostname + path
+        );
 
         var request = http.request({
             host: hostname,
@@ -1578,11 +1573,13 @@ httpdispatcher.onGet(
                          to get related daily values.
                @callback
             */
-            function (callback) {
+            function (callback) {               
                 try {
                     aquarius.getTimeSeriesCorrectedData(
-                        timeSeriesDescription.UniqueId,
-                        field.QueryFrom, field.QueryTo, callback
+                        {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
+                         QueryFrom: field.QueryFrom,
+                         QueryTo: field.QueryTo},
+                        callback
                     );
                 }
                 catch (error) {
@@ -1880,7 +1877,13 @@ httpdispatcher.onGet(
                @callback
             */
             function (uniqueId, callback) {
-                var name, queryFrom, queryTo;
+                // Note: "rndsup" value is inverted below for semantic
+                // compatibility with AQUARIUS's "ApplyRounding"
+                // parameter.
+                var parameters = {
+                    TimeSeriesUniqueId: uniqueId,
+                    ApplyRounding: eval(! rndsup).toString()
+                };
 
                 // Convert NWIS datetime format to ISO format for
                 // digestion by AQUARIUS REST query. Offset times from
@@ -1888,38 +1891,50 @@ httpdispatcher.onGet(
                 // results. See
                 // http://momentjs.com/timezone/docs/#/using-timezones/
 
-                try {
-                    queryFrom =
-                        moment.tz(
-                            during.from,
+                // if "from" interval boundary is not "from the
+                // beginning of time"
+                if (during.from !== "00000000" &&
+                    during.from !== "00000000000000") {
+                    var queryFrom;
+
+                    try {
+                        queryFrom =
+                            moment.tz(
+                                during.from,
+                                waterServicesSite.tzCode
+                            ).format();
+                    }
+                    catch (error) {
+                        log(packageName + ".error", error);
+                        callback(error);
+                        return;
+                    }
+                    parameters["QueryFrom"] = queryFrom;
+                }
+
+                // if "to" interval boundary is not "to the end of
+                // time"
+                if (during.to !== "99999999" &&
+                    during.to !== "99999999999999") {
+                    var queryTo;
+
+                    try {
+                        queryTo = moment.tz(
+                            during.to,
                             waterServicesSite.tzCode
                         ).format();
-                }
-                catch (error) {
-                    log(packageName + ".error", error);
-                    callback(error);
-                    return;
-                }
-
-                try {
-                    queryTo = moment.tz(
-                        during.to,
-                        waterServicesSite.tzCode
-                    ).format();
-                }
-                catch (error) {
-                    log(packageName + ".error", error);
-                    callback(error);
-                    return;
+                    }
+                    catch (error) {
+                        log(packageName + ".error", error);
+                        callback(error);
+                        return;
+                    }
+                    parameters["QueryTo"] = queryTo;
                 }
 
                 try {
-                    // Note: "rndsup" value is inverted here for
-                    // semantic compatibility with AQUARIUS's
-                    // "ApplyRounding" parameter.
                     aquarius.getTimeSeriesCorrectedData(
-                        uniqueId, queryFrom, queryTo, ! rndsup,
-                        callback
+                        parameters, callback
                     );
                 }
                 catch (error) {
