@@ -1963,8 +1963,12 @@ httpdispatcher.onGet(
                             m.format("YYYYMMDD") + '\t' +
                                 m.format("HHmmss") + '\t' +
                                 waterServicesSite.tzCode + '\t' +
-                                point.Value.Numeric + '\t' +
-                                point.Value.Numeric.toString().length + '\n'
+                                point.Value.Display + '\t' +
+                                point.Value.Display.length + '\t' +
+                                '\t' +
+                                '\t' +
+        timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0) +
+                                '\n'
                         );
                         callback(null);
                     }
