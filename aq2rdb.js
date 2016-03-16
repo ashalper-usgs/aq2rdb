@@ -370,8 +370,8 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     // TIME column will always be empty for daily values
     var row = aq2rdb.toNWISDateFormat(timestamp) + '\t\t';
 
-    if (value.Numeric !== undefined)
-        row += value.Numeric.toString();
+    if (value.Display !== undefined)
+        row += value.Display;
 
     row += '\t';
 
@@ -1964,9 +1964,8 @@ httpdispatcher.onGet(
                                 m.format("HHmmss") + '\t' +
                                 waterServicesSite.tzCode + '\t' +
                                 point.Value.Display + '\t' +
-                                point.Value.Display.length + '\t' +
-                                '\t' +
-                                '\t' +
+                                point.Value.Display.length + "\t \t\t" +
+        // might not be backwards-compatible with nwts2rdb:
         timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0) +
                                 '\n'
                         );
