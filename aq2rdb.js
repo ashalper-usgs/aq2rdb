@@ -754,9 +754,10 @@ var AQUARIUS = function (hostname, userName, password, callback) {
 
         switch (timeSeriesDescriptions.length) {
         case 0:
-            /**
-               @todo error callback
-            */
+            callback(
+                "No time series descriptions found for LocationIdentifier \"" +
+                    locationIdentifier + "\""
+            );
             break;
         case 1:
             timeSeriesDescription = timeSeriesDescriptions[0];
