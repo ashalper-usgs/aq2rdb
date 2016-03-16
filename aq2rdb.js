@@ -1973,8 +1973,7 @@ httpdispatcher.onGet(
                             m.format("YYYYMMDD") + '\t' +
                                 m.format("HHmmss") + '\t' +
                                 waterServicesSite.tzCode + '\t' +
-                                point.Value.Display + '\t' +
-                                point.Value.Display.length + "\t \t\t" +
+                                point.Value.Display + "\t\t \t\t" +
         // might not be backwards-compatible with nwts2rdb:
         timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0) +
                                 '\n'
