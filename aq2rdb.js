@@ -1710,7 +1710,7 @@ httpdispatcher.onGet(
 
         function fuvrdbout(callback) {
             async.waterfall([
-                function () {
+                function (callback) {
                     if (agencyCode === undefined) {
                         callback("Required field \"agencyCode\" not found");
                         return;
@@ -1730,6 +1730,243 @@ httpdispatcher.onGet(
                         return;
                     }
 
+                    callback(
+                        null, options.waterServicesHostname, agencyCode,
+                        siteNumber, options.log
+                    );
+                },
+                /**
+                   @todo site.request() and site.receive() can be done in
+                   parallel with the requesting/receiving of time
+                   series descriptions below.
+                */
+                site.request,
+                site.receive,
+                function (receivedSite, callback) {
+                    waterServicesSite = receivedSite; // set global
+                    callback(null);
+                },
+                /**
+                   @function Query
+                             USGS-parameter-code-to-AQUARIUS-parameter
+                             Web service here to obtain AQUARIUS
+                             parameter from USGS parameter code.
+                   @callback
+                   @param {string} NWIS-RA authorization token.
+                   @param {function} callback async.waterfall() callback
+                          function.
+                */
+            function (callback) {
+                try {
+                    rest.querySecure(
+                        options.waterDataHostname,
+                        "GET",
+                        {"Authorization": "Bearer " + nwisRA.tokenId()},
+                        "/service/data/view/parameters/json",
+                        {"parameters.PARM_ALIAS_CD": "AQNAME",
+                         "parameters.PARM_CD": parameterCode},
+                        options.log,
+                        callback
+                    );
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+            },
+                function (messageBody, callback) {
+                    var parameters;
+
+                    try {
+                        parameters = JSON.parse(messageBody);
+                    }
+                    catch (error) {
+                        callback(error);
+                        return;
+                    }
+
+                    // load fields we need into something more coherent
+                    parameter = {
+                        code: parameters.records[0].PARM_CD,
+                        name: parameters.records[0].PARM_NM,
+                        description: parameters.records[0].PARM_DS,
+                        aquariusParameter: parameters.records[0].PARM_ALIAS_NM
+                    };
+
+                    callback(
+                        null, token, agencyCode, siteNumber,
+                        parameter.aquariusParameter
+                    );
+                },
+                getTimeSeriesDescription,
+                /**
+                   @description Write RDB column names and column data
+                                type definitions to HTTP response.
+                   @callback
+                */
+                function (timeSeriesDescription, callback) {
+                    async.waterfall([
+                        /**
+                           @function Write RDB header to HTTP response.
+                           @callback
+                        */
+                        function (callback) {
+                            // (indirectly) call rdb.header() (below) with
+                            // these arguments
+                            callback(
+                                null, "NWIS-I UNIT-VALUES",
+                                waterServicesSite,
+                                timeSeriesDescription.SubLocationIdentifer,
+                                parameter,
+                                /**
+                                   @todo this is pragmatically
+                                         hard-coded now, but there is
+                                         a relationship to "cflag"
+                                         value above.
+                                */
+                                {code: 'C', name: "COMPUTED"},
+                                {start: during.from, end: during.to}
+                            );
+                        },
+                        rdb.header,
+                        function (header, callback) {
+                            response.write(
+                                header +
+                "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
+                                    "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
+                                "ascii"
+                            );
+                            callback(null);
+                        }
+                    ]);
+                    callback(null, timeSeriesDescription.UniqueId);
+                },
+                /**
+                   @description Call AQUARIUS GetTimeSeriesCorrectedData
+                                service.
+                   @callback
+                */
+                function (uniqueId, callback) {
+                    // Note: "rndsup" value is inverted below for semantic
+                    // forwards-compatibility with AQUARIUS's
+                    // "ApplyRounding" parameter.
+                    var parameters = {
+                        TimeSeriesUniqueId: uniqueId,
+                        ApplyRounding: eval(! rndsup).toString()
+                    };
+
+                    // Convert NWIS datetime format to ISO format for
+                    // digestion by AQUARIUS REST query. Offset times from
+                    // time zone of site to UTC to get correct
+                    // results. See
+                    // http://momentjs.com/timezone/docs/#/using-timezones/
+
+                    // if "from" interval boundary is not "from the
+                    // beginning of time"
+                    if (during.from !== "00000000" &&
+                        during.from !== "00000000000000") {
+                        var queryFrom;
+
+                        try {
+                            queryFrom =
+                                moment.tz(
+                                    during.from,
+                                    waterServicesSite.tzCode
+                                ).format();
+                        }
+                        catch (error) {
+                            log(packageName + ".error", error);
+                            callback(error);
+                            return;
+                        }
+                        parameters["QueryFrom"] = queryFrom;
+                    }
+
+                    // if "to" interval boundary is not "to the end of
+                    // time"
+                    if (during.to !== "99999999" &&
+                        during.to !== "99999999999999") {
+                        var queryTo;
+
+                        try {
+                            queryTo = moment.tz(
+                                during.to,
+                                waterServicesSite.tzCode
+                            ).format();
+                        }
+                        catch (error) {
+                            log(packageName + ".error", error);
+                            callback(error);
+                            return;
+                        }
+                        parameters["QueryTo"] = queryTo;
+                    }
+
+                    try {
+                        aquarius.getTimeSeriesCorrectedData(
+                            parameters, callback
+                        );
+                    }
+                    catch (error) {
+                        callback(error);
+                        return;
+                    }
+                },
+                /**
+                   @description Receive response from AQUARIUS
+                   GetTimeSeriesCorrectedData service.
+                   @callback
+                */
+                aquarius.parseTimeSeriesDataServiceResponse,
+                /**
+                   @description Write time series data as RDB rows to HTTP
+                   response.
+                   @callback
+                */
+                function (timeSeriesDataServiceResponse, callback) {
+                    async.each(
+                        timeSeriesDataServiceResponse.Points,
+                        /**
+                           @description Write an RDB row for one time
+                           series point.
+                           @callback
+                        */
+                        function (point, callback) {
+                            var zone, m;
+                            var tzCode = waterServicesSite.tzCode;
+                            var localTimeFlag =
+                                waterServicesSite.localTimeFlag;
+
+                            try {
+                                zone = tzName[tzCode][localTimeFlag];
+                            }
+                            catch (error) {
+                                callback(
+                                    "Could not look up IANA time zone " +
+                                        "name for site time zone spec. " +
+                                        "(" + tzCode + "," + localTimeFlag + ")"
+                                );
+                                return;
+                            }
+
+                            // reference AQUARIUS timestamp to site's
+                            // (NWIS) time zone spec.
+                            m = moment.tz(point.Timestamp, zone);
+
+                            response.write(
+                                m.format("YYYYMMDD") + '\t' +
+                                    m.format("HHmmss") + '\t' +
+                                    waterServicesSite.tzCode + '\t' +
+                                    point.Value.Display + "\t\t \t\t" +
+                                    // might not be
+                                    // backwards-compatible with
+                                    // nwts2rdb:
+        timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0) +
+                                    '\n'
+                            );
+                            callback(null);
+                        }
+                    );
                     callback(null);
                 }
             ],
@@ -1743,7 +1980,7 @@ httpdispatcher.onGet(
                     }
                 }
             );
-        }
+        } // fuvrdbout
 
         async.waterfall([
             function (callback) {
@@ -1780,241 +2017,6 @@ httpdispatcher.onGet(
             .elseIf(dataTypeIsUV).then(
                 fuvrdbout
             ),
-            function (callback) {
-                callback(
-                    null, options.waterServicesHostname, agencyCode,
-                    siteNumber, options.log
-                );
-            },
-            /**
-               @todo site.request() and site.receive() can be done in
-                     parallel with the requesting/receiving of time
-                     series descriptions below.
-            */
-            site.request,
-            site.receive,
-            function (receivedSite, callback) {
-                waterServicesSite = receivedSite; // set global
-                callback(null);
-            },
-            /**
-               @function Query
-                         USGS-parameter-code-to-AQUARIUS-parameter Web
-                         service here to obtain AQUARIUS parameter
-                         from USGS parameter code.
-               @callback
-               @param {string} NWIS-RA authorization token.
-               @param {function} callback async.waterfall() callback
-                      function.
-            */
-            function (callback) {
-                try {
-                    rest.querySecure(
-                        options.waterDataHostname,
-                        "GET",
-                        {"Authorization": "Bearer " + nwisRA.tokenId()},
-                        "/service/data/view/parameters/json",
-                        {"parameters.PARM_ALIAS_CD": "AQNAME",
-                         "parameters.PARM_CD": parameterCode},
-                        options.log,
-                        callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-            },
-            function (messageBody, callback) {
-                var parameters;
-
-                try {
-                    parameters = JSON.parse(messageBody);
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                // load fields we need into something more coherent
-                parameter = {
-                    code: parameters.records[0].PARM_CD,
-                    name: parameters.records[0].PARM_NM,
-                    description: parameters.records[0].PARM_DS,
-                    aquariusParameter: parameters.records[0].PARM_ALIAS_NM
-                };
-
-                callback(
-                    null, token, agencyCode, siteNumber,
-                    parameter.aquariusParameter
-                );
-            },
-            getTimeSeriesDescription,
-            /**
-               @description Write RDB column names and column data
-                            type definitions to HTTP response.
-               @callback
-            */
-            function (timeSeriesDescription, callback) {
-                async.waterfall([
-                    /**
-                       @function Write RDB header to HTTP response.
-                       @callback
-                    */
-                    function (callback) {
-                        // (indirectly) call rdb.header() (below) with
-                        // these arguments
-                        callback(
-                            null, "NWIS-I UNIT-VALUES",
-                            waterServicesSite,
-                            timeSeriesDescription.SubLocationIdentifer,
-                            parameter,
-                            /**
-                               @todo this is pragmatically hard-coded
-                               now, but there is a relationship to
-                               "cflag" value above.
-                             */
-                            {code: 'C', name: "COMPUTED"},
-                            {start: during.from, end: during.to}
-                        );
-                    },
-                    rdb.header,
-                    function (header, callback) {
-                        response.write(
-                            header +
-                "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
-                                "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n", "ascii"
-                        );
-                        callback(null);
-                    }
-                ]);
-                callback(null, timeSeriesDescription.UniqueId);
-            },
-            /**
-               @description Call AQUARIUS GetTimeSeriesCorrectedData
-                            service.
-               @callback
-            */
-            function (uniqueId, callback) {
-                // Note: "rndsup" value is inverted below for semantic
-                // forwards-compatibility with AQUARIUS's
-                // "ApplyRounding" parameter.
-                var parameters = {
-                    TimeSeriesUniqueId: uniqueId,
-                    ApplyRounding: eval(! rndsup).toString()
-                };
-
-                // Convert NWIS datetime format to ISO format for
-                // digestion by AQUARIUS REST query. Offset times from
-                // time zone of site to UTC to get correct
-                // results. See
-                // http://momentjs.com/timezone/docs/#/using-timezones/
-
-                // if "from" interval boundary is not "from the
-                // beginning of time"
-                if (during.from !== "00000000" &&
-                    during.from !== "00000000000000") {
-                    var queryFrom;
-
-                    try {
-                        queryFrom =
-                            moment.tz(
-                                during.from,
-                                waterServicesSite.tzCode
-                            ).format();
-                    }
-                    catch (error) {
-                        log(packageName + ".error", error);
-                        callback(error);
-                        return;
-                    }
-                    parameters["QueryFrom"] = queryFrom;
-                }
-
-                // if "to" interval boundary is not "to the end of
-                // time"
-                if (during.to !== "99999999" &&
-                    during.to !== "99999999999999") {
-                    var queryTo;
-
-                    try {
-                        queryTo = moment.tz(
-                            during.to,
-                            waterServicesSite.tzCode
-                        ).format();
-                    }
-                    catch (error) {
-                        log(packageName + ".error", error);
-                        callback(error);
-                        return;
-                    }
-                    parameters["QueryTo"] = queryTo;
-                }
-
-                try {
-                    aquarius.getTimeSeriesCorrectedData(
-                        parameters, callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-            },
-            /**
-               @description Receive response from AQUARIUS
-                            GetTimeSeriesCorrectedData service.
-               @callback
-            */
-            aquarius.parseTimeSeriesDataServiceResponse,
-            /**
-               @description Write time series data as RDB rows to HTTP
-                            response.
-               @callback
-            */
-            function (timeSeriesDataServiceResponse, callback) {
-                async.each(
-                    timeSeriesDataServiceResponse.Points,
-                    /**
-                       @description Write an RDB row for one time
-                                    series point.
-                       @callback
-                    */
-                    function (point, callback) {
-                        var zone, m;
-                        var tzCode = waterServicesSite.tzCode;
-                        var localTimeFlag = waterServicesSite.localTimeFlag;
-
-                        try {
-                            zone = tzName[tzCode][localTimeFlag];
-                        }
-                        catch (error) {
-                            callback(
-                                "Could not look up IANA time zone " +
-                                    "name for site time zone spec. " +
-                                    "(" + tzCode + "," + localTimeFlag + ")"
-                            );
-                            return;
-                        }
-
-                        // reference AQUARIUS timestamp to site's
-                        // (NWIS) time zone spec.
-                        m = moment.tz(point.Timestamp, zone);
-
-                        response.write(
-                            m.format("YYYYMMDD") + '\t' +
-                                m.format("HHmmss") + '\t' +
-                                waterServicesSite.tzCode + '\t' +
-                                point.Value.Display + "\t\t \t\t" +
-        // might not be backwards-compatible with nwts2rdb:
-        timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0) +
-                                '\n'
-                        );
-                        callback(null);
-                    }
-                );
-                callback(null);
-            }, // fuvrdbout
             function (callback) {
                 log(packageName + ".httpdispatcher.onGet(\"/" + packageName +
                     "\", ().async.waterfall([].().irc))",
