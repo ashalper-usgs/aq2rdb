@@ -898,6 +898,48 @@ function parseUVFields(requestURL, callback) {
     );
 } // parseUVFields
 
+function fuvrdbout(
+    response, editable, rndsup, cflag, vflag, agencyCode,
+    siteNumber, parameterCode, interval, locTzCd, callback
+) {
+    log(packageName + ".httpdispatcher.onGet(/" + packageName +
+        ", ().async.waterfall()[]",
+        sprintf(
+            "fuvrdbout(\n" +
+                "   response=%s, editable=%s, rndsup=%s, " +
+                "cflag=%s, vflag=%s, agencyCode=%s,\n" +
+                "   siteNumber=%s, parameterCode=%s, locTzCd=%s\n" +
+                ")",
+            response, editable, rndsup, cflag, vflag,
+            agencyCode, siteNumber, parameterCode, locTzCd
+        )
+       );
+
+    if (agencyCode === undefined) {
+        callback("Required field \"agencyCode\" not found");
+        return;
+    }
+
+    if (siteNumber === undefined) {
+        callback("Required field \"siteNumber\" not found");
+        return;
+    }
+
+    // TODO: "parameter" somehow went MIA in fuvrdbout()
+    // formal parameters in translation from Fortran
+    if (parameterCode === undefined) {
+        callback(
+            "Required AQUARIUS field \"Parameter\" not found"
+        );
+        return;
+    }
+
+    callback(
+        null, options.waterServicesHostname, agencyCode, siteNumber,
+        options.log
+    );
+}
+
 /**
    @function Node.js emulation of a proper subset of legacy NWIS,
              NWF_RDB_OUT() Fortran subroutine: "Top-level routine for
@@ -1705,9 +1747,9 @@ httpdispatcher.onGet(
             },
             parseUVFields,
             rdbOut,
-            function fuvrdbout(
-                editable, r, cflag, vflag, a, s, p, interval,
-                locTzCd, callback
+            function (
+                editable, r, cflag, vflag, a, s, p, interval, locTzCd,
+                callback
             ) {
                 // save values in outer scope to avoid passing these
                 // values through subsequent async.waterfal()
@@ -1718,49 +1760,14 @@ httpdispatcher.onGet(
                 parameterCode = p;
                 during = interval;
                 rndsup = r;
-                var parameter, rtcode;
-
-                log(packageName + ".httpdispatcher.onGet(/" + packageName +
-                    ", ().async.waterfall()[]",
-                    sprintf(
-                        "fuvrdbout(\n" +
-                            "   response=%s, editable=%s, rndsup=%s,\n" +
-                            "   cflag=%s, vflag=%s, a=%s, " +
-                            "s=%s, p=%s\n" +
-                            "   locTzCd=%s\n" +
-                            ")",
-                        response, editable, rndsup, cflag, vflag,
-                        a, s, p, locTzCd
-                    )
-                );
-                
-                // TODO: construct AQUARIUS LocationIdentifier and
-                // Parameter here
-
-                if (agencyCode === undefined) {
-                    callback("Required field \"agencyCode\" not found");
-                    return;
-                }
-
-                if (siteNumber === undefined) {
-                    callback("Required field \"siteNumber\" not found");
-                    return;
-                }
-
-                // TODO: "parameter" somehow went MIA in fuvrdbout()
-                // formal parameters in translation from Fortran
-                if (parameterCode === undefined) {
-                    callback(
-                        "Required AQUARIUS field \"Parameter\" not found"
-                    );
-                    return;
-                }
 
                 callback(
-                    null, options.waterServicesHostname, agencyCode,
-                    siteNumber, options.log
+                    null, response, editable, rndsup, cflag, vflag,
+                    agencyCode, siteNumber, parameterCode, interval,
+                    locTzCd
                 );
             },
+            fuvrdbout,
             /**
                @todo site.request() and site.receive() can be done in
                      parallel with the requesting/receiving of time
