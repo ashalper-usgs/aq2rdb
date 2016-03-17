@@ -1665,13 +1665,13 @@ httpdispatcher.onGet(
         var waterServicesSite;
         /**
            @todo Need to check downstream depedendencies in aq2rdb
-           endpoint's async.waterfall function on presence of former
-           "P" prefix of this value.
+                 endpoint's async.waterfall function for presence of
+                 former "P" prefix of this value.
         */
         var parameterCode;
         var parameter, extendedFilters;
         var timeSeriesDescription, during, editable, cflag, vflag;
-        var rndsup, locTzCd, irc;
+        var rndsup, locTzCd;
 
         log(packageName + ".httpdispatcher.onGet(/" + packageName +
             ", (request))", request);
@@ -2016,18 +2016,10 @@ httpdispatcher.onGet(
             )
             .elseIf(dataTypeIsUV).then(
                 fuvrdbout
-            ),
-            function (callback) {
-                log(packageName + ".httpdispatcher.onGet(\"/" + packageName +
-                    "\", ().async.waterfall([].().irc))",
-                    irc);
-                callback(null);
-            }
+            )
         ],
             /**
-               @description node-async error handler function for
-                            outer-most, GetUVTable async.waterfall
-                            function.
+               @description node-async error handler function.
                @callback
             */
             function (error) {
