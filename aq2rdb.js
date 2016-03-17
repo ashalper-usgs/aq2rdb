@@ -1700,49 +1700,50 @@ httpdispatcher.onGet(
                 callback(null, false);
         }
 
+        /**
+           @todo This is a stub right now.
+        */
         function fdvrdbout(callback) {
             log(packageName + ".fdvrdbout()", "fdvrdbout() called");
             callback(null);
         }
 
-function fuvrdbout(callback) {
-    log(packageName + ".httpdispatcher.onGet(/" + packageName +
-        ", ().async.waterfall()[]",
-        sprintf(
-            "fuvrdbout(\n" +
-                "   response=%s, editable=%s, rndsup=%s, " +
-                "cflag=%s, vflag=%s, agencyCode=%s,\n" +
-                "   siteNumber=%s, parameterCode=%s, locTzCd=%s\n" +
-                ")",
-            response, editable, rndsup, cflag, vflag,
-            agencyCode, siteNumber, parameterCode, locTzCd
-        )
-       );
+        function fuvrdbout(callback) {
+            async.waterfall([
+                function () {
+                    if (agencyCode === undefined) {
+                        callback("Required field \"agencyCode\" not found");
+                        return;
+                    }
 
-    if (agencyCode === undefined) {
-        callback("Required field \"agencyCode\" not found");
-        return;
-    }
+                    if (siteNumber === undefined) {
+                        callback("Required field \"siteNumber\" not found");
+                        return;
+                    }
 
-    if (siteNumber === undefined) {
-        callback("Required field \"siteNumber\" not found");
-        return;
-    }
+                    // TODO: "parameter" somehow went MIA in fuvrdbout() formal
+                    // parameters in translation from Fortran
+                    if (parameterCode === undefined) {
+                        callback(
+                            "Required AQUARIUS field \"Parameter\" not found"
+                        );
+                        return;
+                    }
 
-    // TODO: "parameter" somehow went MIA in fuvrdbout() formal
-    // parameters in translation from Fortran
-    if (parameterCode === undefined) {
-        callback(
-            "Required AQUARIUS field \"Parameter\" not found"
-        );
-        return;
-    }
-
-    callback(
-        null, options.waterServicesHostname, agencyCode, siteNumber,
-        options.log
-    );
-}
+                    callback(null);
+                }
+            ],
+                function (error) {
+                    if (error) {
+                        callback(error);
+                        return;
+                    }
+                    else {
+                        callback(null);
+                    }
+                }
+            );
+        }
 
         async.waterfall([
             function (callback) {
@@ -1779,16 +1780,16 @@ function fuvrdbout(callback) {
             .elseIf(dataTypeIsUV).then(
                 fuvrdbout
             ),
+            function (callback) {
+                callback(
+                    null, options.waterServicesHostname, agencyCode,
+                    siteNumber, options.log
+                );
+            },
             /**
                @todo site.request() and site.receive() can be done in
                      parallel with the requesting/receiving of time
                      series descriptions below.
-            */
-            /**
-               @todo Post re-factor, "site" is no longer in scope here, so:
-
-                       aq2rdb.handleRequest().error: TypeError: Cannot
-                       read property 'request' of undefined
             */
             site.request,
             site.receive,
