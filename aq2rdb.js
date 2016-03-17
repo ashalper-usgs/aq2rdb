@@ -23,7 +23,6 @@ var url = require('url');
 
 // aq2rdb modules
 var adaps = require('./adaps');
-var fdvrdbout = require('./fdvrdbout').fdvrdbout;
 var rdb = require('./rdb');
 var rest = require('./rest');
 var site = require('./site');
@@ -2066,7 +2065,7 @@ httpdispatcher.onGet(
 */ 
 function handleRequest(request, response) {
     try {
-        log(packageName + ".handleRequest().request.url: ", request.url);
+        log(packageName + ".handleRequest().request.url", request.url);
         httpdispatcher.dispatch(request, response);
     }
     catch (error) {
@@ -2218,7 +2217,7 @@ else {
                 server.listen(options.port, function () {
                     log(
                         packageName,
-                        ": Server listening on: http://localhost:" +
+                        "Server listening on: http://localhost:" +
                         options.port.toString()
                     );
                 });
