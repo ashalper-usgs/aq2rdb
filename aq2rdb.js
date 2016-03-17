@@ -1255,6 +1255,56 @@ function getVersion(callback) {
 } // getVersion
 
 /**
+   @function Convert NWIS datetime format to ISO format for digestion
+             by AQUARIUS REST query. Offset times from time zone of
+             site to UTC to get correct results.
+   @see http://momentjs.com/timezone/docs/#/using-timezones/
+*/
+function appendIntervalSearchCondition(
+    parameters, during, tzCode,
+    fromTheBeginningOfTimeToken, toTheEndOfTimeToken,
+    callback
+) {
+    // if "from" interval boundary is not "from the beginning of time"
+    if (during.from !== fromTheBeginningOfTimeToken) {
+        var queryFrom;
+
+        try {
+            queryFrom = moment.tz(
+                during.from,
+                tzCode
+            ).format();
+        }
+        catch (error) {
+            log(packageName + ".error", error);
+            callback(error);
+            return;
+        }
+        parameters["QueryFrom"] = queryFrom;
+    }
+
+    // if "to" interval boundary is not "to the end of time"
+    if (during.to !== toTheEndOfTimeToken) {
+        var queryTo;
+
+        try {
+            queryTo = moment.tz(
+                during.to,
+                tzCode
+            ).format();
+        }
+        catch (error) {
+            log(packageName + ".error", error);
+            callback(error);
+            return;
+        }
+        parameters["QueryTo"] = queryTo;
+    }
+
+    return parameters;
+} // appendIntervalSearchCondition
+
+/**
    @description GetDVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
@@ -1701,12 +1751,536 @@ httpdispatcher.onGet(
         }
 
         /**
-           @todo This is a stub right now.
+           @function A Node.js emulation of legacy NWIS, FDVRDBOUT()
+                     Fortran subroutine: "Write DV data in rdb FORMAT"
+                     [sic].
         */
         function fdvrdbout(callback) {
-            log(packageName + ".fdvrdbout()", "fdvrdbout() called");
+            // many/most of these are artifacts of the legacy code,
+            // and probably won't be needed:
+            var sid, sagncy;
+            var dvWaterYr, tunit;
+            var cval, cdate, odate, outlin, rndary = ' ';
+            var rndparm, rnddd, cdvabort = ' ', bnwisdt, enwisdt;
+            var bnwisdtm, enwisdtm, bingdt, eingdt, temppath;
+            var nullval = '**NULL**', nullrd = ' ', nullrmk = ' ';
+            var nulltype = ' ', nullaging = ' ';
+            var smgtof, rtcode;
+            var wrotedata = false, first = true;
+
+            async.waterfall([
+                function (callback) {
+                    if (begdate === '00000000') {
+                        // RH comes from NW_NWIS_MINDATE value in
+                        // watstore/support/ins.dir/adaps_keys.ins
+                        bnwisdtm = '15820101235959';
+                        bnwisdt = bnwisdtm.substr(0, 7);
+                    }
+                    else {
+                        bnwisdtm = begdate + '000000';
+                        bnwisdt = begdate;
+                    }
+
+                    if (enddate === '99999999') {
+                        // RH comes from NW_NWIS_MAXDATE value in
+                        // watstore/support/ins.dir/adaps_keys.ins
+                        enwisdtm = '23821231000000'
+                        enwisdt = enwisdtm.substr(0, 7);
+                    }
+                    else {
+                        enwisdt = enddate;
+                        enwisdtm = enddate + '23959';
+                    }
+
+                    // get site
+                    sagncy = agyin;
+                    sid = station;
+
+                    callback(null, waterServicesHostname, sid, log);
+                },
+                site.request,
+                site.receive,
+                function (site, callback) {
+                    if (smgtof === ' ') {
+                        // WRITE (smgtof,'(I3)') gmtof
+                        smgtof = sprintf("%3d", gmtof);
+                    }
+                    smgtof = sprintf("%-3d", smgtof);
+                    callback(null);
+                },
+                function (callback) {
+                    pcode = 'P';         // pmcode            // set rounding
+                    /**
+                       @todo Load data descriptor?
+                       s_mddd(nw_read, irc, *998);
+                    */
+                    /**
+                       @todo call parameter Web service here
+                       rtcode = pmretr(60);
+                    */
+                    if (rnddd !== ' ' && rnddd !== '0000000000')
+                        rndary = rnddd;
+                    else
+                        rndary = rndparm;
+
+                    callback(null);
+                },
+                /**
+                   @todo this might be obsolete
+                */
+                function (callback) {
+                    // DV abort limit defaults to 120 minutes
+                    cdvabort = '120';
+
+                    /**
+                       @todo get the DV abort limit
+                       @see watstore/adaps/adrsrc/tsing_lib/nw_db_retr_dvabort.sf
+                       if (dbRetrDVAbort(ddagny, ddstid, ddid, bnwisdtm,
+                       enwisdtm, dvabort)) {
+                       cdvabort = sprintf("%6d", dvabort);
+                       }
+                    */
+                    callback(null);
+                },
+                function (callback) {
+                    /**
+                       @todo get stat information
+                       irc = s_statck(stat);
+                    */
+                    if (irc !== 0)
+                        ssnam = '*** INVALID STAT ***';
+
+                    callback(null);
+                },
+                function (callback) {
+                    if (! addkey) {
+                        async.waterfall([
+                            function (callback) {
+                                // write the header records
+                                rdbHeader(funit);
+                                callback(null);
+                            },
+                            function (callback) {
+                                var line =
+                                    '# //FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=';
+                                
+                                if (editable)
+                                    line += "YES";
+                                else
+                                    line += "NO";
+
+                                funit.write(line + '\n', "ascii");
+                                callback(null);
+                            },
+                            function (callback) {
+                                /**
+                                   @todo write database info
+                                */
+                                rdbDBLine(funit);
+                                callback(null);
+                            },
+                            function (callback) {
+                                // write site info
+                                funit.write(
+                                    '# //STATION AGENCY="' + sagncy +
+                                        '" NUMBER="' + sid + '" TIME_ZONE="' +
+                                        smgtof + '" DST_FLAG=' + slstfl + '\n' +
+                                        '# //STATION NAME="' + sname + '"\n',
+                                    "ascii"
+                                );
+                                callback(null);
+                            },
+                            function (callback) {
+                                /**
+                                   @todo write Location info
+
+                                   At 8:30 AM, Feb 16th, 2016, Wade Walker
+                                   <walker@usgs.gov> said:
+
+                                   sublocation is the AQUARIUS equivalent of
+                                   ADAPS location. It is returned from any of
+                                   the GetTimeSeriesDescriptionList... methods
+                                   or for GetFieldVisitData method elements
+                                   where sublocation is
+                                   appropriate. GetSensorsAndGages will also
+                                   return associated sublocations. They're
+                                   basically just a shared attribute of time
+                                   series, sensors and gages, and field
+                                   readings, so no specific call for them,
+                                   they're just returned with the data they're
+                                   applicable to. Let me know if you need
+                                   something beyond that.
+
+                                   rdbWriteLocInfo(funit, dd_id);
+                                */
+                                callback(null);
+                            },
+                            function (callback) {
+                                // write DD info
+                                funit.write(
+                                    '# //PARAMETER CODE="' +
+                                        pcode.substr(1, 5) + '" SNAME = "' +
+                                        psnam + '"\n' +
+                                        '# //PARAMETER LNAME="' + plname +
+                                        '"\n' +
+                                        '# //STATISTIC CODE="' +
+                                        scode.substr(1, 5) + '" SNAME="' +
+                                        ssnam + '"\n' +
+                                        '# //STATISTIC LNAME="' + slname + '"\n',
+                                    "ascii"
+                                );
+                                callback(null);
+                            },
+                            function (callback) {
+                                // write DV type info
+                                if (compdv) {
+                                    funit.write(
+                                        '# //TYPE NAME="COMPUTED" ' +
+                                            'DESC = "COMPUTED DAILY VALUES ONLY"\n',
+                                        "ascii"
+                                    )
+                                }
+                                else {
+                                    funit.write(
+                                        '# //TYPE NAME="FINAL" ' +
+                                            'DESC = "EDITED AND COMPUTED DAILY VALUES"\n',
+                                        "ascii"
+                                    )
+                                }
+                                callback(null);
+                            },
+                            function (callback) {
+                                /**
+                                   @todo write data aging information
+                                   rdbWriteAging(
+                                   funit, dbnum, dd_id, begdate, enddate
+                                   );
+                                */
+                                callback(null);
+                            },
+                            function (callback) {
+                                // write editable range
+                                funit.write(
+                                    '# //RANGE START="' + begdate +
+                                        '" END="' + enddate + '"\n',
+                                    "ascii"
+                                )
+                                callback(null);
+                            },
+                            function (callback) {
+                                // write single site RDB column headings
+                                funit.write(
+                                    "DATE\tTIME\tVALUE\tPRECISION\t" +
+                                        "REMARK\tFLAGS\tTYPE\tQA\n",
+                                    "ascii"
+                                );
+                                callback(null);
+                            },
+                            function (callback) {
+                                var dtcolw;
+                                
+                                // if verbose, Excel-style format
+                                if (vflag) {
+                                    dtcolw = '10D';     // "mm/dd/yyyy" 10 chars
+                                }
+                                else {
+                                    dtcolw = '8D';      // "yyyymmdd" 8 chars
+                                }
+
+                                // WRITE (funit,'(20A)') outlin(1:23+dtlen)
+                                funit.write(
+                                    dtcolw + "\t6S\t16N\t1S\t1S\t32S\t1S\t1S",
+                                    "ascii"
+                                );
+                                callback(null);
+                            }
+                        ]); // async.waterfall
+                    }
+                    else if (first) {
+                        async.waterfall([
+                            function (callback) {
+                                /**
+                                   @todo write "with keys" rdb column headings
+                                   WRITE (funit,'(20A)')
+                                   *           '# //FILE TYPE="NWIS-I DAILY-VALUES" ',
+                                   *           'EDITABLE=NO'
+                                   */
+                                callback(null);
+                            },
+                            function (callback) {
+                                // write database info
+                                nw_rdb_dbline(funit);
+                                callback(null);
+                            },
+                            function (callback) {
+                                funit.write(
+                                    "AGENCY\tSTATION\tDD\tPARAMETER\tSTATISTIC\tDATE\t" +
+                                        "TIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n",
+                                    "ascii"
+                                );
+                                callback(null);
+                            },
+                            function (callback) {
+                                var dtcolw;
+                                
+                                // if verbose, Excel-style format
+                                if (vflag) {
+                                    dtcolw = "10D";  // "mm/dd/yyyy" 10 chars
+                                }
+                                else {
+                                    dtcolw = "8D";   // "yyyymmdd" 8 chars
+                                }
+
+                                funit.write(
+                                    "5S\t15S\t4S\t5S\t5S\t" + dtcolw +
+                                        "\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n",
+                                    "ascii"
+                                );
+                                
+                                first = false;
+                                callback(null);
+                            }
+                        ]);
+                    }
+                    callback(null);
+                },
+                function (callback) {
+                    // Setup begin date
+                    if (begdate === '00000000') {
+                        if (! nw_db_retr_dv_first_yr(dd_id, stat, dvWaterYr)) {
+                            return nw_get_error_number();
+                        }
+                        /**
+                           WRITE (bnwisdt,2030) dvWaterYr - 1
+                           2030       FORMAT (I4.4,'1001')
+                        */
+                        bnwisdt = sprintf("%4d1001", dvWaterYr - 1);
+                    }
+
+                    // validate and load begin date into ingres FORMAT
+                    if (! nw_cdt_ok(bnwisdt))
+                        return 3;
+                    else
+                        nw_dt_nwis2ing(bnwisdt, bingdt)
+
+                    // Setup end date
+                    if (enddate === '99999999') {
+                        if (! nw_db_retr_dv_last_yr(dd_id, stat, dvWaterYr)) {
+                            return nw_get_error_number();
+                        }
+                        /*
+                          WRITE (enwisdt,2040) dvWaterYr
+                          2040       FORMAT (I4.4,'0930')
+                        */
+                        enwisdt = sprintf("%4d0930", dvWaterYr);
+                    }
+
+                    // validate and load end date into ingres FORMAT
+                    if (! nw_cdt_ok(enwisdt))
+                        return 3;
+                    else
+                        nw_dt_nwis2ing(enwisdt, eingdt);
+
+                    odate = bnwisdt;
+                    if (! compdv) {
+                        /**
+                           @todo
+
+                           stmt = 'SELECT dvd.dv_dt, dvd.dv_va, dvd.dv_rd, ' //
+                           *                    'dvd.dv_rmk_cd, dvd.dv_type_cd, ' //
+                           *                    'dvd.data_aging_cd FROM ' //
+                           *                dv_data_name(1:ldv_data_name) // ' dvd, ' //
+                           *                dv_name(1:ldv_name) // ' dv ' //
+                           *             'WHERE dv.dd_id = ' // cdd_id // ' AND ' //
+                           *                   'dv.stat_cd = ''' // stat // ''' AND ' //
+                           *                   'dvd.dv_id = dv.dv_id AND ' // 
+                           *                   'dvd.dv_dt >=  ''' // bingdt // ''' AND ' // 
+                           *                   'dvd.dv_dt <=  ''' // eingdt // ''' '  // 
+                           *             'ORDER BY dvd.dv_dt'
+                           */
+                    }
+                    else {
+                        /*
+                          @todo
+
+                          stmt = 'SELECT dvd.dv_dt, dvd.dv_va, dvd.dv_rd,' //
+                          *               'dvd.dv_rmk_cd, dvd.dv_type_cd,' //
+                          *               'dvd.data_aging_cd FROM ' //
+                          *             dv_data_name(1:ldv_data_name) // ' dvd, ' //
+                          *             dv_name(1:ldv_name) // ' dv ' //
+                          *             'WHERE dv.dd_id = ' // cdd_id // ' AND ' //
+                          *             'dv.stat_cd = ''' // stat // ''' AND  ' // 
+                          *             'dvd.dv_id = dv.dv_id AND ' //
+                          *             'dvd.dv_type_cd = ''C'' AND ' //
+                          *             'dvd.dv_dt >=  ''' // bingdt // ''' AND ' //
+                          *             'dvd.dv_dt <=  ''' // eingdt // ''' ' // 
+                          *             ' UNION ' //
+                          *             'SELECT dvf.dv_dt, dvf.dv_va, dvf.dv_rd, ' //
+                          *               'dvf.dv_rmk_cd, dvf.dv_type_cd, ' //
+                          *               'dvf.data_aging_cd FROM ' //
+                          *             dv_diff_name(1:ldv_diff_name) // ' dvf, ' //
+                          *             dv_name(1:ldv_name) // ' dv ' //
+                          *             'WHERE dv.dd_id = ' // cdd_id // ' AND ' //
+                          *             'dv.stat_cd = ''' // stat // ''' AND ' // 
+                          *             'dvf.dv_id = dv.dv_id AND ' //
+                          *             'dvf.dv_type_cd = ''C'' AND ' //
+                          *             'dvf.dv_dt >=  ''' // bingdt // ''' AND ' //
+                          *             'dvf.dv_dt <=  ''' // eingdt // ''' ' //
+                          *             ' ORDER BY dv_dt'
+                          */
+                    }
+
+                    // TODO:
+                    /*
+                      EXEC SQL PREPARE pstmt FROM :stmt
+                      nw_sql_error_handler ('fdvrdbout', 'prepare',
+                      *        'Retrieving DV data', rowcount, irc)
+                      if (irc === 0) {
+                      EXEC SQL OPEN cur_stmt
+                      nw_sql_error_handler ('fdvrdbout', 'opencurs',
+                      *           'Retrieving DV data', rowcount, irc)
+                      if (irc === 0) {
+                      DO
+                      EXEC SQL FETCH cur_stmt INTO
+                      *                 :dv_dt, :dv_va:dv_va_null, :dv_rd:dv_rd_null,
+                      *                 :dv_rmk_cd, :dv_type_cd, :data_aging_cd
+
+                      if (nw_no_data_found()) EXIT
+                      
+                      nw_sql_error_handler ('fdvrdbout', 'fetch',
+                      *                 'Retrieving DV data', rowcount, irc)
+                      if (irc !== 0) EXIT
+
+                      nw_dt_ing2nwis (dv_dt, cdate)
+                      10               if (odate .LT. cdate) {
+                      WRITE (tunit) odate, nullval, nullrd, nullrmk, 
+                      *                    nulltype, nullaging
+                      nw_dtinc (odate, 1)
+                      GO TO 10
+                      }
+                    */
+                    // process this row
+                    if (dv_va_null === -1) dv_va = NW_NR4;
+                    if (dv_rd_null === -1) dv_rd = ' ';
+                    if (dv_va < NW_CR4) {
+                        // value is null
+                        // TODO:
+                        /*
+                          WRITE (tunit) cdate, nullval, nullrd, dv_rmk_cd,
+                          *                    dv_type_cd, data_aging_cd
+                          */
+                    }
+                    else {
+                        // Pick a rounding precision IF blank
+                        if (dv_rd === ' ')
+                            if (! nw_va_rget_rd(dv_va, rndary, dv_rd))
+                                dv_rd = '9';
+                        
+                        // convert value to a character string and load it
+                        if (rndsup) {
+                            /**
+                               @todo
+                               WRITE (cval,2050) dv_va
+                               2050                   FORMAT (E14.7)
+                            */
+                        }
+                        else {
+                            if (! nw_va_rrnd_tx(dv_va, dv_rd, cval))
+                                cval = '****';
+                        }
+                        cval = sprintf("%20s", cval);
+                        /**
+                           @todo
+                           WRITE (tunit) cdate, cval, dv_rd, dv_rmk_cd,
+                           *                    dv_type_cd, data_aging_cd
+                           */
+                    }
+                    nw_dtinc(odate, 1);
+                    // TODO:
+                    /*
+                      END DO
+                      EXEC SQL CLOSE cur_stmt
+                      end if
+                      end if
+                    */
+                    if (irc !== 0)
+                        return irc;
+                    
+                    // fill nulls to the end of the period, if the database
+                    // retrieval stopped short
+                    
+                    while (odate <= enwisdt) {
+                        // TODO:
+                        /*
+                          WRITE (tunit) odate, nullval, nullrd, nullrmk, nulltype,
+                          *           nullaging
+                          */
+                        nw_dtinc(odate, 1);
+                    }
+                    // TODO:
+                    // ENDFILE (tunit)
+
+                    // Read the temp file and write the RDB file, filling in data
+                    // aging where blank (did it this way because the data aging
+                    // routine would COMMIT the loop
+
+                    // TODO:
+                    /*
+                      REWIND (tunit)
+                      30       READ (tunit,END=40) cdate, cval, dv_rd, dv_rmk_cd,
+                      *           dv_type_cd, data_aging_cd
+                      */
+                    if (data_aging_cd === ' ') {
+                        if (! nw_db_retr_aging_for_date(dbnum, dd_id, cdate,
+                                                        data_aging_cd))
+                            return;
+                    }
+                    if (data_aging_cd !== 'W')
+                        rtcode = 1;
+
+                    var exdate;   // verbose Excel style date "mm/dd/yyyy"
+
+                    if (vflag) {           // build "mm/dd/yyyy"
+                        exdate = cdate.substr(4, 5) + '/' + cdate.substr(6, 7) +
+                            '/' + cdate.substr(0, 3);
+                    }
+                    else {                  // copy over "yyyymmdd"
+                        exdate = cdate;
+                    }
+
+                    if (addkey) {
+                        outlin = agyin + '\t' + station + '\t' +
+                            pcode.substr(1, 5) + '\t' + stat + '\t' +
+                            exdate;
+                    }
+                    else {
+                        outlin = exdate;
+                    }
+
+                    if (cval === '**NULL**') {
+                        outlin += '\t\t\t\t' + dv_rmk_cd + '\t\t' +
+                            dv_type_cd + '\t' + data_aging_cd;
+                    }
+                    else {
+                        outlin += '\t\t' + cval + '\t' + dv_rd + '\t' +
+                            dv_rmk_cd + '\t\t' + dv_type_cd + '\t' +
+                            data_aging_cd;
+                        wrotedata = true;
+                    }
+
+                    /**
+                       WRITE (funit,'(20A)') outlin(1:outlen)
+                       GOTO 30
+
+                       40      CLOSE (tunit, status = 'DELETE')
+                    */
+                    funit.write(outlin + '\n', "ascii");
+                    callback(null);
+                }
+            ]); // async.waterfall
+
             callback(null);
-        }
+        } // fdvrdbout
 
         function fuvrdbout(callback) {
             async.waterfall([
@@ -1855,52 +2429,12 @@ httpdispatcher.onGet(
                         ApplyRounding: eval(! rndsup).toString()
                     };
 
-                    // Convert NWIS datetime format to ISO format for
-                    // digestion by AQUARIUS REST query. Offset times from
-                    // time zone of site to UTC to get correct
-                    // results. See
-                    // http://momentjs.com/timezone/docs/#/using-timezones/
-
-                    // if "from" interval boundary is not "from the
-                    // beginning of time"
-                    if (during.from !== "00000000" &&
-                        during.from !== "00000000000000") {
-                        var queryFrom;
-
-                        try {
-                            queryFrom =
-                                moment.tz(
-                                    during.from,
-                                    waterServicesSite.tzCode
-                                ).format();
-                        }
-                        catch (error) {
-                            log(packageName + ".error", error);
-                            callback(error);
-                            return;
-                        }
-                        parameters["QueryFrom"] = queryFrom;
-                    }
-
-                    // if "to" interval boundary is not "to the end of
-                    // time"
-                    if (during.to !== "99999999" &&
-                        during.to !== "99999999999999") {
-                        var queryTo;
-
-                        try {
-                            queryTo = moment.tz(
-                                during.to,
-                                waterServicesSite.tzCode
-                            ).format();
-                        }
-                        catch (error) {
-                            log(packageName + ".error", error);
-                            callback(error);
-                            return;
-                        }
-                        parameters["QueryTo"] = queryTo;
-                    }
+		    parameters = appendIntervalSearchCondition(
+			parameters, during,
+			waterServicesSite.tzCode,
+			"00000000000000", "99999999999999",
+			callback
+		    );
 
                     try {
                         aquarius.getTimeSeriesCorrectedData(
@@ -1990,9 +2524,12 @@ httpdispatcher.onGet(
             },
             parseUVFields,
             rdbOut,
+            /**
+               @todo It would be quite nice to get rid of this scoping
+                     crutch eventually.
+            */
             function (
-                e, r, c, v, d, a, s, p, interval, locTzCd,
-                callback
+                e, r, c, v, d, a, s, p, interval, locTzCd, callback
             ) {
                 // save values in outer scope to avoid passing these
                 // values through subsequent async.waterfal()
