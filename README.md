@@ -41,3 +41,4 @@ but may be overridden by specifying them.
 
 ## Testing
     curl 'http://localhost:8081/aq2rdb?p=00060&t=uv&s=C&n=09380000&b=20141001000000&e=20141002000000'
+    curl 'http://localhost:8081/aq2rdb?p=00060&t=dv&s=00003&n=09380000&b=20141001&e=20150930'
