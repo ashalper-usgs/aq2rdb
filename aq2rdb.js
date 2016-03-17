@@ -12,6 +12,7 @@
 // Node.js modules
 var async = require('async');
 var commandLineArgs = require('command-line-args');
+var ifAsync = require('if-async');
 var fs = require('fs');
 var http = require('http');
 var httpdispatcher = require('httpdispatcher');
@@ -897,48 +898,6 @@ function parseUVFields(requestURL, callback) {
     );
 } // parseUVFields
 
-function fuvrdbout(
-    response, editable, rndsup, cflag, vflag, agencyCode,
-    siteNumber, parameterCode, interval, locTzCd, callback
-) {
-    log(packageName + ".httpdispatcher.onGet(/" + packageName +
-        ", ().async.waterfall()[]",
-        sprintf(
-            "fuvrdbout(\n" +
-                "   response=%s, editable=%s, rndsup=%s, " +
-                "cflag=%s, vflag=%s, agencyCode=%s,\n" +
-                "   siteNumber=%s, parameterCode=%s, locTzCd=%s\n" +
-                ")",
-            response, editable, rndsup, cflag, vflag,
-            agencyCode, siteNumber, parameterCode, locTzCd
-        )
-       );
-
-    if (agencyCode === undefined) {
-        callback("Required field \"agencyCode\" not found");
-        return;
-    }
-
-    if (siteNumber === undefined) {
-        callback("Required field \"siteNumber\" not found");
-        return;
-    }
-
-    // TODO: "parameter" somehow went MIA in fuvrdbout()
-    // formal parameters in translation from Fortran
-    if (parameterCode === undefined) {
-        callback(
-            "Required AQUARIUS field \"Parameter\" not found"
-        );
-        return;
-    }
-
-    callback(
-        null, options.waterServicesHostname, agencyCode, siteNumber,
-        options.log
-    );
-}
-
 /**
    @function Node.js emulation of a proper subset of legacy NWIS,
              NWF_RDB_OUT() Fortran subroutine: "Top-level routine for
@@ -1711,10 +1670,79 @@ httpdispatcher.onGet(
         */
         var parameterCode;
         var parameter, extendedFilters;
-        var timeSeriesDescription, during, rndsup, irc;
+        var timeSeriesDescription, during, editable, cflag, vflag;
+        var rndsup, locTzCd, irc;
 
         log(packageName + ".httpdispatcher.onGet(/" + packageName +
             ", (request))", request);
+
+        /**
+           @function node-if-async predicate function, called by
+                     ifAsync() in async.waterfall() below.
+           @see https://github.com/ironSource/node-if-async
+        */
+        function dataTypeIsDV(callback) {
+            if (dataType === "DV")
+                callback(null, true);
+            else
+                callback(null, false);
+        }
+
+        /**
+           @function node-if-async predicate function, called by
+                     ifAsync() in async.waterfall() below.
+           @see https://github.com/ironSource/node-if-async
+        */
+        function dataTypeIsUV(callback) {
+            if (dataType === "UV")
+                callback(null, true);
+            else
+                callback(null, false);
+        }
+
+        function fdvrdbout(callback) {
+            log(packageName + ".fdvrdbout()", "fdvrdbout() called");
+            callback(null);
+        }
+
+function fuvrdbout(callback) {
+    log(packageName + ".httpdispatcher.onGet(/" + packageName +
+        ", ().async.waterfall()[]",
+        sprintf(
+            "fuvrdbout(\n" +
+                "   response=%s, editable=%s, rndsup=%s, " +
+                "cflag=%s, vflag=%s, agencyCode=%s,\n" +
+                "   siteNumber=%s, parameterCode=%s, locTzCd=%s\n" +
+                ")",
+            response, editable, rndsup, cflag, vflag,
+            agencyCode, siteNumber, parameterCode, locTzCd
+        )
+       );
+
+    if (agencyCode === undefined) {
+        callback("Required field \"agencyCode\" not found");
+        return;
+    }
+
+    if (siteNumber === undefined) {
+        callback("Required field \"siteNumber\" not found");
+        return;
+    }
+
+    // TODO: "parameter" somehow went MIA in fuvrdbout() formal
+    // parameters in translation from Fortran
+    if (parameterCode === undefined) {
+        callback(
+            "Required AQUARIUS field \"Parameter\" not found"
+        );
+        return;
+    }
+
+    callback(
+        null, options.waterServicesHostname, agencyCode, siteNumber,
+        options.log
+    );
+}
 
         async.waterfall([
             function (callback) {
@@ -1725,13 +1753,16 @@ httpdispatcher.onGet(
             parseUVFields,
             rdbOut,
             function (
-                editable, r, cflag, vflag, d, a, s, p, interval, locTzCd,
+                e, r, c, v, d, a, s, p, interval, locTzCd,
                 callback
             ) {
                 // save values in outer scope to avoid passing these
                 // values through subsequent async.waterfal()
                 // functions' scopes where they are not referenced at
                 // all
+                editable = e;
+                cflag = c;
+                vflag = v;
                 dataType = d;
                 agencyCode = a;
                 siteNumber = s;
@@ -1739,33 +1770,15 @@ httpdispatcher.onGet(
                 during = interval;
                 rndsup = r;
 
-                //  get data and output to files
-
-                if (dataType === "DV") {
-                    callback(
-                        null, false, rndsup, cflag, vflag, agencyCode,
-                        siteNumber, parameterCode, interval, locTzCd
-                    );
-                }
-                else if (dataType === "UV") {
-                    /**
-                       @todo Consider local declaration of fuvrdbout()
-                             [and fdvrdbout()], and call from here.
-                     */
-                    callback(
-                        null, response, false, rndsup, cflag, vflag,
-                        agencyCode, siteNumber, parameterCode,
-                        interval, locTzCd
-                    );
-                }
-                else {
-                    // error
-                    callback(
-                        "Invalid data type value \"" + dataType + "\""
-                    );
-                }
+                callback(null);
             },
-            fuvrdbout,
+            //  get data and output to files
+            ifAsync(dataTypeIsDV).then(
+                fdvrdbout
+            )
+            .elseIf(dataTypeIsUV).then(
+                fuvrdbout
+            ),
             /**
                @todo site.request() and site.receive() can be done in
                      parallel with the requesting/receiving of time
@@ -1883,8 +1896,8 @@ httpdispatcher.onGet(
             */
             function (uniqueId, callback) {
                 // Note: "rndsup" value is inverted below for semantic
-                // compatibility with AQUARIUS's "ApplyRounding"
-                // parameter.
+                // forwards-compatibility with AQUARIUS's
+                // "ApplyRounding" parameter.
                 var parameters = {
                     TimeSeriesUniqueId: uniqueId,
                     ApplyRounding: eval(! rndsup).toString()
