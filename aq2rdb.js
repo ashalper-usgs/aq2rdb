@@ -867,7 +867,7 @@ function required(options, propertyList) {
    @param {object} requestURL request.url object to parse.
    @param {function} node-async callback.
 */
-function parseUVFields(requestURL, callback) {
+function parseFields(requestURL, callback) {
     var field;
 
     try {
@@ -896,7 +896,7 @@ function parseUVFields(requestURL, callback) {
         null, field.t, rndsup, field.w, false, false, field.a, field.n,
         field.p, field.s, field.b, field.e, field.l, ""
     );
-} // parseUVFields
+} // parseFields
 
 /**
    @function Node.js emulation of a proper subset of legacy NWIS,
@@ -1756,56 +1756,39 @@ httpdispatcher.onGet(
                      [sic].
         */
         function fdvrdbout(callback) {
+            var parameters = Object();
             // many/most of these are artifacts of the legacy code,
             // and probably won't be needed:
-            var sid, sagncy;
             var dvWaterYr, tunit;
             var cval, cdate, odate, outlin, rndary = ' ';
             var rndparm, rnddd, cdvabort = ' ', bnwisdt, enwisdt;
             var bnwisdtm, enwisdtm, bingdt, eingdt, temppath;
             var nullval = '**NULL**', nullrd = ' ', nullrmk = ' ';
             var nulltype = ' ', nullaging = ' ';
-            var smgtof, rtcode;
-            var wrotedata = false, first = true;
+            var first = true;
+            var pcode;
 
             async.waterfall([
                 function (callback) {
-                    if (begdate === '00000000') {
-                        // RH comes from NW_NWIS_MINDATE value in
-                        // watstore/support/ins.dir/adaps_keys.ins
-                        bnwisdtm = '15820101235959';
-                        bnwisdt = bnwisdtm.substr(0, 7);
-                    }
-                    else {
-                        bnwisdtm = begdate + '000000';
-                        bnwisdt = begdate;
-                    }
-
-                    if (enddate === '99999999') {
-                        // RH comes from NW_NWIS_MAXDATE value in
-                        // watstore/support/ins.dir/adaps_keys.ins
-                        enwisdtm = '23821231000000'
-                        enwisdt = enwisdtm.substr(0, 7);
-                    }
-                    else {
-                        enwisdt = enddate;
-                        enwisdtm = enddate + '23959';
-                    }
-
-                    // get site
-                    sagncy = agyin;
-                    sid = station;
-
-                    callback(null, waterServicesHostname, sid, log);
+                    callback(
+                        null, options.waterServicesHostname,
+                        agencyCode, siteNumber, log
+                    );
                 },
                 site.request,
                 site.receive,
-                function (site, callback) {
-                    if (smgtof === ' ') {
-                        // WRITE (smgtof,'(I3)') gmtof
-                        smgtof = sprintf("%3d", gmtof);
-                    }
-                    smgtof = sprintf("%-3d", smgtof);
+                function (receivedSite, callback) {
+                    waterServicesSite = receivedSite; // set global
+                    callback(null);
+                },
+                function (callback) {
+                    parameters = appendIntervalSearchCondition(
+                        parameters, during,
+                        waterServicesSite.tzCode,
+                        "00000000", "99999999",
+                        callback
+                    );
+
                     callback(null);
                 },
                 function (callback) {
@@ -1845,158 +1828,151 @@ httpdispatcher.onGet(
                 function (callback) {
                     /**
                        @todo get stat information
-                       irc = s_statck(stat);
-                    */
-                    if (irc !== 0)
-                        ssnam = '*** INVALID STAT ***';
 
+                       irc = s_statck(stat);
+
+                       if (irc !== 0)
+                          ssnam = '*** INVALID STAT ***';
+                    */
                     callback(null);
                 },
                 function (callback) {
-                    if (! addkey) {
-                        async.waterfall([
-                            function (callback) {
-                                // write the header records
-                                rdbHeader(funit);
-                                callback(null);
-                            },
-                            function (callback) {
-                                var line =
-                                    '# //FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=';
-                                
-                                if (editable)
-                                    line += "YES";
-                                else
-                                    line += "NO";
-
-                                funit.write(line + '\n', "ascii");
-                                callback(null);
-                            },
-                            function (callback) {
+                    async.waterfall([
+                        function (callback) {
+                            // write the header records
+                            rdb.header(
+                                "NWIS-I DAILY-VALUES",
+                                (editable) ? "YES" : "NO",
+                                waterServicesSite,
+                                timeSeriesDescription.SubLocationIdentifer,
+                                parameter,
                                 /**
-                                   @todo write database info
+                                   @todo This is pragmatically
+                                         hard-coded now, but there is
+                                         a relationship to "cflag"
+                                         value above.
                                 */
-                                rdbDBLine(funit);
-                                callback(null);
-                            },
-                            function (callback) {
-                                // write site info
-                                funit.write(
-                                    '# //STATION AGENCY="' + sagncy +
-                                        '" NUMBER="' + sid + '" TIME_ZONE="' +
-                                        smgtof + '" DST_FLAG=' + slstfl + '\n' +
-                                        '# //STATION NAME="' + sname + '"\n',
-                                    "ascii"
-                                );
-                                callback(null);
-                            },
-                            function (callback) {
-                                /**
-                                   @todo write Location info
+                                {code: 'C', name: "COMPUTED"},
+                                {start: during.from, end: during.to}
+                            );
+                            callback(null);
+                        },
+                        function (callback) {
+                            /**
+                               @todo write database info
+                            */
+                            rdbDBLine(funit);
+                            callback(null);
+                        },
+                        function (callback) {
+                            /**
+                               @todo write Location info
 
-                                   At 8:30 AM, Feb 16th, 2016, Wade Walker
-                                   <walker@usgs.gov> said:
+                               At 8:30 AM, Feb 16th, 2016, Wade Walker
+                               <walker@usgs.gov> said:
 
-                                   sublocation is the AQUARIUS equivalent of
-                                   ADAPS location. It is returned from any of
-                                   the GetTimeSeriesDescriptionList... methods
-                                   or for GetFieldVisitData method elements
-                                   where sublocation is
-                                   appropriate. GetSensorsAndGages will also
-                                   return associated sublocations. They're
-                                   basically just a shared attribute of time
-                                   series, sensors and gages, and field
-                                   readings, so no specific call for them,
-                                   they're just returned with the data they're
-                                   applicable to. Let me know if you need
-                                   something beyond that.
+                               sublocation is the AQUARIUS equivalent
+                               of ADAPS location. It is returned from
+                               any of the
+                               GetTimeSeriesDescriptionList... methods
+                               or for GetFieldVisitData method
+                               elements where sublocation is
+                               appropriate. GetSensorsAndGages will
+                               also return associated
+                               sublocations. They're basically just a
+                               shared attribute of time series,
+                               sensors and gages, and field readings,
+                               so no specific call for them, they're
+                               just returned with the data they're
+                               applicable to. Let me know if you need
+                               something beyond that.
 
-                                   rdbWriteLocInfo(funit, dd_id);
-                                */
-                                callback(null);
-                            },
-                            function (callback) {
-                                // write DD info
+                               rdbWriteLocInfo(funit, dd_id);
+                            */
+                            callback(null);
+                        },
+                        function (callback) {
+                            // write DD info
+                            funit.write(
+                                '# //PARAMETER CODE="' +
+                                    pcode.substr(1, 5) + '" SNAME = "' +
+                                    psnam + '"\n' +
+                                    '# //PARAMETER LNAME="' + plname +
+                                    '"\n' +
+                                    '# //STATISTIC CODE="' +
+                                    scode.substr(1, 5) + '" SNAME="' +
+                                    ssnam + '"\n' +
+                                    '# //STATISTIC LNAME="' + slname + '"\n',
+                                "ascii"
+                            );
+                            callback(null);
+                        },
+                        function (callback) {
+                            // write DV type info
+                            if (compdv) {
                                 funit.write(
-                                    '# //PARAMETER CODE="' +
-                                        pcode.substr(1, 5) + '" SNAME = "' +
-                                        psnam + '"\n' +
-                                        '# //PARAMETER LNAME="' + plname +
-                                        '"\n' +
-                                        '# //STATISTIC CODE="' +
-                                        scode.substr(1, 5) + '" SNAME="' +
-                                        ssnam + '"\n' +
-                                        '# //STATISTIC LNAME="' + slname + '"\n',
-                                    "ascii"
-                                );
-                                callback(null);
-                            },
-                            function (callback) {
-                                // write DV type info
-                                if (compdv) {
-                                    funit.write(
-                                        '# //TYPE NAME="COMPUTED" ' +
-                                            'DESC = "COMPUTED DAILY VALUES ONLY"\n',
-                                        "ascii"
-                                    )
-                                }
-                                else {
-                                    funit.write(
-                                        '# //TYPE NAME="FINAL" ' +
-                                            'DESC = "EDITED AND COMPUTED DAILY VALUES"\n',
-                                        "ascii"
-                                    )
-                                }
-                                callback(null);
-                            },
-                            function (callback) {
-                                /**
-                                   @todo write data aging information
-                                   rdbWriteAging(
-                                   funit, dbnum, dd_id, begdate, enddate
-                                   );
-                                */
-                                callback(null);
-                            },
-                            function (callback) {
-                                // write editable range
-                                funit.write(
-                                    '# //RANGE START="' + begdate +
-                                        '" END="' + enddate + '"\n',
+                                    '# //TYPE NAME="COMPUTED" ' +
+                                      'DESC = "COMPUTED DAILY VALUES ONLY"\n',
                                     "ascii"
                                 )
-                                callback(null);
-                            },
-                            function (callback) {
-                                // write single site RDB column headings
-                                funit.write(
-                                    "DATE\tTIME\tVALUE\tPRECISION\t" +
-                                        "REMARK\tFLAGS\tTYPE\tQA\n",
-                                    "ascii"
-                                );
-                                callback(null);
-                            },
-                            function (callback) {
-                                var dtcolw;
-                                
-                                // if verbose, Excel-style format
-                                if (vflag) {
-                                    dtcolw = '10D';     // "mm/dd/yyyy" 10 chars
-                                }
-                                else {
-                                    dtcolw = '8D';      // "yyyymmdd" 8 chars
-                                }
-
-                                // WRITE (funit,'(20A)') outlin(1:23+dtlen)
-                                funit.write(
-                                    dtcolw + "\t6S\t16N\t1S\t1S\t32S\t1S\t1S",
-                                    "ascii"
-                                );
-                                callback(null);
                             }
-                        ]); // async.waterfall
-                    }
-                    else if (first) {
+                            else {
+                                funit.write(
+                                    '# //TYPE NAME="FINAL" ' +
+                                  'DESC = "EDITED AND COMPUTED DAILY VALUES"\n',
+                                    "ascii"
+                                )
+                            }
+                            callback(null);
+                        },
+                        function (callback) {
+                            /**
+                               @todo write data aging information
+                               rdbWriteAging(
+                               funit, dbnum, dd_id, begdate, enddate
+                               );
+                            */
+                            callback(null);
+                        },
+                        function (callback) {
+                            // write editable range
+                            funit.write(
+                                '# //RANGE START="' + begdate +
+                                    '" END="' + enddate + '"\n',
+                                "ascii"
+                            )
+                            callback(null);
+                        },
+                        function (callback) {
+                            // write single site RDB column headings
+                            funit.write(
+                                "DATE\tTIME\tVALUE\tPRECISION\t" +
+                                    "REMARK\tFLAGS\tTYPE\tQA\n",
+                                "ascii"
+                            );
+                            callback(null);
+                        },
+                        function (callback) {
+                            var dtcolw;
+                            
+                            // if verbose, Excel-style format
+                            if (vflag) {
+                                dtcolw = '10D';     // "mm/dd/yyyy" 10 chars
+                            }
+                            else {
+                                dtcolw = '8D';      // "yyyymmdd" 8 chars
+                            }
+
+                            // WRITE (funit,'(20A)') outlin(1:23+dtlen)
+                            funit.write(
+                                dtcolw + "\t6S\t16N\t1S\t1S\t32S\t1S\t1S",
+                                "ascii"
+                            );
+                            callback(null);
+                        }
+                    ]); // async.waterfall
+
+                    if (first) {
                         async.waterfall([
                             function (callback) {
                                 /**
@@ -2235,8 +2211,6 @@ httpdispatcher.onGet(
                                                         data_aging_cd))
                             return;
                     }
-                    if (data_aging_cd !== 'W')
-                        rtcode = 1;
 
                     var exdate;   // verbose Excel style date "mm/dd/yyyy"
 
@@ -2265,7 +2239,6 @@ httpdispatcher.onGet(
                         outlin += '\t\t' + cval + '\t' + dv_rd + '\t' +
                             dv_rmk_cd + '\t\t' + dv_type_cd + '\t' +
                             data_aging_cd;
-                        wrotedata = true;
                     }
 
                     /**
@@ -2330,24 +2303,24 @@ httpdispatcher.onGet(
                    @param {function} callback async.waterfall() callback
                           function.
                 */
-            function (callback) {
-                try {
-                    rest.querySecure(
-                        options.waterDataHostname,
-                        "GET",
-                        {"Authorization": "Bearer " + nwisRA.tokenId()},
-                        "/service/data/view/parameters/json",
-                        {"parameters.PARM_ALIAS_CD": "AQNAME",
-                         "parameters.PARM_CD": parameterCode},
-                        options.log,
-                        callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-            },
+                function (callback) {
+                    try {
+                        rest.querySecure(
+                            options.waterDataHostname,
+                            "GET",
+                            {"Authorization": "Bearer " + nwisRA.tokenId()},
+                            "/service/data/view/parameters/json",
+                            {"parameters.PARM_ALIAS_CD": "AQNAME",
+                             "parameters.PARM_CD": parameterCode},
+                            options.log,
+                            callback
+                        );
+                    }
+                    catch (error) {
+                        callback(error);
+                        return;
+                    }
+                },
                 function (messageBody, callback) {
                     var parameters;
 
@@ -2429,12 +2402,12 @@ httpdispatcher.onGet(
                         ApplyRounding: eval(! rndsup).toString()
                     };
 
-		    parameters = appendIntervalSearchCondition(
-			parameters, during,
-			waterServicesSite.tzCode,
-			"00000000000000", "99999999999999",
-			callback
-		    );
+                    parameters = appendIntervalSearchCondition(
+                        parameters, during,
+                        waterServicesSite.tzCode,
+                        "00000000000000", "99999999999999",
+                        callback
+                    );
 
                     try {
                         aquarius.getTimeSeriesCorrectedData(
@@ -2522,7 +2495,7 @@ httpdispatcher.onGet(
                     return;
                 callback(null, request.url);
             },
-            parseUVFields,
+            parseFields,
             rdbOut,
             /**
                @todo It would be quite nice to get rid of this scoping
