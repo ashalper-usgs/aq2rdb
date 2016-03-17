@@ -1092,32 +1092,10 @@ function rdbOut(
         */
     }
 
-    //  get data and output to files
-
-    if (dataType === "DV") {
-        callback(
-            null, false, rndsup, cflag, vflag, agencyCode, siteNumber,
-            parameterCode, interval, locTzCd
-        );
-    }
-    else if (dataType === "UV") {
-        /**
-           @todo The legacy code was very free-and-easy about the
-                 association between parameter code and DD ID.
-        */
-        callback(
-            null, false, rndsup, cflag, vflag, agencyCode, siteNumber,
-            parameterCode, interval, locTzCd
-        );
-    }
-    else {
-        // error
-        callback(
-            "Invalid data type value \"" + dataType + "\" in rdbOut()"
-        );
-    }
-    // no callback() call here because it is invoked in conditional
-    // above
+    callback(
+        null, false, rndsup, cflag, vflag, dataType, agencyCode,
+        siteNumber, parameterCode, interval, locTzCd
+    );
 } // rdbOut
 
 /**
@@ -1724,7 +1702,7 @@ httpdispatcher.onGet(
        @callback
     */
     function (request, response) {
-        var token, agencyCode, siteNumber, locationIdentifier;
+        var token, dataType, agencyCode, siteNumber, locationIdentifier;
         var waterServicesSite;
         /**
            @todo Need to check downstream depedendencies in aq2rdb
@@ -1747,24 +1725,45 @@ httpdispatcher.onGet(
             parseUVFields,
             rdbOut,
             function (
-                editable, r, cflag, vflag, a, s, p, interval, locTzCd,
+                editable, r, cflag, vflag, d, a, s, p, interval, locTzCd,
                 callback
             ) {
                 // save values in outer scope to avoid passing these
                 // values through subsequent async.waterfal()
                 // functions' scopes where they are not referenced at
                 // all
+                dataType = d;
                 agencyCode = a;
                 siteNumber = s;
                 parameterCode = p;
                 during = interval;
                 rndsup = r;
 
-                callback(
-                    null, response, editable, rndsup, cflag, vflag,
-                    agencyCode, siteNumber, parameterCode, interval,
-                    locTzCd
-                );
+                //  get data and output to files
+
+                if (dataType === "DV") {
+                    callback(
+                        null, false, rndsup, cflag, vflag, agencyCode,
+                        siteNumber, parameterCode, interval, locTzCd
+                    );
+                }
+                else if (dataType === "UV") {
+                    /**
+                       @todo Consider local declaration of fuvrdbout()
+                             [and fdvrdbout()], and call from here.
+                     */
+                    callback(
+                        null, response, false, rndsup, cflag, vflag,
+                        agencyCode, siteNumber, parameterCode,
+                        interval, locTzCd
+                    );
+                }
+                else {
+                    // error
+                    callback(
+                        "Invalid data type value \"" + dataType + "\""
+                    );
+                }
             },
             fuvrdbout,
             /**
