@@ -16,6 +16,8 @@ var rdb = module.exports = {
        @public
        @param {string} fileType Type of time series data (e.g. "NWIS-I
               DAILY-VALUES").
+       @param {string} editable "YES" if file is intended to be
+                       editable; "NO" otherwise.
        @param {object} site USGS site object.
        @param {string} subLocationIdentifer Sublocation identifier.
        @param {object} parameter USGS parameter (a.k.a. "PARM") object.
@@ -25,8 +27,8 @@ var rdb = module.exports = {
        @param response {object} HTTP response object to write to.
     */
     header: function (
-        fileType, site, subLocationIdentifer, parameter, type, range,
-        callback
+        fileType, editable, site, subLocationIdentifer, parameter,
+        type, range, callback
     ) {
         var header =
             "# //UNITED STATES GEOLOGICAL SURVEY " +
