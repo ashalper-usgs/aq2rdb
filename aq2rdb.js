@@ -1457,13 +1457,18 @@ httpdispatcher.onGet(
                        @callback
                     */
                     function (callback) {
-                        /**
-                           @todo some actual parameters here likely need to
-                           be corrected
-                         */
                         rdb.header(
                             "NWIS-I DAILY-VALUES", site,
-                            subLocationIdentifer, parameter, range,
+                            subLocationIdentifer, parameter,
+                            /**
+                               @todo Statistic code is locked up
+                                     within the scope of parseFields()
+                                     right now. Need to free it, and
+                                     look up (name,description) as
+                                     well.
+                            */
+                            {code: "", name: "", description: ""},
+                            range,
                             callback
                         );
                     },
@@ -1744,7 +1749,6 @@ httpdispatcher.onGet(
             var nulltype = ' ', nullaging = ' ';
             var first = true;
             var pcode;
-            var timeSeriesDescription;
 
             async.waterfall([
                 function (callback) {
@@ -1821,14 +1825,24 @@ httpdispatcher.onGet(
                     );
                 },
                 getTimeSeriesDescription,
-                function (tsd, callback) {
-                    log(packageName + ".tsd", JSON.stringify(tsd));
-                    timeSeriesDescription = tsd; // set variable in outer scope
-                    callback(null);
-                },
-                function (callback) {
+                function (timeSeriesDescription, callback) {
                     async.waterfall([
                         function (callback) {
+                            var type;
+
+                            // write DV type info
+                            if (compdv)
+                                type = {
+                                    name: "COMPUTED",
+                                    description: "COMPUTED DAILY VALUES ONLY"
+                                };
+                            else
+                                type = {
+                                    name: "FINAL",
+                                    description:
+                                        "EDITED AND COMPUTED DAILY VALUES"
+                                };
+
                             // write the header records
                             rdb.header(
                                 "NWIS-I DAILY-VALUES",
@@ -1837,101 +1851,17 @@ httpdispatcher.onGet(
                                 timeSeriesDescription.SubLocationIdentifer,
                                 parameter,
                                 /**
-                                   @todo This is pragmatically
-                                         hard-coded now, but there is
-                                         a relationship to "cflag"
-                                         value above.
+                                   @todo Statistic code is locked up
+                                         within the scope of
+                                         parseFields() right now. Need
+                                         to free it, and look up
+                                         (name,description) as well.
                                 */
-                                {code: 'C', name: "COMPUTED"},
-                                {start: during.from, end: during.to}
+                                {code: "", name: "", description: ""},
+                                type,
+                                {start: during.from, end: during.to},
+                                callback
                             );
-                            callback(null);
-                        },
-                        function (callback) {
-                            /**
-                               @todo write database info
-                            */
-                            rdbDBLine(funit);
-                            callback(null);
-                        },
-                        function (callback) {
-                            /**
-                               @todo write Location info
-
-                               At 8:30 AM, Feb 16th, 2016, Wade Walker
-                               <walker@usgs.gov> said:
-
-                               sublocation is the AQUARIUS equivalent
-                               of ADAPS location. It is returned from
-                               any of the
-                               GetTimeSeriesDescriptionList... methods
-                               or for GetFieldVisitData method
-                               elements where sublocation is
-                               appropriate. GetSensorsAndGages will
-                               also return associated
-                               sublocations. They're basically just a
-                               shared attribute of time series,
-                               sensors and gages, and field readings,
-                               so no specific call for them, they're
-                               just returned with the data they're
-                               applicable to. Let me know if you need
-                               something beyond that.
-
-                               rdbWriteLocInfo(funit, dd_id);
-                            */
-                            callback(null);
-                        },
-                        function (callback) {
-                            // write DD info
-                            funit.write(
-                                '# //PARAMETER CODE="' +
-                                    pcode.substr(1, 5) + '" SNAME = "' +
-                                    psnam + '"\n' +
-                                    '# //PARAMETER LNAME="' + plname +
-                                    '"\n' +
-                                    '# //STATISTIC CODE="' +
-                                    scode.substr(1, 5) + '" SNAME="' +
-                                    ssnam + '"\n' +
-                                    '# //STATISTIC LNAME="' + slname + '"\n',
-                                "ascii"
-                            );
-                            callback(null);
-                        },
-                        function (callback) {
-                            // write DV type info
-                            if (compdv) {
-                                funit.write(
-                                    '# //TYPE NAME="COMPUTED" ' +
-                                      'DESC = "COMPUTED DAILY VALUES ONLY"\n',
-                                    "ascii"
-                                )
-                            }
-                            else {
-                                funit.write(
-                                    '# //TYPE NAME="FINAL" ' +
-                                  'DESC = "EDITED AND COMPUTED DAILY VALUES"\n',
-                                    "ascii"
-                                )
-                            }
-                            callback(null);
-                        },
-                        function (callback) {
-                            /**
-                               @todo write data aging information
-                               rdbWriteAging(
-                               funit, dbnum, dd_id, begdate, enddate
-                               );
-                            */
-                            callback(null);
-                        },
-                        function (callback) {
-                            // write editable range
-                            funit.write(
-                                '# //RANGE START="' + begdate +
-                                    '" END="' + enddate + '"\n',
-                                "ascii"
-                            )
-                            callback(null);
                         },
                         function (callback) {
                             // write single site RDB column headings
@@ -2319,6 +2249,14 @@ httpdispatcher.onGet(
                                 waterServicesSite,
                                 timeSeriesDescription.SubLocationIdentifer,
                                 parameter,
+                                /**
+                                   @todo Statistic code is locked up
+                                         within the scope of
+                                         parseFields() right now. Need
+                                         to free it, and look up
+                                         (name,description) as well.
+                                */
+                                {code: "", name: "", description: ""},
                                 /**
                                    @todo this is pragmatically
                                          hard-coded now, but there is
