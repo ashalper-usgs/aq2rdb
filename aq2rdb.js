@@ -1839,6 +1839,15 @@ httpdispatcher.onGet(
                        if (irc !== 0)
                           ssnam = '*** INVALID STAT ***';
                     */
+                    callback(
+                        null, token, agencyCode, siteNumber,
+                        parameter.aquariusParameter, undefined,
+                        "Daily"
+                    );
+                },
+                getTimeSeriesDescription,
+                function (tsd, callback) {
+                    timeSeriesDescription = tsd; // set variable in outer scope
                     callback(null);
                 },
                 function (callback) {
