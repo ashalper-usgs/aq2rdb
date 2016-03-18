@@ -1764,13 +1764,8 @@ httpdispatcher.onGet(
             var parameters = Object();
             // many/most of these are artifacts of the legacy code,
             // and probably won't be needed:
-            var dvWaterYr, tunit;
-            var cval, cdate, odate, rndary = ' ';
-            var rndparm, rnddd, cdvabort = ' ', bnwisdt, enwisdt;
-            var bnwisdtm, enwisdtm, bingdt, eingdt, temppath;
-            var nullval = '**NULL**', nullrd = ' ', nullrmk = ' ';
-            var nulltype = ' ', nullaging = ' ';
-            var first = true;
+            var rndary = ' ';
+            var rndparm, rnddd, cdvabort = ' ';
             var pcode, timeSeriesDescription;
 
             async.waterfall([
