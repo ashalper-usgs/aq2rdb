@@ -1067,7 +1067,8 @@ function rdbOut(
    @param {function} outerCallback Callback function to call when complete.
 */
 function getTimeSeriesDescription(
-    token, agencyCode, siteNumber, parameter, outerCallback
+    token, agencyCode, siteNumber, parameter, computationIdentifier,
+    computationPeriodIdentifier, outerCallback
 ) {
     var locationIdentifier, extendedFilters, timeSeriesDescription;
 
@@ -1082,9 +1083,6 @@ function getTimeSeriesDescription(
            function.
         */
         function (callback) {
-            log(packageName + ".getTimeSeriesDescription()",
-                parameter);
-            
             // make (agencyCode,siteNo) digestible by AQUARIUS
             locationIdentifier = (agencyCode === "USGS") ?
                 siteNumber : siteNumber + '-' + agencyCode;
@@ -1103,8 +1101,8 @@ function getTimeSeriesDescription(
                      format: "json",
                      LocationIdentifier: locationIdentifier,
                      Parameter: parameter,
-                     ComputationIdentifier: "Instantaneous",
-                     ComputationPeriodIdentifier: "Points",
+                     ComputationIdentifier: computationIdentifier,
+                     ComputationPeriodIdentifier: computationPeriodIdentifier,
                      ExtendedFilters: extendedFilters},
                     options.log,
                     callback
@@ -1164,8 +1162,9 @@ function getTimeSeriesDescription(
                              format: "json",
                              LocationIdentifier: locationIdentifier,
                              Parameter: parameter,
-                             ComputationIdentifier: "Instantaneous",
-                             ComputationPeriodIdentifier: "Points",
+                             ComputationIdentifier: computationIdentifier,
+                             ComputationPeriodIdentifier:
+                                computationPeriodIdentifier,
                              ExtendedFilters: extendedFilters}
                         })
                 );
@@ -1767,6 +1766,7 @@ httpdispatcher.onGet(
             var nulltype = ' ', nullaging = ' ';
             var first = true;
             var pcode;
+            var timeSeriesDescription;
 
             async.waterfall([
                 function (callback) {
@@ -2294,64 +2294,11 @@ httpdispatcher.onGet(
                     callback(null);
                 },
                 /**
-                   @function Query
-                             USGS-parameter-code-to-AQUARIUS-parameter
-                             Web service here to obtain AQUARIUS
-                             parameter from USGS parameter code.
-                   @callback
-                   @param {string} NWIS-RA authorization token.
-                   @param {function} callback async.waterfall() callback
-                          function.
-                */
-                function (callback) {
-                    try {
-                        rest.querySecure(
-                            options.waterDataHostname,
-                            "GET",
-                            {"Authorization": "Bearer " + nwisRA.tokenId()},
-                            "/service/data/view/parameters/json",
-                            {"parameters.PARM_ALIAS_CD": "AQNAME",
-                             "parameters.PARM_CD": parameterCode},
-                            options.log,
-                            callback
-                        );
-                    }
-                    catch (error) {
-                        callback(error);
-                        return;
-                    }
-                },
-                function (messageBody, callback) {
-                    var parameters;
-
-                    try {
-                        parameters = JSON.parse(messageBody);
-                    }
-                    catch (error) {
-                        callback(error);
-                        return;
-                    }
-
-                    // load fields we need into something more coherent
-                    parameter = {
-                        code: parameters.records[0].PARM_CD,
-                        name: parameters.records[0].PARM_NM,
-                        description: parameters.records[0].PARM_DS,
-                        aquariusParameter: parameters.records[0].PARM_ALIAS_NM
-                    };
-
-                    callback(
-                        null, token, agencyCode, siteNumber,
-                        parameter.aquariusParameter
-                    );
-                },
-                getTimeSeriesDescription,
-                /**
                    @description Write RDB column names and column data
                                 type definitions to HTTP response.
                    @callback
                 */
-                function (timeSeriesDescription, callback) {
+                function (callback) {
                     async.waterfall([
                         /**
                            @function Write RDB header to HTTP response.
@@ -2362,6 +2309,7 @@ httpdispatcher.onGet(
                             // these arguments
                             callback(
                                 null, "NWIS-I UNIT-VALUES",
+                                (editable) ? "YES" : "NO",
                                 waterServicesSite,
                                 timeSeriesDescription.SubLocationIdentifer,
                                 parameter,
@@ -2518,6 +2466,67 @@ httpdispatcher.onGet(
                 during = interval;
                 rndsup = r;
 
+                callback(null);
+            },
+            /**
+               @function Query
+                         USGS-parameter-code-to-AQUARIUS-parameter Web
+                         service here to obtain AQUARIUS parameter
+                         from USGS parameter code.
+               @callback
+               @param {string} NWIS-RA authorization token.
+               @param {function} callback async.waterfall() callback
+                                 function.
+            */
+            function (callback) {
+                try {
+                    rest.querySecure(
+                        options.waterDataHostname,
+                        "GET",
+                        {"Authorization": "Bearer " + nwisRA.tokenId()},
+                        "/service/data/view/parameters/json",
+                        {"parameters.PARM_ALIAS_CD": "AQNAME",
+                         "parameters.PARM_CD": parameterCode},
+                        options.log,
+                        callback
+                    );
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+            },
+            function (messageBody, callback) {
+                var parameters;
+
+                try {
+                    parameters = JSON.parse(messageBody);
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+
+                // load fields we need into something more coherent
+                parameter = {
+                    code: parameters.records[0].PARM_CD,
+                    name: parameters.records[0].PARM_NM,
+                    description: parameters.records[0].PARM_DS,
+                    aquariusParameter: parameters.records[0].PARM_ALIAS_NM
+                };
+
+                callback(null);
+            },
+            function (callback) {
+                callback(
+                    null, token, agencyCode, siteNumber,
+                    parameter.aquariusParameter, "Instantaneous",
+                    "Points"
+                );
+            },
+            getTimeSeriesDescription,
+            function (tsd, callback) {
+                timeSeriesDescription = tsd; // set variable in outer scope
                 callback(null);
             },
             //  get data and output to files
