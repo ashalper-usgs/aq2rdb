@@ -1024,11 +1024,11 @@ function rdbOut(
     //    get PRIMARY DD that goes with parm if parm supplied
     //
     // Since the algorithmic equivalent is now deep within
-    // the bowels of fuvrdbout(), it is no longer
+    // the bowels of unitValues(), it is no longer
     // here. This comment is just a reminder that it used
     // to be here, in case it is later discovered that the
     // primary identification is necessary before
-    // fuvrdbout() does it.
+    // unitValues() does it.
 
     // retrieving measured uvs and transport_cd not
     // supplied, prompt for it
@@ -1760,7 +1760,7 @@ httpdispatcher.onGet(
                      Fortran subroutine: "Write DV data in rdb FORMAT"
                      [sic].
         */
-        function fdvrdbout(callback) {
+        function dailyValues(callback) {
             var parameters = Object();
             // many/most of these are artifacts of the legacy code,
             // and probably won't be needed:
@@ -1913,9 +1913,9 @@ httpdispatcher.onGet(
                     }
                 }
             ); // async.waterfall
-        } // fdvrdbout
+        } // dailyValues
 
-        function fuvrdbout(callback) {
+        function unitValues(callback) {
             var timeSeriesDescription;
 
             async.waterfall([
@@ -1930,7 +1930,7 @@ httpdispatcher.onGet(
                         return;
                     }
 
-                    // TODO: "parameter" somehow went MIA in fuvrdbout() formal
+                    // TODO: "parameter" somehow went MIA in unitValues() formal
                     // parameters in translation from Fortran
                     if (parameterCode === undefined) {
                         callback(
@@ -2117,7 +2117,7 @@ httpdispatcher.onGet(
                     }
                 }
             ); // async.waterfall
-        } // fuvrdbout
+        } // unitValues
 
         async.waterfall([
             function (callback) {
@@ -2201,10 +2201,10 @@ httpdispatcher.onGet(
             },
             //  get data and output to files
             ifAsync(dataTypeIsDV).then(
-                fdvrdbout
+                dailyValues
             )
             .elseIf(dataTypeIsUV).then(
-                fuvrdbout
+                unitValues
             )
         ],
             /**
