@@ -1070,7 +1070,7 @@ function getTimeSeriesDescription(
     token, agencyCode, siteNumber, parameter, computationIdentifier,
     computationPeriodIdentifier, outerCallback
 ) {
-    var locationIdentifier, extendedFilters, timeSeriesDescription;
+    var locationIdentifier, timeSeriesDescription;
 
     async.waterfall([
         /**
@@ -1087,9 +1087,18 @@ function getTimeSeriesDescription(
             locationIdentifier = (agencyCode === "USGS") ?
                 siteNumber : siteNumber + '-' + agencyCode;
 
-            // not sure what this does
-            extendedFilters =
-                "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]";
+            var obj = {
+                token: aquarius.token(),
+                format: "json",
+                LocationIdentifier: locationIdentifier,
+                Parameter: parameter,
+                ComputationPeriodIdentifier: computationPeriodIdentifier,
+                // not sure what this does:
+                ExtendedFilters: "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]"
+            };
+
+            if (computationIdentifier)
+                obj["ComputationIdentifier"] = computationIdentifier;
 
             try {
                 rest.query(
@@ -1097,13 +1106,7 @@ function getTimeSeriesDescription(
                     "GET",
                     undefined,  // HTTP headers
                     "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                    {token: aquarius.token(),
-                     format: "json",
-                     LocationIdentifier: locationIdentifier,
-                     Parameter: parameter,
-                     ComputationIdentifier: computationIdentifier,
-                     ComputationPeriodIdentifier: computationPeriodIdentifier,
-                     ExtendedFilters: extendedFilters},
+                    obj,
                     options.log,
                     callback
                 );
@@ -1817,10 +1820,12 @@ httpdispatcher.onGet(
 
                     /**
                        @todo get the DV abort limit
-                       @see watstore/adaps/adrsrc/tsing_lib/nw_db_retr_dvabort.sf
+                       @see
+                          watstore/adaps/adrsrc/tsing_lib/nw_db_retr_dvabort.sf
+
                        if (dbRetrDVAbort(ddagny, ddstid, ddid, bnwisdtm,
-                       enwisdtm, dvabort)) {
-                       cdvabort = sprintf("%6d", dvabort);
+                           enwisdtm, dvabort)) {
+                           cdvabort = sprintf("%6d", dvabort);
                        }
                     */
                     callback(null);
