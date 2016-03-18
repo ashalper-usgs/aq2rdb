@@ -732,7 +732,7 @@ var AQUARIUS = function (hostname, userName, password, callback) {
 
     /**
        @method Distill a set of time series descriptions into
-               (hopefully) one to query for a set of time series
+               (hopefully) one, to query for a set of time series
                date/value pairs.
        @param {object} timeSeriesDescriptions An array of AQUARIUS
               TimeSeriesDescription objects.
@@ -841,7 +841,7 @@ var AQUARIUS = function (hostname, userName, password, callback) {
             ); // async.filter
         } // switch (timeSeriesDescriptions.length)
 
-        return timeSeriesDescription;
+        callback(null, timeSeriesDescription);
     } // distill
 
 } // AQUARIUS
@@ -1076,7 +1076,7 @@ function getTimeSeriesDescription(
         /**
            @function Query AQUARIUS GetTimeSeriesDescriptionList
                      service to get list of AQUARIUS, time series
-                     UniqueIds related to aq2rdb, GetUVTable location
+                     UniqueIds related to aq2rdb, location
                      and parameter.
            @callback
            @param {function} callback async.waterfall() callback
@@ -1178,46 +1178,21 @@ function getTimeSeriesDescription(
         },
         /**
            @function For each AQUARIUS time series description, weed
-                     out non-UV, and non-primary ones.
+                     out non-primary ones.
            @callback
         */
         function (timeSeriesDescriptions, callback) {
-            /**
-               @todo Now that AQUARIUS accepts
-                     ComputationPeriodIdentifier=Points [see
-                     url.format() call above], some/all of
-                     this might no longer be necessary.
-            */
-            async.filter(
-                timeSeriesDescriptions,
-                function (timeSeriesDescription, callback) {
-                    if (timeSeriesDescription.ComputationPeriodIdentifier
-                         === "Points") {
-                            callback(true);
-                        }
-                    else {
-                        callback(false);
-                    }
-                },
-                /**
-                   @todo If aquarius.distill() can't find a primary
-                   record:
-
-                   WRITE (0,2120) agencyCode, siteNumber, parm
-                   2120    FORMAT (/,"No PRIMARY DD for station "",A5,A15,
-                   "", parm "',A5,'".  Aborting.",/)
-                */
-                function (uvTimeSeriesDescriptions) {
-                    timeSeriesDescription = aquarius.distill(
-                        uvTimeSeriesDescriptions, locationIdentifier,
-                        callback
-                    );
-                }
+            timeSeriesDescription = aquarius.distill(
+                timeSeriesDescriptions, locationIdentifier,
+                callback
             );
-            callback(null);
         },
+        function (tsd, callback) {
+            timeSeriesDescription = tsd;
+            callback(null);
+        }
     ],
-        function(error) {
+        function (error) {
             if (error)
                 outerCallback(error);
             else
@@ -1847,6 +1822,7 @@ httpdispatcher.onGet(
                 },
                 getTimeSeriesDescription,
                 function (tsd, callback) {
+                    log(packageName + ".tsd", JSON.stringify(tsd));
                     timeSeriesDescription = tsd; // set variable in outer scope
                     callback(null);
                 },
