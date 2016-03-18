@@ -1281,7 +1281,9 @@ function appendIntervalSearchCondition(
     return parameters;
 } // appendIntervalSearchCondition
 
-function dvBody(timeSeriesDescription, response, callback) {
+function dvBody(
+    timeSeriesDescription, queryFrom, queryTo, response, callback
+) {
     var remarkCodes;
 
     async.waterfall([
@@ -1361,8 +1363,7 @@ function dvBody(timeSeriesDescription, response, callback) {
             try {
                 aquarius.getTimeSeriesCorrectedData(
                     {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
-                     QueryFrom: field.QueryFrom,
-                     QueryTo: field.QueryTo},
+                     QueryFrom: queryFrom, QueryTo: queryTo},
                     callback
                 );
             }
@@ -1637,7 +1638,11 @@ httpdispatcher.onGet(
                             'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
                                 '8D\t6S\t16N\t1S\t32S\t1S\t1S\n', 'ascii'
                         );
-                        callback(null, timeSeriesDescription, response);
+                        callback(
+                            null, timeSeriesDescription,
+                            field.QueryFrom, field.QueryTo,
+                            response
+                        );
                     },
                     dvBody
                 ]);
@@ -1766,7 +1771,7 @@ httpdispatcher.onGet(
             var nullval = '**NULL**', nullrd = ' ', nullrmk = ' ';
             var nulltype = ' ', nullaging = ' ';
             var first = true;
-            var pcode;
+            var pcode, timeSeriesDescription;
 
             async.waterfall([
                 function (callback) {
@@ -1843,8 +1848,11 @@ httpdispatcher.onGet(
                     );
                 },
                 getTimeSeriesDescription,
-                function (timeSeriesDescription, callback) {
+                function (tsd, callback) {                  
                     var type;
+
+                    timeSeriesDescription = tsd;
+
                     /**
                        @todo All daily values are computed for
                              now; needs more research.
@@ -1892,8 +1900,13 @@ httpdispatcher.onGet(
                             "REMARK\tFLAGS\tTYPE\tQA\n",
                         "ascii"
                     );
-                    callback(null);
-                }
+                    callback(
+                        null, timeSeriesDescription,
+                        parameters.QueryFrom, parameters.QueryTo,
+                        response
+                    );
+                },
+                dvBody
             ],
                 function (error) {
                     if (error) {
