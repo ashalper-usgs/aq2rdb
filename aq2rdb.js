@@ -1281,6 +1281,138 @@ function appendIntervalSearchCondition(
     return parameters;
 } // appendIntervalSearchCondition
 
+function dvBody(timeSeriesDescription, response, callback) {
+    var remarkCodes;
+
+    async.waterfall([
+        /**
+           @function Request remark codes from AQUARIUS.
+           @callback
+           @todo This is fairly kludgey, because remark codes might
+                 not be required for every DV interval; try to nest in
+                 a conditional eventually.
+        */
+        function (callback) {
+            try {
+                rest.query(
+                    aquarius.hostname,
+                    "GET",
+                    undefined,      // HTTP headers
+                    "/AQUARIUS/Publish/V2/GetQualifierList/",
+                    {token: aquarius.token(), format: "json"},
+                    options.log,
+                    callback
+                );
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+        },
+        /**
+           @function Receive remark codes from AQUARIUS.
+           @callback
+        */
+        function (messageBody, callback) {
+            var qualifierListServiceResponse;
+
+            try {
+                qualifierListServiceResponse =
+                    JSON.parse(messageBody);
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+
+            // if we didn't get the remark codes domain table
+            if (qualifierListServiceResponse === undefined) {
+                callback(
+                    "Could not get remark codes from http://" +
+                        aquarius.hostname +
+                        "/AQUARIUS/Publish/V2/GetQualifierList/"
+                );
+                return;
+            }
+
+            // put remark codes in an array for faster access later
+            remarkCodes = new Array();
+            async.each(
+                qualifierListServiceResponse.Qualifiers,
+                /**
+                   @callback
+                */
+                function (qualifierMetadata, callback) {
+                    remarkCodes[qualifierMetadata.Identifier] =
+                        qualifierMetadata.Code;
+                    callback(null);
+                }
+            );
+
+            // proceed to next waterfall
+            callback(null);
+        },
+        /**
+           @function Query AQUARIUS GetTimeSeriesCorrectedData
+           to get related daily values.
+           @callback
+        */
+        function (callback) {               
+            try {
+                aquarius.getTimeSeriesCorrectedData(
+                    {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
+                     QueryFrom: field.QueryFrom,
+                     QueryTo: field.QueryTo},
+                    callback
+                );
+            }
+            catch (error) {
+                callback(error);
+                return;
+            }
+        },
+        aquarius.parseTimeSeriesDataServiceResponse,
+        /**
+           @function Write each RDB row to HTTP response.
+           @callback
+        */
+        function (timeSeriesDataServiceResponse, callback) {
+            async.each(
+                timeSeriesDataServiceResponse.Points,
+                /**
+                   @description Write an RDB row for one time series
+                   point.
+                   @callback
+                */
+                function (timeSeriesPoint, callback) {
+                    response.write(
+                        dvTableRow(
+                            timeSeriesPoint.Timestamp,
+                            timeSeriesPoint.Value,
+                            timeSeriesDataServiceResponse.Qualifiers,
+                            remarkCodes,
+          timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
+                        ),
+                        "ascii"
+                    );
+                    callback(null);
+                }
+            );
+            callback(null);
+        }
+    ],
+        function (error) {
+            if (error) {
+                callback(error);
+                return;
+            }
+            else {
+                callback(null);
+            }
+        }
+    ); // async.waterfall
+} // dvBody
+
 /**
    @description GetDVTable endpoint service request handler.
 */
@@ -1291,7 +1423,6 @@ httpdispatcher.onGet(
     */
     function (request, response) {
         var field, token, locationIdentifier, timeSeriesDescription;
-        var remarkCodes;
 
         /**
            @see https://github.com/caolan/async
@@ -1465,7 +1596,7 @@ httpdispatcher.onGet(
                                      within the scope of parseFields()
                                      right now. Need to free it, and
                                      look up (name,description) as
-                                     well.
+                                     well if possible.
                             */
                             {code: "", name: "", description: ""},
                             range,
@@ -1506,126 +1637,13 @@ httpdispatcher.onGet(
                             'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
                                 '8D\t6S\t16N\t1S\t32S\t1S\t1S\n', 'ascii'
                         );
-                        callback(null);
-                    }
+                        callback(null, timeSeriesDescription, response);
+                    },
+                    dvBody
                 ]);
                 callback(null);
-            },
-            /**
-               @function Request remark codes from AQUARIUS.
-               @callback
-               @todo This is fairly kludgey, because remark codes
-                     might not be required for every DV interval; try
-                     to nest in a conditional eventually.
-            */
-            function (callback) {
-                try {
-                    rest.query(
-                        aquarius.hostname,
-                        "GET",
-                        undefined,      // HTTP headers
-                        "/AQUARIUS/Publish/V2/GetQualifierList/",
-                        {token: aquarius.token(), format: "json"},
-                        options.log,
-                        callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-            },
-            /**
-               @function Receive remark codes from AQUARIUS.
-               @callback
-            */
-            function (messageBody, callback) {
-                var qualifierListServiceResponse;
-
-                try {
-                    qualifierListServiceResponse =
-                        JSON.parse(messageBody);
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                // if we didn't get the remark codes domain table
-                if (qualifierListServiceResponse === undefined) {
-                    callback(
-                        "Could not get remark codes from http://" +
-                            aquarius.hostname +
-                            "/AQUARIUS/Publish/V2/GetQualifierList/"
-                    );
-                    return;
-                }
-
-                // put remark codes in an array for faster access later
-                remarkCodes = new Array();
-                async.each(
-                    qualifierListServiceResponse.Qualifiers,
-                    /**
-                       @callback
-                    */
-                    function (qualifierMetadata, callback) {
-                        remarkCodes[qualifierMetadata.Identifier] =
-                            qualifierMetadata.Code;
-                        callback(null);
-                    }
-                );
-
-                // proceed to next waterfall
-                callback(null);
-            },
-            /**
-               @function Query AQUARIUS GetTimeSeriesCorrectedData
-                         to get related daily values.
-               @callback
-            */
-            function (callback) {               
-                try {
-                    aquarius.getTimeSeriesCorrectedData(
-                        {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
-                         QueryFrom: field.QueryFrom,
-                         QueryTo: field.QueryTo},
-                        callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-            },
-            aquarius.parseTimeSeriesDataServiceResponse,
-            /**
-               @function Write each RDB row to HTTP response.
-               @callback
-            */
-            function (timeSeriesDataServiceResponse, callback) {
-                async.each(
-                    timeSeriesDataServiceResponse.Points,
-                    /**
-                       @description Write an RDB row for one time series
-                                    point.
-                       @callback
-                    */
-                    function (timeSeriesPoint, callback) {
-                        response.write(
-                            dvTableRow(
-                                timeSeriesPoint.Timestamp,
-                                timeSeriesPoint.Value,
-                                timeSeriesDataServiceResponse.Qualifiers,
-                                remarkCodes,
-          timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
-                            ),
-                            "ascii"
-                        );
-                        callback(null);
-                    }
-                );
-                callback(null);
-            }],
+            }
+        ],
         /**
            @description node-async error handler function for
                         outer-most, GetDVTable async.waterfall
@@ -1854,11 +1872,11 @@ httpdispatcher.onGet(
                         timeSeriesDescription.SubLocationIdentifer,
                         parameter,
                         /**
-                           @todo Statistic code is locked up
-                           within the scope of
-                           parseFields() right now. Need
-                           to free it, and look up
-                           (name,description) as well.
+                           @todo Statistic code is locked up within
+                                 the scope of parseFields() right
+                                 now. Need to free it, and look up
+                                 (name,description) as well if
+                                 possible.
                         */
                         {code: "", name: "", description: ""},
                         type,
