@@ -28,7 +28,7 @@ var rdb = module.exports = {
     */
     header: function (
         fileType, editable, site, subLocationIdentifer, parameter,
-        type, range, callback
+	statistic, type, range, callback
     ) {
         var header =
             "# //UNITED STATES GEOLOGICAL SURVEY " +
@@ -118,19 +118,33 @@ var rdb = module.exports = {
     
         /**
            @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
-    
            @since 2015-11-11T16:31-07:00
-    
-           @todo
-    
-           I think that "# //LOCATION NUMBER=0 NAME="Default"" would
-           change to:
+        
+           @description I think that
+	   "# //LOCATION NUMBER=0 NAME="Default"" would change to:
            
            # //SUBLOCATION NAME="sublocation name"
            
            and would be omitted if it were the default sublocation and
            had no name.
         */
+
+        /**
+	   @author <a href="mailto:walker@usgs.gov">Wade Walker</a>
+	   @since 2016-02-16T08:30-07:00
+
+           @description sublocation is the AQUARIUS equivalent of
+           ADAPS location. It is returned from any of the
+           GetTimeSeriesDescriptionList... methods or for
+           GetFieldVisitData method elements where sublocation is
+           appropriate. GetSensorsAndGages will also return associated
+           sublocations. They're basically just a shared attribute of
+           time series, sensors and gages, and field readings, so no
+           specific call for them, they're just returned with the data
+           they're applicable to. Let me know if you need something
+           beyond that.
+        */
+
         if (subLocationIdentifer !== undefined) {
             header += '# //SUBLOCATION ID="' + subLocationIdentifer + '"\n';
         }
@@ -152,12 +166,21 @@ var rdb = module.exports = {
 
         header += "# //PARAMETER CODE=\"" + parameter.code +
             "\" SNAME=\"" + parameter.name + "\"\n" +
-            "# //PARAMETER LNAME=\"" + parameter.description + "\"\n";
+            "# //PARAMETER LNAME=\"" + parameter.description + "\"\n" +
+	    "# //STATISTIC CODE=\"" + statistic.code.substr(1, 5) +
+	       "\" SNAME=\"" + statistic.name + "\"\n" +
+            "# //STATISTIC LNAME=\"" + statistic.description + "\"\n";
 
         if (type)
             header += "# //TYPE CODE=" + type.code + " NAME=" +
                       type.name + "\n";
-           
+
+        /**
+           @todo write data aging information:
+
+              rdb_write_aging(funit, dbnum, dd_id, begdate, enddate);
+        */
+
         header += '# //RANGE START="';
         if (range.start !== undefined) {
             header += range.start;
