@@ -28,7 +28,7 @@ var rdb = module.exports = {
     */
     header: function (
         fileType, editable, site, subLocationIdentifer, parameter,
-	statistic, type, range, callback
+        statistic, type, range, callback
     ) {
         var header =
             "# //UNITED STATES GEOLOGICAL SURVEY " +
@@ -121,7 +121,7 @@ var rdb = module.exports = {
            @since 2015-11-11T16:31-07:00
         
            @description I think that
-	   "# //LOCATION NUMBER=0 NAME="Default"" would change to:
+           "# //LOCATION NUMBER=0 NAME="Default"" would change to:
            
            # //SUBLOCATION NAME="sublocation name"
            
@@ -130,8 +130,8 @@ var rdb = module.exports = {
         */
 
         /**
-	   @author <a href="mailto:walker@usgs.gov">Wade Walker</a>
-	   @since 2016-02-16T08:30-07:00
+           @author <a href="mailto:walker@usgs.gov">Wade Walker</a>
+           @since 2016-02-16T08:30-07:00
 
            @description sublocation is the AQUARIUS equivalent of
            ADAPS location. It is returned from any of the
@@ -167,12 +167,12 @@ var rdb = module.exports = {
         header += "# //PARAMETER CODE=\"" + parameter.code +
             "\" SNAME=\"" + parameter.name + "\"\n" +
             "# //PARAMETER LNAME=\"" + parameter.description + "\"\n" +
-	    "# //STATISTIC CODE=\"" + statistic.code.substr(1, 5) +
-	       "\" SNAME=\"" + statistic.name + "\"\n" +
+            "# //STATISTIC CODE=\"" + statistic.code.substr(1, 5) +
+               "\" SNAME=\"" + statistic.name + "\"\n" +
             "# //STATISTIC LNAME=\"" + statistic.description + "\"\n";
 
         if (type)
-            header += "# //TYPE CODE=" + type.code + " NAME=" +
+            header += "# //TYPE NAME=" + type.name + " NAME=" +
                       type.name + "\n";
 
         /**
