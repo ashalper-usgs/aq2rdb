@@ -1722,7 +1722,7 @@ httpdispatcher.onGet(
         */
         var parameterCode;
         var parameter, extendedFilters;
-        var timeSeriesDescription, during, editable, cflag, vflag;
+        var during, editable, cflag, vflag;
         var rndsup, locTzCd;
 
         log(packageName + ".httpdispatcher.onGet(/" + packageName +
@@ -1762,7 +1762,7 @@ httpdispatcher.onGet(
             // many/most of these are artifacts of the legacy code,
             // and probably won't be needed:
             var dvWaterYr, tunit;
-            var cval, cdate, odate, outlin, rndary = ' ';
+            var cval, cdate, odate, rndary = ' ';
             var rndparm, rnddd, cdvabort = ' ', bnwisdt, enwisdt;
             var bnwisdtm, enwisdtm, bingdt, eingdt, temppath;
             var nullval = '**NULL**', nullrd = ' ', nullrmk = ' ';
@@ -2035,6 +2035,8 @@ httpdispatcher.onGet(
                     callback(null);
                 },
                 function (callback) {
+                    var outlin;
+
                     // Setup begin date
                     if (begdate === '00000000') {
                         if (! nw_db_retr_dv_first_yr(dd_id, stat, dvWaterYr)) {
@@ -2270,6 +2272,8 @@ httpdispatcher.onGet(
         } // fdvrdbout
 
         function fuvrdbout(callback) {
+            var timeSeriesDescription;
+
             async.waterfall([
                 function (callback) {
                     if (agencyCode === undefined) {
@@ -2305,6 +2309,18 @@ httpdispatcher.onGet(
                 site.receive,
                 function (receivedSite, callback) {
                     waterServicesSite = receivedSite; // set global
+                    callback(null);
+                },
+                function (callback) {
+                    callback(
+                        null, token, agencyCode, siteNumber,
+                        parameter.aquariusParameter, "Instantaneous",
+                        "Points"
+                    );
+                },
+                getTimeSeriesDescription,
+                function (tsd, callback) {
+                    timeSeriesDescription = tsd; // set variable in outer scope
                     callback(null);
                 },
                 /**
@@ -2529,18 +2545,6 @@ httpdispatcher.onGet(
                     aquariusParameter: parameters.records[0].PARM_ALIAS_NM
                 };
 
-                callback(null);
-            },
-            function (callback) {
-                callback(
-                    null, token, agencyCode, siteNumber,
-                    parameter.aquariusParameter, "Instantaneous",
-                    "Points"
-                );
-            },
-            getTimeSeriesDescription,
-            function (tsd, callback) {
-                timeSeriesDescription = tsd; // set variable in outer scope
                 callback(null);
             },
             //  get data and output to files
