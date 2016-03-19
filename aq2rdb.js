@@ -365,12 +365,8 @@ function docRequest(url, servicePath, response, callback) {
 */
 function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     // TIME column will always be empty for daily values
-    var row = aq2rdb.toNWISDateFormat(timestamp) + '\t\t';
-
-    if (value.Display !== undefined)
-        row += value.Display;
-
-    row += '\t';
+    var row = aq2rdb.toNWISDateFormat(timestamp) + '\t\t' +
+        value.Display + '\t';
 
     /**
        @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
@@ -1363,7 +1359,8 @@ function dvBody(
             try {
                 aquarius.getTimeSeriesCorrectedData(
                     {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
-                     QueryFrom: queryFrom, QueryTo: queryTo},
+                     QueryFrom: queryFrom, QueryTo: queryTo,
+                     ApplyRounding: "true"},
                     callback
                 );
             }
