@@ -363,10 +363,10 @@ function docRequest(url, servicePath, response, callback) {
           QualifierMetadata.Identifier.
    @param {string} qa QA code.
 */
-function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
+function dvTableRow(date, display, qualifiers, remarkCodes, qa) {
+    var d = (display === undefined) ? "" : display;
     // TIME column is always empty for daily values
-    var row = moment(timestamp).format("YYYYMMDD") + '\t\t' +
-        value.Display + '\t';
+    var row = date + "\t\t" + d + '\t';
 
     /**
        @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
@@ -774,7 +774,7 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                         timeSeriesDescription.ExtendedAttributes,
                         /**
                            @function Primary time series, async.detect
-                           truth value function.
+                                     truth value function.
                            @callback
                         */
                         function (extendedAttribute, callback) {
@@ -1277,7 +1277,7 @@ function appendIntervalSearchCondition(
     return parameters;
 } // appendIntervalSearchCondition
 
-function dvBody(
+function dvTableBody(
     timeSeriesDescription, queryFrom, queryTo, response, callback
 ) {
     var remarkCodes;
@@ -1370,33 +1370,72 @@ function dvBody(
             }
         },
         aquarius.parseTimeSeriesDataServiceResponse,
+        function (timeSeriesDataServiceResponse, callback) {
+            var pointsArray = timeSeriesDataServiceResponse.Points;
+            var pointsKey = new Object();
+
+            // index response from AQUARIUS by date
+            for (var i in pointsArray) {
+                var d = moment(pointsArray[i].Timestamp).format("YYYYMMDD");
+
+                pointsKey[d] = pointsArray[i].Value.Display;
+            }
+
+            callback(null, timeSeriesDataServiceResponse, pointsKey);
+        },
         /**
            @function Write each RDB row to HTTP response.
            @callback
         */
-        function (timeSeriesDataServiceResponse, callback) {
-            async.each(
-                timeSeriesDataServiceResponse.Points,
-                /**
-                   @description Write an RDB row for one time series
-                   point.
-                   @callback
-                */
-                function (timeSeriesPoint, callback) {
+        function (timeSeriesDataServiceResponse, pointsKey, callback) {
+            /**
+               @todo Date arithmetic here is time-zone-less, but we
+                     might need to worry about time zones in certain
+                     obscure, global circumstances.
+             */
+            var d = moment(queryFrom), to = moment(queryTo);
+            // end of water year, for this calendar year
+            var endOfWaterYear = moment(moment().format("YYYY") + "0930");
+
+            async.whilst(
+                function () {
+                    // If it seems odd that we output points until the
+                    // end of the water year here, nwts2rdb does
+                    // this. Further, on 2016-03-21 at 1:02 p.m. MST,
+                    // Scott Bartholoma <sbarthol@usgs.gov> said:
+                    //
+                    //   Many folks run primary comps through the
+                    //   entire water year (or at least they used to)
+                    //   which would put nulls in the DV table through
+                    //   the end of the water year.  When nwts2rdb
+                    //   sees the 99999999 it gets the max date that
+                    //   appears in the DV table and does no ask "is
+                    //   not null".
+                    return d < to || d <= endOfWaterYear;
+                },
+                function (callback) {
+                    var s = d.format("YYYYMMDD");
+
                     response.write(
                         dvTableRow(
-                            timeSeriesPoint.Timestamp,
-                            timeSeriesPoint.Value,
+                            s,
+                            pointsKey[s],
                             timeSeriesDataServiceResponse.Qualifiers,
                             remarkCodes,
           timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
                         ),
                         "ascii"
                     );
+                    d = d.add(1, "days"); // proceed to next day
                     callback(null);
+                },
+                function (error) {
+                    if (error)
+                        callback(error);
+                    else
+                        callback(null);
                 }
             );
-            callback(null);
         }
     ],
         function (error) {
@@ -1409,7 +1448,7 @@ function dvBody(
             }
         }
     ); // async.waterfall
-} // dvBody
+} // dvTableBody
 
 /**
    @description GetDVTable endpoint service request handler.
@@ -1642,7 +1681,7 @@ httpdispatcher.onGet(
                             response
                         );
                     },
-                    dvBody
+                    dvTableBody
                 ]);
                 callback(null);
             }
@@ -1925,7 +1964,7 @@ httpdispatcher.onGet(
                         response
                     );
                 },
-                dvBody
+                dvTableBody
             ],
                 function (error) {
                     if (error) {
