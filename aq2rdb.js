@@ -364,8 +364,8 @@ function docRequest(url, servicePath, response, callback) {
    @param {string} qa QA code.
 */
 function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
-    // TIME column will always be empty for daily values
-    var row = aq2rdb.toNWISDateFormat(timestamp) + '\t\t' +
+    // TIME column is always empty for daily values
+    var row = moment(timestamp).format("YYYYMMDD") + '\t\t' +
         value.Display + '\t';
 
     /**
@@ -1351,11 +1351,11 @@ function dvBody(
             callback(null);
         },
         /**
-           @function Query AQUARIUS GetTimeSeriesCorrectedData
-           to get related daily values.
+           @function Query AQUARIUS GetTimeSeriesCorrectedData to get
+                     related daily values.
            @callback
         */
-        function (callback) {               
+        function (callback) {
             try {
                 aquarius.getTimeSeriesCorrectedData(
                     {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
@@ -1635,6 +1635,7 @@ httpdispatcher.onGet(
                             'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
                                 '8D\t6S\t16N\t1S\t32S\t1S\t1S\n', 'ascii'
                         );
+
                         callback(
                             null, timeSeriesDescription,
                             field.QueryFrom, field.QueryTo,
@@ -1885,16 +1886,42 @@ httpdispatcher.onGet(
                     );
                 },
                 function (header, callback) {
-                    // write single site RDB column headings
+                    // write RDB column headings
                     response.write(
                         header +
-                        "DATE\tTIME\tVALUE\tPRECISION\t" +
-                            "REMARK\tFLAGS\tTYPE\tQA\n",
+                    "DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n" +
+                            "8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n",
                         "ascii"
                     );
+
+                    var queryFrom, queryTo;
+                    var name =
+             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag];
+
+                    try {
+                        queryFrom = moment.tz(
+                            parameters.QueryFrom, name
+                        ).format("YYYY-MM-DD");
+                    }
+                    catch (error) {
+                        callback(error);
+                        return;
+                    }
+
+                    try {
+                        queryTo = moment.tz(
+                            parameters.QueryTo, name
+                        ).format("YYYY-MM-DD");
+
+                    }
+                    catch (error) {
+                        callback(error);
+                        return;
+                    }
+
                     callback(
                         null, timeSeriesDescription,
-                        parameters.QueryFrom, parameters.QueryTo,
+                        queryFrom, queryTo,
                         response
                     );
                 },
