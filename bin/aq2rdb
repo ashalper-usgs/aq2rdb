@@ -11,6 +11,7 @@
 import sys
 import getopt
 from os.path import basename
+import urllib
 
 # aq2rdb module
 from write_error import write_error
@@ -128,7 +129,6 @@ def main():
     enddat = ' '
     loc_tz_cd = ' '
     loc_nu = ' '
-    ctlpath = None
     transport_cd = ' '
     titlline = ' '
     oblank = ' '
@@ -170,7 +170,6 @@ def main():
         wyflag = False
         cflag = False
         vflag = False
-        multiple = False
 
         error = False
 
@@ -178,7 +177,7 @@ def main():
 
         try:
             opts, args = getopt.getopt(
-                sys.argv[1:], "o:t:a:n:p:s:b:e:l:f:y:i:x:rwcvm?"
+                sys.argv[1:], "o:t:a:n:p:s:b:e:l:f:y:i:x:rwcv?"
             )
         except getopt.GetoptError as err:
             sys.stderr.write(name + ": error: " + err.msg)
@@ -224,8 +223,6 @@ def main():
                 cflag = True
             elif opt == "-v":
                 vflag = True
-            elif opt == "-m":
-                multiple = True
             elif opt == "-f":
                 fflag = True
                 ctlpath = arg
@@ -238,19 +235,7 @@ def main():
             elif opt == "-?":
                 error = True
 
-        # if a control file is supplied, all arguments are ignored
-        # except -r (suppress rounding), -l (local time zone), and -o
-        # (output file). If -o is not supplied, -m cannot also be
-        # supplied - (can't do multiple files if everything is going
-        # to stdout - one file by definition)
-        if fflag and multiple and not oflag:
-            sys.stderr.write("\n")
-            sys.stderr.write(
-                "If -f and -m is specified, -o must also " +
-                "be specified."
-            )
-            status = 122
-        elif not fflag and not oflag and \
+        if not fflag and not oflag and \
              ( not tflag or not nflag or not bflag or not eflag or \
                ((datatyp != "DC" and datatyp != "SV") and not sflag) or \
                (not datatyp != "QW" and not pflag) or \
@@ -324,13 +309,35 @@ def main():
         if not xflag:
             loc_nu = xblank
 
-        # TODO: call Web service here
+        # See http://www.pythonlearn.com/html-008/cfbook014.html
+
+        prefix = "http://localhost:8081/aq2rdb?"
+
+        # TODO: this query bit needs to be in a retry loop
+        url = prefix + urllib.urlencode(
+            {"p": parm,
+             "t": datatyp,
+             "s": stat,
+             "n": station,
+             "b": begdat,
+             "e": enddat}
+        )
+        uo = urllib.urlopen(url)
+        response = uo.read()
+
+        try:
+            rdb = str(response)
+        except:
+            rdb = None
+
+        print rdb
+        # TODO: end of retry loop
 
         # TODO: see if it's possible to obtain (operation_cd,
         # operation_tx, error_tx) from "aq2rdb" endpoint to supply to
         # write_error() (3rd, 4th, & 5th actual parameters below,
         # respectively)
-        write_error(status, 'aq2rdb', '', '', '', sys.stderr)
+        # write_error(status, 'aq2rdb', '', '', '', sys.stderr)
 
     return status
 
