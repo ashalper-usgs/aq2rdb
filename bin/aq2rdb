@@ -185,9 +185,6 @@ def main():
             usage()
             sys.exit(2)
 
-            # TODO: transplant error-handling code here
-            ("TODO:\n")
-
         for opt, arg in opts:
             if opt == "-o":
                 oflag = True
@@ -241,11 +238,11 @@ def main():
             elif opt == "-?":
                 error = True
 
-        # if a control file is supplied, all arguments are ignored except
-        # -z (database number), -r (suppress rounding), -l (local time zone),
-        # -m (multiple file output), and -o (output file).  If -o is not 
-        # supplied, -m cannot also be supplied - (can't do multiple files if 
-        # everything is going to stdout - one file by definition)
+        # if a control file is supplied, all arguments are ignored
+        # except -r (suppress rounding), -l (local time zone), and -o
+        # (output file). If -o is not supplied, -m cannot also be
+        # supplied - (can't do multiple files if everything is going
+        # to stdout - one file by definition)
         if fflag and multiple and not oflag:
             sys.stderr.write("\n")
             sys.stderr.write(
