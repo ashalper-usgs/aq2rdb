@@ -13,7 +13,6 @@ from getopt import getopt
 from os.path import basename
 
 # aq2rdb module
-from rdb_out import rdb_out
 from write_error import write_error
 
 # Display usage information for the aq2rdb command
@@ -416,14 +415,10 @@ def main():
         if not xflag:
             loc_nu = xblank
 
-        status = rdb_out(
-            ctlpath, multiple, outpath, datatyp, rndsup, wyflag,
-            cflag, vflag, agency, station, loc_nu, stat, transport_cd,
-            begdat, enddat, loc_tz_cd, titlline
-        )
+        # TODO: call Web service here
 
-        # TODO: modify rdb_out() call (above) to return
-        # (operation_cd, operation_tx, error_tx) to supply to
+        # TODO: see if it's possible to obtain (operation_cd,
+        # operation_tx, error_tx) from "aq2rdb" endpoint to supply to
         # write_error() (3rd, 4th, & 5th actual parameters below,
         # respectively)
         write_error(status, 'aq2rdb', '', '', '', sys.stderr)
