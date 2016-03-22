@@ -20,81 +20,39 @@ def aq2rdb_usage():
     sys.stderr.write("\n")
     sys.stderr.write("Usage: aq2rdb -ooutfile\n")
     sys.stderr.write(
-        "                -tdatatype (dv, uv, ms, vt, pk, dc, sv, wl, or qw)\n"
+        "                -tdatatype (dv, uv)\n"
     )
     sys.stderr.write("                -aagency\n")
     sys.stderr.write("                -nstation\n")
     sys.stderr.write(
-        "                -pparm (not used with datatypes ms, pk, and wl) AND\n"
+        "                -pparm AND\n"
     )
-    sys.stderr.write("                -xloc_nu (only used with datatype vt)\n")
+    sys.stderr.write("                -xloc_nu\n")
     sys.stderr.write("                -sstatistic (dv) OR\n")
     sys.stderr.write(
         "                  uvtype (M)easured, E)dited, R)corrections,\n"
     )
     sys.stderr.write("                          S)hifts, C)computed, or\n")
     sys.stderr.write(
-        "                          N)Raw Measured (no conversion of input ratings)) OR\n"
+        "                          N)Raw Measured (no conversion of input ratings))\n"
     )
     sys.stderr.write(
-        "                  mstype (C)sg, M)eas, D)etailed meas, G)age insp.,\n"
-    )
-    sys.stderr.write("                         or Pseudo-UV options:\n")
-    sys.stderr.write("                          1) Discharge,\n")
-    sys.stderr.write("                          2) Stage, or\n")
-    sys.stderr.write("                          3) Velocity)\n")
-    sys.stderr.write("                  vttype (Pseudo-UV options)\n")
-    sys.stderr.write(
-        "                          P) Sensor Insp. Primary Reference readings,\n"
+        "                -bbegdate (yyyymmdd) (dv) OR\n"
     )
     sys.stderr.write(
-        "                          R) Sensor Insp. Primary Recorder readings,\n"
+        "                  begdtm (yyyymmddhhmmss) (uv)\n"
     )
     sys.stderr.write(
-        "                          A) Sensor Insp. All readings,\n"
-    )
-    sys.stderr.write("                          M) QW Monitor readings, OR\n")
-    sys.stderr.write(
-        "                          F) QW Monitor Field meter readings)\n"
+        "                  A string of all zeros indicates beginning of period of record\n"
     )
     sys.stderr.write(
-        "                  pktype (F)ull, P)artial. or B)oth) OR\n"
+        "                -eenddate (yyyymmdd) (dv) OR\n"
     )
     sys.stderr.write(
-        "                  wlype (1) Water level below land surface,\n"
+        "                  enddtm (yyyymmddhhmmss) (uv)\n"
     )
     sys.stderr.write(
-        "                         2) Water level below measuring point, or,\n"
-    )
-    sys.stderr.write(
-        "                         3) Water level above sea level)\n"
-    )
-    sys.stderr.write(
-        "                  qwmeth (QW method code, \"all\" to get all,\n"
-    )
-    sys.stderr.write(
-        "                          or \"blank\" for blank method)\n"
-    )
-    sys.stderr.write(
-        "                  (not used with datatypes dc and sv)\n"
-    )
-    sys.stderr.write(
-        "                -bbegdate (yyyymmdd) (dv, dc, sv, ms, vt, pk) OR\n"
-    )
-    sys.stderr.write(
-        "                  begdtm (yyyymmddhhmmss) (uv, wl, pseudo-UV ms)\n"
-    )
-    sys.stderr.write(
-        "                  A value of all zeros indicates beginning of period of record\n"
-    )
-    sys.stderr.write(
-        "                -eenddate (yyyymmdd) (dv, dc, sv, ms, vt, pk) OR\n"
-    )
-    sys.stderr.write(
-        "                  enddtm (yyyymmddhhmmss) (uv, wl, pseudo-UV ms)\n"
-    )
-    sys.stderr.write(
-        "                  A value of all nines indicates end of period of record\n"
+        "                  A string of all nines indicates end of period of record\n"
     )
     sys.stderr.write("                -l loctzcd (time zone code or \"LOC\")\n")
     sys.stderr.write("                -r (rounding suppression)\n")
@@ -103,7 +61,7 @@ def aq2rdb_usage():
         "                -c For type \"dv\", Output COMPUTED daily values only\n"
     )
     sys.stderr.write(
-        "                   For other types except pseudo-UV retrievals,\n"
+        "                   For other types,\n"
     )
     sys.stderr.write(
         "                   combine date and time in a single column\n"
@@ -128,14 +86,7 @@ def aq2rdb_usage():
     )
     sys.stderr.write("       If -o is omitted, writes to stdout AND arguments required \n")
     sys.stderr.write("             based on data type as follows:\n")
-    sys.stderr.write("             \"dv\" and \"uv\" requires -t, -n, -s, -b, -e, AND -p\n")
-    sys.stderr.write("             \"dc\" and \"sv\" requires -t, -n, -b, -e, AND -p\n")
-    sys.stderr.write("             \"ms\" and \"pk\" requires -t, -n, -s, -b, and -e\n")
-    sys.stderr.write("             \"vt\" requires -t, -n, -s, -b, -e AND either -p and -x\n")
-    sys.stderr.write("             \"wl\" requires -t, -n, -s, -b, and -e\n")
-    sys.stderr.write("             \"qw\" requires -t, -n, -s, -b, -e, and -p\n")
-    sys.stderr.write("       If -o is present, no other arguments are required, and the program\n")
-    sys.stderr.write("             will use ADAPS routines to prompt for them.\n")
+    sys.stderr.write("             \"dv\" and \"uv\" require -t, -n, -s, -b, -e, AND -p\n")
     sys.stderr.write("       The parameter code is\n")
     sys.stderr.write("             used to find the PRIMARY DD for that parameter.\n")
     sys.stderr.write("       If -a is omitted, defaults to agency \"USGS\"\n")
@@ -148,27 +99,12 @@ def aq2rdb_usage():
     sys.stderr.write("       If -c is present and daily-values are being output, only computed\n")
     sys.stderr.write("             daily values will be retrieved.\n")
     sys.stderr.write("             For other types combine date and time in a single column\n")
-    sys.stderr.write("       If -z is omitted, defaults to database 1\n")
     sys.stderr.write("       If -y is present, it is ignored unless Measured Unit-Values\n")
-    sys.stderr.write("             are specified as arguments or selected in the prompting.\n")
+    sys.stderr.write("             are specified as arguments.\n")
     sys.stderr.write("             If omitted, defaults to preferred input.\n")
     sys.stderr.write("       If -m is present, it is ignored.\n")
     sys.stderr.write("       If -i is omitted, the standard S_STRT title line is used.\n")
     sys.stderr.write("\n")
-    sys.stderr.write("         -- OR --\n")
-    sys.stderr.write("\n")
-    sys.stderr.write("       aq2rdb -fctlfile\n")
-    sys.stderr.write("                -ooutfile\n")
-    sys.stderr.write("                -m (write multiple files)\n")
-    sys.stderr.write("                -l loctzcd (time zone code or \"LOC\")\n")
-    sys.stderr.write("                -r (rounding suppression)\n")
-    sys.stderr.write("                -c (Output COMPUTED daily values only (DV))\n")
-    sys.stderr.write("                   (combine date and time in a single column (UV))\n")
-    sys.stderr.write("                -v Make dates and times verbose (excel friendly)\n")
-    sys.stderr.write("                -y transport_cd (Measured Unit-Values only)\n")
-    sys.stderr.write("                    A (ADR), C (CHA), F (FIL), G (EDL), O (OBS),\n")
-    sys.stderr.write("                    P (TEL), R (RAD), S (DCP), U (UNS), or Z (BAK)\n")
-    sys.stderr.write("                    if omitted, defaults to preferred input\n")
     sys.stderr.write("       If -o is omitted, writes to stdout, and -m cannot be used\n")
     sys.stderr.write("       If -m is present, outfile is used as the output file name prefix.\n")
     sys.stderr.write("             If omitted, all rows in the control file must be the\n")
@@ -180,24 +116,6 @@ def aq2rdb_usage():
     sys.stderr.write("             daily values will be retrieved.\n")
     sys.stderr.write("             If unit-values are being output, date and time\n")
     sys.stderr.write("             are combined into a single datetime column.\n")
-    sys.stderr.write("             This option is ignored if the datatype is not dv or uv.\n")
-    sys.stderr.write("       If -z is omitted, defaults to database 1\n")
-    sys.stderr.write("       If -y is present, it is ignored except for rows in the\n")
-    sys.stderr.write("             control file specifying Measured Unit-Values.\n")
-    sys.stderr.write("             If omitted, defaults to preferred input.\n")
-    sys.stderr.write("       If -t, -a, -n, -p, -s, -b, -e, or -i are present, they are ignored.\n")
-    sys.stderr.write("\n")
-    sys.stderr.write("       The control file (-f argument) is an RDB file containing the\n")
-    sys.stderr.write("       columns \"DATATYPE\", \"AGENCY\", \"STATION\", \"SUBTYPE\",\n")
-    sys.stderr.write("       \"BEGDATE\", and \"ENDDATE\", corresponding to the -t, -a, -n,\n")
-    sys.stderr.write("       -s, -b, and -e arguments for the no control file case.\n")
-    sys.stderr.write("       All columns must be present, and all columns must also be populated\n")
-    sys.stderr.write("       (not blank and not null), except that SUBTYPE is not used \n")
-    sys.stderr.write("       when DATATYPE is \"dc\", or \"sv\".  It does not matter in what \n")
-    sys.stderr.write("       order the columns appear in the control file.\n")
-    sys.stderr.write("\n")
-    sys.stderr.write("       The control file option cannot be used with pseudo-UV retrievals (all\n")
-    sys.stderr.write("       datatype \"wl\", \"qw\", \"vt\" and some datatype \"ms\" options.\n")
     sys.stderr.write("\n")
 
 def main():
