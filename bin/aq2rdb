@@ -243,7 +243,10 @@ def main():
         except:
             rdb = None
 
-        print rdb
+        # At present, the "aq2rdb" service appears to be appending an
+        # undesired, extra newline at the end of its response. Here,
+        # we trim it off just before output.
+        print rdb[0:-1]
         # TODO: end of retry loop
 
     # TODO: see if it's possible to obtain (operation_cd,
