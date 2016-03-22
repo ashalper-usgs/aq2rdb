@@ -28,7 +28,6 @@ def usage():
     sys.stderr.write(
         "                -pparm AND\n"
     )
-    sys.stderr.write("                -xloc_nu\n")
     sys.stderr.write("                -sstatistic (dv) OR\n")
     sys.stderr.write(
         "                  uvtype (M)easured, E)dited, R)corrections,\n"
@@ -125,30 +124,11 @@ def main():
     station = None
     parm = None
     stat = None
-    begdat = ' '
-    enddat = ' '
-    loc_tz_cd = ' '
-    loc_nu = ' '
+    begdat = None
+    enddat = None
+    loc_tz_cd = None
     transport_cd = None
     titlline = None
-    oblank = ' '
-    ablank = ' '
-    nblank = ' '
-    dblank = ' '
-    pblank = ' '
-    sblank = ' '
-    yblank = ' '
-    iblank = ' '
-    bblank = ' '
-    eblank = ' '
-    lblank = "LOC"
-    xblank = '0'
-    fblank = ' '
-    bflag = False
-    eflag = False
-    lflag = False
-    fflag = False
-    xflag = False
 
     status = 0
 
@@ -168,7 +148,7 @@ def main():
 
         try:
             opts, args = getopt.getopt(
-                sys.argv[1:], "o:t:a:n:p:s:b:e:l:f:y:i:x:rwcv?"
+                sys.argv[1:], "o:t:a:n:p:s:b:e:l:f:y:i:rwcv?"
             )
         except getopt.GetoptError as err:
             sys.stderr.write(name + ": error: " + err.msg)
@@ -189,17 +169,11 @@ def main():
             elif opt == "-s":
                 stat = arg
             elif opt == "-b":
-                bflag = True
                 begdat = arg
             elif opt == "-e":
-                eflag = True
                 enddat = arg
             elif opt == "-l":
-                lflag = True
                 loc_tz_cd = arg.upper()
-            elif opt == "-x":
-                xflag = True
-                loc_nu = arg
             elif opt == "-r":
                 rndsup = True
             elif opt == "-w":
@@ -208,9 +182,6 @@ def main():
                 cflag = True
             elif opt == "-v":
                 vflag = True
-            elif opt == "-f":
-                fflag = True
-                ctlpath = arg
             elif opt == "-y":
                 transport_cd = arg
             elif opt == "-i":
@@ -218,8 +189,8 @@ def main():
             elif opt == "-?":
                 error = True
 
-        if not fflag and not outpath and \
-             ( not datatyp or not station or not bflag or not eflag or \
+        if not outpath and \
+             ( not datatyp or not station or not begdat or not enddat or \
                ((datatyp != "DC" and datatyp != "SV") and not stat) or \
                (not datatyp != "QW" and not parm) or \
                ((datatyp != "MS" and datatyp != "PK" and \
@@ -248,45 +219,8 @@ def main():
     if status != 0:
         usage()
     else:
-        # get the length of the output file pathname
-        if not outpath:
-            outpath = oblank
-
-        if not agency:
-            agency = ablank
-
-        # get the length of the station number 
-        if not station:
-            station = nblank
-
-        if parm:
-            ddpm = "P" + parm
-        else:
-            # -p was not specified: construct a blank string
-            ddpm = dblank
-
-        if not stat:
-            stat = sblank
-
-        if not transport_cd:
-            transport_cd = yblank
-
-        if not titlline:
-            titlline = iblank
-
-        if not bflag:
-            begdat = bblank
-
-        if not eflag:
-            enddat = eblank
-
-        # get the length of the time zone code
-        if not lflag:
-            loc_tz_cd = lblank
-
-        # get the length of the location number
-        if not xflag:
-            loc_nu = xblank
+        if not loc_tz_cd:
+            loc_tz_cd = "LOC"
 
         # See http://www.pythonlearn.com/html-008/cfbook014.html
 
@@ -312,11 +246,11 @@ def main():
         print rdb
         # TODO: end of retry loop
 
-        # TODO: see if it's possible to obtain (operation_cd,
-        # operation_tx, error_tx) from "aq2rdb" endpoint to supply to
-        # write_error() (3rd, 4th, & 5th actual parameters below,
-        # respectively)
-        # write_error(status, 'aq2rdb', '', '', '', sys.stderr)
+    # TODO: see if it's possible to obtain (operation_cd,
+    # operation_tx, error_tx) from "aq2rdb" endpoint to supply to
+    # write_error() (3rd, 4th, & 5th actual parameters below,
+    # respectively)
+    # write_error(status, 'aq2rdb', '', '', '', sys.stderr)
 
     return status
 
