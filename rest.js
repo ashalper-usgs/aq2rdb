@@ -41,11 +41,14 @@ var rest = module.exports = {
                 });
 
             response.on('end', function () {
-                if (log)
-                    console.log("rest.query.response.statusCode: " +
-                                response.statusCode.toString());
-
-                if (response.statusCode === 404) {
+                /**
+                   @todo This is a (brittle) hack, that really should
+                         be checked in site.request(). Unfortunately,
+                         it was much easier to implement here, given
+                         the current state of the code.
+                */
+                if (host === "waterservices.usgs.gov" &&
+                    response.statusCode === 404) {
                     callback("Site not found at http://" + host + path);
                 }
                 else if (
