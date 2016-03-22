@@ -9,14 +9,14 @@
 
 # Python modules
 import sys
-from getopt import getopt
+import getopt
 from os.path import basename
 
 # aq2rdb module
 from write_error import write_error
 
 # Display usage information for the aq2rdb command
-def aq2rdb_usage():
+def usage():
     sys.stderr.write("\n")
     sys.stderr.write("Usage: aq2rdb -ooutfile\n")
     sys.stderr.write(
@@ -115,8 +115,7 @@ def aq2rdb_usage():
     sys.stderr.write("       If -c is present and daily-values are being output, only computed\n")
     sys.stderr.write("             daily values will be retrieved.\n")
     sys.stderr.write("             If unit-values are being output, date and time\n")
-    sys.stderr.write("             are combined into a single datetime column.\n")
-    sys.stderr.write("\n")
+    sys.stderr.write("             are combined into a single datetime column.")
 
 def main():
     outpath = ' '
@@ -175,25 +174,24 @@ def main():
 
         error = False
 
+        name = basename(sys.argv[0]) # script name
+
         try:
-            opts, args = getopt(
-                sys.argv[1:], "o:z:t:a:n:d:p:s:b:e:l:f:y:i:x:rwcvm?"
+            opts, args = getopt.getopt(
+                sys.argv[1:], "o:t:a:n:p:s:b:e:l:f:y:i:x:rwcvm?"
             )
         except getopt.GetoptError as err:
-            # TODO: transplant error-handling code here
-            sys.stderr.write("TODO:\n")
+            sys.stderr.write(name + ": error: " + err.msg)
+            usage()
+            sys.exit(2)
 
-        name = basename(sys.argv[0]) # script name
+            # TODO: transplant error-handling code here
+            ("TODO:\n")
 
         for opt, arg in opts:
             if opt == "-o":
                 oflag = True
                 outpath = arg
-            elif opt == "-z":
-                sys.stderr.write(
-                    name +
-                    ': NWIS logical database number ("-z" option) is obsolete'
-                )
             elif opt == "-t":
                 tflag = True
                 datatyp = arg.upper()
@@ -203,10 +201,6 @@ def main():
             elif opt == "-n":
                 nflag = True
                 station = arg
-            elif opt == "-d":
-                sys.stderr.write(
-                    name + ': ddid ("-d" option) is obsolete'
-                )
             elif opt == "-p":
                 pflag = True
                 parm = arg
@@ -287,7 +281,7 @@ def main():
             status = 124
 
     if status != 0:
-        aq2rdb_usage()
+        usage()
     else:
         # get the length of the output file pathname
         if not oflag:
