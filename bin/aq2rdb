@@ -119,20 +119,19 @@ def usage():
     sys.stderr.write("             are combined into a single datetime column.")
 
 def main():
-    outpath = ' '
-    datatyp = ' '
-    agency = ' '
-    station = ' '
-    parm = ' '
-    stat = ' '
+    outpath = None
+    datatyp = None
+    agency = None
+    station = None
+    parm = None
+    stat = None
     begdat = ' '
     enddat = ' '
     loc_tz_cd = ' '
     loc_nu = ' '
-    transport_cd = ' '
-    titlline = ' '
+    transport_cd = None
+    titlline = None
     oblank = ' '
-    tblank = ' '
     ablank = ' '
     nblank = ' '
     dblank = ' '
@@ -145,14 +144,6 @@ def main():
     lblank = "LOC"
     xblank = '0'
     fblank = ' '
-    oflag = False
-    tflag = False
-    aflag = False
-    nflag = False
-    pflag = False
-    sflag = False
-    yflag = False
-    iflag = False
     bflag = False
     eflag = False
     lflag = False
@@ -186,22 +177,16 @@ def main():
 
         for opt, arg in opts:
             if opt == "-o":
-                oflag = True
                 outpath = arg
             elif opt == "-t":
-                tflag = True
                 datatyp = arg.upper()
             elif opt == "-a":
-                aflag = True
                 agency = arg
             elif opt == "-n":
-                nflag = True
                 station = arg
             elif opt == "-p":
-                pflag = True
                 parm = arg
             elif opt == "-s":
-                sflag = True
                 stat = arg
             elif opt == "-b":
                 bflag = True
@@ -227,20 +212,18 @@ def main():
                 fflag = True
                 ctlpath = arg
             elif opt == "-y":
-                yflag = True
                 transport_cd = arg
             elif opt == "-i":
-                iflag = True
                 titlline = arg
             elif opt == "-?":
                 error = True
 
-        if not fflag and not oflag and \
-             ( not tflag or not nflag or not bflag or not eflag or \
-               ((datatyp != "DC" and datatyp != "SV") and not sflag) or \
-               (not datatyp != "QW" and not pflag) or \
+        if not fflag and not outpath and \
+             ( not datatyp or not station or not bflag or not eflag or \
+               ((datatyp != "DC" and datatyp != "SV") and not stat) or \
+               (not datatyp != "QW" and not parm) or \
                ((datatyp != "MS" and datatyp != "PK" and \
-                 datatyp != "WL") and not pflag )):
+                 datatyp != "WL") and not parm )):
             # Not using a control file, -m is ignored.
 
             # If -o is not specified, all other arguments must be
@@ -266,33 +249,29 @@ def main():
         usage()
     else:
         # get the length of the output file pathname
-        if not oflag:
+        if not outpath:
             outpath = oblank
-           
-        # set data type to blank if not supplied 
-        if not tflag:
-            datatyp = tblank
 
-        if not aflag:
+        if not agency:
             agency = ablank
 
         # get the length of the station number 
-        if not nflag:
+        if not station:
             station = nblank
 
-        if pflag:
+        if parm:
             ddpm = "P" + parm
         else:
             # -p was not specified: construct a blank string
             ddpm = dblank
 
-        if not sflag:
+        if not stat:
             stat = sblank
 
-        if not yflag:
+        if not transport_cd:
             transport_cd = yblank
 
-        if not iflag:
+        if not titlline:
             titlline = iblank
 
         if not bflag:
