@@ -1,0 +1,252 @@
+#! /usr/bin/python
+#
+#  File - aq2rdb
+#
+#  Purpose - Python emulation of nwts2rdb.
+#
+#  Author - Andy Halper <ashalper@usgs.gov>
+#
+
+# Python modules
+import sys
+import getopt
+from os.path import basename
+import urllib
+
+# Display usage information for the aq2rdb command
+def usage():
+    sys.stderr.write("\n")
+    sys.stderr.write("Usage: aq2rdb -ooutfile\n")
+    sys.stderr.write(
+        "                -tdatatype (dv, uv)\n"
+    )
+    sys.stderr.write("                -aagency\n")
+    sys.stderr.write("                -nstation\n")
+    sys.stderr.write(
+        "                -pparm AND\n"
+    )
+    sys.stderr.write("                -sstatistic (dv) OR\n")
+    sys.stderr.write(
+        "                  uvtype (M)easured, E)dited, R)corrections,\n"
+    )
+    sys.stderr.write("                          S)hifts, C)computed, or\n")
+    sys.stderr.write(
+        "                          N)Raw Measured (no conversion of input ratings))\n"
+    )
+    sys.stderr.write(
+        "                -bbegdate (yyyymmdd) (dv) OR\n"
+    )
+    sys.stderr.write(
+        "                  begdtm (yyyymmddhhmmss) (uv)\n"
+    )
+    sys.stderr.write(
+        "                  A string of all zeros indicates beginning of period of record\n"
+    )
+    sys.stderr.write(
+        "                -eenddate (yyyymmdd) (dv) OR\n"
+    )
+    sys.stderr.write(
+        "                  enddtm (yyyymmddhhmmss) (uv)\n"
+    )
+    sys.stderr.write(
+        "                  A string of all nines indicates end of period of record\n"
+    )
+    sys.stderr.write("                -l loctzcd (time zone code or \"LOC\")\n")
+    sys.stderr.write("                -r (rounding suppression)\n")
+    sys.stderr.write("                -w (water year flag)\n")
+    sys.stderr.write(
+        "                -c For type \"dv\", Output COMPUTED daily values only\n"
+    )
+    sys.stderr.write(
+        "                   For other types,\n"
+    )
+    sys.stderr.write(
+        "                   combine date and time in a single column\n"
+    )
+    sys.stderr.write(
+        "                -v Make dates and times verbose (Excel friendly)\n"
+    )
+    sys.stderr.write(
+        "                -y transport_cd (Measured Unit-Values only)\n"
+    )
+    sys.stderr.write(
+        "                    A (ADR), C (CHA), F (FIL), G (EDL), O (OBS),\n"
+    )
+    sys.stderr.write(
+        "                    P (TEL), R (RAD), S (DCP), U (UNS), or Z (BAK)\n"
+    )
+    sys.stderr.write(
+        "                    if omitted, defaults to preferred input\n"
+    )
+    sys.stderr.write(
+        "                -i title_line (Alternate title line if S_STRT is run)\n"
+    )
+    sys.stderr.write("       If -o is omitted, writes to stdout AND arguments required \n")
+    sys.stderr.write("             based on data type as follows:\n")
+    sys.stderr.write("             \"dv\" and \"uv\" require -t, -n, -s, -b, -e, AND -p\n")
+    sys.stderr.write("       The parameter code is\n")
+    sys.stderr.write("             used to find the PRIMARY DD for that parameter.\n")
+    sys.stderr.write("       If -a is omitted, defaults to agency \"USGS\"\n")
+    sys.stderr.write("       If -l is omitted, it will default to \"LOC\"\n")
+    sys.stderr.write("       If -r is present, rounding is suppressed,\n")
+    sys.stderr.write("             otherwise rounded values are output.\n")
+    sys.stderr.write("       If -w is present, -b, and -e will be water years instead,\n")
+    sys.stderr.write("             of dates or datetimes or the user will be prompted\n")
+    sys.stderr.write("             for water years instead of dates or datetimes.\n")
+    sys.stderr.write("       If -c is present and daily-values are being output, only computed\n")
+    sys.stderr.write("             daily values will be retrieved.\n")
+    sys.stderr.write("             For other types combine date and time in a single column\n")
+    sys.stderr.write("       If -y is present, it is ignored unless Measured Unit-Values\n")
+    sys.stderr.write("             are specified as arguments.\n")
+    sys.stderr.write("             If omitted, defaults to preferred input.\n")
+    sys.stderr.write("       If -m is present, it is ignored.\n")
+    sys.stderr.write("       If -i is omitted, the standard S_STRT title line is used.\n")
+    sys.stderr.write("\n")
+    sys.stderr.write("       If -o is omitted, writes to stdout, and -m cannot be used\n")
+    sys.stderr.write("       If -m is present, outfile is used as the output file name prefix.\n")
+    sys.stderr.write("             If omitted, all rows in the control file must be the\n")
+    sys.stderr.write("             same datatype.\n")
+    sys.stderr.write("       If -l is omitted, it will default to \"LOC\"\n")
+    sys.stderr.write("       If -r is present, rounding is suppressed,\n")
+    sys.stderr.write("             otherwise rounded values are output.\n")
+    sys.stderr.write("       If -c is present and daily-values are being output, only computed\n")
+    sys.stderr.write("             daily values will be retrieved.\n")
+    sys.stderr.write("             If unit-values are being output, date and time\n")
+    sys.stderr.write("             are combined into a single datetime column.")
+
+def main():
+    outpath = None
+    datatyp = None
+    agency = None
+    station = None
+    parm = None
+    stat = None
+    begdat = None
+    enddat = None
+    loc_tz_cd = None
+    transport_cd = None
+    titlline = None
+
+    status = 0
+
+    # display usage if no arguments
+    if len(sys.argv) <= 1:
+        status = 119
+    else:
+        # get command line arguments 
+        rndsup = False
+        wyflag = False
+        cflag = False
+        vflag = False
+
+        error = False
+
+        name = basename(sys.argv[0]) # script name
+
+        try:
+            opts, args = getopt.getopt(
+                sys.argv[1:], "o:t:a:n:p:s:b:e:l:f:y:i:rwcv?"
+            )
+        except getopt.GetoptError as err:
+            sys.stderr.write(name + ": error: " + err.msg)
+            usage()
+            sys.exit(2)
+
+        for opt, arg in opts:
+            if opt == "-o":
+                outpath = arg
+            elif opt == "-t":
+                datatyp = arg.upper()
+            elif opt == "-a":
+                agency = arg
+            elif opt == "-n":
+                station = arg
+            elif opt == "-p":
+                parm = arg
+            elif opt == "-s":
+                stat = arg
+            elif opt == "-b":
+                begdat = arg
+            elif opt == "-e":
+                enddat = arg
+            elif opt == "-l":
+                loc_tz_cd = arg.upper()
+            elif opt == "-r":
+                rndsup = True
+            elif opt == "-w":
+                wyflag = True
+            elif opt == "-c":
+                cflag = True
+            elif opt == "-v":
+                vflag = True
+            elif opt == "-y":
+                transport_cd = arg
+            elif opt == "-i":
+                titlline = arg
+            elif opt == "-?":
+                error = True
+
+        if not outpath and \
+             ( not datatyp or not station or not begdat or not enddat or \
+               ((datatyp != "DC" and datatyp != "SV") and not stat) or \
+               (not datatyp != "QW" and not parm) or \
+               ((datatyp != "MS" and datatyp != "PK" and \
+                 datatyp != "WL") and not parm )):
+            # Not using a control file, -m is ignored.
+
+            # If -o is not specified, all other arguments must be
+            # there as the prompting for missing arguments uses ADAPS
+            # subroutines that write the prompts to stdout (they're
+            # ports from Prime, remember?) so the RDB output has to go
+            # to a file, otherwise the prompts would be mixed in with
+            # the RDB output which would make things difficult for a
+            # pipeline.
+            sys.stderr.write("\n")
+            sys.stderr.write(
+                "If the -o argument is omitted, then all of -t, -n, -b, -e,\n"
+            )
+            sys.stderr.write("and -s if datatype is not \"dc\", or \"sv\"\n")
+            sys.stderr.write("and -p if datatype is \"qw\"\n")
+            sys.stderr.write(
+                "and -p if datatype is not \"ms\", \"pk\", " +
+                "or \"wl\" must be present.\n"
+            )
+            status = 124
+
+    if status != 0:
+        usage()
+    else:
+        if not loc_tz_cd:
+            loc_tz_cd = "LOC"
+
+        # See http://www.pythonlearn.com/html-008/cfbook014.html
+
+        prefix = "http://localhost:8081/aq2rdb?"
+
+        # TODO: this query bit needs to be in a retry loop
+        url = prefix + urllib.urlencode(
+            {"p": parm,
+             "t": datatyp,
+             "s": stat,
+             "n": station,
+             "b": begdat,
+             "e": enddat}
+        )
+        uo = urllib.urlopen(url)
+        response = uo.read()
+
+        try:
+            rdb = str(response)
+        except:
+            rdb = None
+
+        # At present, the "aq2rdb" service appears to be appending an
+        # undesired, extra newline at the end of its response. Here,
+        # we trim it off just before output.
+        print rdb[0:-1]
+        # TODO: end of retry loop
+
+    return status
+
+if __name__ == "__main__":
+    sys.exit(main())
