@@ -257,9 +257,7 @@ function jsonParseErrorMessage(response, message) {
 var LocationIdentifier = function (text) {
     var text = text;
 
-    /**
-       @method Return agency code.
-    */
+    /** @method Return agency code. */
     this.agencyCode = function () {
         // if agency code delimiter ("-") is present in location
         // identifier
@@ -277,9 +275,7 @@ var LocationIdentifier = function (text) {
         }
     }
 
-    /**
-       @method Return site number.
-    */
+    /** @method Return site number. */
     this.siteNumber = function () {
         // if agency code delimiter ("-") is present in location
         // identifier
@@ -294,9 +290,7 @@ var LocationIdentifier = function (text) {
         }
     }
 
-    /**
-       @method Return string representation of this object.
-    */
+    /** @method Return string representation of this object. */
     this.toString = function () {
         return text;
     }
@@ -2039,13 +2033,13 @@ httpdispatcher.onGet(
                 },
                 /**
                    @description Receive response from AQUARIUS
-                   GetTimeSeriesCorrectedData service.
+                                GetTimeSeriesCorrectedData service.
                    @callback
                 */
                 aquarius.parseTimeSeriesDataServiceResponse,
                 /**
-                   @description Write time series data as RDB rows to HTTP
-                   response.
+                   @description Write time series data as RDB rows to
+                                HTTP response.
                    @callback
                 */
                 function (timeSeriesDataServiceResponse, callback) {
@@ -2053,7 +2047,7 @@ httpdispatcher.onGet(
                         timeSeriesDataServiceResponse.Points,
                         /**
                            @description Write an RDB row for one time
-                           series point.
+                                        series point.
                            @callback
                         */
                         function (point, callback) {
@@ -2294,7 +2288,7 @@ var NWISRA = function (hostname, userName, password, log, callback) {
        @method Get authentication token from NWIS-RA.
        @private
      */
-    function authenticate() {
+    function authenticate(callback) {
         async.waterfall([
             function (cb) {
                 try {
@@ -2356,11 +2350,36 @@ var NWISRA = function (hostname, userName, password, log, callback) {
             );
         }
         catch (error) {
-            /**
-               @todo Need to detect expired authentication token
-                     errors here, and refresh/retry-query if possible.
-            */
-            callback(error);
+            // Attempt to detect expired authentication token
+            // error.
+            if (error === "SyntaxError: Unexpected end of input") {
+                async.waterfall([
+                    function (callback) {
+                        authenticate(callback); // try to refresh token
+                        callback(null);
+                    },
+                    function (callback) {
+                        // retry query one more time
+                        rest.querySecure(
+                            this.hostname,
+                            "GET",
+                            {"Authorization": "Bearer " +
+                             authentication.tokenId},
+                            "/service/data/view/parameters/json",
+                            obj,
+                            log,
+                            callback
+                        );
+                    }
+                ],
+                    function (error) {
+                        if (error)
+                            callback(error);
+                    }
+                );
+            }
+            else
+                callback(error);
             return;
         }
         // no callback call here; it is called from rest.querySecure()
@@ -2372,7 +2391,7 @@ var NWISRA = function (hostname, userName, password, log, callback) {
     this.userName = userName;
     this.password = password;
     this.log = log;
-    authenticate();
+    authenticate(callback);
 
 } // NWISRA
 
