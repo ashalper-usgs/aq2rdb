@@ -39,21 +39,13 @@ var packageName = path.basename(process.argv[1]).slice(0, -3);
    @see https://www.npmjs.com/package/command-line-args#synopsis
 */
 var cli = commandLineArgs([
-    /**
-       @description Print version and exit.
-    */
+    /** @description Print version and exit. */
     {name: "version", alias: 'v', type: Boolean, defaultValue: false},
-    /**
-       @description Enable logging.
-    */
+    /** @description Enable logging. */
     {name: "log", alias: 'l', type: Boolean, defaultValue: false},
-    /**
-       @description TCP/IP port that aq2rdb will listen on.
-    */
+    /** @description TCP/IP port that aq2rdb will listen on. */
     {name: "port", alias: 'p', type: Number, defaultValue: 8081},
-    /**
-       @description DNS name of AQUARIUS Web service host.
-    */
+    /** @description DNS name of AQUARIUS Web service host. */
     {name: "aquariusHostname", alias: 'a', type: String,
      defaultValue: "nwists.usgs.gov"},
     /**
@@ -66,32 +58,24 @@ var cli = commandLineArgs([
                     password.
     */
     {name: "aquariusPassword", type: String},
-    /**
-       @description DNS name of aquarius-token Web service host.
-    */
+    /** @description DNS name of aquarius-token Web service host. */
     {name: "aquariusTokenHostname", alias: 't', type: String,
      defaultValue: "localhost"},
-    /**
-       @description DNS name of USGS Water Services Web service host.
-    */
+    /** @description DNS name of USGS Water Services Web service host. */
     {name: "waterServicesHostname", type: String,
      defaultValue: "waterservices.usgs.gov"},
-    /**
-       @description DNS name of USGS NWIS service host.
-    */
+    /** @description DNS name of USGS NWIS service host. */
     {name: "waterDataHostname", type: String,
      defaultValue: "nwisdata.usgs.gov"},
-    /**
-       @description USGS NWIS service host, service account user name.
-    */
+    /** @description USGS NWIS service host, service account user name. */
     {name: "waterDataUserName", type: String},
-    /**
-       @description DNS name of USGS NWIS service host.
-    */
+    /** @description DNS name of USGS NWIS service host. */
     {name: "waterDataPassword", type: String}
 ]);
 
+/** @global */
 var aquarius;               // AQUARIUS object
+/** @global */
 var nwisRA;                 // NWIS-RA object (see "NWISRA" prototype)
 
 /**
@@ -101,12 +85,11 @@ var nwisRA;                 // NWIS-RA object (see "NWISRA" prototype)
                 time zones defined in the NWIS TZ table, but the time
                 zone abbreviations known (presently) to be related to
                 SITEFILE sites in NATDB.
+   @global
    @constant
 */
 var tzName = Object();
-/**
-   @todo Need to check moment.tz() for "N"
-*/
+/** @todo Need to check moment.tz() for "N" */
 tzName['AFT'] =   {N: 'Asia/Kabul', Y: 'Asia/Kabul'};
 tzName['AKST'] =  {N: 'Etc/GMT-9',  Y: 'America/Anchorage'};
 tzName['AST'] =   {N: 'Etc/GMT-4',  Y: 'America/Glace_Bay'};
@@ -2307,48 +2290,53 @@ catch (error) {
 var NWISRA = function (hostname, userName, password, log, callback) {
     var authentication;
 
-    this.hostname = hostname;
+    /**
+       @method Get authentication token from NWIS-RA.
+       @private
+     */
+    function authenticate() {
+        async.waterfall([
+            function (cb) {
+                try {
+                    rest.querySecure(
+                        hostname,
+                        "POST",
+                        {"content-type": "application/x-www-form-urlencoded"},
+                        "/service/auth/authenticate",
+                        {username: userName, password: password},
+                        log,
+                        cb
+                    );
+                }
+                catch (error) {
+                    cb(error);
+                    return;
+                }
+            },
+            function (messageBody, cb) {
+                try {
+                    authentication = JSON.parse(messageBody);
+                }
+                catch (error) {
+                    cb(error);
+                    return;
+                }
 
-    async.waterfall([
-        function (cb) {
-            try {
-                rest.querySecure(
-                    hostname,
-                    "POST",
-                    {"content-type": "application/x-www-form-urlencoded"},
-                    "/service/auth/authenticate",
-                    {username: userName, password: password},
-                    log,
-                    cb
-                );
+                cb(null);
             }
-            catch (error) {
-                cb(error);
-                return;
+        ],
+            function (error) {
+                if (error)
+                    callback(error);
+                else
+                    callback(null);
             }
-        },
-        function (messageBody, cb) {
-            try {
-                authentication = JSON.parse(messageBody);
-            }
-            catch (error) {
-                cb(error);
-                return;
-            }
-
-            cb(null);
-        }
-    ],
-        function (error) {
-            if (error)
-                callback(error);
-            else
-                callback(null);
-        }
-    );
+        );
+    } // authenticate
 
     /**
        @method Make an NWIS-RA, HTTP GET query.
+       @public
        @param {object} obj HTTP query parameter/value object.
        @param {Boolean} log Enable console logging if true; no console
                         logging when false.
@@ -2378,6 +2366,13 @@ var NWISRA = function (hostname, userName, password, log, callback) {
         // no callback call here; it is called from rest.querySecure()
         // above
     } // query
+
+    // constructor
+    this.hostname = hostname;
+    this.userName = userName;
+    this.password = password;
+    this.log = log;
+    authenticate();
 
 } // NWISRA
 
