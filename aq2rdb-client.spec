@@ -1,6 +1,6 @@
 Name:           aq2rdb-client
-Version:        1.1.10
-Release:        2%{?dist}
+Version:        1.1.11
+Release:        1%{?dist}
 Summary:        A command-line program to call the aq2rdb Web service.
 Packager:       Andrew Halper <ashalper@usgs.gov>
 Vendor:         USGS Office of Water Information
@@ -38,6 +38,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc
 
 %changelog
+
+* Wed Mar 23 2016 Andrew Halper <ashalper@usgs.gov> 1.1.11-1%{?dist}
+- Appended newline to final line of usage statement.
 
 * Wed Mar 23 2016 Andrew Halper <ashalper@usgs.gov> 1.1.10-2%{?dist}
 - Some minor clean-up of .spec file.
