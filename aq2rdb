@@ -112,7 +112,7 @@ def usage():
     sys.stderr.write("       If -c is present and daily-values are being output, only computed\n")
     sys.stderr.write("             daily values will be retrieved.\n")
     sys.stderr.write("             If unit-values are being output, date and time\n")
-    sys.stderr.write("             are combined into a single datetime column.")
+    sys.stderr.write("             are combined into a single datetime column.\n")
 
 def main():
     outpath = None
