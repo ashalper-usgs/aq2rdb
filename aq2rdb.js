@@ -823,9 +823,9 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                     }
                     else {
                         /**
-                           @todo We should probably defer production of
-                           header and heading until after this
-                           check.
+                           @todo We should probably defer production
+                                 of header and heading until after
+                                 this check.
                         */
                         // raise error
                         callback(
@@ -922,20 +922,7 @@ function rdbOut(
     var datatyp, stat, uvtyp, interval;
     var uvtypPrompted = false;
 
-    if (locTzCd === undefined) locTzCd = 'LOC';
-
-    /**
-       @todo might not be needed:
-
-       if (intrans(1:1).EQ.' ')
-       transport_cd = ' '
-       sensor_type_id = NW_NI4
-       ELSE
-       transport_cd = intrans(1:1)
-       CALL s_upcase (transport_cd,1)
-       sensor_type_id = 0
-       END IF
-    */
+    if (locTzCd === undefined) locTzCd = "LOC";
 
     // init control argument
     var sopt = "10000000000000000000000000000000".split("");
@@ -970,7 +957,6 @@ function rdbOut(
 
     if (dataType === 'DV' || dataType === 'DC' ||
         dataType === 'SV' || dataType === 'PK') {
-
         // convert dates to 8 characters
         if (begdat === undefined || enddat === undefined) {
             if (wyflag)
@@ -981,7 +967,6 @@ function rdbOut(
         else {
             interval = new adaps.IntervalDay(begdat, enddat, wyflag);
         }
-
     }
 
     if (dataType === 'UV') {
@@ -1145,10 +1130,6 @@ function getTimeSeriesDescription(
         */
         function (timeSeriesDescriptions, callback) {
             if (timeSeriesDescriptions.length === 0) {
-                /**
-                   @todo Might be more helpful to have "...found at
-                   <URL>" in this message.
-                */
                 callback(
                     "No time series description list found at " +
                         url.format({
