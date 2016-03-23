@@ -14,23 +14,23 @@ var rdb = require('./rdb');
 var adaps = module.exports = {
 
     /**
-       @description ADAPS interval of day point type, object
-                    prototype. Encapsulates fuzzy math of date
-                    intervals found in NWIS ADAPS. Not to be confused
-                    with conventional temporal database intervals.
+       @classdesc ADAPS interval of day point type, object
+                  prototype. Encapsulates fuzzy math of date intervals
+                  found in NWIS ADAPS. Not to be confused with
+                  conventional temporal database intervals.
        @class
        @public
     */
     IntervalDay: function (from, to, referenceToWaterYear) {
-	this.from = rdb.fillBegDate(referenceToWaterYear, from);
-	/**
-	   @todo Check legacy NWIS code to see if there was any
-	         initial processing on end date.
-	*/
-	this.to = to;
-	this.referenceToWaterYear =
-	    (referenceToWaterYear === undefined) ? false :
-	    referenceToWaterYear;
+        this.from = rdb.fillBegDate(referenceToWaterYear, from);
+        /**
+           @todo Check legacy NWIS code to see if there was any
+                 initial processing on end date.
+        */
+        this.to = to;
+        this.referenceToWaterYear =
+            (referenceToWaterYear === undefined) ? false :
+            referenceToWaterYear;
     }, // IntervalDay
 
     /**
@@ -42,11 +42,11 @@ var adaps = module.exports = {
        @public
     */
     IntervalSecond: function (from, to, referenceToWaterYear) {
-	this.from = rdb.fillBegDtm(referenceToWaterYear, from);
-	this.to = rdb.fillEndDtm(referenceToWaterYear, to);
-	this.referenceToWaterYear =
-	    (referenceToWaterYear === undefined) ? false :
-	    referenceToWaterYear;
+        this.from = rdb.fillBegDtm(referenceToWaterYear, from);
+        this.to = rdb.fillEndDtm(referenceToWaterYear, to);
+        this.referenceToWaterYear =
+            (referenceToWaterYear === undefined) ? false :
+            referenceToWaterYear;
     } // IntervalSecond
 
 } // adaps
