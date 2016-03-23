@@ -2167,11 +2167,7 @@ httpdispatcher.onGet(
             */
             function (callback) {
                 try {
-                    rest.querySecure(
-                        options.waterDataHostname,
-                        "GET",
-                        {"Authorization": "Bearer " + nwisRA.tokenId()},
-                        "/service/data/view/parameters/json",
+                    nwisRA.query(
                         {"parameters.PARM_ALIAS_CD": "AQNAME",
                          "parameters.PARM_CD": parameterCode},
                         options.log,
@@ -2309,6 +2305,8 @@ catch (error) {
 var NWISRA = function (hostname, userName, password, log, callback) {
     var authentication;
 
+    this.hostname = hostname;
+
     async.waterfall([
         function (cb) {
             try {
@@ -2350,6 +2348,26 @@ var NWISRA = function (hostname, userName, password, log, callback) {
     this.tokenId = function () {
         return authentication.tokenId;
     }
+
+    this.query = function (obj, log, callback) {
+        try {
+            rest.querySecure(
+                this.hostname,
+                "GET",
+                {"Authorization": "Bearer " + this.tokenId()},
+                "/service/data/view/parameters/json",
+                obj,
+                log,
+                callback
+            );
+        }
+        catch (error) {
+            callback(error);
+            return;
+        }
+        // no callback call here, as it is called from
+        // rest.querySecure() above
+    } // query
 
 } // NWISRA
 
