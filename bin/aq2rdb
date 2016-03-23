@@ -13,9 +13,6 @@ import getopt
 from os.path import basename
 import urllib
 
-# aq2rdb module
-from write_error import write_error
-
 # Display usage information for the aq2rdb command
 def usage():
     sys.stderr.write("\n")
@@ -248,12 +245,6 @@ def main():
         # we trim it off just before output.
         print rdb[0:-1]
         # TODO: end of retry loop
-
-    # TODO: see if it's possible to obtain (operation_cd,
-    # operation_tx, error_tx) from "aq2rdb" endpoint to supply to
-    # write_error() (3rd, 4th, & 5th actual parameters below,
-    # respectively)
-    # write_error(status, 'aq2rdb', '', '', '', sys.stderr)
 
     return status
 
