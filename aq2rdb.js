@@ -267,7 +267,7 @@ function jsonParseErrorMessage(response, message) {
 }
 
 /**
-   @description LocationIdentifier object prototype.
+   @classdesc LocationIdentifier object prototype.
    @class
    @private
 */
@@ -912,8 +912,8 @@ function parseFields(requestURL, callback) {
    @param {string} instat Statistic code.
    @param {string} begdat Begin date/datetime.
    @param {string} enddat End date/datetime.
-   @param {string} inLocTzCd Location time zone code.
-   @param {string} titlline
+   @param {string} locTzCd Location time zone code.
+   @param {string} titlline Title line.
 */
 function rdbOut(
     dataType, rndsup, wyflag, cflag, vflag, agencyCode, siteNumber,
@@ -2299,6 +2299,11 @@ catch (error) {
     process.exit(1);
 }
 
+/**
+   @classdesc NWIS-RA object prototype.
+   @class
+   @private
+*/
 var NWISRA = function (hostname, userName, password, log, callback) {
     var authentication;
 
