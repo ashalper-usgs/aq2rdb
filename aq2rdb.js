@@ -2299,9 +2299,6 @@ catch (error) {
     process.exit(1);
 }
 
-/**
-   @todo NWISRA prototype constructor
-*/
 var NWISRA = function (hostname, userName, password, log, callback) {
     var authentication;
 
@@ -2345,16 +2342,20 @@ var NWISRA = function (hostname, userName, password, log, callback) {
         }
     );
 
-    this.tokenId = function () {
-        return authentication.tokenId;
-    }
-
+    /**
+       @method Make an NWIS-RA, HTTP GET query.
+       @param {object} obj HTTP query parameter/value object.
+       @param {Boolean} log Enable console logging if true; no console
+                        logging when false.
+       @param {function} callback Callback function to call if/when
+                         response is received.
+    */
     this.query = function (obj, log, callback) {
         try {
             rest.querySecure(
                 this.hostname,
                 "GET",
-                {"Authorization": "Bearer " + this.tokenId()},
+                {"Authorization": "Bearer " + authentication.tokenId},
                 "/service/data/view/parameters/json",
                 obj,
                 log,
@@ -2362,11 +2363,15 @@ var NWISRA = function (hostname, userName, password, log, callback) {
             );
         }
         catch (error) {
+            /**
+               @todo Need to detect expired authentication token
+                     errors here, and refresh/retry-query if possible.
+            */
             callback(error);
             return;
         }
-        // no callback call here, as it is called from
-        // rest.querySecure() above
+        // no callback call here; it is called from rest.querySecure()
+        // above
     } // query
 
 } // NWISRA
