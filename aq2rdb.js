@@ -74,9 +74,11 @@ var cli = commandLineArgs([
 ]);
 
 /** @global */
-var aquarius;               // AQUARIUS object
+var aquarius;          // AQUARIUS object
 /** @global */
-var nwisRA;                 // NWIS-RA object (see "NWISRA" prototype)
+var nwisRA;            // NWIS-RA object (see "NWISRA" prototype)
+/** @global */
+var stat;              // JavaScript version of NWIS STAT domain table
 
 /**
    @description A mapping of select NWIS time zone codes to IANA time
@@ -312,7 +314,7 @@ function docRequest(url, servicePath, response, callback) {
     if (url === servicePath) {
         // read and serve the documentation page
         fs.readFile(
-            'doc/' + path.basename(servicePath) + '.html',
+            "doc/" + path.basename(servicePath) + ".html",
             function (error, html) {
                 if (error) {
                     callback(error);
@@ -342,7 +344,7 @@ function docRequest(url, servicePath, response, callback) {
 */
 function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     // TIME column is always empty for daily values
-    var row = moment(timestamp).format("YYYYMMDD") + '\t\t' +
+    var row = moment(timestamp).format("YYYYMMDD") + "\t\t" +
         value.Display + '\t';
 
     /**
@@ -2386,7 +2388,12 @@ else {
     */
     var server = http.createServer(handleRequest);
 
+    // some server start-up, initialization tasks
     async.parallel([
+        /**
+           @function Attempt NWIS-RA handshaking to get
+                     authentication token.
+        */
         function (callback) {
             try {
                 nwisRA = new NWISRA(
@@ -2403,6 +2410,10 @@ else {
             }
             // no callback here; it is called from NWISRA() when complete
         },
+        /**
+           @function Attempt AQUARIUS handshaking to get
+                     authentication token.
+         */
         function (callback) {
             try {
                 aquarius = new AQUARIUS(
@@ -2417,8 +2428,32 @@ else {
                     return;
                 }
             }
+        },
+        function (callback) {
+            fs.readFile("stat.json", function(error, json) {
+                if (error) {
+                    callback(error);
+                    return true;
+                }
+
+                try {
+                    stat = JSON.parse(json);
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+
+                callback(null);
+            });
         }
     ],
+        /**
+           @todo async.parallel() callbacks above could be more
+                 specific by passing information to second (presently
+                 omitted), "results" array parameter here.
+           @see https://github.com/caolan/async#parallel
+         */
         function (error) {
             if (error) {
                 log(packageName, error);
@@ -2433,9 +2468,8 @@ else {
                     packageName,
                     "Received AQUARIUS authentication token successfully"
                 );
-                /**
-                   @description Start listening for requests.
-                */ 
+                log(packageName, "Loaded stat.json");
+                /** @description Start listening for requests. */ 
                 server.listen(options.port, function () {
                     log(
                         packageName,
