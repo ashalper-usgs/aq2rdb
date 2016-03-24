@@ -192,10 +192,11 @@ var rdb = module.exports = {
             header += range.end;
         }
         /**
-           @todo ZONE value should probably be a passed-in parameter
-                 at some point.
+           @todo nwts2rdb "-l" option?
+
+           header += "\" ZONE=\"LOC\"\n";
         */
-        header += "\" ZONE=\"LOC\"\n";
+        header += "\"\n";
 
         callback(null, header);
     }, // header
