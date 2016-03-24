@@ -1802,26 +1802,8 @@ httpdispatcher.onGet(
                 function (tsd, callback) {                  
                     var type;
 
+                    // save TimeSeriesDescription in outer scope
                     timeSeriesDescription = tsd;
-
-                    /**
-                       @todo All daily values are computed for
-                             now; needs more research.
-                    */
-                    var compdv = true;
-
-                    // write DV type info
-                    if (compdv)
-                        type = {
-                            name: "COMPUTED",
-                            description: "COMPUTED DAILY VALUES ONLY"
-                        };
-                    else
-                        type = {
-                            name: "FINAL",
-                            description:
-                            "EDITED AND COMPUTED DAILY VALUES"
-                        };
 
                     // write the header records
                     rdb.header(
@@ -1838,7 +1820,12 @@ httpdispatcher.onGet(
                                  possible.
                         */
                         {code: "", name: "", description: ""},
-                        type,
+                        /**
+                           @todo Hard-coded object here is likely not
+                                 correct under all circumstances.
+                        */
+                        {name: "FINAL",
+                         description: "EDITED AND COMPUTED DAILY VALUES"},
                         {start: during.from, end: during.to},
                         callback
                     );
