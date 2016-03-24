@@ -1235,8 +1235,8 @@ function appendIntervalSearchCondition(
     return parameters;
 } // appendIntervalSearchCondition
 
-function dvBody(
-    timeSeriesDescription, queryFrom, queryTo, response, callback
+function dvTableBody(
+    timeSeriesUniqueId, queryFrom, queryTo, tzName, response, callback
 ) {
     var remarkCodes;
 
@@ -1314,12 +1314,37 @@ function dvBody(
            @callback
         */
         function (callback) {
+            var f, t;
+            var parameters = {
+                TimeSeriesUniqueId: timeSeriesUniqueId,
+                ApplyRounding: "true"
+            };
+
+            if (queryFrom !== "00000000") {
+                try {
+                    f = moment.tz(queryFrom, tzName).format("YYYY-MM-DD");
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+                parameters["QueryFrom"] = f;
+            }
+
+            if (queryTo !== "99999999") {
+                try {
+                    t = moment.tz(queryTo, tzName).format("YYYY-MM-DD");
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+                parameters["QueryTo"] = t;
+            }
+
             try {
                 aquarius.getTimeSeriesCorrectedData(
-                    {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
-                     QueryFrom: queryFrom, QueryTo: queryTo,
-                     ApplyRounding: "true"},
-                    callback
+                    parameters, callback
                 );
             }
             catch (error) {
@@ -1367,7 +1392,7 @@ function dvBody(
             }
         }
     ); // async.waterfall
-} // dvBody
+} // dvTableBody
 
 /**
    @description GetDVTable endpoint service request handler.
@@ -1595,12 +1620,13 @@ httpdispatcher.onGet(
                         );
 
                         callback(
-                            null, timeSeriesDescription,
+                            null, timeSeriesDescription.UniqueId,
                             field.QueryFrom, field.QueryTo,
+             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
                             response
                         );
                     },
-                    dvBody
+                    dvTableBody
                 ]);
                 callback(null);
             }
@@ -1738,16 +1764,6 @@ httpdispatcher.onGet(
                     callback(null);
                 },
                 function (callback) {
-                    parameters = appendIntervalSearchCondition(
-                        parameters, during,
-                        waterServicesSite.tzCode,
-                        "00000000", "99999999",
-                        callback
-                    );
-
-                    callback(null);
-                },
-                function (callback) {
                     pcode = 'P';         // pmcode            // set rounding
                     /**
                        @todo Load data descriptor?
@@ -1839,38 +1855,14 @@ httpdispatcher.onGet(
                         "ascii"
                     );
 
-                    var queryFrom, queryTo;
-                    var name =
-             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag];
-
-                    try {
-                        queryFrom = moment.tz(
-                            parameters.QueryFrom, name
-                        ).format("YYYY-MM-DD");
-                    }
-                    catch (error) {
-                        callback(error);
-                        return;
-                    }
-
-                    try {
-                        queryTo = moment.tz(
-                            parameters.QueryTo, name
-                        ).format("YYYY-MM-DD");
-
-                    }
-                    catch (error) {
-                        callback(error);
-                        return;
-                    }
-
                     callback(
-                        null, timeSeriesDescription,
-                        queryFrom, queryTo,
+                        null, timeSeriesDescription.UniqueId,
+                        during.from, during.to,
+             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
                         response
                     );
                 },
-                dvBody
+                dvTableBody
             ],
                 function (error) {
                     if (error) {
