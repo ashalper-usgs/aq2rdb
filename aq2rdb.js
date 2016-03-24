@@ -397,7 +397,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
             callback(true);
         }
     }, function (result) {
-        row += '\t';
+        row += "\t ";
     });
 
     /**
@@ -424,7 +424,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
        in Adaps.  We don't explicitly have the Meas, Edit, and Comp UV
        types anymore, they are separate timeseries in AQUARIUS.
     */
-    '\t\t' + qa + '\n';
+    "\tC\t" + qa + '\n';
 
     return row;
 } // dvTableRow
