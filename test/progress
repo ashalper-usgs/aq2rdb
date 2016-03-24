@@ -1,0 +1,30 @@
+#! /usr/bin/gawk
+#
+# File - progress
+#
+# Purpose - "progress" is not "regress"!
+#
+# Author - Andrew Halper <ashalper@usgs.gov>
+#
+
+{
+    switch ($0) {
+    case /# \/\/RETRIEVED: /:
+	# RETRIEVED timestamps will always be different
+	print "# //RETRIEVED: "
+        break
+    case /# \/\/(DATABASE NUMBER|LOCATION NUMBER|AGING|DD)/:
+	# omit header block fields unsupported by aq2rdb from output
+	break
+    case /^[[:digit:]]{8}/:
+        split($0, f, "\t")
+	# omit PRECISION (4th) column from output as it is not
+	# supported by aq2rdb
+        print f[1] "\t" f[2] "\t" f[3] "\t\t" f[5] "\t" f[6] "\t" f[7] "\t" f[8]
+	break
+    default:
+	# no modification
+	print $0
+	break
+    }
+}
