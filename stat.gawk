@@ -11,6 +11,7 @@ BEGIN {
     print "{"
 }
 {
+    gsub(/[[:space:]]+$/, "", $5)
     printf "\"%s\": {\"name\": \"%s\", \"description\": \"%s\"}", $1, $2, $5
     # if this is not the last line in the TSV file
     if (FNR < 3188)
