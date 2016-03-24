@@ -1013,7 +1013,7 @@ function rdbOut(
 
     callback(
         null, false, rndsup, cflag, vflag, dataType, agencyCode,
-        siteNumber, parameterCode, interval, locTzCd
+        siteNumber, parameterCode, stat, interval, locTzCd
     );
 } // rdbOut
 
@@ -1711,6 +1711,7 @@ httpdispatcher.onGet(
         var parameter, extendedFilters;
         var during, editable, cflag, vflag;
         var rndsup, locTzCd;
+        var statistic = new Object();
 
         log(packageName + ".httpdispatcher.onGet(/" + packageName +
             ", (request))", request);
@@ -1818,8 +1819,6 @@ httpdispatcher.onGet(
                 },
                 getTimeSeriesDescription,
                 function (tsd, callback) {                  
-                    var type;
-
                     // save TimeSeriesDescription in outer scope
                     timeSeriesDescription = tsd;
 
@@ -1829,15 +1828,7 @@ httpdispatcher.onGet(
                         (editable) ? "YES" : "NO",
                         waterServicesSite,
                         timeSeriesDescription.SubLocationIdentifer,
-                        parameter,
-                        /**
-                           @todo Statistic code is locked up within
-                                 the scope of parseFields() right
-                                 now. Need to free it, and look up
-                                 (name,description) as well if
-                                 possible.
-                        */
-                        {code: "", name: "", description: ""},
+                        parameter, statistic,
                         /**
                            @todo Hard-coded object here is likely not
                                  correct under all circumstances.
@@ -1949,15 +1940,7 @@ httpdispatcher.onGet(
                                 (editable) ? "YES" : "NO",
                                 waterServicesSite,
                                 timeSeriesDescription.SubLocationIdentifer,
-                                parameter,
-                                /**
-                                   @todo Statistic code is locked up
-                                         within the scope of
-                                         parseFields() right now. Need
-                                         to free it, and look up
-                                         (name,description) as well.
-                                */
-                                {code: "", name: "", description: ""},
+                                parameter, statistic,
                                 /**
                                    @todo this is pragmatically
                                          hard-coded now, but there is
@@ -2095,7 +2078,7 @@ httpdispatcher.onGet(
                      crutch eventually.
             */
             function (
-                e, r, c, v, d, a, s, p, interval, locTzCd, callback
+                e, r, c, v, d, a, s, p, statCode, interval, locTzCd, callback
             ) {
                 // save values in outer scope to avoid passing these
                 // values through subsequent async.waterfal()
@@ -2108,6 +2091,9 @@ httpdispatcher.onGet(
                 agencyCode = a;
                 siteNumber = s;
                 parameterCode = p;
+                statistic.code = statCode;
+                statistic.name = stat[statCode].name;
+                statistic.description = stat[statCode].description;
                 during = interval;
                 rndsup = r;
 
