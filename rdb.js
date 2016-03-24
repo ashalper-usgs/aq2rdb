@@ -165,15 +165,15 @@ var rdb = module.exports = {
         */
 
         header += "# //PARAMETER CODE=\"" + parameter.code +
-            "\" SNAME=\"" + parameter.name + "\"\n" +
+            "\" SNAME = \"" + parameter.name + "\"\n" +
             "# //PARAMETER LNAME=\"" + parameter.description + "\"\n" +
             "# //STATISTIC CODE=\"" + statistic.code.substr(1, 5) +
                "\" SNAME=\"" + statistic.name + "\"\n" +
             "# //STATISTIC LNAME=\"" + statistic.description + "\"\n";
 
         if (type)
-            header += "# //TYPE NAME=" + type.name + " NAME=" +
-                      type.name + "\n";
+            header += "# //TYPE NAME=\"" + type.name + "\" DESC = \"" +
+                      type.description + "\"\n";
 
         /**
            @todo write data aging information:
