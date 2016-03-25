@@ -221,7 +221,7 @@ def main():
 
         # See http://www.pythonlearn.com/html-008/cfbook014.html
 
-        prefix = "http://localhost:8081/aq2rdb?"
+        prefix = "http://cidasdqaasaq2rd:8081/aq2rdb?"
 
         # TODO: this query bit needs to be in a retry loop
         url = prefix + urllib.urlencode(
