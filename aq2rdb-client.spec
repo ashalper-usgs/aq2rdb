@@ -1,5 +1,5 @@
 Name:           aq2rdb-client
-Version:        1.1.12
+Version:        1.1.11
 Release:        1%{?dist}
 Summary:        A command-line program to call the aq2rdb Web service.
 Packager:       Andrew Halper <ashalper@usgs.gov>
@@ -39,11 +39,9 @@ rm -rf ${RPM_BUILD_ROOT}
 
 %changelog
 
-* Fri Mar 25 2016 Andrew Halper <ashalper@usgs.gov> 1.1.12-1%{?dist}
-- Re-targeted "aq2rdb" Web service reference to cidasdqaasaq2rd.
-
-* Wed Mar 23 2016 Andrew Halper <ashalper@usgs.gov> 1.1.11-1%{?dist}
+* Fri Mar 25 2016 Andrew Halper <ashalper@usgs.gov> 1.1.11-1%{?dist}
 - Appended newline to final line of usage statement.
+- Re-targeted "aq2rdb" Web service reference to cidasdqaasaq2rd.
 
 * Wed Mar 23 2016 Andrew Halper <ashalper@usgs.gov> 1.1.10-2%{?dist}
 - Some minor clean-up of .spec file.
