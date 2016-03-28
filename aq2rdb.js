@@ -895,126 +895,9 @@ function parseFields(requestURL, callback) {
    @param {string} titlline Title line.
 */
 function rdbOut(
-    dataType, rndsup, wyflag, cflag, vflag, agencyCode, siteNumber,
-    parameterCode, instat, begdat, enddat, locTzCd, titlline, callback
+   
 ) {
-    var datatyp, stat, uvtyp, interval;
-    var uvtypPrompted = false;
 
-    if (locTzCd === undefined) locTzCd = "LOC";
-
-    // init control argument
-    var sopt = "10000000000000000000000000000000".split("");
-
-    dataType = dataType.substring(0, 2).toUpperCase();
-
-    // convert agency to 5 characters - default to USGS
-    if (agencyCode === undefined)
-        agencyCode = "USGS";
-    else
-        agencyCode = agencyCode.substring(0, 5);
-
-    // convert station to 15 characters
-    siteNumber = siteNumber.substring(0, 15);
-
-    log(packageName + ".rdbOut().parameterCode", parameterCode);
-
-    // further processing depends on data type
-
-    if (dataType === 'DV') { // convert stat to 5 characters
-        if (instat === undefined) {
-            sopt[7] = '1';
-        }
-        else {
-            if (5 < instat.length)
-                stat = instat.substring(0, 5);
-            else
-                stat = instat;
-            stat = sprintf("%5s", stat).replace(' ', '0');
-        }
-    }
-
-    if (dataType === 'DV' || dataType === 'DC' ||
-        dataType === 'SV' || dataType === 'PK') {
-        // convert dates to 8 characters
-        if (begdat === undefined || enddat === undefined) {
-            if (wyflag)
-                sopt[8] = '4';
-            else
-                sopt[9] = '3';
-        }
-        else {
-            interval = new adaps.IntervalDay(begdat, enddat, wyflag);
-        }
-    }
-
-    if (dataType === 'UV') {
-        
-        uvtyp = instat.charAt(0).toUpperCase();
-        
-        if (! (uvtyp === 'C' || uvtyp === 'E' ||
-               uvtyp === 'M' || uvtyp === 'N' ||
-               uvtyp === 'R' || uvtyp === 'S')) {
-            // Position of this is an artifact of the
-            // nwts2rdb legacy code: it might need to be
-            // moved earlier in HTTP query parameter
-            // validation code.
-            callback(
-                'UV type code must be ' +
-                    '"M", "N", "E", "R", "S", or "C"'
-            );
-            return;
-        }
-
-        // convert date/times to 14 characters
-        if (begdat === undefined || enddat === undefined) {
-            if (wyflag)
-                sopt[8] = '4';
-            else
-                sopt[9] = '3';
-        }
-        else {
-            interval = new adaps.IntervalSecond(begdat, enddat, wyflag);
-        }
-
-    }
-
-    // This is where, formerly, NWF_RDB_OUT():
-    // 
-    //    get PRIMARY DD that goes with parm if parm supplied
-    //
-    // Since the algorithmic equivalent is now deep within
-    // the bowels of unitValues(), it is no longer
-    // here. This comment is just a reminder that it used
-    // to be here, in case it is later discovered that the
-    // primary identification is necessary before
-    // unitValues() does it.
-
-    // retrieving measured uvs and transport_cd not
-    // supplied, prompt for it
-    if (uvtypPrompted && dataType === "UV" &&
-        (uvtyp === 'M' || uvtyp === 'N') &&
-        transport_cd === undefined) {
-        /**
-           @todo Convert to callback error?
-        */
-        /*
-          nw_query_meas_uv_type(agencyCode, siteNumber, ddid, begdtm,
-          enddtm, loc_tz_cd, transport_cd,
-          sensor_type_id, *998)
-          if (transport_cd === undefined) {
-          WRITE (0,2150) agencyCode, siteNumber, ddid
-          2150      FORMAT (/,"No MEASURED UV data for station "",A5,A15,
-          "", DD "',A4,'".  Aborting.",/)
-          return irc;
-          END IF
-        */
-    }
-
-    callback(
-        null, false, rndsup, cflag, vflag, dataType, agencyCode,
-        siteNumber, parameterCode, stat, interval, locTzCd
-    );
 } // rdbOut
 
 /**
@@ -1708,10 +1591,9 @@ httpdispatcher.onGet(
                  former "P" prefix of this value.
         */
         var parameterCode;
-        var parameter, extendedFilters;
+        var parameter, statCode, extendedFilters;
         var during, editable, cflag, vflag;
         var rndsup, locTzCd;
-        var statistic = new Object();
 
         log(packageName + ".httpdispatcher.onGet(/" + packageName +
             ", (request))", request);
@@ -1750,7 +1632,7 @@ httpdispatcher.onGet(
             // many/most of these are artifacts of the legacy code,
             // and probably won't be needed:
             var rndary = ' ';
-            var rndparm, rnddd, cdvabort = ' ';
+            var rndparm, rnddd;
             var pcode, timeSeriesDescription;
 
             async.waterfall([
@@ -1781,36 +1663,6 @@ httpdispatcher.onGet(
                     else
                         rndary = rndparm;
 
-                    callback(null);
-                },
-                /**
-                   @todo this might be obsolete
-                */
-                function (callback) {
-                    // DV abort limit defaults to 120 minutes
-                    cdvabort = '120';
-
-                    /**
-                       @todo get the DV abort limit
-                       @see
-                          watstore/adaps/adrsrc/tsing_lib/nw_db_retr_dvabort.sf
-
-                       if (dbRetrDVAbort(ddagny, ddstid, ddid, bnwisdtm,
-                           enwisdtm, dvabort)) {
-                           cdvabort = sprintf("%6d", dvabort);
-                       }
-                    */
-                    callback(null);
-                },
-                function (callback) {
-                    /**
-                       @todo get stat information
-
-                       irc = s_statck(stat);
-
-                       if (irc !== 0)
-                          ssnam = '*** INVALID STAT ***';
-                    */
                     callback(
                         null, token, agencyCode, siteNumber,
                         parameter.aquariusParameter, undefined,
@@ -1821,6 +1673,21 @@ httpdispatcher.onGet(
                 function (tsd, callback) {                  
                     // save TimeSeriesDescription in outer scope
                     timeSeriesDescription = tsd;
+
+                    var statistic = {code: statCode};
+
+                    try {
+                        statistic.name = stat[statCode].name;
+                        statistic.description = stat[statCode].description;
+                    }
+                    catch (error) {
+                        log("dailyValues().error", error);
+                        callback(
+                            "Invalid statistic code \"" + statCode +
+                                "\""
+                        );
+                        return;
+                    }
 
                     // write the header records
                     rdb.header(
@@ -1940,7 +1807,12 @@ httpdispatcher.onGet(
                                 (editable) ? "YES" : "NO",
                                 waterServicesSite,
                                 timeSeriesDescription.SubLocationIdentifer,
-                                parameter, statistic,
+                                /**
+                                   @todo need to find out what to pass
+                                         in for "statistic" parameter
+                                         when doing UVs below.
+                                */
+                                parameter, undefined,
                                 /**
                                    @todo this is pragmatically
                                          hard-coded now, but there is
@@ -2072,13 +1944,140 @@ httpdispatcher.onGet(
                 callback(null, request.url);
             },
             parseFields,
-            rdbOut,
+            function rdbOut (
+                dataType, rndsup, wyflag, cflag, vflag, agencyCode,
+                siteNumber, parameterCode, instat, begdat, enddat,
+                locTzCd, titlline, callback
+            ) {
+                var datatyp, stat, uvtyp, interval;
+                var uvtypPrompted = false;
+
+                if (locTzCd === undefined) locTzCd = "LOC";
+
+                // init control argument
+                var sopt = "10000000000000000000000000000000".split("");
+
+                dataType = dataType.substring(0, 2).toUpperCase();
+
+                // convert agency to 5 characters - default to USGS
+                if (agencyCode === undefined)
+                    agencyCode = "USGS";
+                else
+                    agencyCode = agencyCode.substring(0, 5);
+
+                // convert station to 15 characters
+                siteNumber = siteNumber.substring(0, 15);
+
+                log(packageName + ".rdbOut().parameterCode", parameterCode);
+
+                // further processing depends on data type
+
+                if (dataType === 'DV') { // convert stat to 5 characters
+                    if (instat === undefined) {
+                        sopt[7] = '1';
+                    }
+                    else {
+                        if (5 < instat.length)
+                            statCode = instat.substring(0, 5);
+                        else
+                            statCode = instat;
+                        statCode = sprintf("%5s", statCode).replace(' ', '0');
+                    }
+                }
+
+                if (dataType === 'DV' || dataType === 'DC' ||
+                    dataType === 'SV' || dataType === 'PK') {
+                    // convert dates to 8 characters
+                    if (begdat === undefined || enddat === undefined) {
+                        if (wyflag)
+                            sopt[8] = '4';
+                        else
+                            sopt[9] = '3';
+                    }
+                    else {
+                        interval =
+                            new adaps.IntervalDay(begdat, enddat, wyflag);
+                    }
+                }
+
+                if (dataType === 'UV') {
+                    
+                    uvtyp = instat.charAt(0).toUpperCase();
+                    
+                    if (! (uvtyp === 'C' || uvtyp === 'E' ||
+                           uvtyp === 'M' || uvtyp === 'N' ||
+                           uvtyp === 'R' || uvtyp === 'S')) {
+                        // Position of this is an artifact of the
+                        // nwts2rdb legacy code: it might need to be
+                        // moved earlier in HTTP query parameter
+                        // validation code.
+                        callback(
+                            'UV type code must be ' +
+                                '"M", "N", "E", "R", "S", or "C"'
+                        );
+                        return;
+                    }
+
+                    // convert date/times to 14 characters
+                    if (begdat === undefined || enddat === undefined) {
+                        if (wyflag)
+                            sopt[8] = '4';
+                        else
+                            sopt[9] = '3';
+                    }
+                    else {
+                        interval =
+                            new adaps.IntervalSecond(begdat, enddat, wyflag);
+                    }
+
+                }
+
+                // This is where, formerly, NWF_RDB_OUT():
+                // 
+                //    get PRIMARY DD that goes with parm if parm supplied
+                //
+                // Since the algorithmic equivalent is now deep within
+                // the bowels of unitValues(), it is no longer
+                // here. This comment is just a reminder that it used
+                // to be here, in case it is later discovered that the
+                // primary identification is necessary before
+                // unitValues() does it.
+
+                // retrieving measured uvs and transport_cd not
+                // supplied, prompt for it
+                if (uvtypPrompted && dataType === "UV" &&
+                    (uvtyp === 'M' || uvtyp === 'N') &&
+                    transport_cd === undefined) {
+                    /**
+                       @todo Convert to callback error?
+                    */
+                    /*
+                      nw_query_meas_uv_type(
+                         agencyCode, siteNumber, ddid, begdtm,
+                         enddtm, loc_tz_cd, transport_cd,
+                         sensor_type_id, *998)
+                      if (transport_cd === undefined) {
+                      WRITE (0,2150) agencyCode, siteNumber, ddid
+                      2150
+                         FORMAT (/,"No MEASURED UV data for station "",A5,A15,
+                      "", DD "',A4,'".  Aborting.",/)
+                      return irc;
+                      END IF
+                    */
+                }
+
+                callback(
+                    null, false, rndsup, cflag, vflag, dataType,
+                    agencyCode, siteNumber, parameterCode, interval,
+                    locTzCd
+                );
+            },
             /**
                @todo It would be quite nice to get rid of this scoping
                      crutch eventually.
             */
             function (
-                e, r, c, v, d, a, s, p, statCode, interval, locTzCd, callback
+                e, r, c, v, d, a, s, p, interval, locTzCd, callback
             ) {
                 // save values in outer scope to avoid passing these
                 // values through subsequent async.waterfal()
@@ -2091,9 +2090,6 @@ httpdispatcher.onGet(
                 agencyCode = a;
                 siteNumber = s;
                 parameterCode = p;
-                statistic.code = statCode;
-                statistic.name = stat[statCode].name;
-                statistic.description = stat[statCode].description;
                 during = interval;
                 rndsup = r;
 
