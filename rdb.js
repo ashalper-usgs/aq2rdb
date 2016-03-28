@@ -166,10 +166,14 @@ var rdb = module.exports = {
 
         header += "# //PARAMETER CODE=\"" + parameter.code +
             "\" SNAME = \"" + parameter.name + "\"\n" +
-            "# //PARAMETER LNAME=\"" + parameter.description + "\"\n" +
-            "# //STATISTIC CODE=\"" + statistic.code +
-               "\" SNAME=\"" + statistic.name + "\"\n" +
-            "# //STATISTIC LNAME=\"" + statistic.description + "\"\n";
+            "# //PARAMETER LNAME=\"" + parameter.description + "\"\n";
+
+	if (statistic !== undefined) {
+            header += "# //STATISTIC CODE=\"" + statistic.code +
+		"\" SNAME=\"" + statistic.name + "\"\n" +
+		"# //STATISTIC LNAME=\"" + statistic.description +
+		"\"\n";
+	}
 
         if (type)
             header += "# //TYPE NAME=\"" + type.name + "\" DESC = \"" +
