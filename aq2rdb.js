@@ -874,33 +874,6 @@ function parseFields(requestURL, callback) {
 } // parseFields
 
 /**
-   @function Node.js emulation of a proper subset of legacy NWIS,
-             NWF_RDB_OUT() Fortran subroutine: "Top-level routine for
-             outputting rdb format data".
-   @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
-   @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
-   @param {string} dataType Rating (time series?) type.
-   @param {Boolean} rndsup Rounding suppression flag.
-   @param {Boolean} wyflag Water year flag.
-   @param {Boolean} cflag Computed flag.
-   @param {Boolean} vflag Verbose dates and times flag.
-   @param {string} agencyCode Site agency code.
-   @param {string} siteNumber Site number (a.k.a. "site ID").
-   @param {string} parameterCode Parameter code [and regrettably,
-          sometimes DD number in NWF_RDB_OUT()]
-   @param {string} instat Statistic code.
-   @param {string} begdat Begin date/datetime.
-   @param {string} enddat End date/datetime.
-   @param {string} locTzCd Location time zone code.
-   @param {string} titlline Title line.
-*/
-function rdbOut(
-   
-) {
-
-} // rdbOut
-
-/**
    @function Get a TimeSeriesDescription object from AQUARIUS.
    @private
    @param {string} token AQUARIUS authentication token.
