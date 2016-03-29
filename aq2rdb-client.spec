@@ -1,6 +1,6 @@
 Name:           aq2rdb-client
 Version:        1.1.11
-Release:        2
+Release:        3
 Summary:        A command-line program to call the aq2rdb Web service.
 Packager:       Andrew Halper <ashalper@usgs.gov>
 Vendor:         USGS Office of Water Information
@@ -10,7 +10,6 @@ Source0:        https://github.com/ashalper-usgs/aq2rdb/%{name}-%{version}.tar.g
 License:        USGS
 URL:            https://github.com/ashalper-usgs/aq2rdb
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
-Requires:       python >= 2.6.2-2
 Prefix:         /usr/local
 
 %description
