@@ -1,6 +1,6 @@
 Name:           aq2rdb-client
 Version:        1.1.11
-Release:        1%{?dist}
+Release:        2
 Summary:        A command-line program to call the aq2rdb Web service.
 Packager:       Andrew Halper <ashalper@usgs.gov>
 Vendor:         USGS Office of Water Information
@@ -27,7 +27,8 @@ produce RDB files on standard output.
 rm -rf ${RPM_BUILD_ROOT}
 mkdir -p ${RPM_BUILD_ROOT}%{prefix}/bin
 # only one file in the package
-install -m 755 aq2rdb ${RPM_BUILD_ROOT}%{prefix}/bin
+cp aq2rdb ${RPM_BUILD_ROOT}%{prefix}/bin
+chmod 755 aq2rdb ${RPM_BUILD_ROOT}%{prefix}/bin/aq2rdb
 
 %clean
 rm -rf ${RPM_BUILD_ROOT}
@@ -38,6 +39,10 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc
 
 %changelog
+
+* Tue Mar 29 2016 Andrew Halper <ashalper@usgs.gov> 1.1.11-2
+- Rebuilt on Solaris SPARC because CentOS RPM would not install,
+  despite professing to be "noarch".
 
 * Fri Mar 25 2016 Andrew Halper <ashalper@usgs.gov> 1.1.11-1%{?dist}
 - Appended newline to final line of usage statement.
