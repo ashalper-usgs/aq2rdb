@@ -79,6 +79,8 @@ var aquarius;          // AQUARIUS object
 var nwisRA;            // NWIS-RA object (see "NWISRA" prototype)
 /** @global */
 var stat;              // JavaScript version of NWIS STAT domain table
+/** @global */
+var options;
 
 /**
    @description A mapping of select NWIS time zone codes to IANA time
@@ -2191,7 +2193,7 @@ try {
     /**
        @description Set of successfully parsed command line options.
     */
-    var options = cli.parse();
+    options = cli.parse();
 }
 catch (error) {
     /**
@@ -2450,6 +2452,7 @@ if (process.env.NODE_ENV === "test") {
         dvTableRow: dvTableRow,
         handle: handle,
         jsonParseErrorMessage: jsonParseErrorMessage,
-        nwisVersusIANA: nwisVersusIANA
+        nwisVersusIANA: nwisVersusIANA,
+        options: options
     };
 }
