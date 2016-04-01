@@ -472,34 +472,34 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
 
 var AQUARIUS = function (hostname, userName, password, callback) {
     if (hostname === undefined) {
-        callback('AQUARIUS(): Required field "hostname" not found');
+        callback('Required field "hostname" not found');
         return;
     }
 
     if (hostname === '') {
-        callback('AQUARIUS(): Required field "hostname" must have a value');
+        callback('Required field "hostname" must have a value');
         return;
     }
 
     this.hostname = hostname;
 
     if (userName === undefined) {
-        callback('AQUARIUS(): Required field "userName" not found');
+        callback('Required field "userName" not found');
         return;
     }
 
     if (userName === '') {
-        callback('AQUARIUS(): Required field "userName" must have a value');
+        callback('Required field "userName" must have a value');
         return;
     }
 
     if (password === undefined) {
-        callback('AQUARIUS(): Required field "password" not found');
+        callback('Required field "password" not found');
         return;
     }
 
     if (password === '') {
-        callback('AQUARIUS(): Required field "password" must have a value');
+        callback('Required field "password" must have a value');
         return;
     }
 
