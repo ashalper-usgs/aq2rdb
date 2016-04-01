@@ -25,6 +25,7 @@ var sinon = require('sinon');
 var tmp = require('temporary');
 
 var aq2rdb = require('../aq2rdb.js');
+var rest = require('../rest.js');
 
 describe('aq2rdb', function () {
     /**
@@ -212,5 +213,35 @@ describe('aq2rdb', function () {
                    );
                });          
         }); // #getTimeSeriesCorrectedData()
+        /** @todo needs work before we can call AQUARIUS.distill() */
+        describe('#distill()', function () {
+            it('should have a usable TimeSeriesDescriptionList',
+               function (done) {
+                   var timeSeriesDescriptionList;
+
+                   rest.query(
+                       aquarius.hostname,
+                       "GET",
+                       undefined,      // HTTP headers
+                       "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
+                       {token: aquarius.token(), format: "json",
+                        LocationIdentifier: "09380000",
+                        Parameter: "Discharge",
+                        ComputationPeriodIdentifier: "Daily",
+                        ExtendedFilters:
+                        "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]"},
+                       false,
+                       function (error, messageBody) {
+                           if (error) throw error;
+                           timeSeriesDescriptionList = JSON.parse(messageBody);
+                           expect(
+                               Object.getOwnPropertyNames(
+                                   timeSeriesDescriptionList
+                               ).length).to.be.above(0);
+                           done();
+                       }
+                   );
+               });
+        }); // #distill()
     }); // AQUARIUS
 });
