@@ -96,18 +96,37 @@ describe('Array', function() {
                 );
             });
 
-            var msg = 'Required field "hostname" not found';
-            it('should throw \'' + msg + '\' error', function (done) {
-                var aquarius = new aq2rdb._private.AQUARIUS(
-                    undefined,
-                    "aquser",
-                    "Not a password",
-                    function (error) {
-                        expect(error).equals(msg);
-                        done();
-                    }
-                );
-            });
+            it('should throw \'Required field "hostname" not found\' error',
+               function (done) {
+                   var aquarius = new aq2rdb._private.AQUARIUS(
+                       undefined,
+                       "aquser",
+                       "Not a password",
+                       function (error) {
+                           expect(error).equals(
+                               'Required field "hostname" not found'
+                           );
+                           done();
+                       }
+                   );
+               });
+
+            it('should throw \'Required field "hostname" must have ' +
+               'a value\' error',
+               function (done) {
+                   var aquarius = new aq2rdb._private.AQUARIUS(
+                       "",
+                       "aquser",
+                       "Not a password",
+                       function (error) {
+                           expect(error).equals(
+                               'Required field "hostname" must have ' +
+                                   'a value'
+                           );
+                           done();
+                       }
+                   );
+               });
         });
     });
 });
