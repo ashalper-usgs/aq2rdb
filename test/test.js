@@ -81,4 +81,25 @@ describe('Array', function() {
             );
         });
     });
+    /** @description Test AQUARIUS prototype constructor. */
+    describe('#AQUARIUS()', function () {
+        var aquarius, msg = "\"aquarius\" object constructed", cbMsg;
+
+        beforeEach(function() {
+            aquarius = new aq2rdb._private.AQUARIUS(
+                aq2rdb._private.cli.aquariusHostname,
+                aq2rdb._private.cli.aquariusUserName,
+                aq2rdb._private.cli.aquariusPassword,
+                function () { cbMsg = msg; }
+            );
+        });
+
+        it("should return \"" + msg + "\"", function () {
+            /**
+               @todo this could be more sophisticated, by checking one
+                     of "aquarius" object's property values.
+            */
+            assert.equal(msg, cbMsg);
+        });
+    });
 });
