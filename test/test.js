@@ -92,10 +92,12 @@ describe('aq2rdb', function () {
     });
     /** @see https://mochajs.org/#asynchronous-code */
     describe('AQUARIUS', function () {
+        var aquarius;
+
         describe('#()', function () {
             it('should throw \'Required field "hostname" not found\' error',
                function (done) {
-                   var aquarius = new aq2rdb._private.AQUARIUS(
+                   aquarius = new aq2rdb._private.AQUARIUS(
                        undefined,
                        aq2rdb._private.options.aquariusUserName,
                        "Not a password",
@@ -111,7 +113,7 @@ describe('aq2rdb', function () {
             it('should throw \'Required field "hostname" must have ' +
                'a value\' error',
                function (done) {
-                   var aquarius = new aq2rdb._private.AQUARIUS(
+                   aquarius = new aq2rdb._private.AQUARIUS(
                        "",
                        aq2rdb._private.options.aquariusUserName,
                        "Not a password",
@@ -127,7 +129,7 @@ describe('aq2rdb', function () {
 
             it('should throw \'Required field "userName" not found\' error',
                function (done) {
-                   var aquarius = new aq2rdb._private.AQUARIUS(
+                   aquarius = new aq2rdb._private.AQUARIUS(
                        aq2rdb._private.options.aquariusHostname,
                        undefined,
                        "Not a password",
@@ -143,7 +145,7 @@ describe('aq2rdb', function () {
             it('should throw \'Required field "userName" must have ' +
                'a value\' error',
                function (done) {
-                   var aquarius = new aq2rdb._private.AQUARIUS(
+                   aquarius = new aq2rdb._private.AQUARIUS(
                        aq2rdb._private.options.aquariusHostname,
                        "",
                        "Not a password",
@@ -159,7 +161,7 @@ describe('aq2rdb', function () {
 
             it('should have non-empty-string token',
                function (done) {
-                   var aquarius = new aq2rdb._private.AQUARIUS(
+                   aquarius = new aq2rdb._private.AQUARIUS(
                        aq2rdb._private.options.aquariusHostname,
                        /**
                           @see http://stackoverflow.com/questions/16144455/mocha-tests-with-extra-options-or-parameters
@@ -175,24 +177,10 @@ describe('aq2rdb', function () {
                });
         }); // #()
         describe('#getLocationData()', function () {
-            var aquarius;
-
-            before(function (done) {
-                aquarius = new aq2rdb._private.AQUARIUS(
-                    aq2rdb._private.options.aquariusHostname,
-                    process.env.AQUARIUS_USER_NAME,
-                    process.env.AQUARIUS_PASSWORD,
-                    function (error) {
-                        if (error) throw error;
-                        done();
-                    }
-                );
-            });
-
             it('should receive a usable LocationDataServiceResponse object',
                function (done) {
                    aquarius.getLocationData(
-                       '09380000',
+                       '09380000', // COLORADO RIVER AT LEES FERRY, AZ
                        function (error, messageBody) {
                            if (error) throw error;
                            var locationDataServiceResponse =
@@ -205,5 +193,24 @@ describe('aq2rdb', function () {
                        });
                });
         }); // #getLocationData()
+        describe('#getTimeSeriesCorrectedData()', function () {
+            it('should receive a usable TimeSeriesDataServiceResponse object',
+               function (done) {
+                   aquarius.getTimeSeriesCorrectedData(
+                       {TimeSeriesUniqueId: '7050c0c28bb8409295ef0e82ceda936e',
+                        ApplyRounding: 'true',
+                        QueryFrom: '2014-10-01T00:00:00-07:00:00',
+                        QueryTo: '2014-10-02T00:00:00-07:00:00'},
+                       function (error, timeSeriesDataServiceResponse) {
+                           if (error) throw error;
+                           expect(
+                               Object.getOwnPropertyNames(
+                                   timeSeriesDataServiceResponse
+                               ).length).to.be.above(0);
+                           done();
+                       }
+                   );
+               });          
+        }); // #getTimeSeriesCorrectedData()
     }); // AQUARIUS
 });
