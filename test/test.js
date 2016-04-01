@@ -81,38 +81,33 @@ describe('Array', function() {
             );
         });
     });
-    /** @description Test AQUARIUS prototype constructor. */
-    describe('#AQUARIUS()', function () {
-        var aquarius, msg, cbMsg;
+    /** @see https://mochajs.org/#asynchronous-code */
+    describe('AQUARIUS', function() {
+        describe('#()', function() {
+            it('should throw error code "ECONNREFUSED"', function (done) {
+                var aquarius = new aq2rdb._private.AQUARIUS(
+                    "nwists.usgs.gov",
+                    "aquser",
+                    "Not a password",
+                    function (error) {
+                        expect(error.code).equals("ECONNREFUSED");
+                        done();
+                    }
+                );
+            });
 
-        msg = "aquarius object constructed";
-        cbMsg = undefined;
-        it("should return \"" + msg + "\"", function () {
-            aquarius = new aq2rdb._private.AQUARIUS(
-                aq2rdb._private.cli.aquariusHostname,
-                aq2rdb._private.cli.aquariusUserName,
-                aq2rdb._private.cli.aquariusPassword,
-                function () { cbMsg = msg; }
-            );
-
-            /**
-               @todo this could be more sophisticated, by checking one
-                     of "aquarius" object's property values.
-            */
-            assert.equal(msg, cbMsg);
-        });
-
-        msg = 'AQUARIUS(): Required field \"hostname\" not found';
-        cbMsg = undefined;
-        it("should return \"" + msg + "\"", function () {
-            aquarius = new aq2rdb._private.AQUARIUS(
-                undefined,
-                aq2rdb._private.cli.aquariusUserName,
-                aq2rdb._private.cli.aquariusPassword,
-                function (s) { cbMsg = s; }
-            );
-
-            assert.equal(msg, cbMsg);
+            var msg = 'Required field "hostname" not found';
+            it('should throw \'' + msg + '\' error', function (done) {
+                var aquarius = new aq2rdb._private.AQUARIUS(
+                    undefined,
+                    "aquser",
+                    "Not a password",
+                    function (error) {
+                        expect(error).equals(msg);
+                        done();
+                    }
+                );
+            });
         });
     });
 });
