@@ -617,8 +617,8 @@ var AQUARIUS = function (hostname, userName, password, callback) {
         }, getLocationDataCallback);
 
         /**
-           @description Handle GetTimeSeriesDescriptionList service
-                        invocation errors.
+           @description Handle GetLocationData service invocation
+                        errors.
         */
         request.on("error", function (error) {
             callback(error);
