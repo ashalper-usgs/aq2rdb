@@ -660,7 +660,7 @@ var AQUARIUS = function (hostname, userName, password, callback) {
         } // getTimeSeriesCorrectedDataCallback
 
         // these parameters span every GetTimeSeriesCorrectedData
-        // call, so they're not passed in
+        // call for our purposes, so they're not passed in
         parameters["token"] = token;
         parameters["format"] = "json";
 
