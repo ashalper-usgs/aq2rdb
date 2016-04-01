@@ -26,7 +26,15 @@ var tmp = require('temporary');
 
 var aq2rdb = require('../aq2rdb.js');
 
-describe('Array', function() {
+describe('aq2rdb', function() {
+    /**
+       @description Default/parse command-line options before running
+                    all tests.
+    */
+    before(function () {
+        aq2rdb._private.options = aq2rdb._private.cli.parse();
+    });
+
     describe(
         '#handle()', function () {
             var mockResponse;
@@ -86,7 +94,7 @@ describe('Array', function() {
         describe('#()', function() {
             it('should throw error code "ECONNREFUSED"', function (done) {
                 var aquarius = new aq2rdb._private.AQUARIUS(
-                    "nwists.usgs.gov",
+                    aq2rdb._private.options.aquariusHostname,
                     "aquser",
                     "Not a password",
                     function (error) {
@@ -100,7 +108,7 @@ describe('Array', function() {
                function (done) {
                    var aquarius = new aq2rdb._private.AQUARIUS(
                        undefined,
-                       "aquser",
+                       aq2rdb._private.options.aquariusUserName,
                        "Not a password",
                        function (error) {
                            expect(error).equals(
@@ -116,7 +124,7 @@ describe('Array', function() {
                function (done) {
                    var aquarius = new aq2rdb._private.AQUARIUS(
                        "",
-                       "aquser",
+                       aq2rdb._private.options.aquariusUserName,
                        "Not a password",
                        function (error) {
                            expect(error).equals(
@@ -131,7 +139,7 @@ describe('Array', function() {
             it('should throw \'Required field "userName" not found\' error',
                function (done) {
                    var aquarius = new aq2rdb._private.AQUARIUS(
-                       "nwists.usgs.gov",
+                       aq2rdb._private.options.aquariusHostname,
                        undefined,
                        "Not a password",
                        function (error) {
@@ -147,7 +155,7 @@ describe('Array', function() {
                'a value\' error',
                function (done) {
                    var aquarius = new aq2rdb._private.AQUARIUS(
-                       "nwists.usgs.gov",
+                       aq2rdb._private.options.aquariusHostname,
                        "",
                        "Not a password",
                        function (error) {
