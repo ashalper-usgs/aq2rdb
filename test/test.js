@@ -26,7 +26,7 @@ var tmp = require('temporary');
 
 var aq2rdb = require('../aq2rdb.js');
 
-describe('aq2rdb', function() {
+describe('aq2rdb', function () {
     /**
        @description Default/parse command-line options before running
                     all tests.
@@ -39,7 +39,7 @@ describe('aq2rdb', function() {
         '#handle()', function () {
             var mockResponse;
 
-            beforeEach(function() {
+            beforeEach(function () {
                 mockResponse = sinon.mock({
                     writeHead: function (statusCode, headers) {},
                     write: function (body) {},
@@ -90,8 +90,8 @@ describe('aq2rdb', function() {
         });
     });
     /** @see https://mochajs.org/#asynchronous-code */
-    describe('AQUARIUS', function() {
-        describe('#()', function() {
+    describe('AQUARIUS', function () {
+        describe('#()', function () {
             it('should throw error code "ECONNREFUSED"', function (done) {
                 var aquarius = new aq2rdb._private.AQUARIUS(
                     aq2rdb._private.options.aquariusHostname,
@@ -167,6 +167,31 @@ describe('aq2rdb', function() {
                        }
                    );
                });
-        });
-    });
+        }); // #()
+        describe('#getLocationData()', function () {
+            var aquarius;
+
+            before(function () {
+                aquarius = new aq2rdb._private.AQUARIUS(
+                    aq2rdb._private.options.aquariusHostname,
+                    /**
+                       @see http://stackoverflow.com/questions/16144455/mocha-tests-with-extra-options-or-parameters
+                    */
+                    process.env.AQUARIUS_USER_NAME,
+                    process.env.AQUARIUS_PASSWORD,
+                    function (error) {
+                        if (error) throw error;
+                        done();
+                    }
+                );
+            });
+
+            it('should call back', function (done) {
+                aquarius.getLocationData('09380000', function (error) {
+                    if (error) throw error;
+                    done();
+                });
+            });
+        }); // #getLocationData()
+    }); // AQUARIUS
 });
