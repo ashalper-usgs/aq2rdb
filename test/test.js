@@ -187,10 +187,13 @@ describe('aq2rdb', function () {
             });
 
             it('should call back', function (done) {
-                aquarius.getLocationData('09380000', function (error) {
-                    if (error) throw error;
-                    done();
-                });
+                aquarius.getLocationData(
+                    '09380000',
+                    function (error, messageBody) {
+                        if (error) throw error;
+                        done();
+                    }
+                );
             });
         }); // #getLocationData()
     }); // AQUARIUS
