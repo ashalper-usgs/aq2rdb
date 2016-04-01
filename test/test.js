@@ -127,6 +127,38 @@ describe('Array', function() {
                        }
                    );
                });
+
+            it('should throw \'Required field "userName" not found\' error',
+               function (done) {
+                   var aquarius = new aq2rdb._private.AQUARIUS(
+                       "nwists.usgs.gov",
+                       undefined,
+                       "Not a password",
+                       function (error) {
+                           expect(error).equals(
+                               'Required field "userName" not found'
+                           );
+                           done();
+                       }
+                   );
+               });
+
+            it('should throw \'Required field "userName" must have ' +
+               'a value\' error',
+               function (done) {
+                   var aquarius = new aq2rdb._private.AQUARIUS(
+                       "nwists.usgs.gov",
+                       "",
+                       "Not a password",
+                       function (error) {
+                           expect(error).equals(
+                               'Required field "userName" must have ' +
+                                   'a value'
+                           );
+                           done();
+                       }
+                   );
+               });
         });
     });
 });
