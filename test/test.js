@@ -31,8 +31,9 @@ describe('aq2rdb', function () {
        @description Default/parse command-line options before running
                     all tests.
     */
-    before(function () {
+    before(function (done) {
         aq2rdb._private.options = aq2rdb._private.cli.parse();
+        done();
     });
 
     describe(
@@ -92,18 +93,6 @@ describe('aq2rdb', function () {
     /** @see https://mochajs.org/#asynchronous-code */
     describe('AQUARIUS', function () {
         describe('#()', function () {
-            it('should throw error code "ECONNREFUSED"', function (done) {
-                var aquarius = new aq2rdb._private.AQUARIUS(
-                    aq2rdb._private.options.aquariusHostname,
-                    "aquser",
-                    "Not a password",
-                    function (error) {
-                        expect(error.code).equals("ECONNREFUSED");
-                        done();
-                    }
-                );
-            });
-
             it('should throw \'Required field "hostname" not found\' error',
                function (done) {
                    var aquarius = new aq2rdb._private.AQUARIUS(
@@ -167,16 +156,30 @@ describe('aq2rdb', function () {
                        }
                    );
                });
+
+            it('should have non-empty-string token',
+               function (done) {
+                   var aquarius = new aq2rdb._private.AQUARIUS(
+                       aq2rdb._private.options.aquariusHostname,
+                       /**
+                          @see http://stackoverflow.com/questions/16144455/mocha-tests-with-extra-options-or-parameters
+                       */
+                       process.env.AQUARIUS_USER_NAME,
+                       process.env.AQUARIUS_PASSWORD,
+                       function (error) {
+                           if (error) throw error;
+                           expect(aquarius.token().length).to.be.above(0);
+                           done();
+                       }
+                   );
+               });
         }); // #()
         describe('#getLocationData()', function () {
             var aquarius;
 
-            before(function () {
+            before(function (done) {
                 aquarius = new aq2rdb._private.AQUARIUS(
                     aq2rdb._private.options.aquariusHostname,
-                    /**
-                       @see http://stackoverflow.com/questions/16144455/mocha-tests-with-extra-options-or-parameters
-                    */
                     process.env.AQUARIUS_USER_NAME,
                     process.env.AQUARIUS_PASSWORD,
                     function (error) {
@@ -186,15 +189,21 @@ describe('aq2rdb', function () {
                 );
             });
 
-            it('should call back', function (done) {
-                aquarius.getLocationData(
-                    '09380000',
-                    function (error, messageBody) {
-                        if (error) throw error;
-                        done();
-                    }
-                );
-            });
+            it('should receive a usable LocationDataServiceResponse object',
+               function (done) {
+                   aquarius.getLocationData(
+                       '09380000',
+                       function (error, messageBody) {
+                           if (error) throw error;
+                           var locationDataServiceResponse =
+                               JSON.parse(messageBody);
+                           expect(
+                               Object.getOwnPropertyNames(
+                                   locationDataServiceResponse
+                               ).length).to.be.above(0);
+                           done();
+                       });
+               });
         }); // #getLocationData()
     }); // AQUARIUS
 });
