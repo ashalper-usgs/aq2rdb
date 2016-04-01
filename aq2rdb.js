@@ -2444,10 +2444,12 @@ else {
 */
 if (process.env.NODE_ENV === "test") {
     module.exports._private = {
-        handle: handle,
-        jsonParseErrorMessage: jsonParseErrorMessage,
+        AQUARIUS: AQUARIUS,
+        cli: cli,
         docRequest: docRequest,
         dvTableRow: dvTableRow,
+        handle: handle,
+        jsonParseErrorMessage: jsonParseErrorMessage,
         nwisVersusIANA: nwisVersusIANA
     };
 }
