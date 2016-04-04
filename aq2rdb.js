@@ -708,6 +708,120 @@ var AQUARIUS = function (hostname, userName, password, callback) {
     } // parsetimeSeriesDataServiceResponse
 
     /**
+       @function Distill a set of time series descriptions into
+                 (hopefully) one, to query for a set of time series
+                 date/value pairs.
+       @param {object} timeSeriesDescriptions An array of AQUARIUS
+              TimeSeriesDescription objects.
+       @param {object} locationIdentifier A LocationIdentifier object.
+       @param {function} callback Callback function to call if/when
+              one-and-only-one candidate TimeSeriesDescription object
+              is found, or, to call with node-async, raise error
+              convention.
+    */
+    function distill(
+        timeSeriesDescriptions, locationIdentifier, callback
+    ) {
+        var timeSeriesDescription;
+
+        switch (timeSeriesDescriptions.length) {
+        case 0:
+            callback(
+                "No time series descriptions found for LocationIdentifier \"" +
+                    locationIdentifier + "\""
+            );
+            break;
+        case 1:
+            timeSeriesDescription = timeSeriesDescriptions[0];
+            break;
+        default:
+            /**
+               @description Filter out set of primary time series.
+            */
+            async.filter(
+                timeSeriesDescriptions,
+                /**
+                   @function Primary time series filter iterator function.
+                   @callback
+                */
+                function (timeSeriesDescription, callback) {
+                    /**
+                       @description Detect
+                       {"Name": "PRIMARY_FLAG",
+                       "Value": "Primary"} in
+                       TimeSeriesDescription.ExtendedAttributes
+                    */
+                    async.detect(
+                        timeSeriesDescription.ExtendedAttributes,
+                        /**
+                           @function Primary time series, async.detect
+                           truth value function.
+                           @callback
+                        */
+                        function (extendedAttribute, callback) {
+                            // if this time series description is
+                            // (hopefully) the (only) primary one
+                            if (extendedAttribute.Name === "PRIMARY_FLAG"
+                                &&
+                                extendedAttribute.Value === "Primary") {
+                                callback(true);
+                            }
+                            else {
+                                callback(false);
+                            }
+                        },
+                        /**
+                           @function Primary time series, async.detect
+                                     final function.
+                           @callback
+                        */
+                        function (result) {
+                            // notify async.filter that we...
+                            if (result === undefined) {
+                                // ...did not find a primary time series
+                                // description
+                                callback(false);
+                            }
+                            else {
+                                // ...found a primary time series
+                                // description
+                                callback(true);
+                            }
+                        }
+                    );
+                },
+                /**
+                   @function Check arity of primary time series
+                             descriptions returned from AQUARIUS
+                             GetTimeSeriesDescriptionList.
+                   @callback
+                */
+                function (primaryTimeSeriesDescriptions) {
+                    // if there is 1-and-only-1 primary time
+                    // series description
+                    if (primaryTimeSeriesDescriptions.length === 1) {
+                        timeSeriesDescription = timeSeriesDescriptions[0];
+                    }
+                    else {
+                        /**
+                           @todo We should probably defer production
+                                 of header and heading until after
+                                 this check.
+                        */
+                        // raise error
+                        callback(
+                            'More than 1 primary time series found for "' +
+                                locationIdentifier.toString() + '"'
+                        );
+                    }
+                }
+            ); // async.filter
+        } // switch (timeSeriesDescriptions.length)
+
+        callback(null, timeSeriesDescription);
+    } // distill
+
+    /**
        @function Query AQUARIUS GetTimeSeriesDescriptionList service
                  to get list of AQUARIUS, time series UniqueIds
                  related to aq2rdb, location and parameter.
@@ -844,8 +958,8 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                 callback(null, timeSeriesDescriptions);
             },
             /**
-               @function For each AQUARIUS time series description, weed
-               out non-primary ones.
+               @function For each AQUARIUS time series description,
+                         weed out non-primary ones.
                @callback
             */
             function (timeSeriesDescriptions, callback) {
@@ -853,7 +967,7 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                    @todo Need to decide whether distill() is to be
                          public or private.
                 */
-                timeSeriesDescription = aquarius.distill(
+                timeSeriesDescription = distill(
                     timeSeriesDescriptions, locationIdentifier,
                     callback
                 );
@@ -870,120 +984,6 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                 outerCallback(null, timeSeriesDescription);
         });
     } // getTimeSeriesDescription
-
-    /**
-       @method Distill a set of time series descriptions into
-               (hopefully) one, to query for a set of time series
-               date/value pairs.
-       @param {object} timeSeriesDescriptions An array of AQUARIUS
-              TimeSeriesDescription objects.
-       @param {object} locationIdentifier A LocationIdentifier object.
-       @param {function} callback Callback function to call if/when
-              one-and-only-one candidate TimeSeriesDescription object
-              is found, or, to call with node-async, raise error
-              convention.
-    */
-    this.distill = function (
-        timeSeriesDescriptions, locationIdentifier, callback
-    ) {
-        var timeSeriesDescription;
-
-        switch (timeSeriesDescriptions.length) {
-        case 0:
-            callback(
-                "No time series descriptions found for LocationIdentifier \"" +
-                    locationIdentifier + "\""
-            );
-            break;
-        case 1:
-            timeSeriesDescription = timeSeriesDescriptions[0];
-            break;
-        default:
-            /**
-               @description Filter out set of primary time series.
-            */
-            async.filter(
-                timeSeriesDescriptions,
-                /**
-                   @function Primary time series filter iterator function.
-                   @callback
-                */
-                function (timeSeriesDescription, callback) {
-                    /**
-                       @description Detect
-                       {"Name": "PRIMARY_FLAG",
-                       "Value": "Primary"} in
-                       TimeSeriesDescription.ExtendedAttributes
-                    */
-                    async.detect(
-                        timeSeriesDescription.ExtendedAttributes,
-                        /**
-                           @function Primary time series, async.detect
-                           truth value function.
-                           @callback
-                        */
-                        function (extendedAttribute, callback) {
-                            // if this time series description is
-                            // (hopefully) the (only) primary one
-                            if (extendedAttribute.Name === "PRIMARY_FLAG"
-                                &&
-                                extendedAttribute.Value === "Primary") {
-                                callback(true);
-                            }
-                            else {
-                                callback(false);
-                            }
-                        },
-                        /**
-                           @function Primary time series, async.detect
-                                     final function.
-                           @callback
-                        */
-                        function (result) {
-                            // notify async.filter that we...
-                            if (result === undefined) {
-                                // ...did not find a primary time series
-                                // description
-                                callback(false);
-                            }
-                            else {
-                                // ...found a primary time series
-                                // description
-                                callback(true);
-                            }
-                        }
-                    );
-                },
-                /**
-                   @function Check arity of primary time series
-                             descriptions returned from AQUARIUS
-                             GetTimeSeriesDescriptionList.
-                   @callback
-                */
-                function (primaryTimeSeriesDescriptions) {
-                    // if there is 1-and-only-1 primary time
-                    // series description
-                    if (primaryTimeSeriesDescriptions.length === 1) {
-                        timeSeriesDescription = timeSeriesDescriptions[0];
-                    }
-                    else {
-                        /**
-                           @todo We should probably defer production
-                                 of header and heading until after
-                                 this check.
-                        */
-                        // raise error
-                        callback(
-                            'More than 1 primary time series found for "' +
-                                locationIdentifier.toString() + '"'
-                        );
-                    }
-                }
-            ); // async.filter
-        } // switch (timeSeriesDescriptions.length)
-
-        callback(null, timeSeriesDescription);
-    } // distill
 
 } // AQUARIUS
 
@@ -1573,7 +1573,7 @@ httpdispatcher.onGet(
        @callback
     */
     function (request, response) {
-        var token, dataType, agencyCode, siteNumber, locationIdentifier;
+        var dataType, agencyCode, siteNumber, locationIdentifier;
         var waterServicesSite;
         /**
            @todo Need to check downstream depedendencies in aq2rdb
