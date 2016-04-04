@@ -708,19 +708,22 @@ var AQUARIUS = function (hostname, userName, password, callback) {
     } // parsetimeSeriesDataServiceResponse
 
     /**
-       @method Query AQUARIUS GetTimeSeriesDescriptionList service to
-               get list of AQUARIUS, time series UniqueIds related to
-               aq2rdb, location and parameter.
+       @function Query AQUARIUS GetTimeSeriesDescriptionList service
+                 to get list of AQUARIUS, time series UniqueIds
+                 related to aq2rdb, location and parameter.
        @param {string} agencyCode USGS agency code.
        @param {string} siteNumber USGS site number.
-       @param {} parameter,
-       @param {} computationPeriodIdentifier
+       @param {string} parameter AQUARIUS parameter.
+       @param {string} computationIdentifier AQUARIUS computation
+                       identifier.
+       @param {string} computationPeriodIdentifier AQUARIUS
+                       computation period identifier.
        @callback
        @param {function} callback async.waterfall() callback
               function.
     */
-    this.getTimeSeriesDescriptionList = function (
-        agencyCode, siteNumber, parameter,
+    function getTimeSeriesDescriptionList(
+        agencyCode, siteNumber, parameter, computationIdentifier,
         computationPeriodIdentifier, callback
     ) {
         // make (agencyCode,siteNo) digestible by AQUARIUS
@@ -756,6 +759,117 @@ var AQUARIUS = function (hostname, userName, password, callback) {
             return;
         }
     } // getTimeSeriesDescriptionList
+
+    /**
+       @method Get a TimeSeriesDescription object from AQUARIUS.
+       @param {string} agencyCode USGS agency code.
+       @param {string} siteNumber USGS site number.
+       @param {string} parameter AQUARIUS parameter.
+       @param {string} computationIdentifier AQUARIUS computation identifier.
+       @param {string} computationPeriodIdentifier AQUARIUS computation
+                       period identifier.
+       @param {function} outerCallback Callback function to call when complete.
+    */
+    this.getTimeSeriesDescription = function (
+        agencyCode, siteNumber, parameter, computationIdentifier,
+        computationPeriodIdentifier, outerCallback
+    ) {
+        var locationIdentifier, timeSeriesDescription;
+
+        async.waterfall([
+            function (callback) {
+                getTimeSeriesDescriptionList(
+                    agencyCode, siteNumber, parameter,
+                    computationIdentifier,
+                    computationPeriodIdentifier, callback
+                );
+            },
+            /**
+               @function Receive response from AQUARIUS
+                         GetTimeSeriesDescriptionList, then parse list
+                         of related TimeSeriesDescriptions to query
+                         AQUARIUS GetTimeSeriesCorrectedData service.
+               @callback
+               @param {string} messageBody Message body part of HTTP
+                               response from
+                               GetTimeSeriesDescriptionList.
+            */
+            function (messageBody, callback) {
+                var timeSeriesDescriptionListServiceResponse;
+
+                try {
+                    timeSeriesDescriptionListServiceResponse =
+                        JSON.parse(messageBody);
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+
+                callback(
+                    null,
+                timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
+                );
+            },
+            /**
+               @function Check for zero TimeSeriesDescriptions
+                         returned from AQUARIUS Web service query
+                         above.
+               @callback
+            */
+            function (timeSeriesDescriptions, callback) {
+                if (timeSeriesDescriptions.length === 0) {
+                    callback(
+                        "No time series description list found at " +
+                            url.format({
+                                protocol: "http",
+                                host: hostname,
+                                pathname:
+                           "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
+                                query: {
+                                    token: token,
+                                    format: "json",
+                                    LocationIdentifier: locationIdentifier,
+                                    Parameter: parameter,
+                                   ComputationIdentifier: computationIdentifier,
+                                    ComputationPeriodIdentifier:
+                                       computationPeriodIdentifier,
+                                    ExtendedFilters: extendedFilters
+                                }
+                            })
+                    );
+                    return;
+                }
+
+                callback(null, timeSeriesDescriptions);
+            },
+            /**
+               @function For each AQUARIUS time series description, weed
+               out non-primary ones.
+               @callback
+            */
+            function (timeSeriesDescriptions, callback) {
+                /**
+                   @todo Need to decide whether distill() is to be
+                         public or private.
+                */
+                timeSeriesDescription = aquarius.distill(
+                    timeSeriesDescriptions, locationIdentifier,
+                    callback
+                );
+            },
+            function (tsd, callback) {
+                timeSeriesDescription = tsd;
+                callback(null);
+            }
+        ],
+        function (error) {
+            if (error)
+                outerCallback(error);
+            else
+                outerCallback(null, timeSeriesDescription);
+        });
+    } // getTimeSeriesDescription
 
     /**
        @method Distill a set of time series descriptions into
@@ -926,111 +1040,6 @@ function parseFields(requestURL, callback) {
 } // parseFields
 
 /**
-   @function Get a TimeSeriesDescription object from AQUARIUS.
-   @private
-   @param {string} token AQUARIUS authentication token.
-   @param {string} agencyCode USGS agency code.
-   @param {string} siteNumber USGS site number.
-   @param {string} parameter AQUARIUS parameter.
-   @param {string} computationPeriodIdentifier AQUARIUS computation
-                   period identifier.
-   @param {function} outerCallback Callback function to call when complete.
-*/
-function getTimeSeriesDescription(
-    token, agencyCode, siteNumber, parameter, computationIdentifier,
-    computationPeriodIdentifier, outerCallback
-) {
-    var locationIdentifier, timeSeriesDescription;
-
-    async.waterfall([
-        function (callback) {
-            aquarius.getTimeSeriesDescriptionList(
-                agencyCode, siteNumber, parameter,
-                computationPeriodIdentifier, callback
-            );
-        },
-        /**
-           @function Receive response from AQUARIUS
-                     GetTimeSeriesDescriptionList, then parse list of
-                     related TimeSeriesDescriptions to query AQUARIUS
-                     GetTimeSeriesCorrectedData service.
-           @callback
-           @param {string} messageBody Message body part of HTTP
-                  response from GetTimeSeriesDescriptionList.
-        */
-        function (messageBody, callback) {
-            var timeSeriesDescriptionListServiceResponse;
-
-            try {
-                timeSeriesDescriptionListServiceResponse =
-                    JSON.parse(messageBody);
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-
-            callback(
-                null,
-                timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
-            );
-        },
-        /**
-           @function Check for zero TimeSeriesDescriptions returned
-                     from AQUARIUS Web service query above.
-           @callback
-        */
-        function (timeSeriesDescriptions, callback) {
-            if (timeSeriesDescriptions.length === 0) {
-                callback(
-                    "No time series description list found at " +
-                        url.format({
-                            protocol: "http",
-                            host: aquarius.hostname,
-                            pathname:
-                            "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                            query:
-                            {token: aquarius.token(),
-                             format: "json",
-                             LocationIdentifier: locationIdentifier,
-                             Parameter: parameter,
-                             ComputationIdentifier: computationIdentifier,
-                             ComputationPeriodIdentifier:
-                                computationPeriodIdentifier,
-                             ExtendedFilters: extendedFilters}
-                        })
-                );
-                return;
-            }
-
-            callback(null, timeSeriesDescriptions);
-        },
-        /**
-           @function For each AQUARIUS time series description, weed
-                     out non-primary ones.
-           @callback
-        */
-        function (timeSeriesDescriptions, callback) {
-            timeSeriesDescription = aquarius.distill(
-                timeSeriesDescriptions, locationIdentifier,
-                callback
-            );
-        },
-        function (tsd, callback) {
-            timeSeriesDescription = tsd;
-            callback(null);
-        }
-    ],
-        function (error) {
-            if (error)
-                outerCallback(error);
-            else
-                outerCallback(null, timeSeriesDescription);
-        }
-    );
-} // getTimeSeriesDescription
-
-/**
    @description Parse version number from "package.json" and pass to a
                 callback function.
    @private
@@ -1048,11 +1057,6 @@ function getVersion(callback) {
             pkg = JSON.parse(json);
         }
         catch (error) {
-            log(
-                packageName +
-                    "getVersion().fs.readFile(\"package.json\", (error))",
-                error
-            );
             return;
         }
 
@@ -1411,10 +1415,6 @@ httpdispatcher.onGet(
                         timeSeriesDescriptions, locationIdentifier, callback
                     );
 
-                log(packageName +
-                    ".httpdispatcher.onGet().GetDVTable.locationIdentifier",
-                    locationIdentifier);
-                
                 callback(
                     null, options.waterServicesHostname,
                     locationIdentifier.agencyCode(),
@@ -1585,9 +1585,6 @@ httpdispatcher.onGet(
         var during, editable, cflag, vflag;
         var rndsup, locTzCd;
 
-        log(packageName + ".httpdispatcher.onGet(/" + packageName +
-            ", (request))", request);
-
         /**
            @function node-if-async predicate function, called by
                      ifAsync() in async.waterfall() below.
@@ -1654,12 +1651,12 @@ httpdispatcher.onGet(
                         rndary = rndparm;
 
                     callback(
-                        null, token, agencyCode, siteNumber,
+                        null, agencyCode, siteNumber,
                         parameter.aquariusParameter, undefined,
                         "Daily"
                     );
                 },
-                getTimeSeriesDescription,
+                aquarius.getTimeSeriesDescription,
                 function (tsd, callback) {                  
                     // save TimeSeriesDescription in outer scope
                     timeSeriesDescription = tsd;
@@ -1671,7 +1668,6 @@ httpdispatcher.onGet(
                         statistic.description = stat[statCode].description;
                     }
                     catch (error) {
-                        log("dailyValues().error", error);
                         callback(
                             "Invalid statistic code \"" + statCode +
                                 "\""
@@ -1768,12 +1764,12 @@ httpdispatcher.onGet(
                 },
                 function (callback) {
                     callback(
-                        null, token, agencyCode, siteNumber,
+                        null, agencyCode, siteNumber,
                         parameter.aquariusParameter, "Instantaneous",
                         "Points"
                     );
                 },
-                getTimeSeriesDescription,
+                aquarius.getTimeSeriesDescription,
                 function (tsd, callback) {
                     timeSeriesDescription = tsd; // set variable in outer scope
                     callback(null);
@@ -1934,7 +1930,7 @@ httpdispatcher.onGet(
                 callback(null, request.url);
             },
             parseFields,
-            function rdbOut (
+            function rdbOut(
                 dataType, rndsup, wyflag, cflag, vflag, agencyCode,
                 siteNumber, parameterCode, instat, begdat, enddat,
                 locTzCd, titlline, callback
@@ -1957,8 +1953,6 @@ httpdispatcher.onGet(
 
                 // convert station to 15 characters
                 siteNumber = siteNumber.substring(0, 15);
-
-                log(packageName + ".rdbOut().parameterCode", parameterCode);
 
                 // further processing depends on data type
 
@@ -2150,8 +2144,6 @@ httpdispatcher.onGet(
                     );
                 else
                     response.end();
-                log(packageName + ".httpdispatcher.onGet(\"/" + packageName +
-                    "\", ().async.waterfall([], (error))", error);
             }
         );
     }
