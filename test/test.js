@@ -22,7 +22,6 @@ var expect = require('chai').expect;
 var fs = require('fs');
 var http = require('http');
 var sinon = require('sinon');
-var tmp = require('temporary');
 
 var aq2rdb = require('../aq2rdb.js');
 var rest = require('../rest.js');
