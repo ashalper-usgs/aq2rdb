@@ -193,6 +193,24 @@ describe('aq2rdb', function () {
                        });
                });
         }); // #getLocationData()
+	describe('#getTimeSeriesDescription()', function () {
+	    it('should receive a usable TimeSeriesDescription object',
+	      function (done) {
+		  aquarius.getTimeSeriesDescription(
+		      "USGS", "09380000", // COLORADO RIVER AT LEES FERRY, AZ
+		      "Discharge", "Instantaneous",
+                      "Points",
+		      function (error, timeSeriesDescription) {
+			  if (error) throw error;
+			  expect(
+                               Object.getOwnPropertyNames(
+                                   timeSeriesDescription
+                               ).length).to.be.above(0);
+			  done();
+		      }
+		  );
+	      });
+	});
         describe('#getTimeSeriesCorrectedData()', function () {
             it('should receive a usable TimeSeriesDataServiceResponse object',
                function (done) {
@@ -214,40 +232,5 @@ describe('aq2rdb', function () {
                    );
                });          
         }); // #getTimeSeriesCorrectedData()
-        /** @todo needs work before we can call AQUARIUS.distill() */
-        describe('#distill()', function () {
-            it('should have a usable TimeSeriesDescriptionList',
-               function (done) {
-                   rest.query(
-                       aquarius.hostname,
-                       "GET",
-                       undefined,      // HTTP headers
-                       "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                       {token: aquarius.token(), format: "json",
-                        LocationIdentifier: "09380000",
-                        Parameter: "Discharge",
-                        ComputationPeriodIdentifier: "Daily",
-                        ExtendedFilters:
-                        "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]"},
-                       false,
-                       function (error, messageBody) {
-                           if (error) throw error;
-
-                           var timeSeriesDescriptionListServiceResponse =
-                               JSON.parse(messageBody);
-
-                           var timeSeriesDescriptions =
-               timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions;
-
-                           expect(
-                               Object.getOwnPropertyNames(
-                                   timeSeriesDescriptions
-                               ).length).to.be.above(0);
-
-                           done();
-                       }
-                   );
-               });
-        }); // #distill()
     }); // AQUARIUS
 });
