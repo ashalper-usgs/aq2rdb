@@ -24,7 +24,22 @@ var http = require('http');
 var sinon = require('sinon');
 
 var aq2rdb = require('../aq2rdb.js');
+var adaps = require('../adaps.js');
 var rest = require('../rest.js');
+
+describe('adaps', function() {
+    describe('#IntervalDay', function () {
+        describe('#()', function () {
+            it('should construct', function () {
+                var from = "19690218", to = "20160218";
+                var interval = new adaps.IntervalDay(from, to, false);
+
+                assert.equal(from, interval.from);
+                assert.equal(to, interval.to);
+            });
+        });
+    });
+});
 
 describe('aq2rdb', function () {
     /**
