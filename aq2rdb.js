@@ -708,6 +708,56 @@ var AQUARIUS = function (hostname, userName, password, callback) {
     } // parsetimeSeriesDataServiceResponse
 
     /**
+       @method Query AQUARIUS GetTimeSeriesDescriptionList service to
+               get list of AQUARIUS, time series UniqueIds related to
+               aq2rdb, location and parameter.
+       @param {string} agencyCode USGS agency code.
+       @param {string} siteNumber USGS site number.
+       @param {} parameter,
+       @param {} computationPeriodIdentifier
+       @callback
+       @param {function} callback async.waterfall() callback
+              function.
+    */
+    this.getTimeSeriesDescriptionList = function (
+        agencyCode, siteNumber, parameter,
+        computationPeriodIdentifier, callback
+    ) {
+        // make (agencyCode,siteNo) digestible by AQUARIUS
+        var locationIdentifier = (agencyCode === "USGS") ?
+            siteNumber : siteNumber + '-' + agencyCode;
+
+        var obj = {
+            token: token,
+            format: "json",
+            LocationIdentifier: locationIdentifier,
+            Parameter: parameter,
+            ComputationPeriodIdentifier: computationPeriodIdentifier,
+            // not sure what this does:
+            ExtendedFilters: "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]"
+        };
+
+        if (computationIdentifier)
+            obj["ComputationIdentifier"] = computationIdentifier;
+
+        try {
+            rest.query(
+                hostname,
+                "GET",
+                undefined,      // HTTP headers
+                "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
+                obj,
+                options.log,
+                callback
+            );
+        }
+        catch (error) {
+            callback(error);
+            return;
+        }
+    } // getTimeSeriesDescriptionList
+
+    /**
        @method Distill a set of time series descriptions into
                (hopefully) one, to query for a set of time series
                date/value pairs.
@@ -881,7 +931,9 @@ function parseFields(requestURL, callback) {
    @param {string} token AQUARIUS authentication token.
    @param {string} agencyCode USGS agency code.
    @param {string} siteNumber USGS site number.
-   @param {string} AQUARIUS parameter.
+   @param {string} parameter AQUARIUS parameter.
+   @param {string} computationPeriodIdentifier AQUARIUS computation
+                   period identifier.
    @param {function} outerCallback Callback function to call when complete.
 */
 function getTimeSeriesDescription(
@@ -891,48 +943,11 @@ function getTimeSeriesDescription(
     var locationIdentifier, timeSeriesDescription;
 
     async.waterfall([
-        /**
-           @function Query AQUARIUS GetTimeSeriesDescriptionList
-                     service to get list of AQUARIUS, time series
-                     UniqueIds related to aq2rdb, location
-                     and parameter.
-           @callback
-           @param {function} callback async.waterfall() callback
-           function.
-        */
         function (callback) {
-            // make (agencyCode,siteNo) digestible by AQUARIUS
-            locationIdentifier = (agencyCode === "USGS") ?
-                siteNumber : siteNumber + '-' + agencyCode;
-
-            var obj = {
-                token: aquarius.token(),
-                format: "json",
-                LocationIdentifier: locationIdentifier,
-                Parameter: parameter,
-                ComputationPeriodIdentifier: computationPeriodIdentifier,
-                // not sure what this does:
-                ExtendedFilters: "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]"
-            };
-
-            if (computationIdentifier)
-                obj["ComputationIdentifier"] = computationIdentifier;
-
-            try {
-                rest.query(
-                    aquarius.hostname,
-                    "GET",
-                    undefined,  // HTTP headers
-                    "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                    obj,
-                    options.log,
-                    callback
-                );
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
+            aquarius.getTimeSeriesDescriptionList(
+                agencyCode, siteNumber, parameter,
+                computationPeriodIdentifier, callback
+            );
         },
         /**
            @function Receive response from AQUARIUS
