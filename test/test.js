@@ -204,9 +204,11 @@ describe('aq2rdb', function () {
                         QueryTo: '2014-10-02T00:00:00-07:00:00'},
                        function (error, timeSeriesDataServiceResponse) {
                            if (error) throw error;
+                           var timeSeriesDescriptions =
+                               JSON.parse(timeSeriesDataServiceResponse);
                            expect(
                                Object.getOwnPropertyNames(
-                                   timeSeriesDataServiceResponse
+                                   timeSeriesDescriptions
                                ).length).to.be.above(0);
                            done();
                        }
@@ -217,8 +219,6 @@ describe('aq2rdb', function () {
         describe('#distill()', function () {
             it('should have a usable TimeSeriesDescriptionList',
                function (done) {
-                   var timeSeriesDescriptionList;
-
                    rest.query(
                        aquarius.hostname,
                        "GET",
@@ -233,11 +233,18 @@ describe('aq2rdb', function () {
                        false,
                        function (error, messageBody) {
                            if (error) throw error;
-                           timeSeriesDescriptionList = JSON.parse(messageBody);
+
+                           var timeSeriesDescriptionListServiceResponse =
+                               JSON.parse(messageBody);
+
+                           var timeSeriesDescriptions =
+               timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions;
+
                            expect(
                                Object.getOwnPropertyNames(
-                                   timeSeriesDescriptionList
+                                   timeSeriesDescriptions
                                ).length).to.be.above(0);
+
                            done();
                        }
                    );
