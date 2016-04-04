@@ -711,6 +711,7 @@ var AQUARIUS = function (hostname, userName, password, callback) {
        @function Distill a set of time series descriptions into
                  (hopefully) one, to query for a set of time series
                  date/value pairs.
+       @private
        @param {object} timeSeriesDescriptions An array of AQUARIUS
               TimeSeriesDescription objects.
        @param {object} locationIdentifier A LocationIdentifier object.
@@ -825,6 +826,7 @@ var AQUARIUS = function (hostname, userName, password, callback) {
        @function Query AQUARIUS GetTimeSeriesDescriptionList service
                  to get list of AQUARIUS, time series UniqueIds
                  related to aq2rdb, location and parameter.
+       @private
        @param {string} agencyCode USGS agency code.
        @param {string} siteNumber USGS site number.
        @param {string} parameter AQUARIUS parameter.
@@ -832,7 +834,6 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                        identifier.
        @param {string} computationPeriodIdentifier AQUARIUS
                        computation period identifier.
-       @callback
        @param {function} callback async.waterfall() callback
               function.
     */
@@ -1403,12 +1404,6 @@ httpdispatcher.onGet(
                  timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
                 );
             },
-            /**
-               @function For each AQUARIUS time series description,
-                         query GetTimeSeriesCorrectedData to get
-                         related daily values.
-               @callback
-            */
             function (timeSeriesDescriptions, callback) {
                 timeSeriesDescription =
                     aquarius.distill(
