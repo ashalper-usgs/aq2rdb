@@ -1338,77 +1338,15 @@ httpdispatcher.onGet(
                     return;
                 }
 
-                // proceed to next waterfall
-                callback(null);
-            },
-            /**
-               @function Query AQUARIUS GetTimeSeriesDescriptionList
-                         service to get list of AQUARIUS, time series
-                         UniqueIds related to aq2rdb, GetDVTable
-                         location and parameter.
-               @callback
-               @param {function} callback async.waterfall() callback
-                      function.
-            */
-            function (callback) {
-                var obj =
-                    {token: aquarius.token(), format: "json",
-                     LocationIdentifier: locationIdentifier.toString(),
-                     Parameter: field.Parameter,
-                     ComputationPeriodIdentifier: "Daily",
-                     ExtendedFilters:
-                     "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]"};
-
-                if (field.ComputationIdentifier !== undefined)
-                    obj.ComputationIdentifier = field.ComputationIdentifier;
-                
-                try {
-                    rest.query(
-                        aquarius.hostname,
-                        "GET",
-                        undefined,      // HTTP headers
-                        "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                        obj,
-                        options.log,
-                        callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-            },
-            /**
-               @function Receive response from AQUARIUS
-                         GetTimeSeriesDescriptionList, then parse list
-                         of related TimeSeriesDescriptions to query
-                         AQUARIUS GetTimeSeriesCorrectedData service.
-               @callback
-               @param {string} messageBody Message body part of
-                      HTTP response from GetTimeSeriesDescriptionList.
-            */
-            function (messageBody, callback) {
-                var timeSeriesDescriptionListServiceResponse;
-
-                try {
-                    timeSeriesDescriptionListServiceResponse =
-                        JSON.parse(messageBody);
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
                 callback(
-                 null,
-                 timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
+                    null, locationIdentifier.agencyCode(),
+                    locationIdentifier.siteNumber(), field.Parameter,
+                    undefined, "Daily"
                 );
             },
-            function (timeSeriesDescriptions, callback) {
-                timeSeriesDescription =
-                    aquarius.distill(
-                        timeSeriesDescriptions, locationIdentifier, callback
-                    );
+            aquarius.getTimeSeriesDescription,
+            function (tsd, callback) {
+                timeSeriesDescription = tsd;
 
                 callback(
                     null, options.waterServicesHostname,
