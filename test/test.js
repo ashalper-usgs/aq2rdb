@@ -193,24 +193,24 @@ describe('aq2rdb', function () {
                        });
                });
         }); // #getLocationData()
-	describe('#getTimeSeriesDescription()', function () {
-	    it('should receive a usable TimeSeriesDescription object',
-	      function (done) {
-		  aquarius.getTimeSeriesDescription(
-		      "USGS", "09380000", // COLORADO RIVER AT LEES FERRY, AZ
-		      "Discharge", "Instantaneous",
+        describe('#getTimeSeriesDescription()', function () {
+            it('should receive a usable TimeSeriesDescription object',
+              function (done) {
+                  aquarius.getTimeSeriesDescription(
+                      "USGS", "09380000", // COLORADO RIVER AT LEES FERRY, AZ
+                      "Discharge", "Instantaneous",
                       "Points",
-		      function (error, timeSeriesDescription) {
-			  if (error) throw error;
-			  expect(
+                      function (error, timeSeriesDescription) {
+                          if (error) throw error;
+                          expect(
                                Object.getOwnPropertyNames(
                                    timeSeriesDescription
                                ).length).to.be.above(0);
-			  done();
-		      }
-		  );
-	      });
-	});
+                          done();
+                      }
+                  );
+              });
+        });
         describe('#getTimeSeriesCorrectedData()', function () {
             it('should receive a usable TimeSeriesDataServiceResponse object',
                function (done) {
