@@ -92,46 +92,70 @@ var options;
    @global
    @constant
 */
-var tzName = Object();
-/** @todo Need to check moment.tz() for "N" */
-tzName['AFT'] =   {N: 'Asia/Kabul', Y: 'Asia/Kabul'};
-tzName['AKST'] =  {N: 'Etc/GMT-9',  Y: 'America/Anchorage'};
-tzName['AST'] =   {N: 'Etc/GMT-4',  Y: 'America/Glace_Bay'};
-tzName['AWST'] =  {N: 'Etc/GMT+4',  Y: 'Australia/Perth'};
-tzName['BT'] =    {N: 'Etc/GMT+3',  Y: 'Asia/Baghdad'};
-tzName['CST'] =   {N: 'Etc/GMT-6',  Y: 'America/Chicago'};
-tzName['DST'] =   {N: 'Etc/GMT+1',  Y: 'Etc/GMT+1'};
-tzName['EET'] =   {N: 'Etc/GMT+2',  Y: 'Europe/Athens'};
-tzName['EST'] =   {N: 'Etc/GMT-5',  Y: 'America/New_York'};
-tzName['GMT'] =   {N: 'Etc/GMT+0',  Y: 'Europe/London'};
-tzName['GST'] =   {N: 'Etc/GMT+10', Y: 'Pacific/Guam'};
-tzName['HST'] =   {N: 'Etc/GMT-10', Y: 'HST'};
-// NWIS's "International Date Line, East":
-tzName['IDLE'] =  {N: 'Etc/GMT+12', Y: 'Etc/GMT+12'};
-// NWIS's "International Date Line, West":
-tzName['IDLW'] =  {N: 'Etc/GMT-12', Y: 'Etc/GMT-12'};
-tzName['JST'] =   {N: 'Etc/GMT+9',  Y: 'Asia/Tokyo'};
-tzName['MST'] =   {N: 'America/Phoenix',  Y: 'America/Denver'};
-// moment-timezone has no support for UTC-03:30 (in the context of
-// Northern Hemisphere summer), which would be the mapping of NWIS'
-// (NST,N) [i.e., "Newfoundland Standard Time, local time not
-// acknowledged"] SITEFILE predicate...
-tzName['NST'] =   {N: 'UTC-03:30',  Y: 'America/St_Johns'};
-tzName['NZT'] =   {N: 'Etc/GMT+12', Y: 'NZ'};
-tzName['PST'] =   {N: 'Etc/GMT-8',  Y: 'America/Los_Angeles'};
-// ...similarly, moment-timezone has no support for UTC+09:30 (in the
-// context of Southern Hemisphere summer), which would be the mapping
-// of NWIS' (SAT,N) [i.e., "South Australian Standard Time, local time
-// not acknowledged"]
-tzName['SAT'] =   {N: 'UTC+09:30',  Y: 'Australia/Adelaide'};
-tzName['UTC'] =   {N: 'Etc/GMT+0',  Y: 'Etc/GMT+0'};
-tzName['WAST'] =  {N: 'Etc/GMT+7',  Y: 'Australia/Perth'};
-tzName['WAT'] =   {N: 'Etc/GMT+1',  Y: 'Africa/Bangui'};
-tzName['ZP-11'] = {N: 'Etc/GMT-11', Y: 'Etc/GMT-11'};
-tzName['ZP11'] =  {N: 'Etc/GMT+11', Y: 'Etc/GMT+11'};
-tzName['ZP4'] =   {N: 'Etc/GMT+4',  Y: 'Etc/GMT+4'};
-tzName['ZP5'] =   {N: 'Etc/GMT+5',  Y: 'Etc/GMT+5'};
-tzName['ZP6'] =   {N: 'Etc/GMT+6',  Y: 'Etc/GMT+6'};
+var tzName = {
+    /**
+       @property DST is not observed in Afghanistan.
+       @see https://en.wikipedia.org/wiki/Time_in_Afghanistan
+    */
+    AFT:   {N: "Asia/Kabul", Y: "Asia/Kabul"},
+    AKST:  {N: "Etc/GMT-9",  Y: "America/Anchorage"},
+    AST:   {N: "Etc/GMT-4",  Y: "America/Glace_Bay"},
+    AWST:  {N: "Etc/GMT+4",  Y: "Australia/Perth"},
+    BT:    {N: "Etc/GMT+3",  Y: "Asia/Baghdad"},
+    CST:   {N: "Etc/GMT-6",  Y: "America/Chicago"},
+    DST:   {N: "Etc/GMT+1",  Y: "Etc/GMT+1"},
+    EET:   {N: "Etc/GMT+2",  Y: "Europe/Athens"},
+    EST:   {N: "Etc/GMT-5",  Y: "America/New_York"},
+    GMT:   {N: "Etc/GMT+0",  Y: "Europe/London"},
+    GST:   {N: "Etc/GMT+10", Y: "Pacific/Guam"},
+    HST:   {N: "Etc/GMT-10", Y: "HST"},
+    /**
+       @property IANA time zone mapping of NWIS's "International Date
+                 Line, East".
+    */
+    IDLE:  {N: "Etc/GMT+12", Y: "Etc/GMT+12"},
+    /**
+       @property IANA time zone mapping of NWIS's "International Date
+                 Line, West".
+    */
+    IDLW:  {N: "Etc/GMT-12", Y: "Etc/GMT-12"},
+    JST:   {N: "Etc/GMT+9",  Y: "Asia/Tokyo"},
+    MST:   {N: "America/Phoenix",  Y: "America/Denver"},
+    /**
+       @property IANA time zone mapping of NWIS's "Newfoundland
+                 Standard Time, local time not acknowledged".
+       @description moment-timezone has no support for UTC-03:30 [in
+                    the context of Northern Hemisphere summer], which
+                    would be the correct mapping of NWIS's (NST,N)
+                    [i.e., "Newfoundland Standard Time, local time not
+                    acknowledged"] SITEFILE predicate.
+    */
+    NST:   {N: "UTC-03:30",  Y: "America/St_Johns"},
+    NZT:   {N: "Etc/GMT+12", Y: "NZ"},
+    PST:   {N: "Etc/GMT-8",  Y: "America/Los_Angeles"},
+    /**
+       @property IANA time zone mapping for NWIS's "South Australian Standard
+                 Time, local time not acknowledged"
+       @description moment-timezone has no support for UTC+09:30 [in
+                    the context of Southern Hemisphere summer], which
+                    would be the mapping of NWIS" (SAT,N) [i.e.,
+                    "South Australian Standard Time, local time not
+                    acknowledged"].
+    */
+    SAT:   {N: "UTC+09:30",  Y: "Australia/Adelaide"},
+    UTC:   {N: "Etc/GMT+0",  Y: "Etc/GMT+0"},
+    WAST:  {N: "Etc/GMT+7",  Y: "Australia/Perth"},
+    WAT:   {N: "Etc/GMT+1",  Y: "Africa/Bangui"},
+    ZP11:  {N: "Etc/GMT+11", Y: "Etc/GMT+11"},
+    ZP4:   {N: "Etc/GMT+4",  Y: "Etc/GMT+4"},
+    ZP5:   {N: "Etc/GMT+5",  Y: "Etc/GMT+5"},
+    ZP6:   {N: "Etc/GMT+6",  Y: "Etc/GMT+6"}
+};
+
+// Surprisingly, this expression syntax makes it past the Node.js
+// parser, but ends in "SyntaxError: Unexpected token -" when included
+// in the object initializer above.
+tzName["ZP-11"] = {N: "Etc/GMT-11", Y: "Etc/GMT-11"};
 
 /**
    @description Public functions.
@@ -2280,7 +2304,7 @@ var NWISRA = function (hostname, userName, password, log, callback) {
    @description Check for "version" CLI option.
 */
 if (options.version === true) {
-    getVersion(function (version) {console.log(version);});
+    getVersion(function (version) { console.log(version); });
 }
 else {
     /**
