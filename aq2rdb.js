@@ -1378,7 +1378,7 @@ httpdispatcher.onGet(
                     */
                     function (callback) {
                         rdb.header(
-                            "NWIS-I DAILY-VALUES", site,
+                            "NWIS-I DAILY-VALUES", "YES", site,
                             subLocationIdentifer, parameter,
                             /**
                                @todo Statistic code is locked up
