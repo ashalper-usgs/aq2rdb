@@ -40,5 +40,9 @@ Other aq2rdb command-line arguments have reasonable default values,
 but may be overridden by specifying them.
 
 ## Testing
+There is a suite of Mocha tests in the `test/` subdirectory. Presently, for the tests to run successfully, there will need to be an `aquarius-token` server running the `GetAQToken` service locally, and the environment variables `AQUARIUS_USER_NAME` and `AQUARIUS_PASSWORD` environment variables will need to be set accordingly. These are the counterparts of the aq2rdb server's `--aquariusUserName` and `--aquariusPassword` command-line options; unfortunately there is currently no way to pass these to Mocha via the CLI.
+
+If in a hurry, one can also run these "quick-and-dirty" curl commands vs. a running aq2rdb server:
+
     curl 'http://localhost:8081/aq2rdb?p=00060&t=uv&s=C&n=09380000&b=20141001000000&e=20141002000000'
     curl 'http://localhost:8081/aq2rdb?p=00060&t=dv&s=00003&n=09380000&b=20141001&e=20150930'
