@@ -25,9 +25,10 @@ var sinon = require('sinon');
 
 var aq2rdb = require('../aq2rdb.js');
 var adaps = require('../adaps.js');
+var rdb = require('../rdb.js');
 var rest = require('../rest.js');
 
-describe('adaps', function() {
+describe('adaps', function () {
     describe('#IntervalDay', function () {
         describe('#()', function () {
             it('should construct', function () {
@@ -37,9 +38,9 @@ describe('adaps', function() {
                 assert.equal(from, interval.from);
                 assert.equal(to, interval.to);
             });
-        });
-    });
-});
+        }); // ()
+    }); // IntervalDay
+}); // adaps
 
 describe('aq2rdb', function () {
     /**
@@ -248,4 +249,41 @@ describe('aq2rdb', function () {
                });          
         }); // #getTimeSeriesCorrectedData()
     }); // AQUARIUS
+}); // aq2rdb
+
+describe('rdb', function () {
+    describe('#header()', function () {
+        it('should match', function (done) {
+            rdb.header(
+                "NWIS-I DAILY-VALUES", // fileType
+                "YES",                 // editable
+                // site
+                {agencyCode: "USGS",
+                 number: "123456789012345",
+                 name: "NOT A SITE",
+                 tzCode: "MST",
+                 localTimeFlag: 'Y'},
+                undefined,      // subLocationIdentifer
+                // parameter
+                {code: "00060", name: "Discharge",
+                 description: "Discharge, cubic feet per second"},
+                // statistic
+                {code: "00003", name: "MEAN", description: "MEAN VALUES"},
+                // type
+                {name: "FINAL",
+                 description: "EDITED AND COMPUTED DAILY VALUES"},
+                {start: "20141001", end: "20150930"}, // range
+                function (error, header) {
+                    // Messy, but there is evidently a problem with
+                    // passing pattern strings to
+                    // expect().to.match(). See
+                    // https://github.com/jmendiara/karma-jquery-chai/issues/3
+                    // for more.
+                    expect(header).to.match(
+/^# \/\/UNITED STATES GEOLOGICAL SURVEY       http:\/\/water.usgs.gov\/\n# \/\/NATIONAL WATER INFORMATION SYSTEM     http:\/\/water.usgs.gov\/data.html\n# \/\/DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS\n# \/\/RETRIEVED: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\n# \/\/FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=NO\n# \/\/STATION AGENCY="USGS " NUMBER="123456789012345" TIME_ZONE="MST" DST_FLAG=Y\n# \/\/STATION NAME="NOT A SITE"\n# \/\/PARAMETER CODE="00060" SNAME = "Discharge"\n# \/\/PARAMETER LNAME="Discharge, cubic feet per second"\n# \/\/STATISTIC CODE="00003" SNAME="MEAN"\n# \/\/STATISTIC LNAME="MEAN VALUES"\n# \/\/TYPE NAME="FINAL" DESC = "EDITED AND COMPUTED DAILY VALUES"\n# \/\/RANGE START="20141001" END="20150930"/);
+                    done();
+                }
+            );
+        });
+    });
 });
