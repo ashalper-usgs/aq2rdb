@@ -933,6 +933,9 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                @callback
             */
             function (timeSeriesDescriptions, callback) {
+                locationIdentifier =
+                    new LocationIdentifier(siteNumber + '-' + agencyCode);
+
                 if (timeSeriesDescriptions.length === 0) {
                     callback(
                         "No time series description list found at " +
@@ -966,7 +969,7 @@ var AQUARIUS = function (hostname, userName, password, callback) {
             function (timeSeriesDescriptions, callback) {
                 /**
                    @todo Need to decide whether distill() is to be
-                         public or private.
+                         public method or private function.
                 */
                 timeSeriesDescription = distill(
                     timeSeriesDescriptions, locationIdentifier,
