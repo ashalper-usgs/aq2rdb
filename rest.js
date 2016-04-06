@@ -76,9 +76,6 @@ var rest = module.exports = {
         if (method === "POST")
             var chunk = querystring.stringify(obj);
 
-        if (log)
-            console.log("rest.query: http://" + host + path);
-
         var request = http.request({
             host: host,
             method: method,
@@ -168,9 +165,6 @@ var rest = module.exports = {
 
         if (method === "POST")
             var chunk = querystring.stringify(obj);
-
-        if (log)
-            console.log("rest.querySecure: https://" + host + path);
 
         var request = https.request({
             host: host,
