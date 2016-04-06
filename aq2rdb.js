@@ -691,11 +691,6 @@ var AQUARIUS = function (hostname, userName, password, callback) {
         var path = "/AQUARIUS/Publish/V2/GetTimeSeriesCorrectedData?" +
             querystring.stringify(parameters);
 
-        log(
-            packageName + ".AQUARIUS.getTimeSeriesCorrectedData()::URL",
-            "http://" + hostname + path
-        );
-
         var request = http.request({
             host: hostname,
             path: path
@@ -878,8 +873,8 @@ var AQUARIUS = function (hostname, userName, password, callback) {
             LocationIdentifier: locationIdentifier,
             Parameter: parameter,
             ComputationPeriodIdentifier: computationPeriodIdentifier,
-            // not sure what this does:
-            ExtendedFilters: "[{FilterName:ACTIVE_FLAG,FilterValue:Y}]"
+            ExtendedFilters: "[{FilterName:ACTIVE_FLAG,FilterValue:Y}," +
+                              "{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
         };
 
         if (computationIdentifier)
@@ -979,7 +974,9 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                                    ComputationIdentifier: computationIdentifier,
                                     ComputationPeriodIdentifier:
                                        computationPeriodIdentifier,
-                                    ExtendedFilters: extendedFilters
+                                    ExtendedFilters:
+                                    "[{FilterName:ACTIVE_FLAG,FilterValue:Y}," +
+                                     "{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
                                 }
                             })
                     );
