@@ -1916,17 +1916,11 @@ httpdispatcher.onGet(
 
                 // further processing depends on data type
 
-                if (dataType === 'DV') { // convert stat to 5 characters
-                    if (instat === undefined) {
+                if (dataType === 'DV') {
+                    if (instat === undefined)
                         sopt[7] = '1';
-                    }
-                    else {
-                        if (5 < instat.length)
-                            statCode = instat.substring(0, 5);
-                        else
-                            statCode = instat;
-                        statCode = sprintf("%5s", statCode).replace(' ', '0');
-                    }
+                    else
+                        statCode = instat;
                 }
 
                 if (dataType === 'DV' || dataType === 'DC' ||
