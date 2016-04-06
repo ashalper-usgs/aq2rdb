@@ -828,16 +828,19 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                         timeSeriesDescription = timeSeriesDescriptions[0];
                     }
                     else {
-                        /**
-                           @todo We should probably defer production
-                                 of header and heading until after
-                                 this check.
-                        */
                         // raise error
-                        callback(
-                            'More than 1 primary time series found for "' +
-                                locationIdentifier.toString() + '"'
+                        var error =
+                            "More than one primary time series found for \"" +
+                            locationIdentifier.toString() + "\":\n" +
+                            "#\n";
+                        async.each(
+                            primaryTimeSeriesDescriptions,
+                            /** @callback */
+                            function (desc, callback) {
+                                error += "#   " + desc.Identifier + "\n";
+                            }
                         );
+                        callback(error);
                     }
                 }
             ); // async.filter
@@ -1202,9 +1205,7 @@ function dvTableBody(
             remarkCodes = new Array();
             async.each(
                 qualifierListServiceResponse.Qualifiers,
-                /**
-                   @callback
-                */
+                /** @callback */
                 function (qualifierMetadata, callback) {
                     remarkCodes[qualifierMetadata.Identifier] =
                         qualifierMetadata.Code;
