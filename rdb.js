@@ -165,7 +165,7 @@ var rdb = module.exports = {
         */
 
         header += "# //PARAMETER CODE=\"" + parameter.code +
-            "\" SNAME = \"" + parameter.name + "\"\n" +
+            "\" SNAME=\"" + parameter.name + "\"\n" +
             "# //PARAMETER LNAME=\"" + parameter.description + "\"\n";
 
 	if (statistic !== undefined) {
