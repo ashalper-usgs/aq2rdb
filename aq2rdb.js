@@ -1109,7 +1109,7 @@ function appendIntervalSearchCondition(
 
         try {
             queryFrom = moment.tz(
-                during.from,
+                moment(during.from, "YYYYMMDDHHmmss").format(),
                 tzCode
             ).format();
         }
@@ -1127,7 +1127,7 @@ function appendIntervalSearchCondition(
 
         try {
             queryTo = moment.tz(
-                during.to,
+                moment(during.to, "YYYYMMDDHHmmss").format(),
                 tzCode
             ).format();
         }
@@ -1710,9 +1710,9 @@ httpdispatcher.onGet(
                     );
                 },
                 /**
-                   @todo site.request() and site.receive() can be done in
-                   parallel with the requesting/receiving of time
-                   series descriptions below.
+                   @todo site.request() and site.receive() can be done
+                         in parallel with the requesting/receiving of
+                         time series descriptions below.
                 */
                 site.request,
                 site.receive,
