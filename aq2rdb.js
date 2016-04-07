@@ -546,7 +546,10 @@ var AQUARIUS = function (hostname, userName, password, callback) {
         // Response complete; token received.
         response.on('end', function () {
             token = messageBody;
-            callback(null);
+            callback(
+                null,
+                "Received AQUARIUS authentication token successfully"
+            );
             return;
         });
     } // getAQTokenCallback
@@ -833,6 +836,7 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                             /** @callback */
                             function (desc, callback) {
                                 error += "#   " + desc.Identifier + "\n";
+                                callback(null);
                             }
                         );
                         callback(error);
@@ -2220,7 +2224,10 @@ var NWISRA = function (hostname, userName, password, log, callback) {
                 if (error)
                     callback(error);
                 else
-                    callback(null);
+                    callback(
+                        null,
+                        "Received NWIS-RA authentication token successfully"
+                    );
             }
         );
     } // authenticate
@@ -2360,7 +2367,7 @@ else {
                     return;
                 }
 
-                callback(null);
+                callback(null, "Loaded stat.json");
             });
         }
     ],
@@ -2370,21 +2377,19 @@ else {
                  omitted), "results" array parameter here.
            @see https://github.com/caolan/async#parallel
          */
-        function (error) {
+        function (error, results) {
             if (error) {
                 log(packageName, error);
                 return;
             }
             else {
-                log(
-                    packageName,
-                    "Received NWIS-RA authentication token successfully"
+                async.each(
+                    results,
+                    function (message, callback) {
+                        log(packageName, message);
+                        callback(null);
+                    }
                 );
-                log(
-                    packageName,
-                    "Received AQUARIUS authentication token successfully"
-                );
-                log(packageName, "Loaded stat.json");
                 /** @description Start listening for requests. */ 
                 server.listen(options.port, function () {
                     log(
