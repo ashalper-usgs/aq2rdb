@@ -43,19 +43,11 @@ describe('adaps', function () {
 }); // adaps
 
 describe('aq2rdb', function () {
-    var aquariusCredentialsPresent;
-
     /**
        @description Default/parse command-line options before running
                     all tests.
     */
     before(function (done) {
-        if (process.env.AQUARIUS_USER_NAME &&
-            process.env.AQUARIUS_PASSWORD)
-            aquariusCredentialsPresent = true;
-        else
-            aquariusCredentialsPresent = false;
-
         aq2rdb._private.options = aq2rdb._private.cli.parse();
         done();
     });
@@ -183,115 +175,110 @@ describe('aq2rdb', function () {
                    );
                });
 
-            if (aquariusCredentialsPresent) {
-                it('should have non-empty-string token',
-                   function (done) {
-                       aquarius = new aq2rdb._private.AQUARIUS(
-                           aq2rdb._private.options.aquariusHostname,
-                           /**
-                              @see http://stackoverflow.com/questions/16144455/mocha-tests-with-extra-options-or-parameters
-                           */
-                           process.env.AQUARIUS_USER_NAME,
-                           process.env.AQUARIUS_PASSWORD,
-                           function (error) {
-                               if (error) throw error;
-                               expect(aquarius.token().length).to.be.above(0);
-                               done();
-                           }
-                       );
-                   });
-            }
+            it('should have non-empty-string token',
+               function (done) {
+                   aquarius = new aq2rdb._private.AQUARIUS(
+                       aq2rdb._private.options.aquariusHostname,
+                       /**
+                          @see http://stackoverflow.com/questions/16144455/mocha-tests-with-extra-options-or-parameters
+                       */
+                       process.env.AQUARIUS_USER_NAME,
+                       process.env.AQUARIUS_PASSWORD,
+                       function (error) {
+                           if (error) throw error;
+                           expect(aquarius.token().length).to.be.above(0);
+                           done();
+                       }
+                   );
+               });
+
         }); // #()
 
-        if (aquariusCredentialsPresent) {
-            describe('#getLocationData()', function () {
-                it('should receive a usable LocationDataServiceResponse object',
-                   function (done) {
-                       aquarius.getLocationData(
-                           '09380000', // COLORADO RIVER AT LEES FERRY, AZ
-                           function (error, messageBody) {
-                               if (error) throw error;
-                               var locationDataServiceResponse =
-                                   JSON.parse(messageBody);
-                               expect(
-                                   Object.getOwnPropertyNames(
-                                       locationDataServiceResponse
-                                   ).length).to.be.above(0);
-                               done();
-                           });
-                   });
-            }); // #getLocationData()
-            describe('#getTimeSeriesDescription()', function () {
-                var siteNo = "09380000"; // COLORADO RIVER AT LEES FERRY, AZ
+        describe('#getLocationData()', function () {
+            it('should receive a usable LocationDataServiceResponse object',
+               function (done) {
+                   aquarius.getLocationData(
+                       '09380000', // COLORADO RIVER AT LEES FERRY, AZ
+                       function (error, messageBody) {
+                           if (error) throw error;
+                           var locationDataServiceResponse =
+                               JSON.parse(messageBody);
+                           expect(
+                               Object.getOwnPropertyNames(
+                                   locationDataServiceResponse
+                               ).length).to.be.above(0);
+                           done();
+                       });
+               });
+        }); // #getLocationData()
+        describe('#getTimeSeriesDescription()', function () {
+            var siteNo = "09380000"; // COLORADO RIVER AT LEES FERRY, AZ
 
-                it("should receive a usable TimeSeriesDescription " +
-                   "object for LocationIdentifier " + siteNo,
-                   function (done) {
-                       aquarius.getTimeSeriesDescription(
-                           "USGS", siteNo, "Discharge", "Instantaneous",
-                           "Points",
-                           function (error, timeSeriesDescription) {
-                               if (error) throw error;
-                               expect(
-                                   Object.getOwnPropertyNames(
-                                       timeSeriesDescription
-                                   ).length).to.be.above(0);
-                               done();
-                           }
-                       );
-                   });
+            it("should receive a usable TimeSeriesDescription " +
+               "object for LocationIdentifier " + siteNo,
+               function (done) {
+                   aquarius.getTimeSeriesDescription(
+                       "USGS", siteNo, "Discharge", "Instantaneous",
+                       "Points",
+                       function (error, timeSeriesDescription) {
+                           if (error) throw error;
+                           expect(
+                               Object.getOwnPropertyNames(
+                                   timeSeriesDescription
+                               ).length).to.be.above(0);
+                           done();
+                       }
+                   );
+               });
 
-                siteNo = "01646500";
-                it("should receive a usable TimeSeriesDescription " +
-                   "object for LocationIdentifier " + siteNo,
-                   function (done) {
-                       aquarius.getTimeSeriesDescription(
-                           "USGS", siteNo, "Specific cond at 25C",
-                           undefined, "Daily",
-                           function (error, timeSeriesDescription) {
-                               if (error) throw error;
-                               expect(
-                                   Object.getOwnPropertyNames(
-                                       timeSeriesDescription
-                                   ).length).to.be.above(0);
-                               done();
-                           }
-                       );
-                   });
-            });
-            describe('#getTimeSeriesCorrectedData()', function () {
-                it('should receive a usable TimeSeriesDataServiceResponse object',
-                   function (done) {
-                       aquarius.getTimeSeriesCorrectedData(
-                           {TimeSeriesUniqueId: '7050c0c28bb8409295ef0e82ceda936e',
-                            ApplyRounding: 'true',
-                            QueryFrom: '2014-10-01T00:00:00-07:00:00',
-                            QueryTo: '2014-10-02T00:00:00-07:00:00'},
-                           function (error, timeSeriesDataServiceResponse) {
-                               if (error) throw error;
-                               var timeSeriesDescriptions =
-                                   JSON.parse(timeSeriesDataServiceResponse);
-                               expect(
-                                   Object.getOwnPropertyNames(
-                                       timeSeriesDescriptions
-                                   ).length).to.be.above(0);
-                               done();
-                           }
-                       );
-                   });          
-            }); // #getTimeSeriesCorrectedData()
-        }
+            siteNo = "01646500";
+            it("should receive a \"More than one primary time " +
+               "series found...\" error message",
+               function (done) {
+                   aquarius.getTimeSeriesDescription(
+                       "USGS", siteNo, "Specific cond at 25C",
+                       undefined, "Daily",
+                       function (error, timeSeriesDescription) {
+                           assert.equal(
+                               error,
+    "More than one primary time series found for \"01646500-USGS\":\n" +
+    "#\n" +
+    "#   Specific cond at 25C.uS/cm.From multiparameter sonde.Max@01646500\n" +
+    "#   Specific cond at 25C.uS/cm.From multiparameter sonde.Mean@01646500\n" +
+    "#   Specific cond at 25C.uS/cm.From multiparameter sonde.Min@01646500\n" +
+    "#   Specific cond at 25C.uS/cm.Max@01646500\n" +
+    "#   Specific cond at 25C.uS/cm.Mean@01646500\n" +
+    "#   Specific cond at 25C.uS/cm.Min@01646500\n"
+                           );
+                           done();
+                       }
+                   );
+               });
+        });
+        describe('#getTimeSeriesCorrectedData()', function () {
+            it('should receive a usable TimeSeriesDataServiceResponse object',
+               function (done) {
+                   aquarius.getTimeSeriesCorrectedData(
+                       {TimeSeriesUniqueId: '7050c0c28bb8409295ef0e82ceda936e',
+                        ApplyRounding: 'true',
+                        QueryFrom: '2014-10-01T00:00:00-07:00:00',
+                        QueryTo: '2014-10-02T00:00:00-07:00:00'},
+                       function (error, timeSeriesDataServiceResponse) {
+                           if (error) throw error;
+                           var timeSeriesDescriptions =
+                               JSON.parse(timeSeriesDataServiceResponse);
+                           expect(
+                               Object.getOwnPropertyNames(
+                                   timeSeriesDescriptions
+                               ).length).to.be.above(0);
+                           done();
+                       }
+                   );
+               });          
+        }); // #getTimeSeriesCorrectedData()
+
     }); // AQUARIUS
 
-    after(function (done) {
-        if (! aquariusCredentialsPresent)
-            console.log(
-                "    AQUARIUS_USER_NAME or AQUARIUS_PASSWORD environment " +
-                    "variables are not set: the AQUARIUS-dependent " +
-                    "tests were skipped"
-            );
-        done();
-    });
 }); // aq2rdb
 
 describe('rdb', function () {
@@ -323,7 +310,7 @@ describe('rdb', function () {
                     // https://github.com/jmendiara/karma-jquery-chai/issues/3
                     // for more.
                     expect(header).to.match(
-/^# \/\/UNITED STATES GEOLOGICAL SURVEY       http:\/\/water.usgs.gov\/\n# \/\/NATIONAL WATER INFORMATION SYSTEM     http:\/\/water.usgs.gov\/data.html\n# \/\/DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS\n# \/\/RETRIEVED: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\n# \/\/FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=NO\n# \/\/STATION AGENCY="USGS " NUMBER="123456789012345" TIME_ZONE="MST" DST_FLAG=Y\n# \/\/STATION NAME="NOT A SITE"\n# \/\/PARAMETER CODE="00060" SNAME = "Discharge"\n# \/\/PARAMETER LNAME="Discharge, cubic feet per second"\n# \/\/STATISTIC CODE="00003" SNAME="MEAN"\n# \/\/STATISTIC LNAME="MEAN VALUES"\n# \/\/TYPE NAME="FINAL" DESC = "EDITED AND COMPUTED DAILY VALUES"\n# \/\/RANGE START="20141001" END="20150930"/);
+/^# \/\/UNITED STATES GEOLOGICAL SURVEY       http:\/\/water.usgs.gov\/\n# \/\/NATIONAL WATER INFORMATION SYSTEM     http:\/\/water.usgs.gov\/data.html\n# \/\/DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS\n# \/\/RETRIEVED: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\n# \/\/FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=NO\n# \/\/STATION AGENCY="USGS " NUMBER="123456789012345" TIME_ZONE="MST" DST_FLAG=Y\n# \/\/STATION NAME="NOT A SITE"\n# \/\/PARAMETER CODE="00060" SNAME="Discharge"\n# \/\/PARAMETER LNAME="Discharge, cubic feet per second"\n# \/\/STATISTIC CODE="00003" SNAME="MEAN"\n# \/\/STATISTIC LNAME="MEAN VALUES"\n# \/\/TYPE NAME="FINAL" DESC = "EDITED AND COMPUTED DAILY VALUES"\n# \/\/RANGE START="20141001" END="20150930"/);
                     done();
                 }
             );
