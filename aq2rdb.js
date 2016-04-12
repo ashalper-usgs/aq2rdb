@@ -2397,7 +2397,15 @@ else {
                     // minutes to renew lease on authentication
                     // token. See
                     // https://nodejs.org/api/timers.html#timers_setinterval_callback_delay_arg
-                    setInterval(initAquarius, 59 * 60 * 1000);
+                    setInterval(
+                        function () {
+                            initAquarius(function (error, message) {
+                                if (error)
+                                    log(error);
+                            });
+                        },
+                        59 * 60 * 1000 // call above function every 59 minutes
+                    );
                 });
             }
         }
