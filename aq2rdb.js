@@ -2311,6 +2311,26 @@ else {
     */
     var server = http.createServer(handleRequest);
 
+    /**
+       @function Attempt AQUARIUS handshaking to get
+       authentication token.
+    */
+    function initAquarius(callback) {
+        try {
+            aquarius = new AQUARIUS(
+                options.aquariusHostname,
+                options.aquariusUserName,
+                options.aquariusPassword, callback
+            );
+        }
+        catch (error) {
+            if (error) {
+                callback(error);
+                return;
+            }
+        }
+    }
+
     // some server start-up, initialization tasks
     async.parallel([
         /**
@@ -2333,25 +2353,7 @@ else {
             }
             // no callback here; it is called from NWISRA() when complete
         },
-        /**
-           @function Attempt AQUARIUS handshaking to get
-                     authentication token.
-         */
-        function (callback) {
-            try {
-                aquarius = new AQUARIUS(
-                    options.aquariusHostname,
-                    options.aquariusUserName,
-                    options.aquariusPassword, callback
-                );
-            }
-            catch (error) {
-                if (error) {
-                    callback(error);
-                    return;
-                }
-            }
-        },
+        initAquarius,
         function (callback) {
             fs.readFile("stat.json", function(error, json) {
                 if (error) {
@@ -2371,12 +2373,6 @@ else {
             });
         }
     ],
-        /**
-           @todo async.parallel() callbacks above could be more
-                 specific by passing information to second (presently
-                 omitted), "results" array parameter here.
-           @see https://github.com/caolan/async#parallel
-         */
         function (error, results) {
             if (error) {
                 log(packageName, error);
@@ -2397,6 +2393,11 @@ else {
                         "Server listening on: http://localhost:" +
                         options.port.toString()
                     );
+                    // Reconstruct the "aquarius" object every 59
+                    // minutes to renew lease on authentication
+                    // token. See
+                    // https://nodejs.org/api/timers.html#timers_setinterval_callback_delay_arg
+                    setInterval(initAquarius, 59 * 60 * 1000);
                 });
             }
         }
