@@ -31,11 +31,14 @@ var site = require('./site');
 /**
    @description The Web service name is the script name without the
                 ".js" suffix.
+   @global
+   @type {string}
 */
 var packageName = path.basename(process.argv[1]).slice(0, -3);
 
 /**
-   @description Domain of supported command line arguments.
+   @description The domain of supported, server-side, aq2rdb command
+                line arguments.
    @see https://www.npmjs.com/package/command-line-args#synopsis
 */
 var cli = commandLineArgs([
@@ -73,13 +76,26 @@ var cli = commandLineArgs([
     {name: "waterDataPassword", type: String}
 ]);
 
-/** @global */
-var aquarius;          // AQUARIUS object
-/** @global */
-var nwisRA;            // NWIS-RA object (see "NWISRA" prototype)
-/** @global */
-var stat;              // JavaScript version of NWIS STAT domain table
-/** @global */
+/**
+   @description AQUARIUS, Web service object
+   @global
+*/
+var aquarius;
+/**
+   @description NWIS-RA, Web service object.
+   @global
+*/
+var nwisRA;
+/**
+   @description NWIS STAT, domain table object.
+   @global
+*/
+var stat;
+/**
+   @description Parsed, server-side, aq2rdb command line arguments.
+   @global
+   @see https://www.npmjs.com/package/command-line-args#module_command-line-args--CommandLineArgs+parse
+*/
 var options;
 
 /**
@@ -158,7 +174,7 @@ var tzName = {
 tzName["ZP-11"] = {N: "Etc/GMT-11", Y: "Etc/GMT-11"};
 
 /**
-   @description Public functions.
+   @description Exports public functions to dependent modules.
 */
 var aq2rdb = module.exports = {
     /**
@@ -2153,9 +2169,7 @@ function handleRequest(request, response) {
 }
 
 try {
-    /**
-       @description Set of successfully parsed command line options.
-    */
+    // get set of successfully parsed command line options
     options = cli.parse();
 }
 catch (error) {
@@ -2236,7 +2250,7 @@ var NWISRA = function (hostname, userName, password, log, callback) {
        @method Make an NWIS-RA, HTTP GET query.
        @public
        @param {object} obj HTTP query parameter/value object.
-       @param {Boolean} log Enable console logging if true; no console
+       @param {boolean} log Enable console logging if true; no console
                         logging when false.
        @param {function} callback Callback function to call if/when
                          response is received.
