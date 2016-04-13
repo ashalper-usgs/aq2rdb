@@ -201,8 +201,9 @@ tzName["ZP-11"] = {N: "Etc/GMT-11", Y: "Etc/GMT-11"};
 var aq2rdb = module.exports = {
     /**
        @function
-       @description Convert AQUARIUS TimeSeriesPoint.Timestamp string
-                    to a common NWIS date format.
+       @description Convert AQUARIUS
+                    <code>TimeSeriesPoint.Timestamp</code> string to a
+                    common NWIS date format.
        @public
        @param {string} timestamp AQUARIUS Timestamp string to convert.
     */
@@ -214,8 +215,9 @@ var aq2rdb = module.exports = {
 
     /**
        @function
-       @description Convert AQUARIUS TimeSeriesPoint.Timestamp string
-                    to a common NWIS time format.
+       @description Convert AQUARIUS
+                    <code>TimeSeriesPoint.Timestamp</code> string to a
+                    common NWIS time format.
        @public
        @param {string} timestamp AQUARIUS Timestamp string to convert.
     */
@@ -227,8 +229,9 @@ var aq2rdb = module.exports = {
 
     /**
        @function
-       @description Convert AQUARIUS TimeSeriesPoint.Timestamp string
-                    to a common NWIS datetime format.
+       @description Convert AQUARIUS
+                    <code>TimeSeriesPoint.Timestamp</code> string to a
+                    common NWIS datetime format.
        @public
        @param {string} timestamp AQUARIUS Timestamp string to convert.
     */
@@ -431,12 +434,11 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
 
     /**
        @author Scott Bartholoma <sbarthol@usgs.gov>
-
        @since 2015-09-29T10:57-07:00
 
-       Remark will have to be derived from the Qualifier section of
-       the response. It will have begin and end dates for various
-       qualification periods.
+       @description Remark will have to be derived from the Qualifier
+                    section of the response. It will have begin and
+                    end dates for various qualification periods.
     */
     async.detect(qualifiers, function (qualifier, callback) {
         var pointTime, startTime, endTime;
@@ -484,27 +486,28 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
 
     /**
        @author Scott Bartholoma <sbarthol@usgs.gov>
-
        @since 2015-09-29T10:57-07:00
       
-       I think some of what used to be flags are now
-       Qualifiers. Things like thereshold [sic] exceedances [sic]
-       (high, very high, low, very low, rapid increace/decreast [sic],
-       etc.). The users might want you to put something in that column
-       for the Method and Grade sections of the response as well
+       @description I think some of what used to be flags are now
+                    Qualifiers. Things like thereshold [sic]
+                    exceedances [sic] (high, very high, low, very low,
+                    rapid increace/decreast [sic], etc.). The users
+                    might want you to put something in that column for
+                    the Method and Grade sections of the response as
+                    well
     */
     row += '\t' +
 
     /**
        @author Scott Bartholoma <sbarthol@usgs.gov>
-
        @since 2015-09-29T10:57-07:00
       
-       Type I would put in something like "R" for raw and "C" for
-       corrected depending on which get method was used. That is
-       similar to what C (computed) and E (Edited) meant for DV data
-       in Adaps.  We don't explicitly have the Meas, Edit, and Comp UV
-       types anymore, they are separate timeseries in AQUARIUS.
+       @description Type I would put in something like "R" for raw and
+                    "C" for corrected depending on which get method
+                    was used. That is similar to what C (computed) and
+                    E (Edited) meant for DV data in Adaps.  We don't
+                    explicitly have the Meas, Edit, and Comp UV types
+                    anymore, they are separate timeseries in AQUARIUS.
     */
     "\tC\t" + qa + '\n';
 
@@ -557,6 +560,11 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
    @class
    @classdesc AQUARIUS object prototype.
    @private
+   @param {string} hostname DNS host name of AQUARIUS server.
+   @param {string} userName AQUARIUS account user name.
+   @param {string} password AQUARIUS account password.
+   @param {function} callback Callback to call when object
+          constructed.
 */
 var AQUARIUS = function (hostname, userName, password, callback) {
     if (hostname === undefined) {
