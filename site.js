@@ -17,9 +17,17 @@ var rest = require('./rest');
 */
 var site = module.exports = {
     /**
-       @function Query USGS Site Web Service.
+       @function
+       @description Query USGS Site Web Service.
        @callback
-       @param {string} siteNumber NWIS site number string.
+       @param {string} waterServicesHostname Host name of USGS Site
+              Web Service server to query.
+       @param {string} agencyCode Site's USGS agency code.
+       @param {string} siteNumber Site number string (a.k.a. "site ID").
+       @param {boolean} log Enable server console logging if true; No
+              logging otherwise.
+       @param {function} callback Callback function to call when
+              complete.
     */
     request: function (
         waterServicesHostname, agencyCode, siteNumber, log, callback
@@ -44,7 +52,8 @@ var site = module.exports = {
     }, // request
 
     /**
-       @function Receive and parse response from USGS Site Web Service.
+       @function
+       @description Receive and parse response from USGS Site Web Service.
        @callback
        @param {string} messageBody Message body of HTTP response from USGS
               Site Web Service.
