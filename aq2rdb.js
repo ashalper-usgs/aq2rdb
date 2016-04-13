@@ -33,12 +33,14 @@ var site = require('./site');
                 ".js" suffix.
    @global
    @type {string}
+   @constant
 */
 var packageName = path.basename(process.argv[1]).slice(0, -3);
 
 /**
    @description The domain of supported, server-side, aq2rdb command
                 line arguments.
+   @type {object}
    @see https://www.npmjs.com/package/command-line-args#synopsis
 */
 var cli = commandLineArgs([
@@ -79,21 +81,28 @@ var cli = commandLineArgs([
 /**
    @description AQUARIUS, Web service object
    @global
+   @type {object}
 */
 var aquarius;
+
 /**
    @description NWIS-RA, Web service object.
    @global
+   @type {object}
 */
 var nwisRA;
+
 /**
    @description NWIS STAT, domain table object.
    @global
+   @type {object}
 */
 var stat;
+
 /**
    @description Parsed, server-side, aq2rdb command line arguments.
    @global
+   @type {object}
    @see https://www.npmjs.com/package/command-line-args#module_command-line-args--CommandLineArgs+parse
 */
 var options;
@@ -104,8 +113,9 @@ var options;
                 module). This is not a complete enumeration of the
                 time zones defined in the NWIS TZ table, but the time
                 zone abbreviations known (presently) to be related to
-                SITEFILE sites in NATDB.
+                all SITEFILE sites in NATDB.
    @global
+   @type {object}
    @constant
 */
 var tzName = {
@@ -168,18 +178,20 @@ var tzName = {
     ZP6:   {N: "Etc/GMT+6",  Y: "Etc/GMT+6"}
 };
 
-// Surprisingly, this expression syntax makes it past the Node.js
+// Somewhat surprisingly, the syntax below makes it past the Node.js
 // parser, but ends in "SyntaxError: Unexpected token -" when included
 // in the object initializer above.
 tzName["ZP-11"] = {N: "Etc/GMT-11", Y: "Etc/GMT-11"};
 
 /**
-   @description Exports public functions to dependent modules.
+   @description Exports public functions to external dependent modules.
+   @type {object}
 */
 var aq2rdb = module.exports = {
     /**
-       @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to
-                 a common NWIS date format.
+       @function
+       @description Convert AQUARIUS TimeSeriesPoint.Timestamp string
+                    to a common NWIS date format.
        @public
        @param {string} timestamp AQUARIUS Timestamp string to convert.
     */
@@ -190,8 +202,9 @@ var aq2rdb = module.exports = {
     },
 
     /**
-       @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to
-                 a common NWIS time format.
+       @function
+       @description Convert AQUARIUS TimeSeriesPoint.Timestamp string
+                    to a common NWIS time format.
        @public
        @param {string} timestamp AQUARIUS Timestamp string to convert.
     */
@@ -202,8 +215,9 @@ var aq2rdb = module.exports = {
     },
 
     /**
-       @function Convert AQUARIUS TimeSeriesPoint.Timestamp string to
-                 a common NWIS datetime format.
+       @function
+       @description Convert AQUARIUS TimeSeriesPoint.Timestamp string
+                    to a common NWIS datetime format.
        @public
        @param {string} timestamp AQUARIUS Timestamp string to convert.
     */
@@ -214,8 +228,9 @@ var aq2rdb = module.exports = {
 }; // public functions
 
 /**
-   @function This module's logging function, mostly for convenience
-             purposes.
+   @function
+   @description This module's logging function, mostly for convenience
+                purposes.
    @private
    @param {string} message Log message.
 */ 
@@ -225,7 +240,8 @@ function log(prefix, message) {
 } // log
 
 /**
-   @function Error handler.
+   @function
+   @description Error handler.
    @private
    @param {object} error "Error" object.
    @param {object} response IncomingMessage object created by Node.js
@@ -277,7 +293,8 @@ function handle(error) {
 } // handle
 
 /**
-   @function Error messager for JSON parse errors.
+   @function
+   @description Error messager for JSON parse errors.
    @private
    @param {object} response IncomingMessage object created by Node.js
                    http.Server.
@@ -301,7 +318,10 @@ function jsonParseErrorMessage(response, message) {
 var LocationIdentifier = function (text) {
     var text = text;
 
-    /** @method Return agency code. */
+    /**
+       @method
+       @description Agency code accessor method.
+    */
     this.agencyCode = function () {
         // if agency code delimiter ("-") is present in location
         // identifier
@@ -319,7 +339,10 @@ var LocationIdentifier = function (text) {
         }
     }
 
-    /** @method Return site number. */
+    /**
+       @method
+       @description Site number accessor method.
+    */
     this.siteNumber = function () {
         // if agency code delimiter ("-") is present in location
         // identifier
@@ -334,7 +357,11 @@ var LocationIdentifier = function (text) {
         }
     }
 
-    /** @method Return string representation of this object. */
+    /**
+       @method
+       @description Return a string representation of
+                    LocationIdentifier.
+    */
     this.toString = function () {
         return text;
     }
@@ -342,8 +369,9 @@ var LocationIdentifier = function (text) {
 } // LocationIdentifier
 
 /**
-   @function Check for documentation request, and serve documentation
-             if appropriate.
+   @function
+   @description Check for documentation request, and serve
+                documentation if appropriate.
    @private
    @param {string} url Endpoint URL.
    @param {string} name Endpoint name.
@@ -373,7 +401,8 @@ function docRequest(url, servicePath, response, callback) {
 } // docRequest
 
 /**
-   @function Create RDB, DV table row.
+   @function
+   @description Create RDB, DV table row.
    @private
    @param {string} timestamp AQUARIUS timestamp string.
    @param {object} value Time series daily value.
@@ -472,9 +501,10 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
 } // dvTableRow
 
 /**
-   @function Patch up some obscure incompatibilities between NWIS's
-             site time offset predicate and IANA time zone data (used
-             by moment-timezone).
+   @function
+   @description Patch up some obscure incompatibilities between NWIS's
+                site time offset predicate and IANA time zone data
+                (used by moment-timezone).
    @private
 */
 function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
@@ -596,6 +626,7 @@ var AQUARIUS = function (hostname, userName, password, callback) {
 
     /**
        @description Handle GetAQToken service invocation errors.
+       @callback
     */
     request.on('error', function (error) {
         var statusMessage;
@@ -615,14 +646,16 @@ var AQUARIUS = function (hostname, userName, password, callback) {
     request.end();
 
     /**
-       @method AQUARIUS authentication token.
+       @method
+       @description AQUARIUS authentication token accessor method.
      */
     this.token = function () {
         return token;
     }
 
     /**
-       @method Call AQUARIUS GetLocationData Web service.
+       @method
+       @description Call AQUARIUS GetLocationData Web service.
        @param {string} locationIdentifier AQUARIUS location identifier.
        @param {function} callback Callback function to call if/when
               response from GetLocationData is received.
@@ -672,7 +705,8 @@ var AQUARIUS = function (hostname, userName, password, callback) {
     } // getLocationData
 
     /**
-       @method Call AQUARIUS GetTimeSeriesCorrectedData Web service.
+       @method
+       @description Call AQUARIUS GetTimeSeriesCorrectedData Web service.
        @param {object} parameters AQUARIUS
               GetTimeSeriesCorrectedData service HTTP parameters.
        @param {function} callback Callback to call if/when
@@ -728,8 +762,9 @@ var AQUARIUS = function (hostname, userName, password, callback) {
     } // getTimeSeriesCorrectedData
 
     /**
-       @method Parse AQUARIUS TimeSeriesDataServiceResponse received
-               from GetTimeSeriesCorrectedData service.
+       @method
+       @description Parse AQUARIUS TimeSeriesDataServiceResponse
+                    received from GetTimeSeriesCorrectedData service.
     */
     this.parseTimeSeriesDataServiceResponse = function (messageBody, callback) {
         var timeSeriesDataServiceResponse;
@@ -746,9 +781,10 @@ var AQUARIUS = function (hostname, userName, password, callback) {
     } // parsetimeSeriesDataServiceResponse
 
     /**
-       @function Distill a set of time series descriptions into
-                 (hopefully) one, to query for a set of time series
-                 date/value pairs.
+       @function
+       @description Distill a set of time series descriptions into
+                    (hopefully) one, to query for a set of time series
+                    date/value pairs.
        @private
        @param {object} timeSeriesDescriptions An array of AQUARIUS
               TimeSeriesDescription objects.
@@ -780,7 +816,9 @@ var AQUARIUS = function (hostname, userName, password, callback) {
             async.filter(
                 timeSeriesDescriptions,
                 /**
-                   @function Primary time series filter iterator function.
+                   @function
+                   @description Primary time series filter iterator
+                                function.
                    @callback
                 */
                 function (timeSeriesDescription, callback) {
@@ -793,8 +831,10 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                     async.detect(
                         timeSeriesDescription.ExtendedAttributes,
                         /**
-                           @function Primary time series, async.detect
-                           truth value function.
+                           @function
+                           @description Primary time series,
+                                        async.detect truth value
+                                        function.
                            @callback
                         */
                         function (extendedAttribute, callback) {
@@ -810,8 +850,9 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                             }
                         },
                         /**
-                           @function Primary time series, async.detect
-                                     final function.
+                           @function
+                           @description Primary time series,
+                                        async.detect final function.
                            @callback
                         */
                         function (result) {
@@ -830,9 +871,10 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                     );
                 },
                 /**
-                   @function Check arity of primary time series
-                             descriptions returned from AQUARIUS
-                             GetTimeSeriesDescriptionList.
+                   @function
+                   @description Check arity of primary time series
+                                descriptions returned from AQUARIUS
+                                GetTimeSeriesDescriptionList.
                    @callback
                 */
                 function (primaryTimeSeriesDescriptions) {
@@ -865,9 +907,11 @@ var AQUARIUS = function (hostname, userName, password, callback) {
     } // distill
 
     /**
-       @function Query AQUARIUS GetTimeSeriesDescriptionList service
-                 to get list of AQUARIUS, time series UniqueIds
-                 related to aq2rdb, location and parameter.
+       @function
+       @description Query AQUARIUS GetTimeSeriesDescriptionList
+                    service to get list of AQUARIUS, time series
+                    UniqueIds related to aq2rdb, location and
+                    parameter.
        @private
        @param {string} agencyCode USGS agency code.
        @param {string} siteNumber USGS site number.
@@ -918,7 +962,8 @@ var AQUARIUS = function (hostname, userName, password, callback) {
     } // getTimeSeriesDescriptionList
 
     /**
-       @method Get a TimeSeriesDescription object from AQUARIUS.
+       @method
+       @description Get a TimeSeriesDescription object from AQUARIUS.
        @param {string} agencyCode USGS agency code.
        @param {string} siteNumber USGS site number.
        @param {string} parameter AQUARIUS parameter.
@@ -942,10 +987,12 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                 );
             },
             /**
-               @function Receive response from AQUARIUS
-                         GetTimeSeriesDescriptionList, then parse list
-                         of related TimeSeriesDescriptions to query
-                         AQUARIUS GetTimeSeriesCorrectedData service.
+               @function
+               @description Receive response from AQUARIUS
+                            GetTimeSeriesDescriptionList, then parse
+                            list of related TimeSeriesDescriptions to
+                            query AQUARIUS GetTimeSeriesCorrectedData
+                            service.
                @callback
                @param {string} messageBody Message body part of HTTP
                                response from
@@ -969,9 +1016,10 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                 );
             },
             /**
-               @function Check for zero TimeSeriesDescriptions
-                         returned from AQUARIUS Web service query
-                         above.
+               @function
+               @description Check for zero TimeSeriesDescriptions
+                            returned from AQUARIUS Web service query
+                            above.
                @callback
             */
             function (timeSeriesDescriptions, callback) {
@@ -1006,8 +1054,9 @@ var AQUARIUS = function (hostname, userName, password, callback) {
                 callback(null, timeSeriesDescriptions);
             },
             /**
-               @function For each AQUARIUS time series description,
-                         weed out non-primary ones.
+               @function
+               @description For each AQUARIUS time series description,
+                            weed out non-primary ones.
                @callback
             */
             function (timeSeriesDescriptions, callback) {
@@ -1049,8 +1098,9 @@ function required(options, propertyList) {
 } // checkRequiredOption
 
 /**
-   @function Parse aq2rdb?t=UV endpoint's fields. Proceed to next
-             async.waterfall() function if successful.
+   @function
+   @description Parse aq2rdb?t=UV endpoint's fields. Proceed to next
+                async.waterfall() function if successful.
    @private
    @callback
    @param {object} requestURL request.url object to parse.
@@ -1113,9 +1163,10 @@ function getVersion(callback) {
 } // getVersion
 
 /**
-   @function Convert NWIS datetime format to ISO format for digestion
-             by AQUARIUS REST query. Offset times from time zone of
-             site to UTC to get correct results.
+   @function
+   @description Convert NWIS datetime format to ISO format for
+                digestion by AQUARIUS REST query. Offset times from
+                time zone of site to UTC to get correct results.
    @see http://momentjs.com/timezone/docs/#/using-timezones/
 */
 function appendIntervalSearchCondition(
@@ -1169,7 +1220,8 @@ function dvTableBody(
 
     async.waterfall([
         /**
-           @function Request remark codes from AQUARIUS.
+           @function
+           @description Request remark codes from AQUARIUS.
            @callback
            @todo This is fairly kludgey, because remark codes might
                  not be required for every DV interval; try to nest in
@@ -1193,7 +1245,8 @@ function dvTableBody(
             }
         },
         /**
-           @function Receive remark codes from AQUARIUS.
+           @function
+           @description Receive remark codes from AQUARIUS.
            @callback
         */
         function (messageBody, callback) {
@@ -1234,8 +1287,9 @@ function dvTableBody(
             callback(null);
         },
         /**
-           @function Query AQUARIUS GetTimeSeriesCorrectedData to get
-                     related daily values.
+           @function
+           @description Query AQUARIUS GetTimeSeriesCorrectedData to
+                        get related daily values.
            @callback
         */
         function (callback) {
@@ -1279,7 +1333,8 @@ function dvTableBody(
         },
         aquarius.parseTimeSeriesDataServiceResponse,
         /**
-           @function Write each RDB row to HTTP response.
+           @function
+           @description Write each RDB row to HTTP response.
            @callback
         */
         function (timeSeriesDataServiceResponse, callback) {
@@ -1335,7 +1390,8 @@ httpdispatcher.onGet(
         */
         async.waterfall([
             /**
-               @function Check for documentation request.
+               @function
+               @description Check for documentation request.
                @callback
             */
             function (callback) {
@@ -1345,7 +1401,8 @@ httpdispatcher.onGet(
                 callback(null);
             },
             /**
-               @function Parse fields and values in GetDVTable URL.
+               @function
+               @description Parse fields and values in GetDVTable URL.
                @callback
             */
             function (callback) {
@@ -1402,13 +1459,15 @@ httpdispatcher.onGet(
             site.request,
             site.receive,
             /**
-               @function Write RDB header and heading.
+               @function
+               @description Write RDB header and heading.
                @callback
             */
             function (site, callback) {
                 async.series([
                     /**
-                       @function Write HTTP response header.
+                       @function
+                       @description Write HTTP response header.
                        @callback
                     */
                     function (callback) {
@@ -1418,7 +1477,8 @@ httpdispatcher.onGet(
                         callback(null);
                     },
                     /**
-                       @function Write RDB header to HTTP response.
+                       @function
+                       @description Write RDB header to HTTP response.
                        @callback
                     */
                     function (callback) {
@@ -1438,7 +1498,8 @@ httpdispatcher.onGet(
                         );
                     },
                     /**
-                       @function Write RDB body to HTTP response.
+                       @function
+                       @description Write RDB body to HTTP response.
                        @callback
                     */
                     function (callback) {
@@ -1461,9 +1522,10 @@ httpdispatcher.onGet(
                         callback(null);
                     },
                     /**
-                       @function Write RDB heading (a different thing
-                                 than RDB header, above) to HTTP
-                                 response.
+                       @function
+                       @description Write RDB heading (a different
+                                    thing than RDB header, above) to
+                                    HTTP response.
                        @callback
                     */
                     function (callback) {
@@ -1564,8 +1626,9 @@ httpdispatcher.onGet(
         var rndsup, locTzCd;
 
         /**
-           @function node-if-async predicate function, called by
-                     ifAsync() in async.waterfall() below.
+           @function
+           @description node-if-async predicate function, called by
+                        ifAsync() in async.waterfall() below.
            @see https://github.com/ironSource/node-if-async
         */
         function dataTypeIsDV(callback) {
@@ -1576,8 +1639,9 @@ httpdispatcher.onGet(
         }
 
         /**
-           @function node-if-async predicate function, called by
-                     ifAsync() in async.waterfall() below.
+           @function
+           @description node-if-async predicate function, called by
+                        ifAsync() in async.waterfall() below.
            @see https://github.com/ironSource/node-if-async
         */
         function dataTypeIsUV(callback) {
@@ -1588,9 +1652,10 @@ httpdispatcher.onGet(
         }
 
         /**
-           @function A Node.js emulation of legacy NWIS, FDVRDBOUT()
-                     Fortran subroutine: "Write DV data in rdb FORMAT"
-                     [sic].
+           @function
+           @description A Node.js emulation of legacy NWIS,
+                        FDVRDBOUT() Fortran subroutine: "Write DV data
+                        in rdb FORMAT" [sic].
         */
         function dailyValues(callback) {
             var parameters = Object();
@@ -1760,7 +1825,8 @@ httpdispatcher.onGet(
                 function (callback) {
                     async.waterfall([
                         /**
-                           @function Write RDB header to HTTP response.
+                           @function
+                           @description Write RDB header to HTTP response.
                            @callback
                         */
                         function (callback) {
@@ -2052,10 +2118,11 @@ httpdispatcher.onGet(
                 callback(null);
             },
             /**
-               @function Query
-                         USGS-parameter-code-to-AQUARIUS-parameter Web
-                         service here to obtain AQUARIUS parameter
-                         from USGS parameter code.
+               @function
+               @description Query
+                            USGS-parameter-code-to-AQUARIUS-parameter
+                            Web service here to obtain AQUARIUS
+                            parameter from USGS parameter code.
                @callback
                @param {string} NWIS-RA authorization token.
                @param {function} callback async.waterfall() callback
@@ -2200,7 +2267,8 @@ var NWISRA = function (hostname, userName, password, log, callback) {
     var authentication;
 
     /**
-       @method Get authentication token from NWIS-RA.
+       @method
+       @description Get authentication token from NWIS-RA.
        @private
      */
     function authenticate(callback) {
@@ -2247,7 +2315,8 @@ var NWISRA = function (hostname, userName, password, log, callback) {
     } // authenticate
 
     /**
-       @method Make an NWIS-RA, HTTP GET query.
+       @method
+       @description Make an NWIS-RA, HTTP GET query.
        @public
        @param {object} obj HTTP query parameter/value object.
        @param {boolean} log Enable console logging if true; no console
@@ -2321,13 +2390,15 @@ if (options.version === true) {
 }
 else {
     /**
-       @description Create HTTP server to host the service.
+       @description HTTP server to host the aq2rdb Web services.
+       @type {object}
     */
     var server = http.createServer(handleRequest);
 
     /**
-       @function Attempt AQUARIUS handshaking to get
-       authentication token.
+       @function
+       @description Attempt AQUARIUS handshaking to get authentication
+                    token.
     */
     function initAquarius(callback) {
         try {
@@ -2348,8 +2419,9 @@ else {
     // some server start-up, initialization tasks
     async.parallel([
         /**
-           @function Attempt NWIS-RA handshaking to get
-                     authentication token.
+           @function
+           @description Attempt NWIS-RA handshaking to get
+                        authentication token.
         */
         function (callback) {
             try {
