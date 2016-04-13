@@ -111,7 +111,7 @@ var rest = module.exports = {
        @param {string} path Path part of HTTP query URL.
        @param {object} obj An array of attribute-value pairs to bind in
               HTTP query URL.
-       @param {Boolean} log Enable logging when true.
+       @param {boolean} log Enable logging when true.
        @param {function} callback Callback function to call if/when
               response from Web service is received.
     */
