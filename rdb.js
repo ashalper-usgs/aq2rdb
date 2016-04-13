@@ -1,8 +1,10 @@
 /**
  * @fileOverview aq2rdb, USGS-variant RDB utility functions.
  *
- * @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
- * @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+ * @module rdb
+ *
+ * @author Andrew Halper <ashalper@usgs.gov>
+ * @author Scott Bartholoma <sbarthol@usgs.gov>
  *
  * @see <a href="https://sites.google.com/a/usgs.gov/nwis_integrator/data_retrieval/cli/aqts2rdb">aqts2rdb</a>.
  */
@@ -43,8 +45,8 @@ var rdb = module.exports = {
         "# //RETRIEVED: " + moment().format("YYYY-MM-DD HH:mm:ss") + '\n';
 
         /**
-           @author <a href="mailto:bdgarner@usgs.gov">Bradley Garner</a>
-    
+           @author Bradley Garner <bdgarner@usgs.gov>
+
            @todo
            
            Andy,
@@ -120,7 +122,7 @@ var rdb = module.exports = {
             ) + '# //STATION NAME="' + site.name + '"\n';
     
         /**
-           @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+           @author Scott Bartholoma <sbarthol@usgs.gov>
            @since 2015-11-11T16:31-07:00
         
            @description I think that
@@ -133,28 +135,28 @@ var rdb = module.exports = {
         */
 
         /**
-           @author <a href="mailto:walker@usgs.gov">Wade Walker</a>
+           @author Wade Walker <walker@usgs.gov>
            @since 2016-02-16T08:30-07:00
 
            @description sublocation is the AQUARIUS equivalent of
-           ADAPS location. It is returned from any of the
-           GetTimeSeriesDescriptionList... methods or for
-           GetFieldVisitData method elements where sublocation is
-           appropriate. GetSensorsAndGages will also return associated
-           sublocations. They're basically just a shared attribute of
-           time series, sensors and gages, and field readings, so no
-           specific call for them, they're just returned with the data
-           they're applicable to. Let me know if you need something
-           beyond that.
+                        ADAPS location. It is returned from any of the
+                        GetTimeSeriesDescriptionList... methods or for
+                        GetFieldVisitData method elements where
+                        sublocation is appropriate. GetSensorsAndGages
+                        will also return associated
+                        sublocations. They're basically just a shared
+                        attribute of time series, sensors and gages,
+                        and field readings, so no specific call for
+                        them, they're just returned with the data
+                        they're applicable to. Let me know if you need
+                        something beyond that.
         */
-
         if (subLocationIdentifer !== undefined) {
             header += '# //SUBLOCATION ID="' + subLocationIdentifer + '"\n';
         }
     
         /**
-           @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
-    
+           @author Scott Bartholoma <sbarthol@usgs.gov>
            @since 2015-11-11T16:31-07:00
     
            I would be against continuing the DDID field since only
@@ -291,8 +293,8 @@ var rdb = module.exports = {
        @description Node.js emulation of legacy NWIS,
                     NW_RDB_FILL_END_DTM() Fortran subroutine: "takes
                     an input date/time and fills it out to 14 chars".
-       @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
-       @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+       @author Andrew Halper <ashalper@usgs.gov>
+       @author Scott Bartholoma <sbarthol@usgs.gov>
        @param {boolean} wyflag Flag if Water Year.
        @param {string} enddat Input date/time (may be < 14 chars).
     */

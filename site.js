@@ -1,7 +1,9 @@
 /**
  * @fileOverview Functions for querying USGS Site Web Service.
  *
- * @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
+ * @module site
+ *
+ * @author Andrew Halper <ashalper@usgs.gov>
  */
 
 'use strict';
@@ -12,13 +14,11 @@ var path = require('path');
 // aq2rdb modules
 var rest = require('./rest');
 
-/**
-   @description Public functions.
-*/
 var site = module.exports = {
     /**
        @function
        @description Query USGS Site Web Service.
+       @public
        @callback
        @param {string} waterServicesHostname Host name of USGS Site
               Web Service server to query.
@@ -53,6 +53,7 @@ var site = module.exports = {
 
     /**
        @function
+       @public
        @description Receive and parse response from USGS Site Web Service.
        @callback
        @param {string} messageBody Message body of HTTP response from USGS

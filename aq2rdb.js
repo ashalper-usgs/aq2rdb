@@ -2,7 +2,9 @@
  * @fileOverview A Web service to map AQUARIUS, time series data
  *               requests to USGS-variant RDB files.
  *
- * @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
+ * @module aq2rdb
+ *
+ * @author Andrew Halper <ashalper@usgs.gov>
  *
  * @see <a href="https://sites.google.com/a/usgs.gov/nwis_integrator/data_retrieval/cli/aqts2rdb">aqts2rdb</a>.
  */
@@ -428,7 +430,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
         value.Display + '\t';
 
     /**
-       @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+       @author Scott Bartholoma <sbarthol@usgs.gov>
 
        @since 2015-09-29T10:57-07:00
 
@@ -481,7 +483,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     });
 
     /**
-       @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+       @author Scott Bartholoma <sbarthol@usgs.gov>
 
        @since 2015-09-29T10:57-07:00
       
@@ -494,7 +496,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     row += '\t' +
 
     /**
-       @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
+       @author Scott Bartholoma <sbarthol@usgs.gov>
 
        @since 2015-09-29T10:57-07:00
       

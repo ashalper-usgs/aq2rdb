@@ -1,7 +1,9 @@
 /**
  * @fileOverview Functions to facilitate REST HTTP queries.
  *
- * @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
+ * @module rest
+ *
+ * @author Andrew Halper <ashalper@usgs.gov>
  */
 
 'use strict';
