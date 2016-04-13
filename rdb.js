@@ -12,7 +12,8 @@ var sprintf = require("sprintf-js").sprintf;
 
 var rdb = module.exports = {
     /**
-       @function Create RDB header block.
+       @function
+       @description Create RDB header block.
        @public
        @param {string} fileType Type of time series data (e.g. "NWIS-I
               DAILY-VALUES").
@@ -168,12 +169,12 @@ var rdb = module.exports = {
             "\" SNAME=\"" + parameter.name + "\"\n" +
             "# //PARAMETER LNAME=\"" + parameter.description + "\"\n";
 
-	if (statistic !== undefined) {
+        if (statistic !== undefined) {
             header += "# //STATISTIC CODE=\"" + statistic.code +
-		"\" SNAME=\"" + statistic.name + "\"\n" +
-		"# //STATISTIC LNAME=\"" + statistic.description +
-		"\"\n";
-	}
+                "\" SNAME=\"" + statistic.name + "\"\n" +
+                "# //STATISTIC LNAME=\"" + statistic.description +
+                "\"\n";
+        }
 
         if (type)
             header += "# //TYPE NAME=\"" + type.name + "\" DESC = \"" +
@@ -206,8 +207,10 @@ var rdb = module.exports = {
     }, // header
 
     /**
-       @function takes an input date with < 8 chars and fills it to 8 chars
-       @param wyflag {Boolean} flag if Water Year
+       @function
+       @description Takes an input date with < 8 chars and fills it to
+                    8 characters.
+       @param wyflag {boolean} flag if Water Year
        @param begdat {string} input date (may be < 8 chars)
     */
     fillBegDate: function (wyflag, begdat) {
@@ -240,10 +243,10 @@ var rdb = module.exports = {
     }, // fillBegDate
 
     /**
-       @function Node.js emulation of legacy NWIS,
-                 NW_RDB_FILL_BEG_DTM() Fortran subroutine: "takes an
-                 input date/time and fills it out to 14 chars".
-
+       @function
+       @description Node.js emulation of legacy NWIS,
+                    NW_RDB_FILL_BEG_DTM() Fortran subroutine: "takes
+                    an input date/time and fills it out to 14 chars".
        @param wyflag {Boolean} flag if Water Year
        @param begdat {string} input date/time (may be < 14 chars)
     */
@@ -282,9 +285,10 @@ var rdb = module.exports = {
     }, // fillBegDtm
 
     /**
-       @function Node.js emulation of legacy NWIS,
-                 NW_RDB_FILL_END_DTM() Fortran subroutine: "takes an
-                 input date/time and fills it out to 14 chars".
+       @function
+       @description Node.js emulation of legacy NWIS,
+                    NW_RDB_FILL_END_DTM() Fortran subroutine: "takes
+                    an input date/time and fills it out to 14 chars".
        @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
        @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
        @param wyflag {Boolean} flag if Water Year

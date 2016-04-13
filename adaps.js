@@ -2,7 +2,6 @@
  * @fileOverview Encapsulate some legacy NWIS ADAPS utility logic.
  *
  * @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
- *
  */
 
 // Node.js modules

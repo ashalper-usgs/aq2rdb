@@ -542,6 +542,11 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
     return p;
 } // nwisVersusIANA
 
+/**
+   @classdesc AQUARIUS object prototype.
+   @class
+   @private
+*/
 var AQUARIUS = function (hostname, userName, password, callback) {
     if (hostname === undefined) {
         callback('Required field "hostname" not found');
@@ -578,7 +583,9 @@ var AQUARIUS = function (hostname, userName, password, callback) {
     var token;
 
     /**
+       @function
        @description GetAQToken service response callback.
+       @private
        @callback
     */
     function getAQTokenCallback(response) {
@@ -765,6 +772,9 @@ var AQUARIUS = function (hostname, userName, password, callback) {
        @method
        @description Parse AQUARIUS TimeSeriesDataServiceResponse
                     received from GetTimeSeriesCorrectedData service.
+       @param {string} messageBody Message from AQUARIUS Web service.
+       @param {function} callback Callback function to call when
+                                  response is received.
     */
     this.parseTimeSeriesDataServiceResponse = function (messageBody, callback) {
         var timeSeriesDataServiceResponse;

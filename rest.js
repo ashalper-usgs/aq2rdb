@@ -13,15 +13,16 @@ var querystring = require('querystring');
 
 var rest = module.exports = {
     /**
-       @function Call a REST Web service with an HTTP query; send
-                 response via a callback.
+       @function
+       @description Call a REST Web service with an HTTP query; send
+                    response via a callback.
        @public
        @param {string} host Host part of HTTP query URL.
        @param {string} method HTTP request method (e.g. "GET", "POST").
-       @param {object} HTTP requst headers.
+       @param {object} headers HTTP requst headers.
        @param {string} path Path part of HTTP query URL.
-       @param {object} field An array of attribute-value pairs to bind in
-              HTTP query URL.
+       @param {object} field An array of attribute-value pairs to bind
+              in HTTP query URL.
        @param {function} callback Callback function to call if/when
               response from Web service is received.
     */
@@ -100,8 +101,9 @@ var rest = module.exports = {
     }, // query
 
     /**
-       @function Call a REST Web service with an HTTPS query; send
-                 response via a callback.
+       @function
+       @description Call a REST Web service with an HTTPS query; send
+                    response via a callback.
        @public
        @param {string} host Host part of HTTP query URL.
        @param {string} method HTTP request method (e.g. "GET", "POST").
