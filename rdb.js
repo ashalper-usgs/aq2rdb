@@ -49,70 +49,83 @@ var rdb = module.exports = {
 
            @todo
            
-           Andy,
-           I know I've mentioned before we consider going to a release
+           <div>Andy,</div>
+
+           <p>
+	   I know I've mentioned before we consider going to a release
            without all of these, and then let aggressive testing find the
            gaps.  I still think that's a fine idea that aligns with the
            spirit of minimally viable product.
+	   </p>
            
-           How do we do this?  Here's an example.
+           <p>
+	   How do we do this?  Here's an example.
+	   </p>
            
-           Consider RNDARY="2222233332".  There is nothing like this
-           easily available from AQUARIUS API. Yet, AQ API does have the
-           new rounding specification, the next & improved evolution in
-           how we think of rounding; it looks like SIG(3) as one example.
-           Facing this, I can see 3 approaches, in increasing order of
-           complexity:
-             1) Just stop.  Stop serving RNDARY="foo", assuming most
-                people "just wanted the data"
-             2) New field. Replace RNDARY with a new element like
-                RNDSPEC="foo", which simply relays the new AQUARIUS
-                RoundingSpec.
-             3) Backward compatibility. Write code that converts a AQ
-                rounding spec to a 10-digit NWIS rounding array.  Painful,
-                full of assumptions & edge cases.  But surely doable.
-          
-           In the agile and minimum-vial-product [sic] spirits, I'd
+           <p>Consider <code>RNDARY="2222233332"</code>. There is
+           nothing like this easily available from AQUARIUS API. Yet,
+           AQ API does have the new rounding specification, the next &
+           improved evolution in how we think of rounding; it looks
+           like SIG(3) as one example.  Facing this, I can see 3
+           approaches, in increasing order of complexity:</p>
+
+	   <ol>
+             <li>Just stop. Stop serving <code>RNDARY="foo"</code>,
+             assuming most people "just wanted the data"</li>
+             <li>New field. Replace <code>RNDARY</code> with a new element
+             like <code>RNDSPEC="foo"</code>, which simply relays the
+             new AQUARIUS <code>RoundingSpec</code>.</li>
+             <li>Backward compatibility. Write code that converts a AQ
+             rounding spec to a 10-digit NWIS rounding array. Painful,
+             full of assumptions & edge cases. But surely doable.</li>
+	   </ol>
+
+           <p>In the agile and minimum-vial-product [sic] spirits, I'd
            propose leaning toward (1) as a starting point.  As user
            testing and interaction informs us to the contrary, consider
            (2) or (3) for some fields.  But recognize that option (2) is
            always the most expensive one, so we should do it judiciously
            and only when it's been demonstrated there's a user story
-           driving it.
+           driving it.</p>
           
-           The above logic should work for every field in this header
-           block.
+           <p>The above logic should work for every field in this header
+           block.</p>
           
-           Having said all that, some fields are trivially easy to find in
-           the AQUARIUS API--that is, option (3) is especially easy, so
+           <p>Having said all that, some fields are trivially easy to find in
+           the AQUARIUS API&mdash;that is, option (3) is especially easy, so
            maybe just do them.  In increasing order of difficulty (and
-           therefore increasing degrees of warranted-ness):
-          
-            - LOCATION NAME="foo"  ... This would be the
-              SubLocationIdentifer in a GetTimeSeriesDescriptionList()
-              call.
-            - PARAMETER LNAME="foo" ... is just Parameter as returned by
-              GetTimeSeriesDescriptionList()
-            - STATISTIC LNAME="foo" ... is ComputationIdentifier +
-              ComputationPeriodIdentifier in
-              GetTimeSeriesDescriptionList(), although the names will
-              shift somewhat from what they would have been in ADAPS which
-              might complicate things.
-            - DD LABEL="foo" ... Except for the confusing carryover of the
-              DD semantic, this should just be some combination of
-              Identifier + Label + Comment + Description from
-              GetTimeSeriesDescriptionList().  How to combine them, I'm
-              not sure, but it should be determinable
-            - DD DDID="foo" ...  When and if the extended attribute
-              ADAPS_DD is populated in GetTimeSeriesDescriptionList(),
-              this is easily populated.  But I think we should wean people
-              off this.
-            - Note: Although AGING fields might seem simple at first blush
-              (the Approvals[] struct from GetTimeSeriesCorrectedData())
-              the logic for emulating this old ADAPS format likely would
-              get messy in a hurry.
+           therefore increasing degrees of warranted-ness):</p>
+           <ul>
+            <li><code>LOCATION NAME="foo"</code>&hellip;This would be the
+              <code>SubLocationIdentifer</code> in a
+              <code>GetTimeSeriesDescriptionList()</code> call.</li>
+            <li><code>PARAMETER LNAME="foo"</code>&hellip;is just
+              Parameter as returned by
+              GetTimeSeriesDescriptionList()</li> <li><code>STATISTIC
+              LNAME="foo"</code>&hellip;is <code>ComputationIdentifier
+              + ComputationPeriodIdentifier</code> in
+              <code>GetTimeSeriesDescriptionList()</code>, although
+              the names will shift somewhat from what they would have
+              been in ADAPS which might complicate things.</li>
+            <li><code>DD LABEL="foo"</code>&hellip;Except for the
+              confusing carryover of the DD semantic, this should just
+              be some combination of <code>Identifier + Label +
+              Comment + Description</code> from
+              <code>GetTimeSeriesDescriptionList()</code>. How to
+              combine them, I'm not sure, but it should be
+              determinable</li>
+            <li><code>DD DDID="foo"</code>&hellip;When and if the
+              extended attribute <code>ADAPS_DD</code> is populated in
+              <code>GetTimeSeriesDescriptionList()</code>, this is easily
+              populated. But I think we should wean people off
+              this.</li>
+            <li>Note: Although <code>AGING</code> fields might seem
+              simple at first blush (the <code>Approvals[]</code>
+              struct from <code>GetTimeSeriesCorrectedData()</code>)
+              the logic for emulating this old ADAPS format likely
+              would get messy in a hurry.</li>
+	    </ul>
         */
-
         header +=
             '# //FILE TYPE="' + fileType + '" ' + 'EDITABLE=NO\n' +
             sprintf(
@@ -125,13 +138,13 @@ var rdb = module.exports = {
            @author Scott Bartholoma <sbarthol@usgs.gov>
            @since 2015-11-11T16:31-07:00
         
-           @description I think that
-           "# //LOCATION NUMBER=0 NAME="Default"" would change to:
+           @description <p>I think that "<code># //LOCATION NUMBER=0
+                        NAME="Default"</code>" would change to:</p>
            
-           # //SUBLOCATION NAME="sublocation name"
+           <p># //SUBLOCATION NAME="sublocation name"</p>
            
-           and would be omitted if it were the default sublocation and
-           had no name.
+           <p>and would be omitted if it were the default sublocation and
+           had no name.</p>
         */
 
         /**
@@ -159,14 +172,19 @@ var rdb = module.exports = {
            @author Scott Bartholoma <sbarthol@usgs.gov>
            @since 2015-11-11T16:31-07:00
     
-           I would be against continuing the DDID field since only
-           migrated timeseries will have ADAPS_DD populated.  Instead
-           we should probably replace the "# //DD" lines with "#
-           //TIMESERIES" lines, maybe something like:
+           @description <p>I would be against continuing the
+                        <code>DDID</code> field since only migrated
+                        timeseries will have <code>ADAPS_DD</code>
+                        populated. Instead we should probably replace
+                        the "<code># //DD</code>" lines with "<code>#
+                        //TIMESERIES</code>" lines, maybe something
+                        like:</p>
            
-           # //TIMESERIES IDENTIFIER="Discharge, ft^3/s@12345678"
+           <p>
+	   <code># //TIMESERIES IDENTIFIER="Discharge, ft^3/s@12345678"</code>
+	   </p>
            
-           and maybe some other information.
+           <p>and maybe some other information.</p>
         */
 
         header += "# //PARAMETER CODE=\"" + parameter.code +
