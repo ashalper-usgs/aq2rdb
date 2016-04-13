@@ -22,10 +22,12 @@ var rdb = module.exports = {
        @param {object} site USGS site object.
        @param {string} subLocationIdentifer Sublocation identifier.
        @param {object} parameter USGS parameter (a.k.a. "PARM") object.
+       @param {object} statistic USGS statistic object.
        @param {object} type Code and name of type of values
                        [e.g. ("C","COMPUTED")].
        @param {object} range Time series query, date range.
-       @param response {object} HTTP response object to write to.
+       @param {function} callback Callback function to call when
+              complete.
     */
     header: function (
         fileType, editable, site, subLocationIdentifer, parameter,
@@ -210,8 +212,8 @@ var rdb = module.exports = {
        @function
        @description Takes an input date with < 8 chars and fills it to
                     8 characters.
-       @param wyflag {boolean} flag if Water Year
-       @param begdat {string} input date (may be < 8 chars)
+       @param {boolean} wyflag Flag if Water Year.
+       @param {string} begdat Input date (may be < 8 chars).
     */
     fillBegDate: function (wyflag, begdat) {
         var iyr, begdate;
@@ -247,8 +249,8 @@ var rdb = module.exports = {
        @description Node.js emulation of legacy NWIS,
                     NW_RDB_FILL_BEG_DTM() Fortran subroutine: "takes
                     an input date/time and fills it out to 14 chars".
-       @param wyflag {Boolean} flag if Water Year
-       @param begdat {string} input date/time (may be < 14 chars)
+       @param {boolean} wyflag Flag if Water Year.
+       @param {string} begdat Input date/time (may be < 14 chars).
     */
     fillBegDtm: function(wyflag, begdat) {
         var begdtm, iyr;
@@ -291,8 +293,8 @@ var rdb = module.exports = {
                     an input date/time and fills it out to 14 chars".
        @author <a href="mailto:ashalper@usgs.gov">Andrew Halper</a>
        @author <a href="mailto:sbarthol@usgs.gov">Scott Bartholoma</a>
-       @param wyflag {Boolean} flag if Water Year
-       @param enddat {string} input date/time (may be < 14 chars)
+       @param {boolean} wyflag Flag if Water Year.
+       @param {string} enddat Input date/time (may be < 14 chars).
     */
     fillEndDtm: function (wyflag, enddat) {
         var enddtm;
