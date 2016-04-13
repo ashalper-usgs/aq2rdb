@@ -52,15 +52,15 @@ var rdb = module.exports = {
            <div>Andy,</div>
 
            <p>
-	   I know I've mentioned before we consider going to a release
+           I know I've mentioned before we consider going to a release
            without all of these, and then let aggressive testing find the
            gaps.  I still think that's a fine idea that aligns with the
            spirit of minimally viable product.
-	   </p>
+           </p>
            
            <p>
-	   How do we do this?  Here's an example.
-	   </p>
+           How do we do this?  Here's an example.
+           </p>
            
            <p>Consider <code>RNDARY="2222233332"</code>. There is
            nothing like this easily available from AQUARIUS API. Yet,
@@ -69,7 +69,7 @@ var rdb = module.exports = {
            like SIG(3) as one example.  Facing this, I can see 3
            approaches, in increasing order of complexity:</p>
 
-	   <ol>
+           <ol>
              <li>Just stop. Stop serving <code>RNDARY="foo"</code>,
              assuming most people "just wanted the data"</li>
              <li>New field. Replace <code>RNDARY</code> with a new element
@@ -78,7 +78,7 @@ var rdb = module.exports = {
              <li>Backward compatibility. Write code that converts a AQ
              rounding spec to a 10-digit NWIS rounding array. Painful,
              full of assumptions & edge cases. But surely doable.</li>
-	   </ol>
+           </ol>
 
            <p>In the agile and minimum-vial-product [sic] spirits, I'd
            propose leaning toward (1) as a starting point.  As user
@@ -124,7 +124,7 @@ var rdb = module.exports = {
               struct from <code>GetTimeSeriesCorrectedData()</code>)
               the logic for emulating this old ADAPS format likely
               would get messy in a hurry.</li>
-	    </ul>
+            </ul>
         */
         header +=
             '# //FILE TYPE="' + fileType + '" ' + 'EDITABLE=NO\n' +
@@ -153,9 +153,10 @@ var rdb = module.exports = {
 
            @description sublocation is the AQUARIUS equivalent of
                         ADAPS location. It is returned from any of the
-                        GetTimeSeriesDescriptionList... methods or for
-                        GetFieldVisitData method elements where
-                        sublocation is appropriate. GetSensorsAndGages
+                        <code>GetTimeSeriesDescriptionList</code>&hellip;methods
+                        or for <code>GetFieldVisitData</code> method
+                        elements where sublocation is
+                        appropriate. <code>GetSensorsAndGages</code>
                         will also return associated
                         sublocations. They're basically just a shared
                         attribute of time series, sensors and gages,
@@ -181,8 +182,8 @@ var rdb = module.exports = {
                         like:</p>
            
            <p>
-	   <code># //TIMESERIES IDENTIFIER="Discharge, ft^3/s@12345678"</code>
-	   </p>
+           <code># //TIMESERIES IDENTIFIER="Discharge, ft^3/s@12345678"</code>
+           </p>
            
            <p>and maybe some other information.</p>
         */
@@ -203,9 +204,9 @@ var rdb = module.exports = {
                       type.description + "\"\n";
 
         /**
-           @todo write data aging information:
+           @todo <p>write data aging information:</p>
 
-              rdb_write_aging(funit, dbnum, dd_id, begdate, enddate);
+           <p><code>rdb_write_aging(funit, dbnum, dd_id, begdate, enddate);</code></p>
         */
 
         header += '# //RANGE START="';
@@ -267,8 +268,9 @@ var rdb = module.exports = {
     /**
        @function
        @description Node.js emulation of legacy NWIS,
-                    NW_RDB_FILL_BEG_DTM() Fortran subroutine: "takes
-                    an input date/time and fills it out to 14 chars".
+                    <code>NW_RDB_FILL_BEG_DTM()</code> Fortran
+                    subroutine: "takes an input date/time and fills it
+                    out to 14 chars".
        @param {boolean} wyflag Flag if Water Year.
        @param {string} begdat Input date/time (may be < 14 chars).
     */
@@ -309,8 +311,9 @@ var rdb = module.exports = {
     /**
        @function
        @description Node.js emulation of legacy NWIS,
-                    NW_RDB_FILL_END_DTM() Fortran subroutine: "takes
-                    an input date/time and fills it out to 14 chars".
+                    <code>NW_RDB_FILL_END_DTM()</code> Fortran
+                    subroutine: "takes an input date/time and fills it
+                    out to 14 chars".
        @author Andrew Halper <ashalper@usgs.gov>
        @author Scott Bartholoma <sbarthol@usgs.gov>
        @param {boolean} wyflag Flag if Water Year.
