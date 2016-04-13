@@ -13,11 +13,11 @@ var rdb = require('./rdb');
 var adaps = module.exports = {
 
     /**
+       @class
        @classdesc ADAPS interval of day point type, object
                   prototype. Encapsulates fuzzy math of date intervals
                   found in NWIS ADAPS. Not to be confused with
                   conventional temporal database intervals.
-       @class
        @public
     */
     IntervalDay: function (from, to, referenceToWaterYear) {
