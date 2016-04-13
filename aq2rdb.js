@@ -40,6 +40,8 @@ var packageName = path.basename(process.argv[1]).slice(0, -3);
 /**
    @description The domain of supported, server-side, aq2rdb command
                 line arguments.
+   @global
+   @private
    @type {object}
    @see https://www.npmjs.com/package/command-line-args#synopsis
 */
@@ -81,6 +83,7 @@ var cli = commandLineArgs([
 /**
    @description AQUARIUS, Web service object
    @global
+   @private
    @type {object}
 */
 var aquarius;
@@ -88,6 +91,7 @@ var aquarius;
 /**
    @description NWIS-RA, Web service object.
    @global
+   @private
    @type {object}
 */
 var nwisRA;
@@ -95,6 +99,7 @@ var nwisRA;
 /**
    @description NWIS STAT, domain table object.
    @global
+   @private
    @type {object}
 */
 var stat;
@@ -102,6 +107,7 @@ var stat;
 /**
    @description Parsed, server-side, aq2rdb command line arguments.
    @global
+   @private
    @type {object}
    @see https://www.npmjs.com/package/command-line-args#module_command-line-args--CommandLineArgs+parse
 */
@@ -115,6 +121,7 @@ var options;
                 zone abbreviations known (presently) to be related to
                 all SITEFILE sites in NATDB.
    @global
+   @private
    @type {object}
    @constant
 */
@@ -185,6 +192,8 @@ tzName["ZP-11"] = {N: "Etc/GMT-11", Y: "Etc/GMT-11"};
 
 /**
    @description Exports public functions to external dependent modules.
+   @global
+   @private
    @type {object}
 */
 var aq2rdb = module.exports = {
@@ -232,6 +241,7 @@ var aq2rdb = module.exports = {
    @description This module's logging function, mostly for convenience
                 purposes.
    @private
+   @param {string} prefix Prefix to prepend to log message.
    @param {string} message Log message.
 */ 
 function log(prefix, message) {
@@ -244,8 +254,6 @@ function log(prefix, message) {
    @description Error handler.
    @private
    @param {object} error "Error" object.
-   @param {object} response IncomingMessage object created by Node.js
-          http.Server.
 */ 
 function handle(error) {
     var statusMessage, statusCode;
@@ -311,9 +319,10 @@ function jsonParseErrorMessage(response, message) {
 }
 
 /**
-   @classdesc LocationIdentifier object prototype.
    @class
+   @classdesc LocationIdentifier object prototype.
    @private
+   @param {string} text AQUARIUS LocationIdentifier string.
 */
 var LocationIdentifier = function (text) {
     var text = text;
@@ -543,8 +552,8 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
 } // nwisVersusIANA
 
 /**
-   @classdesc AQUARIUS object prototype.
    @class
+   @classdesc AQUARIUS object prototype.
    @private
 */
 var AQUARIUS = function (hostname, userName, password, callback) {
@@ -2269,8 +2278,8 @@ catch (error) {
 }
 
 /**
-   @classdesc NWIS-RA object prototype.
    @class
+   @classdesc NWIS-RA object prototype.
    @private
 */
 var NWISRA = function (hostname, userName, password, log, callback) {
