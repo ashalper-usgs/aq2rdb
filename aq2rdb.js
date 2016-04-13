@@ -272,6 +272,7 @@ function handle(error) {
             'is GetAQToken being unreachable';
         /**
            @description "Bad Gateway"
+	   @private
            @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
         */
         statusCode = 502;
@@ -289,6 +290,7 @@ function handle(error) {
         statusMessage = '# ' + packageName + ': ' + error;
         /**
            @default HTTP error status code.
+	   @private
            @todo It would be nice to refine this. Too generic now.
         */
         statusCode = 404;
@@ -297,6 +299,7 @@ function handle(error) {
         statusMessage = '# ' + packageName + ': ' + error.message;
         /**
            @default HTTP error status code.
+	   @private
            @todo It would be nice to refine this. Too generic now.
         */
         statusCode = 404;
@@ -487,7 +490,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     /**
        @author Scott Bartholoma <sbarthol@usgs.gov>
        @since 2015-09-29T10:57-07:00
-      
+       @private
        @description I think some of what used to be flags are now
                     Qualifiers. Things like thereshold [sic]
                     exceedances [sic] (high, very high, low, very low,
@@ -501,7 +504,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
     /**
        @author Scott Bartholoma <sbarthol@usgs.gov>
        @since 2015-09-29T10:57-07:00
-      
+       @private
        @description Type I would put in something like "R" for raw and
                     "C" for corrected depending on which get method
                     was used. That is similar to what C (computed) and
@@ -1090,8 +1093,9 @@ var AQUARIUS = function (hostname, userName, password, callback) {
             */
             function (timeSeriesDescriptions, callback) {
                 /**
-                   @todo Need to decide whether distill() is to be
-                         public method or private function.
+		   @private
+                   @todo Need to decide whether <code>distill()</code>
+                         is to be public method or private function.
                 */
                 timeSeriesDescription = distill(
                     timeSeriesDescriptions, locationIdentifier,
@@ -2447,6 +2451,7 @@ if (options.version === true) {
 else {
     /**
        @description HTTP server to host the aq2rdb Web services.
+       @private
        @type {object}
     */
     var server = http.createServer(handleRequest);
