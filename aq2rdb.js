@@ -1186,6 +1186,17 @@ function getVersion(callback) {
    @description Convert NWIS datetime format to ISO format for
                 digestion by AQUARIUS REST query. Offset times from
                 time zone of site to UTC to get correct results.
+   @private
+   @param {object} parameters HTTP query parameters to append to REST
+          query search condition.
+   @param {object} during Interval object.
+   @param {string} tzCode Time zone abbreviation.
+   @param {string} fromTheBeginningOfTimeToken Token used in NWIS
+          ADAPS to represent the "from the beginning of time" search
+          condition.
+   @param {string} toTheEndOfTimeToken Token used in NWIS ADAPS to
+          represent the "to the end of time" search condition.
+   @param {function} callback Callback function to call when complete.
    @see http://momentjs.com/timezone/docs/#/using-timezones/
 */
 function appendIntervalSearchCondition(
@@ -1232,6 +1243,18 @@ function appendIntervalSearchCondition(
     return parameters;
 } // appendIntervalSearchCondition
 
+/**
+   @function
+   @description Produce daily values table body.
+   @private
+   @param {string} timeSeriesUniqueId AQUARIUS time series unique ID
+          key.
+   @param {string} queryFrom Start date of interval predicate.
+   @param {string} queryTo End date of interval predicate.
+   @param {string} tzName moment.tz time zone name.
+   @param {object} response HTTP response object to send table body to.
+   @param {function} callback Callback function to call when complete.
+*/
 function dvTableBody(
     timeSeriesUniqueId, queryFrom, queryTo, tzName, response, callback
 ) {
@@ -2238,7 +2261,11 @@ httpdispatcher.onGet(
 ); // version
 
 /**
+   @function
    @description Service dispatcher.
+   @private
+   @param {object} request HTTP request object.
+   @param {object} response HTTP response object.
 */ 
 function handleRequest(request, response) {
     try {
@@ -2418,6 +2445,9 @@ else {
        @function
        @description Attempt AQUARIUS handshaking to get authentication
                     token.
+       @private
+       @param {function} callback Callback function to call when
+              complete.
     */
     function initAquarius(callback) {
         try {
