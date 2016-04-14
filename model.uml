@@ -685,4 +685,65 @@
   <packagedElement xmi:type="uml:Dependency" xmi:id="_QA3S8PxMEeWH3qkMoKm_WA" name="StatisticalTimeRange.startTime" client="_S7VJMGOfEeW6x4SviYVDbQ" supplier="_fiz94PxMEeWH3qkMoKm_WA"/>
   <packagedElement xmi:type="uml:Dependency" xmi:id="_S9KsAPxMEeWH3qkMoKm_WA" name="StatisticalTimeRange.endTime" client="_S7VJMGOfEeW6x4SviYVDbQ" supplier="_w1USYPxKEeWH3qkMoKm_WA"/>
   <packagedElement xmi:type="uml:Dependency" xmi:id="_8Bb6oPxMEeWH3qkMoKm_WA" name="StatisticalDateTimeOffset.dateTimeOffset" client="_w1USYPxKEeWH3qkMoKm_WA" supplier="_Q7io8PxAEeWH3qkMoKm_WA"/>
+  <packagedElement xmi:type="uml:Component" xmi:id="_j_ZzkAJjEeaQE4v55jj7GQ" name="aq2rdb Client">
+    <interfaceRealization xmi:type="uml:InterfaceRealization" xmi:id="_338KoAJrEeaQE4v55jj7GQ" client="_j_ZzkAJjEeaQE4v55jj7GQ" supplier="_uECAkAJrEeaQE4v55jj7GQ" contract="_uECAkAJrEeaQE4v55jj7GQ"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_V2KgoAJmEeaQE4v55jj7GQ" client="_j_ZzkAJjEeaQE4v55jj7GQ" supplier="_MmoO8AJmEeaQE4v55jj7GQ"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Component" xmi:id="_v07QEAJjEeaQE4v55jj7GQ" name="aq2rdb Server">
+    <interfaceRealization xmi:type="uml:InterfaceRealization" xmi:id="_gRbloAJmEeaQE4v55jj7GQ" client="_v07QEAJjEeaQE4v55jj7GQ" supplier="_MmoO8AJmEeaQE4v55jj7GQ" contract="_MmoO8AJmEeaQE4v55jj7GQ"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_1ofCwAJmEeaQE4v55jj7GQ" client="_v07QEAJjEeaQE4v55jj7GQ" supplier="_rKwfoAJmEeaQE4v55jj7GQ"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_VsBT4AJrEeaQE4v55jj7GQ" client="_v07QEAJjEeaQE4v55jj7GQ" supplier="_jaqDkAJqEeaQE4v55jj7GQ"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_U3DlUAJsEeaQE4v55jj7GQ" client="_v07QEAJjEeaQE4v55jj7GQ" supplier="_JjFWsAJsEeaQE4v55jj7GQ"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_IIbqsAJ5EeaQE4v55jj7GQ" client="_v07QEAJjEeaQE4v55jj7GQ" supplier="__McAEAJ4EeaQE4v55jj7GQ"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Component" xmi:id="_JbzjoAJkEeaQE4v55jj7GQ" name="aquarius-token">
+    <interfaceRealization xmi:type="uml:InterfaceRealization" xmi:id="_3pB-MAJmEeaQE4v55jj7GQ" client="_JbzjoAJkEeaQE4v55jj7GQ" supplier="_rKwfoAJmEeaQE4v55jj7GQ" contract="_rKwfoAJmEeaQE4v55jj7GQ"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_ZRQFcAJ8EeaQE4v55jj7GQ" client="_JbzjoAJkEeaQE4v55jj7GQ" supplier="_6b64YAJtEeaQE4v55jj7GQ"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Component" xmi:id="_sade4AJkEeaQE4v55jj7GQ" name="USGS Water Services">
+    <interfaceRealization xmi:type="uml:InterfaceRealization" xmi:id="_Y-RSUAJsEeaQE4v55jj7GQ" client="_sade4AJkEeaQE4v55jj7GQ" supplier="_JjFWsAJsEeaQE4v55jj7GQ" contract="_JjFWsAJsEeaQE4v55jj7GQ"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Interface" xmi:id="_MmoO8AJmEeaQE4v55jj7GQ" name="aq2rdb"/>
+  <packagedElement xmi:type="uml:Interface" xmi:id="_rKwfoAJmEeaQE4v55jj7GQ" name="services">
+    <ownedOperation xmi:type="uml:Operation" xmi:id="_nrPo0AKHEeaQE4v55jj7GQ" name="GetAQToken"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Package" xmi:id="_xO1lIAJqEeaQE4v55jj7GQ" name="AQUARIUS">
+    <packagedElement xmi:type="uml:Component" xmi:id="_OSj3MAJkEeaQE4v55jj7GQ" name="AQUARIUS">
+      <interfaceRealization xmi:type="uml:InterfaceRealization" xmi:id="_FwHJcAJuEeaQE4v55jj7GQ" client="_OSj3MAJkEeaQE4v55jj7GQ" supplier="_6b64YAJtEeaQE4v55jj7GQ" contract="_6b64YAJtEeaQE4v55jj7GQ"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Interface" xmi:id="_6b64YAJtEeaQE4v55jj7GQ" name="V2">
+      <ownedOperation xmi:type="uml:Operation" xmi:id="_H1WPQAJ8EeaQE4v55jj7GQ" name="Authenticate"/>
+      <ownedOperation xmi:type="uml:Operation" xmi:id="_rgRQEAJ7EeaQE4v55jj7GQ" name="GetLocationData"/>
+      <ownedOperation xmi:type="uml:Operation" xmi:id="_lwWqcAJ8EeaQE4v55jj7GQ" name="GetTimeSeriesCorrectedData"/>
+      <ownedOperation xmi:type="uml:Operation" xmi:id="_6yOXMAJ7EeaQE4v55jj7GQ" name="GetTimeSeriesDescriptionList"/>
+      <ownedOperation xmi:type="uml:Operation" xmi:id="_8zNWgAKGEeaQE4v55jj7GQ" name="GetQualifierList"/>
+    </packagedElement>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Package" xmi:id="__hxfQAJqEeaQE4v55jj7GQ" name="NWIS-RA">
+    <packagedElement xmi:type="uml:Component" xmi:id="_GQ3RoAJkEeaQE4v55jj7GQ" name="NWIS-RA">
+      <interfaceRealization xmi:type="uml:InterfaceRealization" xmi:id="_tcJWoAJqEeaQE4v55jj7GQ" client="_GQ3RoAJkEeaQE4v55jj7GQ" supplier="_jaqDkAJqEeaQE4v55jj7GQ" contract="_jaqDkAJqEeaQE4v55jj7GQ"/>
+      <interfaceRealization xmi:type="uml:InterfaceRealization" xmi:id="_HRCIoAJ5EeaQE4v55jj7GQ" client="_GQ3RoAJkEeaQE4v55jj7GQ" supplier="__McAEAJ4EeaQE4v55jj7GQ" contract="__McAEAJ4EeaQE4v55jj7GQ"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Interface" xmi:id="_jaqDkAJqEeaQE4v55jj7GQ" name="auth">
+      <ownedOperation xmi:type="uml:Operation" xmi:id="_Yz2WwAKHEeaQE4v55jj7GQ" name="authenticate"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Interface" xmi:id="__McAEAJ4EeaQE4v55jj7GQ" name="view">
+      <ownedOperation xmi:type="uml:Operation" xmi:id="_iVcBwAKHEeaQE4v55jj7GQ" name="parameters"/>
+    </packagedElement>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Package" xmi:id="_eNwrcAJrEeaQE4v55jj7GQ" name="GCMRC">
+    <packagedElement xmi:type="uml:Component" xmi:id="_AN5poAJkEeaQE4v55jj7GQ" name="gdaws-synchronization-adaps">
+      <interfaceRealization xmi:type="uml:InterfaceRealization" xmi:id="_qxQf4AJ5EeaQE4v55jj7GQ" client="_AN5poAJkEeaQE4v55jj7GQ" supplier="_Z6XbQAJ5EeaQE4v55jj7GQ" contract="_Z6XbQAJ5EeaQE4v55jj7GQ"/>
+      <packagedElement xmi:type="uml:Dependency" xmi:id="_5ntfIAJrEeaQE4v55jj7GQ" client="_AN5poAJkEeaQE4v55jj7GQ" supplier="_uECAkAJrEeaQE4v55jj7GQ"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Component" xmi:id="_X40m0AJkEeaQE4v55jj7GQ" name="gdaws-autoproc">
+      <packagedElement xmi:type="uml:Dependency" xmi:id="_r-nq4AJ5EeaQE4v55jj7GQ" client="_X40m0AJkEeaQE4v55jj7GQ" supplier="_Z6XbQAJ5EeaQE4v55jj7GQ"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Interface" xmi:id="_Z6XbQAJ5EeaQE4v55jj7GQ" name="RDB"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Interface" xmi:id="_uECAkAJrEeaQE4v55jj7GQ" name="aq2rdb Client"/>
+  <packagedElement xmi:type="uml:Interface" xmi:id="_JjFWsAJsEeaQE4v55jj7GQ" name="nwis">
+    <ownedOperation xmi:type="uml:Operation" xmi:id="_yjIYYAKHEeaQE4v55jj7GQ" name="site"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Dependency" xmi:id="_IKm18AJuEeaQE4v55jj7GQ" client="_v07QEAJjEeaQE4v55jj7GQ" supplier="_6b64YAJtEeaQE4v55jj7GQ"/>
 </uml:Model>
