@@ -73,17 +73,26 @@ var cli = commandLineArgs([
     /** @description DNS name of USGS Water Services Web service host. */
     {name: "waterServicesHostname", type: String,
      defaultValue: "waterservices.usgs.gov"},
-    /** @description DNS name of USGS NWIS service host. */
+    /**
+       @description DNS name of USGS NWIS Reporting Application
+                    service host.
+    */
     {name: "waterDataHostname", type: String,
      defaultValue: "nwisdata.usgs.gov"},
-    /** @description USGS NWIS service host, service account user name. */
+    /**
+       @description USGS NWIS Reporting Application, service account
+                    user name.
+    */
     {name: "waterDataUserName", type: String},
-    /** @description DNS name of USGS NWIS service host. */
+    /**
+       @description USGS NWIS Reporting Application, service account
+                    password.
+    */
     {name: "waterDataPassword", type: String}
 ]);
 
 /**
-   @description AQUARIUS, Web service object
+   @description AQUARIUS, Web service object.
    @global
    @private
    @type {object}
@@ -272,7 +281,7 @@ function handle(error) {
             'is GetAQToken being unreachable';
         /**
            @description "Bad Gateway"
-	   @private
+           @private
            @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
         */
         statusCode = 502;
@@ -290,7 +299,7 @@ function handle(error) {
         statusMessage = '# ' + packageName + ': ' + error;
         /**
            @default HTTP error status code.
-	   @private
+           @private
            @todo It would be nice to refine this. Too generic now.
         */
         statusCode = 404;
@@ -299,7 +308,7 @@ function handle(error) {
         statusMessage = '# ' + packageName + ': ' + error.message;
         /**
            @default HTTP error status code.
-	   @private
+           @private
            @todo It would be nice to refine this. Too generic now.
         */
         statusCode = 404;
@@ -1093,7 +1102,7 @@ var AQUARIUS = function (hostname, userName, password, callback) {
             */
             function (timeSeriesDescriptions, callback) {
                 /**
-		   @private
+                   @private
                    @todo Need to decide whether <code>distill()</code>
                          is to be public method or private function.
                 */
