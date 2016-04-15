@@ -1159,6 +1159,18 @@ function parseFields(requestURL, callback) {
         return;
     }
 
+    // if any mandatory fields are missing
+    if (field.t === undefined || field.n === undefined ||
+        field.b === undefined || field.e === undefined ||
+        field.s === undefined || field.p === undefined) {
+        // terminate response with an error
+        callback(
+            "All of \"t\", \"n\", \"b\", \"e\", \"s\" and \"p\" " +
+                "fields must be present" 
+        );
+        return;
+    }
+
     for (var name in field) {
         if (name.match(/^(a|p|t|s|n|b|e|l|r|w)$/)) {
             // aq2rdb fields
