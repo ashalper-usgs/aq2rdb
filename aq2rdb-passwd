@@ -1,0 +1,19 @@
+#! /usr/bin/python
+#
+#  File - aq2rdb-passwd
+#
+#  Purpose - Initialize aq2rdb password file.
+#
+#  Author - Andy Halper <ashalper@usgs.gov>
+#
+
+import json
+
+with open("aq2rdb-passwd.json", 'w') as f:
+    json.dump(
+        {"aquariusUserName": "apiuser",
+         "aquariusPassword": "Not a password",
+         "waterDataUserName": "hswsh",
+         "waterDataPassword": "Also not a password"},
+        f
+    )
