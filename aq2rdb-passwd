@@ -8,7 +8,7 @@
 #
 
 import os
-from subprocess import call, check_output
+from subprocess import check_output, CalledProcessError
 import json
 
 # if there is an encrypted volume, this is where we expect to find it
@@ -16,19 +16,19 @@ device = "/dev/mapper/CryptedPart1"
 
 DEVNULL = open(os.devnull, 'w')
 
-if call(["df", device], stdout=DEVNULL, stderr=DEVNULL) == 0:
-    print "Encrypted device found."
-else:
-    print "I could not find the encrypted device in the expected location\n" + \
-        "(" + device + ")"
+try:
+    df = check_output(["df", device], stderr=DEVNULL)
+    print df.output
+    if df.returncode == 0:
+        with open("aq2rdb-passwd.json", 'w') as f:
+            json.dump(
+                {"aquariusUserName": "apiuser",
+                 "aquariusPassword": "Not a password",
+                 "waterDataUserName": "hswsh",
+                 "waterDataPassword": "Also not a password"},
+                f
+            )
+except CalledProcessError as e:
+    print "I could not find the encrypted device at " + device
 
 DEVNULL.close()
-
-with open("aq2rdb-passwd.json", 'w') as f:
-    json.dump(
-        {"aquariusUserName": "apiuser",
-         "aquariusPassword": "Not a password",
-         "waterDataUserName": "hswsh",
-         "waterDataPassword": "Also not a password"},
-        f
-    )
