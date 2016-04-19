@@ -1,0 +1,61 @@
+#! /bin/sh
+#
+#  File - init-passwd
+#
+#  Purpose - Initialize aq2rdb password file.
+#
+#  Author - Andy Halper <ashalper@usgs.gov>
+#
+
+device=/dev/mapper/CryptedPart1
+mountpoint=`df $device 2> /dev/null | gawk '/^ / {print $5}'`
+
+if [ $? != 0 ]; then
+    echo "I could not find the encrypted file system at $device."
+    exit 1
+fi
+
+if [ $mountpoint != /encryptedfs ]; then
+    echo "The mount point $mountpoint of the encrypted file system is not"
+    echo "where I expected it."
+    exit 1
+fi
+
+aq2rdb_passwd="$mountpoint/aq2rdb-passwd.json"
+
+if [ ! -w "$aq2rdb_passwd" ]; then
+    echo "It looks like $aq2rdb_passwd is not writable. This won't"
+    echo "work."
+    exit 1
+fi
+
+if [ -f "$aq2rdb_passwd" ]; then
+    echo "It looks like the aq2rdb password file,"
+    echo "$aq2rdb_passwd already"
+    echo "exists. Are you sure you want to replace it (Y/N)? \c"
+    read answer
+    if [ "$answer" != Y ]; then
+        exit 0
+    fi
+fi
+
+echo -n "aquariusUserName: "
+read aquariusUserName
+echo -n "aquariusPassword: "
+read aquariusPassword
+echo -n "waterDataUserName: "
+read waterDataUserName
+echo -n "waterDataPassword: "
+read waterDataPassword
+
+cat > $aq2rdb_passwd <<EOF
+{
+    "aquariusUserName": "$aquariusUserName",
+    "aquariusPassword": "$aquariusPassword",
+    "waterDataUserName": "$waterDataUserName",
+    "waterDataPassword": "$waterDataPassword"
+}
+EOF
+
+echo
+echo "$aq2rdb_passwd saved."
