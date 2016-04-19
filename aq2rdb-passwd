@@ -7,7 +7,22 @@
 #  Author - Andy Halper <ashalper@usgs.gov>
 #
 
+import os
+from subprocess import call, check_output
 import json
+
+# if there is an encrypted volume, this is where we expect to find it
+device = "/dev/mapper/CryptedPart1"
+
+DEVNULL = open(os.devnull, 'w')
+
+if call(["df", device], stdout=DEVNULL, stderr=DEVNULL) == 0:
+    print "Encrypted device found."
+else:
+    print "I could not find the encrypted device in the expected location\n" + \
+        "(" + device + ")"
+
+DEVNULL.close()
 
 with open("aq2rdb-passwd.json", 'w') as f:
     json.dump(
