@@ -7,6 +7,11 @@
 #  Author - Andy Halper <ashalper@usgs.gov>
 #
 
+# Why not Python, when the aq2rdb client is written in Python? Turns
+# out, the version of Python on the CentOS 6.x VMs at EROS is even
+# older than the version on Solaris SPARC, making it too difficult to
+# work with.
+
 device=/dev/mapper/CryptedPart1
 mountpoint=`df $device 2> /dev/null | gawk '/^ / {print $5}'`
 
