@@ -31,16 +31,16 @@ export HOME=/usr/local/lib64/node-v5.9.1-linux-x64/lib/node_modules/aq2rdb
 # USER is the service account for Node.js
 export USER=nodejs
 
+pgm=`basename aq2rdb`
+
 # USAGE is the message if this script is called without
 # any options
-USAGE="Usage: $0 {\e[00;32mstart\e[00m|\e[00;31mstop\e[00m|\e[00;31mkill\e[00m|\e[00;32mstatus\e[00m|\e[00;31mrestart\e[00m}"
+USAGE="Usage: $pgm {\e[00;32mstart\e[00m|\e[00;31mstop\e[00m|\e[00;31mkill\e[00m|\e[00;32mstatus\e[00m|\e[00;31mrestart\e[00m}"
  
 # SHUTDOWN_WAIT is wait time in seconds for Node.js proccess to stop
 SHUTDOWN_WAIT=20
 
-STARTUP="node aq2rdb.js"
-
-pgm=aq2rdb
+STARTUP="node $HOME/aq2rdb.js"
 
 pid() {
   echo `ps -f -u $USER | grep $HOME | grep -v grep | tr -s " " | cut -d" " -f2`
