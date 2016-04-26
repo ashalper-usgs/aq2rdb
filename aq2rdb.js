@@ -2476,6 +2476,7 @@ else {
        @type {object}
     */
     var server = http.createServer(handleRequest);
+    var passwd = new Object();
 
     /**
        @function
@@ -2501,86 +2502,143 @@ else {
         }
     }
 
-    // some server start-up, initialization tasks
-    async.parallel([
-        /**
-           @function
-           @description Attempt NWIS-RA handshaking to get
-                        authentication token.
-        */
+    async.waterfall([
         function (callback) {
-            try {
-                nwisRA = new NWISRA(
-                    options.waterDataHostname,
-                    options.waterDataUserName,
-                    options.waterDataPassword, options.log, callback
-                );
-            }
-            catch (error) {
-                if (error) {
-                    callback(error);
-                    return;
-                }
-            }
-            // no callback here; it is called from NWISRA() when complete
-        },
-        initAquarius,
-        function (callback) {
-            fs.readFile("stat.json", function(error, json) {
-                if (error) {
-                    callback(error);
-                    return true;
-                }
+            // if all prerequisite login information is missing on
+            // command-line
+            if (options.aquariusUserName === undefined &&
+                options.aquariusPassword === undefined &&
+                options.waterDataUserName === undefined &&
+                options.waterDataPassword === undefined) {
+                /** @todo need some logic here to find the encrypted
+                    volume's mount point. */
+                fs.readFile(
+                    "/encryptedfs/aq2rdb-passwd.json",
+                    function (error, json) {
+                        if (error) {
+                            callback(error);
+                            return;
+                        }
 
-                try {
-                    stat = JSON.parse(json);
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                callback(null, "Loaded stat.json");
-            });
-        }
-    ],
-        function (error, results) {
-            if (error) {
-                log(packageName, error);
-                return;
-            }
-            else {
-                async.each(
-                    results,
-                    function (message, callback) {
-                        log(packageName, message);
+                        try {
+                            passwd = JSON.parse(json);
+                        }
+                        catch (error) {
+                            callback(error);
+                            return;
+                        }
                         callback(null);
                     }
                 );
-                /** @description Start listening for requests. */ 
-                server.listen(options.port, function () {
-                    log(
-                        packageName,
-                        "Server listening on: http://localhost:" +
-                        options.port.toString()
-                    );
-                    // Reconstruct the "aquarius" object every 59
-                    // minutes to renew lease on authentication
-                    // token. See
-                    // https://nodejs.org/api/timers.html#timers_setinterval_callback_delay_arg
-                    setInterval(
-                        function () {
-                            initAquarius(function (error, message) {
-                                if (error)
-                                    log(error);
-                            });
-                        },
-                        59 * 60 * 1000 // call above function every 59 minutes
-                    );
-                });
             }
+            else {
+                // use command-line information
+                passwd.aquariusHostname = options.aquariusHostname;
+                passwd.aquariusUserName = options.aquariusUserName;
+                passwd.aquariusPassword = options.aquariusPassword;
+                passwd.waterDataHostname = options.waterDataHostname;
+                passwd.waterDataUserName = options.waterDataUserName;
+                passwd.waterDataPassword = options.waterDataPassword;
+                callback(null);
+            }
+        },
+        function (callback) {
+            // some server start-up, initialization tasks
+            async.parallel([
+                /**
+                   @function
+                   @description Attempt NWIS-RA handshaking to get
+                                authentication token.
+                */
+                function (callback) {
+                    try {
+                        nwisRA = new NWISRA(
+                            passwd.waterDataHostname,
+                            passwd.waterDataUserName,
+                            passwd.waterDataPassword, options.log,
+                            callback
+                        );
+                    }
+                    catch (error) {
+                        if (error) {
+                            callback(error);
+                            return;
+                        }
+                    }
+                    // no callback here; it is called from NWISRA()
+                    // when complete
+                },
+                initAquarius,
+                function (callback) {
+                    fs.readFile("stat.json", function (error, json) {
+                        if (error) {
+                            callback(error);
+                            return true;
+                        }
+
+                        try {
+                            stat = JSON.parse(json);
+                        }
+                        catch (error) {
+                            callback(error);
+                            return;
+                        }
+
+                        callback(null, "Loaded stat.json");
+                    });
+                }
+            ],
+            function (error, results) {
+                if (error) {
+                    log(packageName, error);
+                    return;
+                }
+                else {
+                    async.each(
+                        results,
+                        function (message, callback) {
+                            log(packageName, message);
+                            callback(null);
+                        }
+                    );
+                    /** @description Start listening for requests. */ 
+                    server.listen(options.port, function () {
+                        log(
+                            packageName,
+                            "Server listening on: http://localhost:" +
+                                options.port.toString()
+                        );
+                        // Reconstruct the "aquarius" object every 59
+                        // minutes to renew lease on authentication
+                        // token. See
+                        // https://nodejs.org/api/timers.html#timers_setinterval_callback_delay_arg
+                        setInterval(
+                            function () {
+                                initAquarius(function (error, message) {
+                                    if (error)
+                                        log(error);
+                                });
+                            },
+                            // call above function every 59 minutes:
+                            59 * 60 * 1000
+                        );
+                    });
+                }
+           }); // async.parallel
         }
-    );
+   ],
+   function (error) {
+       if (error.code === "ENOENT") {
+           log(packageName,
+               "No command-line credentials specified, and no " +
+               "password file found at " +
+               error.path);
+       }
+       else {
+           log(packageName, error);
+       }
+   }
+   ); // async.waterfall
 }
 
 /**
