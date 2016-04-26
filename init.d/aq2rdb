@@ -20,13 +20,13 @@
 #
 
 # Location of NODE_HOME (bin files)
-export NODE_HOME=/usr/local/bin
+export NODE_HOME=/opt/nodejs/node-v5.11.0-linux-x64
 
 # Add Java binary files to PATH
 export PATH=$NODE_HOME/bin:$PATH
 
 # HOME is the location of the bin files of aq2rdb
-export HOME=/usr/local/lib64/node-v5.9.1-linux-x64/lib/node_modules/aq2rdb
+export HOME=/opt/nodejs/node_modules
 
 # USER is the service account for Node.js
 export USER=nodejs
