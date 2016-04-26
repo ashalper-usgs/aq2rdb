@@ -5,6 +5,7 @@
   "main": "aq2rdb.js",
   "directories": {
     "doc": "doc",
+    "init.d": "init.d",
     "test": "test"
   },
   "scripts": {
