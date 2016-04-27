@@ -186,21 +186,13 @@ def main():
             elif opt == "-?":
                 error = True
 
-        if not outpath and \
-             ( not datatyp or not station or not begdat or not enddat or \
+        if outpath:
+            f = open(outpath, 'w')        
+        elif ( not datatyp or not station or not begdat or not enddat or \
                ((datatyp != "DC" and datatyp != "SV") and not stat) or \
-               (not datatyp != "QW" and not parm) or \
+                (not datatyp != "QW" and not parm) or \
                ((datatyp != "MS" and datatyp != "PK" and \
                  datatyp != "WL") and not parm )):
-            # Not using a control file, -m is ignored.
-
-            # If -o is not specified, all other arguments must be
-            # there as the prompting for missing arguments uses ADAPS
-            # subroutines that write the prompts to stdout (they're
-            # ports from Prime, remember?) so the RDB output has to go
-            # to a file, otherwise the prompts would be mixed in with
-            # the RDB output which would make things difficult for a
-            # pipeline.
             sys.stderr.write("\n")
             sys.stderr.write(
                 "If the -o argument is omitted, then all of -t, -n, -b, -e,\n"
@@ -212,7 +204,9 @@ def main():
                 "or \"wl\" must be present.\n"
             )
             status = 124
-
+        else:
+            f = sys.stdout
+            
     if status != 0:
         usage()
     else:
@@ -240,10 +234,11 @@ def main():
         except:
             rdb = None
 
-        # At present, the "aq2rdb" service appears to be appending an
-        # undesired, extra newline at the end of its response. Here,
-        # we trim it off just before output.
-        print rdb[0:-1]
+        f.write(rdb)
+
+        if f != sys.stdout:
+            f.close()
+            
         # TODO: end of retry loop
 
     return status
