@@ -1,6 +1,6 @@
 Name:           aq2rdb-client
-Version:        1.1.11
-Release:        3
+Version:        1.2.0
+Release:        1
 Summary:        A command-line program to call the aq2rdb Web service.
 Packager:       Andrew Halper <ashalper@usgs.gov>
 Vendor:         USGS Office of Water Information
@@ -38,6 +38,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc
 
 %changelog
+
+* Wed Apr 27 2016 Andrew Halper <ashalper@usgs.gov> 1.2.0-1
+- Added nwts2rdb "-o" option, to save output to a local file.
 
 * Tue Mar 29 2016 Andrew Halper <ashalper@usgs.gov> 1.1.11-2
 - Rebuilt on Solaris SPARC because CentOS RPM would not install,
