@@ -22,6 +22,7 @@ def usage():
     )
     sys.stderr.write("                -aagency\n")
     sys.stderr.write("                -nstation\n")
+    sys.stderr.write("                -uUniqueId\n")
     sys.stderr.write(
         "                -pparm AND\n"
     )
@@ -161,6 +162,8 @@ def main():
                 agency = arg
             elif opt == "-n":
                 station = arg
+            elif opt == "-u":
+                uniqueId = arg
             elif opt == "-p":
                 parm = arg
             elif opt == "-s":
@@ -197,12 +200,7 @@ def main():
             sys.stderr.write(
                 "If the -o argument is omitted, then all of -t, -n, -b, -e,\n"
             )
-            sys.stderr.write("and -s if datatype is not \"dc\", or \"sv\"\n")
-            sys.stderr.write("and -p if datatype is \"qw\"\n")
-            sys.stderr.write(
-                "and -p if datatype is not \"ms\", \"pk\", " +
-                "or \"wl\" must be present.\n"
-            )
+            sys.stderr.write("and -s and -p (or -u) must be present.\n")
             status = 124
         else:
             f = sys.stdout
@@ -213,9 +211,7 @@ def main():
         if not loc_tz_cd:
             loc_tz_cd = "LOC"
 
-        # See http://www.pythonlearn.com/html-008/cfbook014.html
-
-        prefix = "http://cidasdqaasaq2rd:8081/aq2rdb?"
+        prefix = "http://cidasdqaasaq2rd.cr.usgs.gov:8081/aq2rdb?"
 
         # TODO: this query bit needs to be in a retry loop
         url = prefix + urllib.urlencode(
