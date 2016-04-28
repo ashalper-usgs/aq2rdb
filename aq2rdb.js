@@ -579,6 +579,11 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
           constructed.
 */
 var AQUARIUS = function (hostname, userName, password, callback) {
+    var token, remarkCodes;
+    var port = "8080";
+    var path = "/services/GetAQToken?";
+    var uriString = "http://" + hostname + "/AQUARIUS/";
+
     if (hostname === undefined) {
         callback('Required field "hostname" not found');
         return;
@@ -611,8 +616,6 @@ var AQUARIUS = function (hostname, userName, password, callback) {
         return;
     }
 
-    var token;
-
     /**
        @function
        @description GetAQToken service response callback.
@@ -637,10 +640,6 @@ var AQUARIUS = function (hostname, userName, password, callback) {
             return;
         });
     } // getAQTokenCallback
-
-    var port = '8080';
-    var path = '/services/GetAQToken?';
-    var uriString = 'http://' + hostname + '/AQUARIUS/';
 
     log(packageName + ".AQUARIUS()",
         "querying http://" + hostname + ":" + port +
@@ -820,6 +819,85 @@ var AQUARIUS = function (hostname, userName, password, callback) {
 
         callback(null, timeSeriesDataServiceResponse);
     } // parsetimeSeriesDataServiceResponse
+
+    /**
+       @method
+       @public
+       @description Cache remark codes.
+    */
+    this.getRemarkCodes = function () {
+        // if remark codes have not been loaded yet
+        if (remarkCodes === undefined) {
+            // load them
+            remarkCodes = new Object();
+
+            async.waterfall([
+                /**
+                   @function
+                   @description Request remark codes from AQUARIUS.
+                   @callback
+                */
+                function (callback) {
+                    try {
+                        rest.query(
+                            hostname,
+                            "GET",
+                            undefined,      // HTTP headers
+                            "/AQUARIUS/Publish/V2/GetQualifierList/",
+                            {token: token, format: "json"},
+                            options.log,
+                            callback
+                        );
+                    }
+                    catch (error) {
+                        callback(error);
+                        return;
+                    }
+                },
+                /**
+                   @function
+                   @description Receive remark codes from AQUARIUS.
+                   @callback
+                */
+                function (messageBody, callback) {
+                    var qualifierListServiceResponse;
+
+                    try {
+                        qualifierListServiceResponse =
+                            JSON.parse(messageBody);
+                    }
+                    catch (error) {
+                        callback(error);
+                        return;
+                    }
+
+                    // if we didn't get the remark codes domain table
+                    if (qualifierListServiceResponse === undefined) {
+                        callback(
+                            "Could not get remark codes from http://" +
+                                hostname +
+                                "/AQUARIUS/Publish/V2/GetQualifierList/"
+                        );
+                        return;
+                    }
+
+                    // put remark codes in an array for faster access later
+                    remarkCodes = new Array();
+                    async.each(
+                        qualifierListServiceResponse.Qualifiers,
+                        /** @callback */
+                        function (qualifierMetadata, callback) {
+                            remarkCodes[qualifierMetadata.Identifier] =
+                                qualifierMetadata.Code;
+                            callback(null);
+                        }
+                    );
+
+                    callback(null);
+                }
+            ]);
+        }
+    } // getRemarkCodes
 
     /**
        @function
@@ -1293,74 +1371,9 @@ function appendIntervalSearchCondition(
 function dvTableBody(
     timeSeriesUniqueId, queryFrom, queryTo, tzName, response, callback
 ) {
-    var remarkCodes;
-
     async.waterfall([
-        /**
-           @function
-           @description Request remark codes from AQUARIUS.
-           @callback
-           @todo This is fairly kludgey, because remark codes might
-                 not be required for every DV interval; try to nest in
-                 a conditional eventually.
-        */
         function (callback) {
-            try {
-                rest.query(
-                    aquarius.hostname,
-                    "GET",
-                    undefined,      // HTTP headers
-                    "/AQUARIUS/Publish/V2/GetQualifierList/",
-                    {token: aquarius.token(), format: "json"},
-                    options.log,
-                    callback
-                );
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-        },
-        /**
-           @function
-           @description Receive remark codes from AQUARIUS.
-           @callback
-        */
-        function (messageBody, callback) {
-            var qualifierListServiceResponse;
-
-            try {
-                qualifierListServiceResponse =
-                    JSON.parse(messageBody);
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
-
-            // if we didn't get the remark codes domain table
-            if (qualifierListServiceResponse === undefined) {
-                callback(
-                    "Could not get remark codes from http://" +
-                        aquarius.hostname +
-                        "/AQUARIUS/Publish/V2/GetQualifierList/"
-                );
-                return;
-            }
-
-            // put remark codes in an array for faster access later
-            remarkCodes = new Array();
-            async.each(
-                qualifierListServiceResponse.Qualifiers,
-                /** @callback */
-                function (qualifierMetadata, callback) {
-                    remarkCodes[qualifierMetadata.Identifier] =
-                        qualifierMetadata.Code;
-                    callback(null);
-                }
-            );
-
-            // proceed to next waterfall
+            aquarius.getRemarkCodes();
             callback(null);
         },
         /**
@@ -1428,7 +1441,7 @@ function dvTableBody(
                             timeSeriesPoint.Timestamp,
                             timeSeriesPoint.Value,
                             timeSeriesDataServiceResponse.Qualifiers,
-                            remarkCodes,
+                            aquarius.remarkCodes,
           timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
                         ),
                         "ascii"
