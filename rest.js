@@ -48,11 +48,12 @@ var rest = module.exports = {
                    @todo This is a (brittle) hack, that really should
                          be checked in site.request(). Unfortunately,
                          it was much easier to implement here, given
-                         the current state of the code.
+                         the current state of the code. Plans are to
+                         fix it in 1.2.x.
                 */
                 if (host === "waterservices.usgs.gov" &&
                     response.statusCode === 404) {
-                    callback("Site not found at http://" + host + path);
+                    callback(response.statusCode);
                 }
                 else if (
                     response.statusCode < 200 || 300 <= response.statuscode
