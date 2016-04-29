@@ -341,28 +341,16 @@ function jsonParseErrorMessage(response, message) {
    @private
    @param {string} text AQUARIUS LocationIdentifier string.
 */
-var LocationIdentifier = function (text) {
-    var text = text;
+var LocationIdentifier = function (agencyCode, siteNumber) {
+    var agencyCode = agencyCode;
+    var siteNumber = siteNumber;
 
     /**
        @method
        @description Agency code accessor method.
     */
     this.agencyCode = function () {
-        // if agency code delimiter ("-") is present in location
-        // identifier
-        if (text.search('-') === -1) {
-            /**
-               @default Agency code.
-            */
-            return 'USGS';
-        }
-        else {
-            // parse (agency code, site number) embedded in
-            // locationIdentifier
-            var s = text.split('-');
-            return s[1];
-        }
+        return agencyCode;
     }
 
     /**
@@ -370,17 +358,7 @@ var LocationIdentifier = function (text) {
        @description Site number accessor method.
     */
     this.siteNumber = function () {
-        // if agency code delimiter ("-") is present in location
-        // identifier
-        if (text.search('-') === -1) {
-            return text;
-        }
-        else {
-            // parse (agency code, site number) embedded in
-            // locationIdentifier
-            var s = text.split('-');
-            return s[0];
-        }
+        return siteNumber;
     }
 
     /**
@@ -389,7 +367,10 @@ var LocationIdentifier = function (text) {
                     LocationIdentifier.
     */
     this.toString = function () {
-        return text;
+        if (agencyCode === "USGS")
+            return siteNumber;
+        else
+            return siteNumber + '-' + agencyCode;
     }
 
 } // LocationIdentifier
@@ -1143,7 +1124,7 @@ var AQUARIUS = function (hostname, userName, password, callback) {
             */
             function (timeSeriesDescriptions, callback) {
                 locationIdentifier =
-                    new LocationIdentifier(siteNumber + '-' + agencyCode);
+                    new LocationIdentifier(agencyCode, siteNumber);
 
                 if (timeSeriesDescriptions.length === 0) {
                     callback(
@@ -1506,8 +1487,16 @@ httpdispatcher.onGet(
 
                 for (var name in field) {
                     if (name === 'LocationIdentifier') {
+                        /**
+                           @todo It would be nice to encapsulate this
+                                 parsing in a LocationIdentifier
+                                 second constructor method.
+                        */
+                        var token =
+                            field.LocationIdentifier.split('-');
+
                         locationIdentifier =
-                            new LocationIdentifier(field.LocationIdentifier);
+                            new LocationIdentifier(token[1], token[0]);
                     }
                     else if (name.match(
                         /^(Parameter|ComputationIdentifier|QueryFrom|QueryTo)$/
@@ -1870,8 +1859,6 @@ httpdispatcher.onGet(
                         return;
                     }
 
-                    // TODO: "parameter" somehow went MIA in unitValues() formal
-                    // parameters in translation from Fortran
                     if (parameterCode === undefined) {
                         callback(
                             "Required AQUARIUS field \"Parameter\" not found"
@@ -1884,13 +1871,6 @@ httpdispatcher.onGet(
                         siteNumber, options.log
                     );
                 },
-                /**
-                   @todo site.request() and site.receive() can be done
-                         in parallel with the requesting/receiving of
-                         time series descriptions below.
-                */
-                site.request,
-                site.receive,
                 function (receivedSite, callback) {
                     waterServicesSite = receivedSite; // set global
                     callback(null);
@@ -2199,13 +2179,47 @@ httpdispatcher.onGet(
                 cflag = c;
                 vflag = v;
                 dataType = d;
-                agencyCode = a;
-                siteNumber = s;
+                locationIdentifier = new LocationIdentifier(a, s);
                 parameterCode = p;
                 during = interval;
                 rndsup = r;
 
                 callback(null);
+            },
+            function (callback) {
+                /**
+                   @todo site.request() and site.receive() can be done
+                         in parallel with the requesting/receiving of
+                         parameter code mapping below.
+                */
+                async.waterfall([
+                    function (callback) {
+                        callback(
+                            null, options.waterServicesHostname,
+                            locationIdentifier.agencyCode(),
+                            locationIdentifier.siteNumber(),
+                            options.log
+                        );
+                    },
+                    site.request,
+                    site.receive,
+                    function (receivedSite, callback) {
+                        waterServicesSite = receivedSite; // set global
+                        callback(null);
+                    }
+                ],
+                    function (error) {
+                        // if the location was not found
+                        if (error === 404)
+                            callback(
+                                "Location " +
+                                    locationIdentifier.toString() +
+                                    " does not exist"
+                            );
+                        else
+                            callback(error);
+                    }
+                );
             },
             /**
                @function
