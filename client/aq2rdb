@@ -220,7 +220,8 @@ def main():
              "s": stat,
              "n": station,
              "b": begdat,
-             "e": enddat}
+             "e": enddat,
+             "r": str(rndsup).lower()}
         )
         uo = urllib.urlopen(url)
         response = uo.read()
