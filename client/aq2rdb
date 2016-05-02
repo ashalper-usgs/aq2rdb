@@ -224,6 +224,7 @@ def main():
              "n": station,
              "p": parm,
              "s": stat,
+             "u": uniqueId,
              "b": begdat,
              "e": enddat,
              "r": str(rndsup).lower()}
