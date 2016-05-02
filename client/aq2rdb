@@ -17,6 +17,7 @@ import urllib
 def usage():
     sys.stderr.write("\n")
     sys.stderr.write("Usage: aq2rdb -ooutfile\n")
+    sys.stderr.write("                -zURL\n")
     sys.stderr.write(
         "                -tdatatype (dv, uv)\n"
     )
@@ -118,7 +119,7 @@ def usage():
 def main():
     outpath = None
     datatyp = None
-    agency = None
+    agency = "USGS"
     station = None
     parm = None
     stat = None
@@ -156,6 +157,8 @@ def main():
         for opt, arg in opts:
             if opt == "-o":
                 outpath = arg
+            elif opt == "-z":
+                z = arg
             elif opt == "-t":
                 datatyp = arg.upper()
             elif opt == "-a":
@@ -215,10 +218,12 @@ def main():
 
         # TODO: this query bit needs to be in a retry loop
         url = prefix + urllib.urlencode(
-            {"p": parm,
+            {"z": z,
              "t": datatyp,
-             "s": stat,
+             "a": agency,
              "n": station,
+             "p": parm,
+             "s": stat,
              "b": begdat,
              "e": enddat,
              "r": str(rndsup).lower()}
