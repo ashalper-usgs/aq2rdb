@@ -341,9 +341,27 @@ function jsonParseErrorMessage(response, message) {
    @private
    @param {string} text AQUARIUS LocationIdentifier string.
 */
-var LocationIdentifier = function (agencyCode, siteNumber) {
-    var agencyCode = agencyCode;
-    var siteNumber = siteNumber;
+var LocationIdentifier = function (
+    /* agencyCode, siteNumber | LocationIdentifier (AQUARIUS type) */
+) {
+    var agencyCode, siteNumber;
+
+    // LocationIdentifier constructor
+    if (arguments.length == 1) {
+        if (arguments[0].includes('-')) {
+            var token = field.arguments[0].split('-');
+
+            agencyCode = token[1];
+            siteNumber = token[0];
+        }
+        else
+            siteNumber = arguments[0];
+    }
+    // (agencyCode, siteNumber) constructor
+    else if (arguments.length == 2) {
+        var agencyCode = arguments[0];
+        var siteNumber = arguments[1];
+    }
 
     /**
        @method
@@ -594,8 +612,15 @@ function parseFields(requestURL, callback) {
         return;
     }
 
+    if ((field.p || field.s) && field.u) {
+        callback(
+            "Specify either \"-p\" and \"s\", or \"-u\", but not both"
+        );
+        return;
+    }
+
     for (var name in field) {
-        if (name.match(/^(a|p|t|s|n|b|e|l|r|w)$/)) {
+        if (name.match(/^(a|p|t|s|n|b|e|l|r|u|w)$/)) {
             // aq2rdb fields
         }
         else {
@@ -609,8 +634,9 @@ function parseFields(requestURL, callback) {
 
     // pass parsed field values to next async.waterfall() function
     callback(
-        null, field.t, rndsup, field.w, false, false, field.a, field.n,
-        field.p, field.s, field.b, field.e, field.l, ""
+        null, field.t, rndsup, field.w, false, false, field.a,
+        field.n, field.p, field.s, field.u, field.b, field.e, field.l,
+        ""
     );
 } // parseFields
 
@@ -851,16 +877,8 @@ httpdispatcher.onGet(
 
                 for (var name in field) {
                     if (name === 'LocationIdentifier') {
-                        /**
-                           @todo It would be nice to encapsulate this
-                                 parsing in a LocationIdentifier
-                                 second constructor method.
-                        */
-                        var token =
-                            field.LocationIdentifier.split('-');
-
                         locationIdentifier =
-                            new LocationIdentifier(token[1], token[0]);
+                            new LocationIdentifier(field.LocationIdentifier);
                     }
                     else if (name.match(
                         /^(Parameter|ComputationIdentifier|QueryFrom|QueryTo)$/
@@ -1392,8 +1410,8 @@ httpdispatcher.onGet(
             parseFields,
             function rdbOut(
                 dataType, rndsup, wyflag, cflag, vflag, agencyCode,
-                siteNumber, parameterCode, instat, begdat, enddat,
-                locTzCd, titlline, callback
+                siteNumber, parameterCode, instat, uniqueId, begdat,
+                enddat, locTzCd, titlline, callback
             ) {
                 var datatyp, stat, uvtyp, interval;
                 var uvtypPrompted = false;
@@ -1506,8 +1524,8 @@ httpdispatcher.onGet(
 
                 callback(
                     null, false, rndsup, cflag, vflag, dataType,
-                    agencyCode, siteNumber, parameterCode, interval,
-                    locTzCd
+                    agencyCode, siteNumber, parameterCode, uniqueId,
+                    interval, locTzCd
                 );
             },
             /**
@@ -1515,7 +1533,7 @@ httpdispatcher.onGet(
                      crutch eventually.
             */
             function (
-                e, r, c, v, d, a, s, p, interval, locTzCd, callback
+                e, r, c, v, d, a, s, p, u, interval, locTzCd, callback
             ) {
                 // save values in outer scope to avoid passing these
                 // values through subsequent async.waterfal()
@@ -1527,6 +1545,7 @@ httpdispatcher.onGet(
                 dataType = d;
                 locationIdentifier = new LocationIdentifier(a, s);
                 parameterCode = p;
+                uniqueId = u;
                 during = interval;
                 rndsup = r;
 
