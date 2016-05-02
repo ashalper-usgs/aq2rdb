@@ -228,6 +228,9 @@
       <ownedAttribute xmi:type="uml:Property" xmi:id="_yC42wJ0pEeW0_5GYJNErLQ" name="localTimeFlag" type="_hhmHkGbXEeW2ybKigGMHUA"/>
     </packagedElement>
     <packagedElement xmi:type="uml:Dependency" xmi:id="_LLHfcJ0qEeW0_5GYJNErLQ" client="_ApXUwJ0mEeW0_5GYJNErLQ" supplier="_hvmq8J0oEeW0_5GYJNErLQ"/>
+    <packagedElement xmi:type="uml:Class" xmi:id="_afwNcBC1EeaYL67HiZ0LQA" name="UVQuery">
+      <generalization xmi:type="uml:Generalization" xmi:id="_fq2ZUBC1EeaYL67HiZ0LQA" general="_2ECmAGbZEeW2ybKigGMHUA"/>
+    </packagedElement>
   </packagedElement>
   <packagedElement xmi:type="uml:Package" xmi:id="_dpt3EGbXEeW2ybKigGMHUA" name="JavaScript">
     <packagedElement xmi:type="uml:DataType" xmi:id="_hhmHkGbXEeW2ybKigGMHUA" name="String"/>
