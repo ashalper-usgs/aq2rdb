@@ -1102,11 +1102,7 @@ httpdispatcher.onGet(
         */
         function dailyValues(callback) {
             var parameters = Object();
-            // many/most of these are artifacts of the legacy code,
-            // and probably won't be needed:
-            var rndary = ' ';
-            var rndparm, rnddd;
-            var pcode, timeSeriesDescription;
+            var timeSeriesDescription;
 
             async.waterfall([
                 function (callback) {
@@ -1122,20 +1118,6 @@ httpdispatcher.onGet(
                     callback(null);
                 },
                 function (callback) {
-                    pcode = 'P';         // pmcode            // set rounding
-                    /**
-                       @todo Load data descriptor?
-                       s_mddd(nw_read, irc, *998);
-                    */
-                    /**
-                       @todo call parameter Web service here
-                       rtcode = pmretr(60);
-                    */
-                    if (rnddd !== ' ' && rnddd !== '0000000000')
-                        rndary = rnddd;
-                    else
-                        rndary = rndparm;
-
                     callback(
                         null, agencyCode, siteNumber,
                         parameter.aquariusParameter, undefined,
