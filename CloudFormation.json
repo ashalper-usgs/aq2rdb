@@ -1,0 +1,309 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "aq2rdb server",
+    "Resources" : {
+
+	"IAMInstanceProfile" : {
+	    "Type": "AWS::IAM::InstanceProfile",
+	    "Properties": {
+		"Path": "/",
+		"Roles": [ { "Ref" : "IAMRole" }]
+	    }
+	},
+
+	"IAMRole": {
+	    "Type": "AWS::IAM::Role",
+	    "Properties": {
+		"AssumeRolePolicyDocument": {
+		    "Version" : "2012-10-17",
+		    "Statement": [ {
+			"Effect": "Allow",
+			"Principal": {
+			    "Service": [ "ec2.amazonaws.com" ]
+			},
+			"Action": [ "sts:AssumeRole" ]
+		    } ]
+		},
+		"ManagedPolicyArns" : [
+		    "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess",
+		    "arn:aws:iam::437575011997:policy/EC2-DescribeAll",
+		    "arn:aws:iam::437575011997:policy/S3-READ-ConfigBucket",
+		    "arn:aws:iam::437575011997:policy/S3-PUT-Logs"
+		],
+		"Policies" : [
+		    {
+			"PolicyName": "ec2-oregon-development",
+			"PolicyDocument": {
+			    "Version" : "2012-10-17",
+			    "Statement": [
+				{
+				    "Effect": "Allow",
+				    "Action": [ "ec2:Describe*" ],
+				    "Resource": "*"
+				},
+				{
+				    "Effect": "Allow",
+				    "Action": [
+					"s3:Get*",
+					"s3:List*"
+				    ],
+				    "Resource": [
+					{  "Fn::Join" : [ "", [ "arn:aws:s3:::config-bucket-", { "Ref" : "AWS::AccountId" } ]]},
+					{  "Fn::Join" : [ "", [ "arn:aws:s3:::config-bucket-", { "Ref" : "AWS::AccountId" }, "/*" ]]}
+				    ]
+				},
+				{
+				    "Effect": "Allow",
+				    "Action": [ "s3:PutObject" ],
+				    "Resource": [
+					{  "Fn::Join" : [ "", [ "arn:aws:s3:::ec2-logging-", { "Ref" : "AWS::AccountId" }, "/*" ]]}
+				    ]
+				}
+			    ]
+			}
+		    }
+		]
+	    }
+	},
+	"SecurityGroup" : {
+	    "Type" : "AWS::EC2::SecurityGroup",
+	    "Properties" :
+	    {
+		"GroupDescription" : "Opens TCP and UDP For the Test EC2 instance",
+		"VpcId" : {"Ref" : "VpcId"},
+		"SecurityGroupIngress" : [
+		    {
+			"IpProtocol" : "tcp",
+			"FromPort" : "22",
+			"ToPort" : "22",
+			"CidrIp" : { "Fn::FindInMap" : [ "VPCMap", { "Ref" : "VpcId" }, "CidrRange" ]}
+		    }
+		],
+		"Tags" : [
+		    { "Key" : "Cost Center WBS Cloud Roll-up Account Code", "Value" : { "Ref" : "AccountCode" } },
+		    { "Key" : "WBS Project Account Code", "Value" : { "Ref" : "AccountCode" } },
+		    { "Key" : "Application Name", "Value" : { "Ref" : "ApplicationName" } },
+		    { "Key" : "Users", "Value" : { "Ref" : "UsersTarget" } },
+		    { "Key" : "Owner", "Value" : { "Ref" : "OwnerInformation" } },
+		    { "Key" : "Name", "Value" : { "Fn::Join" : [ " ", [ { "Ref" : "ApplicationName" }, "Security Group - CFN Stack:", { "Ref" : "AWS::StackName" } ]] }}
+		]
+	    }
+	},
+
+	"EC2Test": {
+	    "Type": "AWS::EC2::Instance",
+	    "DependsOn" : [ "SecurityGroup" ],
+	    "Properties" : {
+		"IamInstanceProfile" : { "Ref" : "IAMInstanceProfile" },
+		"InstanceType" : { "Ref" : "InstanceType" },
+		"KeyName" : { "Ref" : "AMIKeyName" },
+		"ImageId" : "ami-7430c514",
+		"BlockDeviceMappings" : [{
+		    "DeviceName" : "/dev/sda1",
+		    "Ebs":{
+			"VolumeSize" : { "Ref" : "VolumeSize" },
+			"VolumeType" : { "Ref" : "VolumeType" },
+			"DeleteOnTermination" : "true"
+		    }
+		}],
+		"NetworkInterfaces":[
+		    {
+			"AssociatePublicIpAddress": { "Fn::FindInMap" : [ "VPCMap", { "Ref" : "VpcId" }, "publicip"] },
+			"DeleteOnTermination" : true,
+			"DeviceIndex":"0",
+			"GroupSet":[ { "Ref" : "SecurityGroup" } ],
+			"SubnetId": { "Fn::FindInMap" : [ "VPCMap", { "Ref" : "VpcId" }, "subnet"] }
+		    }],
+		"UserData" : { "Fn::Base64" : { "Fn::Join" : [ "", [
+		    "#!/bin/bash -xe", "\n",
+
+		    "# Install the files and packages from the metadata", "\n",
+		    "/usr/bin/cfn-init -v ",
+		    " --stack ", { "Ref" : "AWS::StackName" },
+		    " --resource EC2Test ",
+		    " --configsets ascending ",
+		    " --region ", { "Ref" : "AWS::Region" }, "\n",
+
+		    "# Signal the status from cfn-init", "\n",
+		    "/usr/bin/cfn-signal --exit-code $? ",
+		    " --stack ", { "Ref" : "AWS::StackName" },
+		    " --resource EC2Test ",
+		    " --region ", { "Ref" : "AWS::Region" }, "\n",
+
+		    "# Start up the cfn-hup daemon to listen for changes to the Web Server metadata", "\n",
+		    "/usr/bin/cfn-hup || error_exit 'Failed to start cfn-hup'"
+		]]}
+			     },
+		"Tags" : [
+		    { "Key" : "Cost Center WBS Cloud Roll-up Account Code", "Value" : { "Ref" : "AccountCode" } },
+		    { "Key" : "WBS Project Account Code", "Value" : { "Ref" : "AccountCode" } },
+		    { "Key" : "Application Name", "Value" : { "Ref" : "ApplicationName" } },
+		    { "Key" : "Users", "Value" : { "Ref" : "UsersTarget" } },
+		    { "Key" : "Owner", "Value" : { "Ref" : "OwnerInformation" } },
+		    { "Key" : "Name", "Value" : { "Fn::Join" : [ " ", [ { "Ref" : "ApplicationName" }, "EC2 - CFN Stack:", { "Ref" : "AWS::StackName" } ]] }}
+		]
+	    },
+	    "CreationPolicy" : {
+		"ResourceSignal" : {
+		    "Timeout" : "PT20M"
+		}
+	    },
+
+	    "Metadata" : {
+		"AWS::CloudFormation::Init" : {
+		    "configSets" : {
+			"ascending" : [
+			    "01-config"
+			]
+		    },
+
+		    "01-config" : {
+			"files" : {
+			    "/etc/cfn/cfn-hup.conf" : {
+				"content" : { "Fn::Join" : [ "", [
+				    "[main]", "\n",
+				    "stack=", { "Ref" : "AWS::StackId" }, "\n",
+				    "region=", { "Ref" : "AWS::Region" }, "\n",
+				    "verbose=true"
+				]]},
+				"mode" : "000400",
+				"owner" : "root",
+				"group" : "root"
+			    },
+			    "/etc/cfn/hooks.d/cfn-auto-reloader.conf" : {
+				"content" : { "Fn::Join" : [ "", [
+				    "[cfn-auto-reloader-hook]", "\n",
+				    "triggers=post.update", "\n",
+				    "path=Resources.EC2Test.Metadata.AWS::CloudFormation::Init", "\n",
+				    "action=/usr/bin/cfn-init --stack ", { "Ref" : "AWS::StackName" }, " --resource EC2Test ", " --region ", { "Ref" : "AWS::Region" }, "\n",
+				    "runas=root", "\n"
+				]]}
+			    }
+			},
+			
+			"packages" : {
+			    "rpm" : {
+				"nodejs" : "http://nodejs.tchol.org/repocfg/amzn1/nodejs-stable-release.noarch.rpm"
+			    },
+			    "yum": {
+				"gcc-c++": [],
+				"make": [],
+				"git" : [],
+				"nodejs-compat-symlinks": [],
+				"npm": []
+			    }
+			},
+			
+			"services" : {
+			    "sysvinit" : {
+				"cfn-hup" : {
+				    "enabled" : "true",
+				    "ensureRunning" : "true",
+				    "files" : [
+					"/etc/cfn/cfn-hup.conf",
+					"/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+				    ]
+				}
+			    }
+			}
+		    }
+		}
+	    }
+	}
+    },
+    "Outputs" : {
+	"PrivateIP" : {
+	    "Description" : "The private IP address of the Test EC2 server",
+	    "Value" : { "Fn::GetAtt" : [ "EC2Test", "PrivateIp" ] }
+	}
+    },
+    "Mappings" : {
+	"VPCMap" : {
+	    "vpc-f589dc90" : {
+		"name" : "nwists",
+		"subnet"  : "subnet-51e7ca34",
+		"publicip" : false,
+		"az" : "us-west-2a",
+		"CidrRange" : "10.0.0.0/16"
+	    },
+	    "vpc-3461ac51" : {
+		"name" : "oregon",
+		"subnet" : "subnet-6fe14b0a",
+		"publicip" : false,
+		"az" : "us-west-2a",
+		"CidrRange" : "172.16.0.0/18"
+	    }
+	}
+    },
+    "Parameters" : {
+	"InstanceType" : {
+	    "Description" : "Instance type that this server should be",
+	    "Type" : "String",
+	    "Default" : "t2.small",
+	    "AllowedValues" : [
+		"t2.nano",
+		"t2.micro",
+		"t2.small",
+		"t2.medium",
+		"t2.large",
+		"m4.large",
+		"m4.xlarge",
+		"m3.medium",
+		"m3.large",
+		"c4.large",
+		"c3.large",
+		"g2.2xlarge",
+		"r3.large",
+		"d2.xlarge"
+	    ]
+	},
+	"ApplicationName" : {
+	    "Description" : "The application name which this instance represents.",
+	    "Type" : "String",
+	    "Default" : "aq2rdb test server"
+	},
+	"AMIKeyName" : {
+	    "Description" : "The name of a key/value pair to add to the instance when an EC2 instance starts.",
+	    "Type" : "AWS::EC2::KeyPair::KeyName",
+	    "Default" : "nwists_admin"
+	},
+	"OwnerInformation": {
+	    "Description": "Email address for POC for stack",
+	    "Type": "String",
+	    "MinLength" : 9,
+	    "ConstraintDescription" : "An Email address is mandatory for OwnerInformation point of contact"
+	},
+	"VpcId" : {
+	    "Description" : "VPC ID to use",
+	    "Type" : "AWS::EC2::VPC::Id",
+	    "Default" : "vpc-3461ac51"
+	},
+	"VolumeSize" : {
+	    "Description" : "Optional - The size of the EBS volume that the test server will have. Default is 16 gigabytes.",
+	    "Type" : "Number",
+	    "Default" : 16,
+	    "MaxValue" : 1024,
+	    "MinValue" : 16,
+	    "ConstraintDescription" : "The EBS volume size has a range of 20 to 1024 megabytes"
+	},
+	"VolumeType" : {
+	    "Description" : "Optional - The volume type. This can be gp2 for General Purpose (SSD) volumes, io1 for Provisioned IOPS (SSD) volumes, or standard for Magnetic volumes.",
+	    "Type" : "String",
+	    "AllowedValues" : ["standard", "io1", "gp2"],
+	    "Default" : "standard"
+	},
+	"UsersTarget" : {
+	    "Type": "String",
+	    "AllowedValues" : [
+		"Internal",
+		"External"
+	    ],
+	    "Default": "Internal"
+	},
+	"AccountCode": {
+	    "Description": "WBS Account Code",
+	    "Type": "String",
+	    "Default": "GX.16.FA50.CLD00.00"
+	}
+    }
+}
