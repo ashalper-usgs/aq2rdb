@@ -180,20 +180,7 @@
 				]]}
 			    }
 			},
-			
-			"packages" : {
-			    "rpm" : {
-				"nodejs" : "http://nodejs.tchol.org/repocfg/amzn1/nodejs-stable-release.noarch.rpm"
-			    },
-			    "yum": {
-				"gcc-c++": [],
-				"make": [],
-				"git" : [],
-				"nodejs-compat-symlinks": [],
-				"npm": []
-			    }
-			},
-			
+
 			"services" : {
 			    "sysvinit" : {
 				"cfn-hup" : {
@@ -271,7 +258,8 @@
 	    "Description": "Email address for POC for stack",
 	    "Type": "String",
 	    "MinLength" : 9,
-	    "ConstraintDescription" : "An Email address is mandatory for OwnerInformation point of contact"
+	    "ConstraintDescription" : "An Email address is mandatory for OwnerInformation point of contact",
+	    "Default" : "ashalper@usgs.gov"
 	},
 	"VpcId" : {
 	    "Description" : "VPC ID to use",
