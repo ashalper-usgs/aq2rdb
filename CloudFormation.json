@@ -152,11 +152,21 @@
 	    "Metadata" : {
 		"AWS::CloudFormation::Init" : {
 		    "configSets" : {
-			"ascending" : [
-			    "01-config"
-			]
+				"ascending" : [
+					"00-config",
+			    	"01-config"
+				]
 		    },
 
+		    "00-config" : {
+		    	"commands" : {
+            		"setup_6.x" : {
+                		"command" : "curl --silent --location https://rpm.nodesource.com/setup_6.x | bash -",
+                		"cwd" : "~"
+            		}
+          		}
+		    },
+		    
 		    "01-config" : {
 			"files" : {
 			    "/etc/cfn/cfn-hup.conf" : {
