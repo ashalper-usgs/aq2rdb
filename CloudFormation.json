@@ -152,22 +152,16 @@
 	    "Metadata" : {
 		"AWS::CloudFormation::Init" : {
 		    "configSets" : {
-				"ascending" : [
-					"00-config",
-			    	"01-config"
-				]
+			"ascending" : [
+			    "00-config",
+			    "01-config",
+			    "02-config",
+			    "03-config",
+			    "04-config"
+			]
 		    },
 
 		    "00-config" : {
-		    	"commands" : {
-            		"setup_6.x" : {
-                		"command" : "curl --silent --location https://rpm.nodesource.com/setup_6.x | bash -",
-                		"cwd" : "~"
-            		}
-          		}
-		    },
-		    
-		    "01-config" : {
 			"files" : {
 			    "/etc/cfn/cfn-hup.conf" : {
 				"content" : { "Fn::Join" : [ "", [
@@ -203,6 +197,42 @@
 				}
 			    }
 			}
+		    },
+
+		    "01-config" : {
+		    	"commands" : {
+            		    "download" : {
+                		"command" : "curl --silent --location https://rpm.nodesource.com/setup_6.x > setup_6.x",
+                		"cwd" : "~"
+            		    }
+          		}
+		    },
+
+		    "02-config" : {
+		    	"commands" : {
+			    "run" : {
+				"command" : "bash /root/setup_6.x",
+                		"cwd" : "~"
+			    }
+          		}
+		    },
+
+		    "03-config" : {
+		    	"commands" : {
+			    "clean" : {
+				"command" : "rm -f setup_6.x",
+                		"cwd" : "~"
+			    }
+          		}
+		    },
+
+		    "04-config" : {
+		    	"commands" : {
+			    "install" : {
+				"command" : "yum install -y nodejs > yum.log 2>&1",
+                		"cwd" : "~"
+			    }
+          		}
 		    }
 		}
 	    }
