@@ -227,12 +227,12 @@
 		    },
 
 		    "04-config" : {
-		    	"commands" : {
-			    "install" : {
-				"command" : "yum install -y nodejs > yum.log 2>&1",
-                		"cwd" : "~"
+			"packages" : {
+			    "yum" : {
+				"nodejs"    : [],
+				"java-1.8.0-openjdk-headless"    : []
 			    }
-          		}
+			}
 		    }
 		}
 	    }
