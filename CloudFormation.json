@@ -230,7 +230,8 @@
 			"packages" : {
 			    "yum" : {
 				"nodejs"    : [],
-				"java-1.8.0-openjdk-headless"    : []
+				"java-1.8.0-openjdk-headless"    : [],
+                                "wget"    : []
 			    }
 			}
 		    }
