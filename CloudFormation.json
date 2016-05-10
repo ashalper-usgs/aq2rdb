@@ -157,7 +157,9 @@
 			    "01-config",
 			    "02-config",
 			    "03-config",
-			    "04-config"
+			    "04-config",
+			    "05-config",
+			    "06-config"
 			]
 		    },
 
@@ -227,6 +229,24 @@
 		    },
 
 		    "04-config" : {
+		    	"commands" : {
+			    "clean" : {
+				"command" : "groupadd nodejs",
+                		"cwd" : "~"
+			    }
+          		}
+		    },
+
+		    "05-config" : {
+		    	"commands" : {
+			    "clean" : {
+				"command" : "useradd -b /opt -g nodejs nodejs",
+                		"cwd" : "~"
+			    }
+          		}
+		    },
+
+		    "06-config" : {
 			"packages" : {
 			    "yum" : {
 				"nodejs"    : [],
