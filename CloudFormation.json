@@ -65,11 +65,12 @@
                 ]
             }
         },
+
         "SecurityGroup" : {
             "Type" : "AWS::EC2::SecurityGroup",
             "Properties" :
             {
-                "GroupDescription" : "Opens TCP and UDP For the Test EC2 instance",
+                "GroupDescription" : "Opens SSH For the aq2rdb EC2 instance",
                 "VpcId" : {"Ref" : "VpcId"},
                 "SecurityGroupIngress" : [
                     {
@@ -250,8 +251,8 @@
                     "06-config" : {
                         "packages" : {
                             "yum" : {
-                                "nodejs"    : [],
-                                "java-1.8.0-openjdk-headless"    : [],
+                                "lynx"    : [],
+                                "nodejs"  : [],
                                 "wget"    : []
                             }
                         }
