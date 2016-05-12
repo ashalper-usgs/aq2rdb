@@ -319,7 +319,7 @@
         "ApplicationName" : {
             "Description" : "The application name which this instance represents.",
             "Type" : "String",
-            "Default" : "aq2rdb test server"
+            "Default" : "aq2rdb server"
         },
         "AMIKeyName" : {
             "Description" : "The name of a key/value pair to add to the instance when an EC2 instance starts.",
