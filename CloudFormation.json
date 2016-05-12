@@ -78,6 +78,12 @@
                         "FromPort" : "22",
                         "ToPort" : "22",
                         "CidrIp" : { "Fn::FindInMap" : [ "VPCMap", { "Ref" : "VpcId" }, "CidrRange" ]}
+                    },
+                    {
+                        "IpProtocol" : "tcp",
+                        "FromPort" : "8080",
+                        "ToPort" : "8080",
+                        "CidrIp" : { "Fn::FindInMap" : [ "VPCMap", { "Ref" : "VpcId" }, "CidrRange" ]}
                     }
                 ],
                 "Tags" : [
@@ -161,7 +167,8 @@
                             "04-config",
                             "05-config",
                             "06-config",
-                            "07-config"
+                            "07-config",
+                            "08-config"
                         ]
                     },
 
@@ -251,9 +258,10 @@
                     "06-config" : {
                         "packages" : {
                             "yum" : {
-                                "lynx"    : [],
-                                "nodejs"  : [],
-                                "wget"    : []
+                                "emacs-nox" : [],
+                                "lynx"      : [],
+                                "nodejs"    : [],
+                                "wget"      : []
                             }
                         }
                     },
@@ -263,6 +271,20 @@
                             "npm" : {
                                 "command" : "sudo -u nodejs -i npm install https://s3-us-west-2.amazonaws.com/config-bucket-437575011997/project/multifarious/aq2rdb-1.2.1.tar.gz",
                                 "cwd" : "~"
+                            }
+                        }
+                    },
+
+                    "08-config" : {
+                        "commands" : {
+                            "iptables.sh" : {
+                                "command" : {
+                                    "Fn::Join" : [
+                                        "",
+                                        [ "/sbin/iptables -I INPUT 1 -i eth0 -p tcp --dport 8080 -j ACCEPT\n",
+                                          "/sbin/service iptables save\n" ]             
+                                    ]
+                                }
                             }
                         }
                     }
