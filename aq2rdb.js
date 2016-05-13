@@ -1832,23 +1832,12 @@ else {
                         }
                     ],
                         function (error) {
-                            if (error) {
-                                if (error.code === "ENOTFOUND") {
-                                    /**
-                                       @todo load USGS parameter code to
-                                       AQUARIUS Parameter mapping
-                                       from local JSON file.
-                                    */
-                                    log(packageName,
-                                        "Could not find NWIS-RA server at " +
-                                        passwd.nwisRAHostname);
-                                }
-                                else
-                                    callback(error);
-                            }
+                            if (error)
+                                callback(error);
                             else
-                                callback(null,
-                                         "Initialized parameter mapping");
+                                callback(
+                                    null, "Initialized parameter mapping"
+                                );
                         }
                     );
                 },
