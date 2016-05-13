@@ -33,14 +33,14 @@ aq2rdb is started from the Node.js interpreter like this:
 
     node aq2rdb.js --aquariusUserName aquariusUserName \
                    --aquariusPassword aquariusPassword \
-                   --waterDataUserName waterDataUserName \
-                   --waterDataPassword waterDataPassword
+                   --nwisRAUserName nwisRAUserName \
+                   --nwisRAPassword nwisRAPassword
 
 where *aquariusUserName* is the user name of an AQUARIUS account under
 which aq2rdb will query AQUARIUS Web services, *aquariusPassword* is
-the password for this account; *waterDataUserName* is the user name of
-an NWIS-RA account under which aq2rdb will query NWIS-RA Web services,
-and *waterDataPassword* is the password for this account.
+the password for this account; *nwisRAUserName* is the user name of an
+NWIS-RA account under which aq2rdb will query NWIS-RA Web services,
+and *nwisRAPassword* is the password for this account.
 
 Other aq2rdb command-line arguments have reasonable default values,
 but may be overridden by specifying them.
