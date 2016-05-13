@@ -1819,20 +1819,11 @@ else {
                                 authentication token.
                 */
                 function (callback) {
-                    try {
-                        nwisRA = new service.NWISRA(
-                            passwd.nwisRAHostname,
-                            passwd.nwisRAUserName,
-                            passwd.nwisRAPassword, options.log,
-                            callback
-                        );
-                    }
-                    catch (error) {
-                        if (error) {
-                            callback(error);
-                            return;
-                        }
-                    }
+                    nwisRA = new service.NWISRA(
+                        passwd.nwisRAHostname, passwd.nwisRAUserName,
+                        passwd.nwisRAPassword, options.log, callback
+                    );
+
                     // no callback here; it is called from NWISRA()
                     // when complete
                 },
