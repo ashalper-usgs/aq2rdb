@@ -75,20 +75,20 @@ var cli = commandLineArgs([
      defaultValue: "waterservices.usgs.gov"},
     /**
        @description DNS name of USGS NWIS Reporting Application
-                    service host.
+                    (NWIS-RA) service host.
     */
-    {name: "waterDataHostname", type: String,
+    {name: "nwisRAHostname", type: String,
      defaultValue: "nwisdata.usgs.gov"},
     /**
        @description USGS NWIS Reporting Application, service account
                     user name.
     */
-    {name: "waterDataUserName", type: String},
+    {name: "nwisRAUserName", type: String},
     /**
        @description USGS NWIS Reporting Application, service account
                     password.
     */
-    {name: "waterDataPassword", type: String}
+    {name: "nwisRAPassword", type: String}
 ]);
 
 /**
@@ -1901,8 +1901,8 @@ else {
             // command-line
             if (options.aquariusUserName === undefined &&
                 options.aquariusPassword === undefined &&
-                options.waterDataUserName === undefined &&
-                options.waterDataPassword === undefined) {
+                options.nwisRAUserName === undefined &&
+                options.nwisRAPassword === undefined) {
                 /** @todo need some logic here to find the encrypted
                     volume's mount point. */
                 fs.readFile(
@@ -1929,9 +1929,9 @@ else {
                 passwd.aquariusHostname = options.aquariusHostname;
                 passwd.aquariusUserName = options.aquariusUserName;
                 passwd.aquariusPassword = options.aquariusPassword;
-                passwd.waterDataHostname = options.waterDataHostname;
-                passwd.waterDataUserName = options.waterDataUserName;
-                passwd.waterDataPassword = options.waterDataPassword;
+                passwd.nwisRAHostname = options.nwisRAHostname;
+                passwd.nwisRAUserName = options.nwisRAUserName;
+                passwd.nwisRAPassword = options.nwisRAPassword;
                 callback(null);
             }
         },
@@ -1946,9 +1946,9 @@ else {
                 function (callback) {
                     try {
                         nwisRA = new NWISRA(
-                            passwd.waterDataHostname,
-                            passwd.waterDataUserName,
-                            passwd.waterDataPassword, options.log,
+                            passwd.nwisRAHostname,
+                            passwd.nwisRAUserName,
+                            passwd.nwisRAPassword, options.log,
                             callback
                         );
                     }
