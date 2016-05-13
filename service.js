@@ -12,6 +12,7 @@
 // Node.js modules
 var async = require("async");
 var http = require("http");
+var fs = require("fs");
 var querystring = require("querystring");
 
 // aq2rdb modules
@@ -667,6 +668,7 @@ AQUARIUS: function (
 
 NWISRA: function (hostname, userName, password, log, callback) {
     var authentication;
+    var parameters;
 
     /**
        @method
@@ -676,21 +678,15 @@ NWISRA: function (hostname, userName, password, log, callback) {
     function authenticate(callback) {
         async.waterfall([
             function (cb) {
-                try {
-                    rest.querySecure(
-                        hostname,
-                        "POST",
-                        {"content-type": "application/x-www-form-urlencoded"},
-                        "/service/auth/authenticate",
-                        {username: userName, password: password},
-                        log,
-                        cb
-                    );
-                }
-                catch (error) {
-                    cb(error);
-                    return;
-                }
+                rest.querySecure(
+                    hostname,
+                    "POST",
+                    {"content-type": "application/x-www-form-urlencoded"},
+                    "/service/auth/authenticate",
+                    {username: userName, password: password},
+                    log,
+                    cb
+                );
             },
             function (messageBody, cb) {
                 try {
@@ -705,7 +701,29 @@ NWISRA: function (hostname, userName, password, log, callback) {
             }
         ],
             function (error) {
-                callback(error);
+                if (error) {
+                    if (error.code === "ENOTFOUND") {
+                        // can't get to the NWIS-RA server; use local file
+                        fs.readFile("parameters.json", function (error, json) {
+                            if (error) {
+                                callback(error);
+                                return;
+                            }
+
+                            try {
+                                parameters = JSON.parse(json);
+                            }
+                            catch (error) {
+                                callback(error);
+                                return;
+                            }
+                        });
+                    }
+                    else
+                        callback(error);
+                }
+                else
+                    callback(null);
             }
         );
     } // authenticate
@@ -721,52 +739,36 @@ NWISRA: function (hostname, userName, password, log, callback) {
                          response is received.
     */
     this.query = function (obj, log, callback) {
-        try {
-            rest.querySecure(
-                hostname,
-                "GET",
-                {"Authorization": "Bearer " + authentication.tokenId},
-                "/service/data/view/parameters/json",
-                obj,
-                log,
-                callback
-            );
-        }
-        catch (error) {
-            // Attempt to detect expired authentication token
-            // error.
-            if (error === "SyntaxError: Unexpected end of input") {
-                async.waterfall([
-                    function (callback) {
-                        authenticate(callback); // try to refresh token
-                        callback(null);
-                    },
-                    function (callback) {
-                        // retry query one more time
-                        rest.querySecure(
-                            hostname,
-                            "GET",
-                            {"Authorization": "Bearer " +
-                             authentication.tokenId},
-                            "/service/data/view/parameters/json",
-                            obj,
-                            log,
-                            callback
-                        );
-                    }
-                ],
-                    function (error) {
-                        if (error)
-                            callback(error);
-                    }
-                );
+        async.waterfall([
+            function (callback) {
+                // if NWIS-RA is logged-into
+                if (authentication)
+                    queryRemote(
+                        "/service/data/view/parameters/json",
+                        obj,
+                        log,
+                        callback
+                    );
+                else
+                    // emulate the query by referring to the local
+                    // JSON data
+                    callback(
+                        parameters.find(function (record) {
+                            if (obj["parameters.PARM_CD"] === record.PARM_CD)
+                                return true;
+                            else
+                                return false;
+                        })
+                    );
             }
-            else
-                callback(error);
-            return;
-        }
-        // no callback call here; it is called from rest.querySecure()
-        // above
+        ],
+            function (error) {
+                if (error)
+                    callback(error);
+                else
+                    callback(null);
+            }
+        );
     } // query
 
     // constructor
