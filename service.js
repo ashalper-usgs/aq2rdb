@@ -12,6 +12,7 @@
 // Node.js modules
 var async = require("async");
 var http = require("http");
+var https = require('https');
 var fs = require("fs");
 var querystring = require("querystring");
 
@@ -666,7 +667,7 @@ AQUARIUS: function (
 
 }, // AQUARIUS
 
-NWISRA: function (hostname, userName, password, log, callback) {
+NWISRA: function (host, userName, password, log, callback) {
     var authentication;
     var parameters;
 
@@ -677,31 +678,56 @@ NWISRA: function (hostname, userName, password, log, callback) {
      */
     function authenticate(callback) {
         async.waterfall([
-            function (cb) {
-                rest.querySecure(
-                    hostname,
-                    "POST",
-                    {"content-type": "application/x-www-form-urlencoded"},
-                    "/service/auth/authenticate",
-                    {username: userName, password: password},
-                    log,
-                    cb
-                );
-            },
-            function (messageBody, cb) {
-                try {
-                    authentication = JSON.parse(messageBody);
-                }
-                catch (error) {
-                    cb(error);
-                    return;
+            function (callback) {
+                var path = "/service/auth/authenticate";
+
+                /**
+                   @description Handle response from HTTPS query.
+                   @callback
+                */
+                function queryCallback(response) {
+                    var messageBody = "";
+
+                    // accumulate response
+                    response.on(
+                        "data",
+                        function (chunk) {
+                            messageBody += chunk;
+                        });
+
+                    response.on("end", function () {
+                        if (log)
+                            console.log(
+                        "service.NWISRA.authenticate.response.statusCode: " +
+                                    response.statusCode.toString()
+                            );
+
+                        if (response.statusCode < 200 ||
+                            300 <= response.statuscode) {
+                            callback(
+                                "Could not reference site at http://" + host +
+                                    path + "; HTTP status code was: " +
+                                    response.statusCode.toString()
+                            );
+                            return;
+                        }
+
+                        callback(null, messageBody);
+                    });
                 }
 
-                cb(null);
-            }
-        ],
-            function (error) {
-                if (error) {
+                var request = https.request({
+                    host: host,
+                    method: "POST",
+                    headers:
+                        {"content-type": "application/x-www-form-urlencoded"},
+                    path: path
+                }, queryCallback);
+
+                /**
+                   @description Handle service invocation errors.
+                */
+                request.on("error", function (error) {
                     if (error.code === "ENOTFOUND") {
                         // can't get to the NWIS-RA server; use local file
                         fs.readFile("parameters.json", function (error, json) {
@@ -718,10 +744,37 @@ NWISRA: function (hostname, userName, password, log, callback) {
                                 return;
                             }
                         });
+                        callback(null, null);
                     }
                     else
                         callback(error);
+                    return;
+                });
+
+                request.write(
+                    querystring.stringify(
+                        {username: userName, password: password}
+                    )
+                );
+
+                request.end();
+            },
+            function (messageBody, callback) {
+                if (messageBody) {
+                    try {
+                        authentication = JSON.parse(messageBody);
+                    }
+                    catch (error) {
+                        callback(error);
+                        return;
+                    }
                 }
+                callback(null);
+            }
+        ],
+            function (error) {
+                if (error)
+                    callback(error);
                 else
                     callback(null);
             }
@@ -772,7 +825,7 @@ NWISRA: function (hostname, userName, password, log, callback) {
     } // query
 
     // constructor
-    var hostname = hostname;
+    var host = host;
     var log = log;
 
     authenticate(callback);
