@@ -705,13 +705,7 @@ NWISRA: function (hostname, userName, password, log, callback) {
             }
         ],
             function (error) {
-                if (error)
-                    callback(error);
-                else
-                    callback(
-                        null,
-                        "Received NWIS-RA authentication token successfully"
-                    );
+                callback(error);
             }
         );
     } // authenticate
@@ -780,6 +774,7 @@ NWISRA: function (hostname, userName, password, log, callback) {
     this.userName = userName;
     this.password = password;
     this.log = log;
+
     authenticate(callback);
 
 } // NWISRA
