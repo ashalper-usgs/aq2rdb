@@ -26,7 +26,6 @@ var url = require("url");
 // aq2rdb modules
 var adaps = require("./adaps");
 var rdb = require("./rdb");
-var rest = require("./rest");
 var service = require("./service");
 var site = require("./site");
 
@@ -1732,130 +1731,6 @@ catch (error) {
 }
 
 /**
-   @class
-   @classdesc NWIS-RA object prototype.
-   @private
-*/
-var NWISRA = function (hostname, userName, password, log, callback) {
-    var authentication;
-
-    /**
-       @method
-       @description Get authentication token from NWIS-RA.
-       @private
-     */
-    function authenticate(callback) {
-        async.waterfall([
-            function (cb) {
-                try {
-                    rest.querySecure(
-                        hostname,
-                        "POST",
-                        {"content-type": "application/x-www-form-urlencoded"},
-                        "/service/auth/authenticate",
-                        {username: userName, password: password},
-                        log,
-                        cb
-                    );
-                }
-                catch (error) {
-                    cb(error);
-                    return;
-                }
-            },
-            function (messageBody, cb) {
-                try {
-                    authentication = JSON.parse(messageBody);
-                }
-                catch (error) {
-                    cb(error);
-                    return;
-                }
-
-                cb(null);
-            }
-        ],
-            function (error) {
-                if (error)
-                    callback(error);
-                else
-                    callback(
-                        null,
-                        "Received NWIS-RA authentication token successfully"
-                    );
-            }
-        );
-    } // authenticate
-
-    /**
-       @method
-       @description Make an NWIS-RA, HTTP GET query.
-       @public
-       @param {object} obj HTTP query parameter/value object.
-       @param {boolean} log Enable console logging if true; no console
-                        logging when false.
-       @param {function} callback Callback function to call if/when
-                         response is received.
-    */
-    this.query = function (obj, log, callback) {
-        try {
-            rest.querySecure(
-                this.hostname,
-                "GET",
-                {"Authorization": "Bearer " + authentication.tokenId},
-                "/service/data/view/parameters/json",
-                obj,
-                log,
-                callback
-            );
-        }
-        catch (error) {
-            // Attempt to detect expired authentication token
-            // error.
-            if (error === "SyntaxError: Unexpected end of input") {
-                async.waterfall([
-                    function (callback) {
-                        authenticate(callback); // try to refresh token
-                        callback(null);
-                    },
-                    function (callback) {
-                        // retry query one more time
-                        rest.querySecure(
-                            this.hostname,
-                            "GET",
-                            {"Authorization": "Bearer " +
-                             authentication.tokenId},
-                            "/service/data/view/parameters/json",
-                            obj,
-                            log,
-                            callback
-                        );
-                    }
-                ],
-                    function (error) {
-                        if (error)
-                            callback(error);
-                    }
-                );
-            }
-            else
-                callback(error);
-            return;
-        }
-        // no callback call here; it is called from rest.querySecure()
-        // above
-    } // query
-
-    // constructor
-    this.hostname = hostname;
-    this.userName = userName;
-    this.password = password;
-    this.log = log;
-    authenticate(callback);
-
-} // NWISRA
-
-/**
    @description Check for "version" CLI option.
 */
 if (options.version === true) {
@@ -1945,7 +1820,7 @@ else {
                 */
                 function (callback) {
                     try {
-                        nwisRA = new NWISRA(
+                        nwisRA = new service.NWISRA(
                             passwd.nwisRAHostname,
                             passwd.nwisRAUserName,
                             passwd.nwisRAPassword, options.log,
