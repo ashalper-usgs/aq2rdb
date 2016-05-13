@@ -1819,13 +1819,38 @@ else {
                                 authentication token.
                 */
                 function (callback) {
-                    nwisRA = new service.NWISRA(
-                        passwd.nwisRAHostname, passwd.nwisRAUserName,
-                        passwd.nwisRAPassword, options.log, callback
+                    async.waterfall([
+                        function (callback) {
+                            nwisRA = new service.NWISRA(
+                                passwd.nwisRAHostname,
+                                passwd.nwisRAUserName,
+                                passwd.nwisRAPassword, options.log,
+                                callback
+                            );
+                            // no callback here; it is called from
+                            // NWISRA() when complete
+                        }
+                    ],
+                        function (error) {
+                            if (error) {
+                                if (error.code === "ENOTFOUND") {
+                                    /**
+                                       @todo load USGS parameter code to
+                                       AQUARIUS Parameter mapping
+                                       from local JSON file.
+                                    */
+                                    log(packageName,
+                                        "Could not find NWIS-RA server at " +
+                                        passwd.nwisRAHostname);
+                                }
+                                else
+                                    callback(error);
+                            }
+                            else
+                                callback(null,
+                                         "Initialized parameter mapping");
+                        }
                     );
-
-                    // no callback here; it is called from NWISRA()
-                    // when complete
                 },
                 initAquarius,
                 function (callback) {
