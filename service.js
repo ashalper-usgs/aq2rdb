@@ -723,7 +723,7 @@ NWISRA: function (hostname, userName, password, log, callback) {
     this.query = function (obj, log, callback) {
         try {
             rest.querySecure(
-                this.hostname,
+                hostname,
                 "GET",
                 {"Authorization": "Bearer " + authentication.tokenId},
                 "/service/data/view/parameters/json",
@@ -744,7 +744,7 @@ NWISRA: function (hostname, userName, password, log, callback) {
                     function (callback) {
                         // retry query one more time
                         rest.querySecure(
-                            this.hostname,
+                            hostname,
                             "GET",
                             {"Authorization": "Bearer " +
                              authentication.tokenId},
@@ -770,10 +770,8 @@ NWISRA: function (hostname, userName, password, log, callback) {
     } // query
 
     // constructor
-    this.hostname = hostname;
-    this.userName = userName;
-    this.password = password;
-    this.log = log;
+    var hostname = hostname;
+    var log = log;
 
     authenticate(callback);
 
