@@ -1,5 +1,5 @@
 /**
- * @fileOverview Functions for querying USGS Site Web Service.
+ * @fileOverview USGS site prototype.
  *
  * @module site
  *
