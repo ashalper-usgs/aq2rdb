@@ -1731,6 +1731,31 @@ catch (error) {
 }
 
 /**
+   @function
+   @description Attempt AQUARIUS handshaking to get authentication
+                token.
+   @private
+   @param {function} callback Callback function to call when
+   complete.
+*/
+function initAquarius(callback) {
+    try {
+        aquarius = new service.AQUARIUS(
+            options.aquariusTokenHostname,
+            options.aquariusHostname,
+            options.aquariusUserName,
+            options.aquariusPassword, callback
+        );
+    }
+    catch (error) {
+        if (error) {
+            callback(error);
+            return;
+        }
+    }
+} // initAquarius
+
+/**
    @description Check for "version" CLI option.
 */
 if (options.version === true) {
@@ -1744,31 +1769,6 @@ else {
     */
     var server = http.createServer(handleRequest);
     var passwd = new Object();
-
-    /**
-       @function
-       @description Attempt AQUARIUS handshaking to get authentication
-                    token.
-       @private
-       @param {function} callback Callback function to call when
-              complete.
-    */
-    function initAquarius(callback) {
-        try {
-            aquarius = new service.AQUARIUS(
-                options.aquariusTokenHostname,
-                options.aquariusHostname,
-                options.aquariusUserName,
-                options.aquariusPassword, callback
-            );
-        }
-        catch (error) {
-            if (error) {
-                callback(error);
-                return;
-            }
-        }
-    }
 
     async.waterfall([
         function (callback) {
