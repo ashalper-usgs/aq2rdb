@@ -1082,7 +1082,7 @@ httpdispatcher.onGet(
         */
         var parameterCode;
         var parameter, statCode, extendedFilters;
-        var during, editable, cflag, vflag;
+        var uniqueId, during, editable, cflag, vflag;
         var rndsup, locTzCd;
 
         /**
