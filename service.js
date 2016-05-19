@@ -807,7 +807,7 @@ NWISRA: function (host, userName, password, log, callback) {
 
             response.on('end', function () {
                 if (log)
-                    console.log("rest.querySecure.response.statusCode: " +
+                    console.log("rest.queryRemote.response.statusCode: " +
                                 response.statusCode.toString());
 
                 if (response.statusCode === 404) {
@@ -826,13 +826,13 @@ NWISRA: function (host, userName, password, log, callback) {
 
                 return;
             });
-        }
+        } // queryCallback
 
         var chunk = querystring.stringify(obj);
 
         var request = https.request({
             host: host,
-            method: "POST",
+            method: "GET",
             headers: {"Authorization": "Bearer " + authentication.tokenId},
             path: path
         }, queryCallback);
@@ -842,7 +842,7 @@ NWISRA: function (host, userName, password, log, callback) {
         */
         request.on("error", function (error) {
             if (log)
-                console.log("rest.querySecure: " + error);
+                console.log("rest.queryRemote: " + error);
             callback(error);
             return;
         });
@@ -853,7 +853,7 @@ NWISRA: function (host, userName, password, log, callback) {
 
     /**
        @method
-       @description Make an NWIS-RA, HTTP GET query.
+       @description Make an NWIS-RA, HTTP query.
        @public
        @param {object} obj HTTP query parameter/value object.
        @param {boolean} log Enable console logging if true; no console
