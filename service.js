@@ -212,9 +212,7 @@ AQUARIUS: function (
        @param {function} callback Callback to call if/when
               GetTimeSeriesCorrectedData service responds.
     */
-    this.getTimeSeriesCorrectedData = function (
-        parameters, callback
-    ) {
+    this.getTimeSeriesCorrectedData = function (parameters, callback) {
         /**
            @description Handle response from GetTimeSeriesCorrectedData.
            @callback
@@ -269,7 +267,9 @@ AQUARIUS: function (
        @param {function} callback Callback function to call when
                                   response is received.
     */
-    this.parseTimeSeriesDataServiceResponse = function (messageBody, callback) {
+    this.parseTimeSeriesDataServiceResponse = function (
+        messageBody, callback
+    ) {
         var timeSeriesDataServiceResponse;
 
         try {
@@ -780,6 +780,76 @@ NWISRA: function (host, userName, password, log, callback) {
             }
         );
     } // authenticate
+
+    /**
+       @method
+       @description Query an NWIS-RA Web service.
+       @private
+       @param {string} path Path to Web service endpoint.
+       @param {object} obj Web service REST parameters.
+       @param {boolean} log Enable logging if true; no logging otherwise.
+       @callback {function} Callback function to call when query complete.
+     */
+    function queryRemote(path, obj, log, callback) {
+        /**
+           @description Handle response from HTTPS query.
+           @callback
+        */
+        function queryCallback(response) {
+            var messageBody = '';
+
+            // accumulate response
+            response.on(
+                'data',
+                function (chunk) {
+                    messageBody += chunk;
+                });
+
+            response.on('end', function () {
+                if (log)
+                    console.log("rest.querySecure.response.statusCode: " +
+                                response.statusCode.toString());
+
+                if (response.statusCode === 404) {
+                    callback("Site not found at http://" + host);
+                }
+                else if (
+                    response.statusCode < 200 || 300 <= response.statuscode
+                )
+                    callback(
+                        "Could not reference site at http://" + host +
+                            path + "; HTTP status code was: " +
+                            response.statusCode.toString()
+                    );
+                else
+                    callback(null, messageBody);
+
+                return;
+            });
+        }
+
+        var chunk = querystring.stringify(obj);
+
+        var request = https.request({
+            host: host,
+            method: "POST",
+            headers: {"Authorization": "Bearer " + authentication.tokenId},
+            path: path
+        }, queryCallback);
+
+        /**
+           @description Handle service invocation errors.
+        */
+        request.on("error", function (error) {
+            if (log)
+                console.log("rest.querySecure: " + error);
+            callback(error);
+            return;
+        });
+
+        request.end(chunk);
+
+    } // queryRemote
 
     /**
        @method
