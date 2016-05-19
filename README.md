@@ -23,7 +23,7 @@ More detailed developer documentation for USGS OWI personnel may be found here (
 *   [Design](https://docs.google.com/document/d/17heoV1JcO2eelmZlFRtLUnQ8yTycJ39iQd1lmRwG1yI/edit?usp=sharing)
 *   [Developer Setup](https://docs.google.com/document/d/145lo4iWWcJDojVt7ZWq0OnT1sF-VQ8oSX9hpApyJDg8/edit?usp=sharing)
 *   [Resources](https://docs.google.com/document/d/1bBhwi8VfdjuLIkXlgVAMQQi7TRY6BiGjfVEU5bctrhA/edit?usp=sharing)
-    
+
 This script is safe to run repeatedly, even if you have some or all required npm packages already installed.
 
 ## Installing the npm Package
