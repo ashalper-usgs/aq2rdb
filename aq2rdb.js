@@ -1597,18 +1597,12 @@ httpdispatcher.onGet(
                                  function.
             */
             function (callback) {
-                try {
-                    nwisRA.query(
-                        {"parameters.PARM_ALIAS_CD": "AQNAME",
-                         "parameters.PARM_CD": parameterCode},
-                        options.log,
-                        callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
+                nwisRA.query(
+                    {"parameters.PARM_ALIAS_CD": "AQNAME",
+                     "parameters.PARM_CD": parameterCode},
+                    options.log,
+                    callback
+                );
             },
             function (messageBody, callback) {
                 var parameters;
