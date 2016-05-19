@@ -812,29 +812,28 @@ NWISRA: function (host, userName, password, log, callback) {
 
                 if (response.statusCode === 404) {
                     callback("Site not found at http://" + host);
+                    return;
                 }
                 else if (
                     response.statusCode < 200 || 300 <= response.statuscode
-                )
+                ) {
                     callback(
                         "Could not reference site at http://" + host +
                             path + "; HTTP status code was: " +
                             response.statusCode.toString()
                     );
-                else
-                    callback(null, messageBody);
-
+                    return;
+                }
+                callback(null, messageBody);
                 return;
             });
         } // queryCallback
-
-        var chunk = querystring.stringify(obj);
 
         var request = https.request({
             host: host,
             method: "GET",
             headers: {"Authorization": "Bearer " + authentication.tokenId},
-            path: path
+            path: path + querystring.stringify(obj)
         }, queryCallback);
 
         /**
@@ -847,7 +846,7 @@ NWISRA: function (host, userName, password, log, callback) {
             return;
         });
 
-        request.end(chunk);
+        request.end();
 
     } // queryRemote
 
@@ -862,36 +861,24 @@ NWISRA: function (host, userName, password, log, callback) {
                          response is received.
     */
     this.query = function (obj, log, callback) {
-        async.waterfall([
-            function (callback) {
-                // if NWIS-RA is logged-into
-                if (authentication)
-                    queryRemote(
-                        "/service/data/view/parameters/json",
-                        obj,
-                        log,
-                        callback
-                    );
-                else
-                    // emulate the query by referring to the local
-                    // JSON data
-                    callback(
-                        parameters.find(function (record) {
-                            if (obj["parameters.PARM_CD"] === record.PARM_CD)
-                                return true;
-                            else
-                                return false;
-                        })
-                    );
-            }
-        ],
-            function (error) {
-                if (error)
-                    callback(error);
-                else
-                    callback(null);
-            }
-        );
+        // if NWIS-RA is logged-into
+        if (authentication)
+            queryRemote(
+                "/service/data/view/parameters/json",
+                obj,
+                log,
+                callback
+            );
+        else
+            // emulate the query by referring to local copy of JSON data
+            callback(
+                parameters.find(function (record) {
+                    if (obj["parameters.PARM_CD"] === record.PARM_CD)
+                        return true;
+                    else
+                        return false;
+                })
+            );
     } // query
 
     // constructor
