@@ -7,7 +7,7 @@ Vendor:         USGS Office of Water Information
 Group:          Applications/Internet
 BuildArch:      noarch
 Source0:        https://github.com/ashalper-usgs/aq2rdb/%{name}-%{version}.tar.gz
-Requires:       python >= 1:2.6.2-2
+Requires:       python >= 2.6.2-2
 License:        USGS
 URL:            https://github.com/ashalper-usgs/aq2rdb
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
