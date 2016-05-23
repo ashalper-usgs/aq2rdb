@@ -1,1 +1,2 @@
-/aq2rdb_client.egg-info/
+/aq2rdb_client.egg-info/*
+/dist/*
