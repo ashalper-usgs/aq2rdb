@@ -25,6 +25,7 @@ var url = require("url");
 
 // aq2rdb modules
 var adaps = require("./adaps");
+var aquaticInformatics = require("./aquaticInformatics");
 var rdb = require("./rdb");
 var service = require("./service");
 var site = require("./site");
@@ -333,64 +334,6 @@ function jsonParseErrorMessage(response, message) {
                         'Content-Type': 'text/plain'});
     response.write(statusMessage, 'ascii');
 }
-
-/**
-   @class
-   @classdesc LocationIdentifier object prototype.
-   @private
-   @param {string} text AQUARIUS LocationIdentifier string.
-*/
-var LocationIdentifier = function (
-    /* agencyCode, siteNumber | LocationIdentifier (AQUARIUS type) */
-) {
-    var agencyCode, siteNumber;
-
-    // LocationIdentifier constructor
-    if (arguments.length == 1) {
-        if (arguments[0].includes('-')) {
-            var token = field.arguments[0].split('-');
-
-            agencyCode = token[1];
-            siteNumber = token[0];
-        }
-        else
-            siteNumber = arguments[0];
-    }
-    // (agencyCode, siteNumber) constructor
-    else if (arguments.length == 2) {
-        var agencyCode = arguments[0];
-        var siteNumber = arguments[1];
-    }
-
-    /**
-       @method
-       @description Agency code accessor method.
-    */
-    this.agencyCode = function () {
-        return agencyCode;
-    }
-
-    /**
-       @method
-       @description Site number accessor method.
-    */
-    this.siteNumber = function () {
-        return siteNumber;
-    }
-
-    /**
-       @method
-       @description Return a string representation of
-                    LocationIdentifier.
-    */
-    this.toString = function () {
-        if (agencyCode === "USGS")
-            return siteNumber;
-        else
-            return siteNumber + '-' + agencyCode;
-    }
-
-} // LocationIdentifier
 
 /**
    @function
@@ -1734,7 +1677,7 @@ catch (error) {
 */
 function initAquarius(callback) {
     try {
-        aquarius = new service.AQUARIUS(
+        aquarius = new aquaticInformatics.AQUARIUS(
             options.aquariusTokenHostname,
             options.aquariusHostname,
             options.aquariusUserName,
