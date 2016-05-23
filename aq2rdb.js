@@ -11,7 +11,7 @@
 
 'use strict';
 
-// Node.js modules
+// Node.JS modules
 var async = require("async");
 var commandLineArgs = require("command-line-args");
 var ifAsync = require("if-async");
@@ -1915,7 +1915,6 @@ else {
 */
 if (process.env.NODE_ENV === "test") {
     module.exports._private = {
-        AQUARIUS: AQUARIUS,
         cli: cli,
         docRequest: docRequest,
         dvTableRow: dvTableRow,
