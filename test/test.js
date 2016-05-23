@@ -14,19 +14,22 @@
                 is running.
    @see http://stackoverflow.com/questions/11104028/process-env-node-env-is-undefined
 */
-process.env.NODE_ENV = 'test';
+process.env.NODE_ENV = "test";
 
-var assert = require('assert');
-var diff = require('diff');
-var expect = require('chai').expect;
-var fs = require('fs');
-var http = require('http');
-var sinon = require('sinon');
+// Node.JS modules
+var assert = require("assert");
+var diff = require("diff");
+var expect = require("chai").expect;
+var fs = require("fs");
+var http = require("http");
+var sinon = require("sinon");
 
-var aq2rdb = require('../aq2rdb.js');
-var adaps = require('../adaps.js');
-var rdb = require('../rdb.js');
-var rest = require('../rest.js');
+// aq2rdb modules
+var aq2rdb = require("../aq2rdb.js");
+var adaps = require("../adaps.js");
+var rdb = require("../rdb.js");
+var rest = require("../rest.js");
+var service = require("../service.js");
 
 describe('adaps', function () {
     describe('#IntervalDay', function () {
@@ -113,7 +116,8 @@ describe('aq2rdb', function () {
         describe('#()', function () {
             it('should throw \'Required field "hostname" not found\' error',
                function (done) {
-                   aquarius = new aq2rdb._private.AQUARIUS(
+                   aquarius = new service.AQUARIUS(
+		       "localhost",
                        undefined,
                        aq2rdb._private.options.aquariusUserName,
                        "Not a password",
@@ -129,7 +133,8 @@ describe('aq2rdb', function () {
             it('should throw \'Required field "hostname" must have ' +
                'a value\' error',
                function (done) {
-                   aquarius = new aq2rdb._private.AQUARIUS(
+                   aquarius = new service.AQUARIUS(
+		       "localhost",
                        "",
                        aq2rdb._private.options.aquariusUserName,
                        "Not a password",
@@ -145,7 +150,8 @@ describe('aq2rdb', function () {
 
             it('should throw \'Required field "userName" not found\' error',
                function (done) {
-                   aquarius = new aq2rdb._private.AQUARIUS(
+                   aquarius = new service.AQUARIUS(
+		       "localhost",
                        aq2rdb._private.options.aquariusHostname,
                        undefined,
                        "Not a password",
@@ -161,7 +167,8 @@ describe('aq2rdb', function () {
             it('should throw \'Required field "userName" must have ' +
                'a value\' error',
                function (done) {
-                   aquarius = new aq2rdb._private.AQUARIUS(
+                   aquarius = new service.AQUARIUS(
+		       "localhost",
                        aq2rdb._private.options.aquariusHostname,
                        "",
                        "Not a password",
@@ -177,7 +184,8 @@ describe('aq2rdb', function () {
 
             it('should have non-empty-string token',
                function (done) {
-                   aquarius = new aq2rdb._private.AQUARIUS(
+                   aquarius = new service.AQUARIUS(
+		       "localhost",
                        aq2rdb._private.options.aquariusHostname,
                        /**
                           @see http://stackoverflow.com/questions/16144455/mocha-tests-with-extra-options-or-parameters
