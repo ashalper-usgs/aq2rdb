@@ -11,24 +11,24 @@
 
 'use strict';
 
-// Node.js modules
-var async = require('async');
-var commandLineArgs = require('command-line-args');
-var ifAsync = require('if-async');
-var fs = require('fs');
-var http = require('http');
-var httpdispatcher = require('httpdispatcher');
-var moment = require('moment-timezone');
-var path = require('path');
-var querystring = require('querystring');
+// Node.JS modules
+var async = require("async");
+var commandLineArgs = require("command-line-args");
+var ifAsync = require("if-async");
+var fs = require("fs");
+var http = require("http");
+var httpdispatcher = require("httpdispatcher");
+var moment = require("moment-timezone");
+var path = require("path");
 var sprintf = require("sprintf-js").sprintf;
-var url = require('url');
+var url = require("url");
 
 // aq2rdb modules
-var adaps = require('./adaps');
-var rdb = require('./rdb');
-var rest = require('./rest');
-var site = require('./site');
+var adaps = require("./adaps");
+var aquaticInformatics = require("./aquaticInformatics");
+var rdb = require("./rdb");
+var service = require("./service");
+var site = require("./site");
 
 /**
    @description The Web service name is the script name without the
@@ -75,20 +75,20 @@ var cli = commandLineArgs([
      defaultValue: "waterservices.usgs.gov"},
     /**
        @description DNS name of USGS NWIS Reporting Application
-                    service host.
+                    (NWIS-RA) service host.
     */
-    {name: "waterDataHostname", type: String,
+    {name: "nwisRAHostname", type: String,
      defaultValue: "nwisdata.usgs.gov"},
     /**
        @description USGS NWIS Reporting Application, service account
                     user name.
     */
-    {name: "waterDataUserName", type: String},
+    {name: "nwisRAUserName", type: String},
     /**
        @description USGS NWIS Reporting Application, service account
                     password.
     */
-    {name: "waterDataPassword", type: String}
+    {name: "nwisRAPassword", type: String}
 ]);
 
 /**
@@ -336,46 +336,6 @@ function jsonParseErrorMessage(response, message) {
 }
 
 /**
-   @class
-   @classdesc LocationIdentifier object prototype.
-   @private
-   @param {string} text AQUARIUS LocationIdentifier string.
-*/
-var LocationIdentifier = function (agencyCode, siteNumber) {
-    var agencyCode = agencyCode;
-    var siteNumber = siteNumber;
-
-    /**
-       @method
-       @description Agency code accessor method.
-    */
-    this.agencyCode = function () {
-        return agencyCode;
-    }
-
-    /**
-       @method
-       @description Site number accessor method.
-    */
-    this.siteNumber = function () {
-        return siteNumber;
-    }
-
-    /**
-       @method
-       @description Return a string representation of
-                    LocationIdentifier.
-    */
-    this.toString = function () {
-        if (agencyCode === "USGS")
-            return siteNumber;
-        else
-            return siteNumber + '-' + agencyCode;
-    }
-
-} // LocationIdentifier
-
-/**
    @function
    @description Check for documentation request, and serve
                 documentation if appropriate.
@@ -549,642 +509,6 @@ function nwisVersusIANA(timestamp, name, tzCode, localTimeFlag) {
     return p;
 } // nwisVersusIANA
 
-/**
-   @class
-   @classdesc AQUARIUS object prototype.
-   @private
-   @param {string} hostname DNS host name of AQUARIUS server.
-   @param {string} userName AQUARIUS account user name.
-   @param {string} password AQUARIUS account password.
-   @param {function} callback Callback to call when object
-          constructed.
-*/
-var AQUARIUS = function (hostname, userName, password, callback) {
-    var token, remarkCodes;
-    var port = "8080";
-    var path = "/services/GetAQToken?";
-    var uriString = "http://" + hostname + "/AQUARIUS/";
-
-    if (hostname === undefined) {
-        callback('Required field "hostname" not found');
-        return;
-    }
-
-    if (hostname === '') {
-        callback('Required field "hostname" must have a value');
-        return;
-    }
-
-    this.hostname = hostname;
-
-    if (userName === undefined) {
-        callback('Required field "userName" not found');
-        return;
-    }
-
-    if (userName === '') {
-        callback('Required field "userName" must have a value');
-        return;
-    }
-
-    if (password === undefined) {
-        callback('Required field "password" not found');
-        return;
-    }
-
-    if (password === '') {
-        callback('Required field "password" must have a value');
-        return;
-    }
-
-    /**
-       @function
-       @description GetAQToken service response callback.
-       @private
-       @callback
-    */
-    function getAQTokenCallback(response) {
-        var messageBody = '';
-
-        // accumulate response
-        response.on('data', function (chunk) {
-            messageBody += chunk;
-        });
-
-        // Response complete; token received.
-        response.on('end', function () {
-            token = messageBody;
-            callback(
-                null,
-                "Received AQUARIUS authentication token successfully"
-            );
-            return;
-        });
-    } // getAQTokenCallback
-
-    log(packageName + ".AQUARIUS()",
-        "querying http://" + hostname + ":" + port +
-        path + "..., AQUARIUS server at " + uriString);
-
-    // make sure to not reveal user-name/passwords in log
-    path += querystring.stringify(
-        {userName: userName, password: password,
-         uriString: uriString}
-    );
-
-    /**
-       @description GetAQToken service request for AQUARIUS
-                    authentication token needed for AQUARIUS API.
-    */
-    var request = http.request({
-        host: options.aquariusTokenHostname,
-        port: port,             // TODO: make a CLI parameter?
-        path: path
-    }, getAQTokenCallback);
-
-    /**
-       @description Handle GetAQToken service invocation errors.
-       @callback
-    */
-    request.on('error', function (error) {
-        var statusMessage;
-
-        log(packageName + ".AQUARIUS().request.on()", error);
-        
-        if (error.message === 'connect ECONNREFUSED') {
-            callback("Could not connect to GetAQToken service for " +
-                     "AQUARIUS authentication token");
-        }
-        else {
-            callback(error);
-        }
-        return;
-    });
-
-    request.end();
-
-    /**
-       @method
-       @description AQUARIUS authentication token accessor method.
-     */
-    this.token = function () {
-        return token;
-    }
-
-    /**
-       @method
-       @description Call AQUARIUS GetLocationData Web service.
-       @param {string} locationIdentifier AQUARIUS location identifier.
-       @param {function} callback Callback function to call if/when
-              response from GetLocationData is received.
-    */
-    this.getLocationData = function (locationIdentifier, callback) {
-        /**
-           @description Handle response from GetLocationData.
-           @callback
-        */
-        function getLocationDataCallback(response) {
-            var messageBody = "";
-
-            // accumulate response
-            response.on(
-                "data",
-                function (chunk) {
-                    messageBody += chunk;
-                });
-
-            response.on("end", function () {
-                callback(null, messageBody);
-                return;
-            });
-        }
-        
-        var path = "/AQUARIUS/Publish/V2/GetLocationData?" +
-            querystring.stringify(
-                {token: token, format: "json",
-                 LocationIdentifier: locationIdentifier}
-            );
-
-        var request = http.request({
-            host: hostname,
-            path: path                
-        }, getLocationDataCallback);
-
-        /**
-           @description Handle GetLocationData service invocation
-                        errors.
-        */
-        request.on("error", function (error) {
-            callback(error);
-            return;
-        });
-
-        request.end();
-    } // getLocationData
-
-    /**
-       @method
-       @description Call AQUARIUS GetTimeSeriesCorrectedData Web service.
-       @param {object} parameters AQUARIUS
-              GetTimeSeriesCorrectedData service HTTP parameters.
-       @param {function} callback Callback to call if/when
-              GetTimeSeriesCorrectedData service responds.
-    */
-    this.getTimeSeriesCorrectedData = function (
-        parameters, callback
-    ) {
-        /**
-           @description Handle response from GetTimeSeriesCorrectedData.
-           @callback
-        */
-        function getTimeSeriesCorrectedDataCallback(response) {
-            var messageBody = "";
-            var timeSeriesCorrectedData;
-
-            // accumulate response
-            response.on(
-                "data",
-                function (chunk) {
-                    messageBody += chunk;
-                });
-
-            response.on("end", function () {
-                callback(null, messageBody);
-                return;
-            });
-        } // getTimeSeriesCorrectedDataCallback
-
-        // these parameters span every GetTimeSeriesCorrectedData
-        // call for our purposes, so they're not passed in
-        parameters["token"] = token;
-        parameters["format"] = "json";
-
-        var path = "/AQUARIUS/Publish/V2/GetTimeSeriesCorrectedData?" +
-            querystring.stringify(parameters);
-
-        var request = http.request({
-            host: hostname,
-            path: path
-        }, getTimeSeriesCorrectedDataCallback);
-
-        /**
-           @description Handle GetTimeSeriesCorrectedData service
-           invocation errors.
-        */
-        request.on("error", function (error) {
-            callback(error);
-            return;
-        });
-
-        request.end();
-    } // getTimeSeriesCorrectedData
-
-    /**
-       @method
-       @description Parse AQUARIUS TimeSeriesDataServiceResponse
-                    received from GetTimeSeriesCorrectedData service.
-       @param {string} messageBody Message from AQUARIUS Web service.
-       @param {function} callback Callback function to call when
-                                  response is received.
-    */
-    this.parseTimeSeriesDataServiceResponse = function (messageBody, callback) {
-        var timeSeriesDataServiceResponse;
-
-        try {
-            timeSeriesDataServiceResponse = JSON.parse(messageBody);
-        }
-        catch (error) {
-            callback(error);
-            return;
-        }
-
-        callback(null, timeSeriesDataServiceResponse);
-    } // parsetimeSeriesDataServiceResponse
-
-    /**
-       @method
-       @public
-       @description Cache remark codes.
-    */
-    this.getRemarkCodes = function () {
-        // if remark codes have not been loaded yet
-        if (remarkCodes === undefined) {
-            // load them
-            remarkCodes = new Object();
-
-            async.waterfall([
-                /**
-                   @function
-                   @description Request remark codes from AQUARIUS.
-                   @callback
-                */
-                function (callback) {
-                    try {
-                        rest.query(
-                            hostname,
-                            "GET",
-                            undefined,      // HTTP headers
-                            "/AQUARIUS/Publish/V2/GetQualifierList/",
-                            {token: token, format: "json"},
-                            options.log,
-                            callback
-                        );
-                    }
-                    catch (error) {
-                        callback(error);
-                        return;
-                    }
-                },
-                /**
-                   @function
-                   @description Receive remark codes from AQUARIUS.
-                   @callback
-                */
-                function (messageBody, callback) {
-                    var qualifierListServiceResponse;
-
-                    try {
-                        qualifierListServiceResponse =
-                            JSON.parse(messageBody);
-                    }
-                    catch (error) {
-                        callback(error);
-                        return;
-                    }
-
-                    // if we didn't get the remark codes domain table
-                    if (qualifierListServiceResponse === undefined) {
-                        callback(
-                            "Could not get remark codes from http://" +
-                                hostname +
-                                "/AQUARIUS/Publish/V2/GetQualifierList/"
-                        );
-                        return;
-                    }
-
-                    // put remark codes in an array for faster access later
-                    remarkCodes = new Array();
-                    async.each(
-                        qualifierListServiceResponse.Qualifiers,
-                        /** @callback */
-                        function (qualifierMetadata, callback) {
-                            remarkCodes[qualifierMetadata.Identifier] =
-                                qualifierMetadata.Code;
-                            callback(null);
-                        }
-                    );
-
-                    callback(null);
-                }
-            ]);
-        }
-    } // getRemarkCodes
-
-    /**
-       @function
-       @description Distill a set of time series descriptions into
-                    (hopefully) one, to query for a set of time series
-                    date/value pairs.
-       @private
-       @param {object} timeSeriesDescriptions An array of AQUARIUS
-              TimeSeriesDescription objects.
-       @param {object} locationIdentifier A LocationIdentifier object.
-       @param {function} callback Callback function to call if/when
-              one-and-only-one candidate TimeSeriesDescription object
-              is found, or, to call with node-async, raise error
-              convention.
-    */
-    function distill(
-        timeSeriesDescriptions, locationIdentifier, callback
-    ) {
-        var timeSeriesDescription;
-
-        switch (timeSeriesDescriptions.length) {
-        case 0:
-            callback(
-                "No time series descriptions found for LocationIdentifier \"" +
-                    locationIdentifier + "\""
-            );
-            break;
-        case 1:
-            timeSeriesDescription = timeSeriesDescriptions[0];
-            break;
-        default:
-            /**
-               @description Filter out set of primary time series.
-            */
-            async.filter(
-                timeSeriesDescriptions,
-                /**
-                   @function
-                   @description Primary time series filter iterator
-                                function.
-                   @callback
-                */
-                function (timeSeriesDescription, callback) {
-                    /**
-                       @description Detect
-                       {"Name": "PRIMARY_FLAG",
-                       "Value": "Primary"} in
-                       TimeSeriesDescription.ExtendedAttributes
-                    */
-                    async.detect(
-                        timeSeriesDescription.ExtendedAttributes,
-                        /**
-                           @function
-                           @description Primary time series,
-                                        async.detect truth value
-                                        function.
-                           @callback
-                        */
-                        function (extendedAttribute, callback) {
-                            // if this time series description is
-                            // (hopefully) the (only) primary one
-                            if (extendedAttribute.Name === "PRIMARY_FLAG"
-                                &&
-                                extendedAttribute.Value === "Primary") {
-                                callback(true);
-                            }
-                            else {
-                                callback(false);
-                            }
-                        },
-                        /**
-                           @function
-                           @description Primary time series,
-                                        async.detect final function.
-                           @callback
-                        */
-                        function (result) {
-                            // notify async.filter that we...
-                            if (result === undefined) {
-                                // ...did not find a primary time series
-                                // description
-                                callback(false);
-                            }
-                            else {
-                                // ...found a primary time series
-                                // description
-                                callback(true);
-                            }
-                        }
-                    );
-                },
-                /**
-                   @function
-                   @description Check arity of primary time series
-                                descriptions returned from AQUARIUS
-                                GetTimeSeriesDescriptionList.
-                   @callback
-                */
-                function (primaryTimeSeriesDescriptions) {
-                    // if there is 1-and-only-1 primary time
-                    // series description
-                    if (primaryTimeSeriesDescriptions.length === 1) {
-                        timeSeriesDescription = timeSeriesDescriptions[0];
-                    }
-                    else {
-                        // raise error
-                        var error =
-                            "More than one primary time series found for \"" +
-                            locationIdentifier.toString() + "\":\n" +
-                            "#\n";
-                        async.each(
-                            primaryTimeSeriesDescriptions,
-                            /** @callback */
-                            function (desc, callback) {
-                                error += "#   " + desc.Identifier + "\n";
-                                callback(null);
-                            }
-                        );
-                        callback(error);
-                    }
-                }
-            ); // async.filter
-        } // switch (timeSeriesDescriptions.length)
-
-        callback(null, timeSeriesDescription);
-    } // distill
-
-    /**
-       @function
-       @description Query AQUARIUS GetTimeSeriesDescriptionList
-                    service to get list of AQUARIUS, time series
-                    UniqueIds related to aq2rdb, location and
-                    parameter.
-       @private
-       @param {string} agencyCode USGS agency code.
-       @param {string} siteNumber USGS site number.
-       @param {string} parameter AQUARIUS parameter.
-       @param {string} computationIdentifier AQUARIUS computation
-                       identifier.
-       @param {string} computationPeriodIdentifier AQUARIUS
-                       computation period identifier.
-       @param {function} callback async.waterfall() callback
-              function.
-    */
-    function getTimeSeriesDescriptionList(
-        agencyCode, siteNumber, parameter, computationIdentifier,
-        computationPeriodIdentifier, callback
-    ) {
-        // make (agencyCode,siteNo) digestible by AQUARIUS
-        var locationIdentifier = (agencyCode === "USGS") ?
-            siteNumber : siteNumber + '-' + agencyCode;
-
-        var obj = {
-            token: token,
-            format: "json",
-            LocationIdentifier: locationIdentifier,
-            Parameter: parameter,
-            ComputationPeriodIdentifier: computationPeriodIdentifier,
-            ExtendedFilters: "[{FilterName:ACTIVE_FLAG,FilterValue:Y}," +
-                              "{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
-        };
-
-        if (computationIdentifier)
-            obj["ComputationIdentifier"] = computationIdentifier;
-
-        try {
-            rest.query(
-                hostname,
-                "GET",
-                undefined,      // HTTP headers
-                "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                obj,
-                options.log,
-                callback
-            );
-        }
-        catch (error) {
-            callback(error);
-            return;
-        }
-    } // getTimeSeriesDescriptionList
-
-    /**
-       @method
-       @description Get a TimeSeriesDescription object from AQUARIUS.
-       @param {string} agencyCode USGS agency code.
-       @param {string} siteNumber USGS site number.
-       @param {string} parameter AQUARIUS parameter.
-       @param {string} computationIdentifier AQUARIUS computation identifier.
-       @param {string} computationPeriodIdentifier AQUARIUS computation
-                       period identifier.
-       @param {function} outerCallback Callback function to call when complete.
-    */
-    this.getTimeSeriesDescription = function (
-        agencyCode, siteNumber, parameter, computationIdentifier,
-        computationPeriodIdentifier, outerCallback
-    ) {
-        var locationIdentifier, timeSeriesDescription;
-
-        async.waterfall([
-            function (callback) {
-                getTimeSeriesDescriptionList(
-                    agencyCode, siteNumber, parameter,
-                    computationIdentifier,
-                    computationPeriodIdentifier, callback
-                );
-            },
-            /**
-               @function
-               @description Receive response from AQUARIUS
-                            GetTimeSeriesDescriptionList, then parse
-                            list of related TimeSeriesDescriptions to
-                            query AQUARIUS GetTimeSeriesCorrectedData
-                            service.
-               @callback
-               @param {string} messageBody Message body part of HTTP
-                               response from
-                               GetTimeSeriesDescriptionList.
-            */
-            function (messageBody, callback) {
-                var timeSeriesDescriptionListServiceResponse;
-
-                try {
-                    timeSeriesDescriptionListServiceResponse =
-                        JSON.parse(messageBody);
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                callback(
-                    null,
-                timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
-                );
-            },
-            /**
-               @function
-               @description Check for zero TimeSeriesDescriptions
-                            returned from AQUARIUS Web service query
-                            above.
-               @callback
-            */
-            function (timeSeriesDescriptions, callback) {
-                locationIdentifier =
-                    new LocationIdentifier(agencyCode, siteNumber);
-
-                if (timeSeriesDescriptions.length === 0) {
-                    callback(
-                        "No time series description list found at " +
-                            url.format({
-                                protocol: "http",
-                                host: hostname,
-                                pathname:
-                           "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                                query: {
-                                    token: token,
-                                    format: "json",
-                                    LocationIdentifier: locationIdentifier,
-                                    Parameter: parameter,
-                                   ComputationIdentifier: computationIdentifier,
-                                    ComputationPeriodIdentifier:
-                                       computationPeriodIdentifier,
-                                    ExtendedFilters:
-                                    "[{FilterName:ACTIVE_FLAG,FilterValue:Y}," +
-                                     "{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
-                                }
-                            })
-                    );
-                    return;
-                }
-
-                callback(null, timeSeriesDescriptions);
-            },
-            /**
-               @function
-               @description For each AQUARIUS time series description,
-                            weed out non-primary ones.
-               @callback
-            */
-            function (timeSeriesDescriptions, callback) {
-                /**
-                   @private
-                   @todo Need to decide whether <code>distill()</code>
-                         is to be public method or private function.
-                */
-                timeSeriesDescription = distill(
-                    timeSeriesDescriptions, locationIdentifier,
-                    callback
-                );
-            },
-            function (tsd, callback) {
-                timeSeriesDescription = tsd;
-                callback(null);
-            }
-        ],
-        function (error) {
-            if (error)
-                outerCallback(error);
-            else
-                outerCallback(null, timeSeriesDescription);
-        });
-    } // getTimeSeriesDescription
-
-} // AQUARIUS
-
 function required(options, propertyList) {
     for (var i in propertyList){
         if (options[propertyList[i]] === undefined) {
@@ -1230,8 +554,15 @@ function parseFields(requestURL, callback) {
         return;
     }
 
+    if ((field.p || field.s) && field.u) {
+        callback(
+            "Specify either \"-p\" and \"s\", or \"-u\", but not both"
+        );
+        return;
+    }
+
     for (var name in field) {
-        if (name.match(/^(a|p|t|s|n|b|e|l|r|w)$/)) {
+        if (name.match(/^(a|p|t|s|n|b|e|l|r|u|w)$/)) {
             // aq2rdb fields
         }
         else {
@@ -1245,8 +576,9 @@ function parseFields(requestURL, callback) {
 
     // pass parsed field values to next async.waterfall() function
     callback(
-        null, field.t, rndsup, field.w, false, false, field.a, field.n,
-        field.p, field.s, field.b, field.e, field.l, ""
+        null, field.t, rndsup, field.w, false, false, field.a,
+        field.n, field.p, field.s, field.u, field.b, field.e, field.l,
+        ""
     );
 } // parseFields
 
@@ -1487,16 +819,8 @@ httpdispatcher.onGet(
 
                 for (var name in field) {
                     if (name === 'LocationIdentifier') {
-                        /**
-                           @todo It would be nice to encapsulate this
-                                 parsing in a LocationIdentifier
-                                 second constructor method.
-                        */
-                        var token =
-                            field.LocationIdentifier.split('-');
-
                         locationIdentifier =
-                            new LocationIdentifier(token[1], token[0]);
+                            new LocationIdentifier(field.LocationIdentifier);
                     }
                     else if (name.match(
                         /^(Parameter|ComputationIdentifier|QueryFrom|QueryTo)$/
@@ -1701,7 +1025,7 @@ httpdispatcher.onGet(
         */
         var parameterCode;
         var parameter, statCode, extendedFilters;
-        var during, editable, cflag, vflag;
+        var uniqueId, during, editable, cflag, vflag;
         var rndsup, locTzCd;
 
         /**
@@ -1738,11 +1062,7 @@ httpdispatcher.onGet(
         */
         function dailyValues(callback) {
             var parameters = Object();
-            // many/most of these are artifacts of the legacy code,
-            // and probably won't be needed:
-            var rndary = ' ';
-            var rndparm, rnddd;
-            var pcode, timeSeriesDescription;
+            var timeSeriesDescription;
 
             async.waterfall([
                 function (callback) {
@@ -1758,20 +1078,6 @@ httpdispatcher.onGet(
                     callback(null);
                 },
                 function (callback) {
-                    pcode = 'P';         // pmcode            // set rounding
-                    /**
-                       @todo Load data descriptor?
-                       s_mddd(nw_read, irc, *998);
-                    */
-                    /**
-                       @todo call parameter Web service here
-                       rtcode = pmretr(60);
-                    */
-                    if (rnddd !== ' ' && rnddd !== '0000000000')
-                        rndary = rnddd;
-                    else
-                        rndary = rndparm;
-
                     callback(
                         null, agencyCode, siteNumber,
                         parameter.aquariusParameter, undefined,
@@ -2046,8 +1352,8 @@ httpdispatcher.onGet(
             parseFields,
             function rdbOut(
                 dataType, rndsup, wyflag, cflag, vflag, agencyCode,
-                siteNumber, parameterCode, instat, begdat, enddat,
-                locTzCd, titlline, callback
+                siteNumber, parameterCode, instat, uniqueId, begdat,
+                enddat, locTzCd, titlline, callback
             ) {
                 var datatyp, stat, uvtyp, interval;
                 var uvtypPrompted = false;
@@ -2160,8 +1466,8 @@ httpdispatcher.onGet(
 
                 callback(
                     null, false, rndsup, cflag, vflag, dataType,
-                    agencyCode, siteNumber, parameterCode, interval,
-                    locTzCd
+                    agencyCode, siteNumber, parameterCode, uniqueId,
+                    interval, locTzCd
                 );
             },
             /**
@@ -2169,7 +1475,7 @@ httpdispatcher.onGet(
                      crutch eventually.
             */
             function (
-                e, r, c, v, d, a, s, p, interval, locTzCd, callback
+                e, r, c, v, d, a, s, p, u, interval, locTzCd, callback
             ) {
                 // save values in outer scope to avoid passing these
                 // values through subsequent async.waterfal()
@@ -2181,6 +1487,7 @@ httpdispatcher.onGet(
                 dataType = d;
                 locationIdentifier = new LocationIdentifier(a, s);
                 parameterCode = p;
+                uniqueId = u;
                 during = interval;
                 rndsup = r;
 
@@ -2233,18 +1540,12 @@ httpdispatcher.onGet(
                                  function.
             */
             function (callback) {
-                try {
-                    nwisRA.query(
-                        {"parameters.PARM_ALIAS_CD": "AQNAME",
-                         "parameters.PARM_CD": parameterCode},
-                        options.log,
-                        callback
-                    );
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
+                nwisRA.query(
+                    {"parameters.PARM_ALIAS_CD": "AQNAME",
+                     "parameters.PARM_CD": parameterCode},
+                    options.log,
+                    callback
+                );
             },
             function (messageBody, callback) {
                 var parameters;
@@ -2367,128 +1668,29 @@ catch (error) {
 }
 
 /**
-   @class
-   @classdesc NWIS-RA object prototype.
+   @function
+   @description Attempt AQUARIUS handshaking to get authentication
+                token.
    @private
+   @param {function} callback Callback function to call when
+   complete.
 */
-var NWISRA = function (hostname, userName, password, log, callback) {
-    var authentication;
-
-    /**
-       @method
-       @description Get authentication token from NWIS-RA.
-       @private
-     */
-    function authenticate(callback) {
-        async.waterfall([
-            function (cb) {
-                try {
-                    rest.querySecure(
-                        hostname,
-                        "POST",
-                        {"content-type": "application/x-www-form-urlencoded"},
-                        "/service/auth/authenticate",
-                        {username: userName, password: password},
-                        log,
-                        cb
-                    );
-                }
-                catch (error) {
-                    cb(error);
-                    return;
-                }
-            },
-            function (messageBody, cb) {
-                try {
-                    authentication = JSON.parse(messageBody);
-                }
-                catch (error) {
-                    cb(error);
-                    return;
-                }
-
-                cb(null);
-            }
-        ],
-            function (error) {
-                if (error)
-                    callback(error);
-                else
-                    callback(
-                        null,
-                        "Received NWIS-RA authentication token successfully"
-                    );
-            }
+function initAquarius(callback) {
+    try {
+        aquarius = new aquaticInformatics.AQUARIUS(
+            options.aquariusTokenHostname,
+            options.aquariusHostname,
+            options.aquariusUserName,
+            options.aquariusPassword, callback
         );
-    } // authenticate
-
-    /**
-       @method
-       @description Make an NWIS-RA, HTTP GET query.
-       @public
-       @param {object} obj HTTP query parameter/value object.
-       @param {boolean} log Enable console logging if true; no console
-                        logging when false.
-       @param {function} callback Callback function to call if/when
-                         response is received.
-    */
-    this.query = function (obj, log, callback) {
-        try {
-            rest.querySecure(
-                this.hostname,
-                "GET",
-                {"Authorization": "Bearer " + authentication.tokenId},
-                "/service/data/view/parameters/json",
-                obj,
-                log,
-                callback
-            );
-        }
-        catch (error) {
-            // Attempt to detect expired authentication token
-            // error.
-            if (error === "SyntaxError: Unexpected end of input") {
-                async.waterfall([
-                    function (callback) {
-                        authenticate(callback); // try to refresh token
-                        callback(null);
-                    },
-                    function (callback) {
-                        // retry query one more time
-                        rest.querySecure(
-                            this.hostname,
-                            "GET",
-                            {"Authorization": "Bearer " +
-                             authentication.tokenId},
-                            "/service/data/view/parameters/json",
-                            obj,
-                            log,
-                            callback
-                        );
-                    }
-                ],
-                    function (error) {
-                        if (error)
-                            callback(error);
-                    }
-                );
-            }
-            else
-                callback(error);
+    }
+    catch (error) {
+        if (error) {
+            callback(error);
             return;
         }
-        // no callback call here; it is called from rest.querySecure()
-        // above
-    } // query
-
-    // constructor
-    this.hostname = hostname;
-    this.userName = userName;
-    this.password = password;
-    this.log = log;
-    authenticate(callback);
-
-} // NWISRA
+    }
+} // initAquarius
 
 /**
    @description Check for "version" CLI option.
@@ -2505,38 +1707,14 @@ else {
     var server = http.createServer(handleRequest);
     var passwd = new Object();
 
-    /**
-       @function
-       @description Attempt AQUARIUS handshaking to get authentication
-                    token.
-       @private
-       @param {function} callback Callback function to call when
-              complete.
-    */
-    function initAquarius(callback) {
-        try {
-            aquarius = new AQUARIUS(
-                options.aquariusHostname,
-                options.aquariusUserName,
-                options.aquariusPassword, callback
-            );
-        }
-        catch (error) {
-            if (error) {
-                callback(error);
-                return;
-            }
-        }
-    }
-
     async.waterfall([
         function (callback) {
             // if all prerequisite login information is missing on
             // command-line
             if (options.aquariusUserName === undefined &&
                 options.aquariusPassword === undefined &&
-                options.waterDataUserName === undefined &&
-                options.waterDataPassword === undefined) {
+                options.nwisRAUserName === undefined &&
+                options.nwisRAPassword === undefined) {
                 /** @todo need some logic here to find the encrypted
                     volume's mount point. */
                 fs.readFile(
@@ -2563,9 +1741,9 @@ else {
                 passwd.aquariusHostname = options.aquariusHostname;
                 passwd.aquariusUserName = options.aquariusUserName;
                 passwd.aquariusPassword = options.aquariusPassword;
-                passwd.waterDataHostname = options.waterDataHostname;
-                passwd.waterDataUserName = options.waterDataUserName;
-                passwd.waterDataPassword = options.waterDataPassword;
+                passwd.nwisRAHostname = options.nwisRAHostname;
+                passwd.nwisRAUserName = options.nwisRAUserName;
+                passwd.nwisRAPassword = options.nwisRAPassword;
                 callback(null);
             }
         },
@@ -2578,22 +1756,27 @@ else {
                                 authentication token.
                 */
                 function (callback) {
-                    try {
-                        nwisRA = new NWISRA(
-                            passwd.waterDataHostname,
-                            passwd.waterDataUserName,
-                            passwd.waterDataPassword, options.log,
-                            callback
-                        );
-                    }
-                    catch (error) {
-                        if (error) {
-                            callback(error);
-                            return;
+                    async.waterfall([
+                        function (callback) {
+                            nwisRA = new service.NWISRA(
+                                passwd.nwisRAHostname,
+                                passwd.nwisRAUserName,
+                                passwd.nwisRAPassword, options.log,
+                                callback
+                            );
+                            // no callback here; it is called from
+                            // NWISRA() when complete
                         }
-                    }
-                    // no callback here; it is called from NWISRA()
-                    // when complete
+                    ],
+                        function (error) {
+                            if (error)
+                                callback(error);
+                            else
+                                callback(
+                                    null, "Initialized parameter mapping"
+                                );
+                        }
+                    );
                 },
                 initAquarius,
                 function (callback) {
@@ -2675,7 +1858,6 @@ else {
 */
 if (process.env.NODE_ENV === "test") {
     module.exports._private = {
-        AQUARIUS: AQUARIUS,
         cli: cli,
         docRequest: docRequest,
         dvTableRow: dvTableRow,

@@ -23,7 +23,7 @@ More detailed developer documentation for USGS OWI personnel may be found here (
 *   [Design](https://docs.google.com/document/d/17heoV1JcO2eelmZlFRtLUnQ8yTycJ39iQd1lmRwG1yI/edit?usp=sharing)
 *   [Developer Setup](https://docs.google.com/document/d/145lo4iWWcJDojVt7ZWq0OnT1sF-VQ8oSX9hpApyJDg8/edit?usp=sharing)
 *   [Resources](https://docs.google.com/document/d/1bBhwi8VfdjuLIkXlgVAMQQi7TRY6BiGjfVEU5bctrhA/edit?usp=sharing)
-    
+
 This script is safe to run repeatedly, even if you have some or all required npm packages already installed.
 
 ## Installing the npm Package
@@ -33,14 +33,14 @@ aq2rdb is started from the Node.js interpreter like this:
 
     node aq2rdb.js --aquariusUserName aquariusUserName \
                    --aquariusPassword aquariusPassword \
-                   --waterDataUserName waterDataUserName \
-                   --waterDataPassword waterDataPassword
+                   --nwisRAUserName nwisRAUserName \
+                   --nwisRAPassword nwisRAPassword
 
 where *aquariusUserName* is the user name of an AQUARIUS account under
 which aq2rdb will query AQUARIUS Web services, *aquariusPassword* is
-the password for this account; *waterDataUserName* is the user name of
-an NWIS-RA account under which aq2rdb will query NWIS-RA Web services,
-and *waterDataPassword* is the password for this account.
+the password for this account; *nwisRAUserName* is the user name of an
+NWIS-RA account under which aq2rdb will query NWIS-RA Web services,
+and *nwisRAPassword* is the password for this account.
 
 Other aq2rdb command-line arguments have reasonable default values,
 but may be overridden by specifying them.

@@ -1,12 +1,13 @@
 Name:           aq2rdb-client
 Version:        1.2.0
-Release:        1
+Release:        2
 Summary:        A command-line program to call the aq2rdb Web service.
 Packager:       Andrew Halper <ashalper@usgs.gov>
 Vendor:         USGS Office of Water Information
 Group:          Applications/Internet
 BuildArch:      noarch
 Source0:        https://github.com/ashalper-usgs/aq2rdb/%{name}-%{version}.tar.gz
+Requires:       python >= 2.6.2-2
 License:        USGS
 URL:            https://github.com/ashalper-usgs/aq2rdb
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root
@@ -39,8 +40,12 @@ rm -rf ${RPM_BUILD_ROOT}
 
 %changelog
 
-* Wed Apr 27 2016 Andrew Halper <ashalper@usgs.gov> 1.2.0-1
+* Thu May 19 2016 Andrew Halper <ashalper@usgs.gov> 1.2.0-2
+- Added python-2.6.2-2 RPM to "Requires".
+
+* Fri Apr 29 2016 Andrew Halper <ashalper@usgs.gov> 1.2.0-1
 - Added nwts2rdb "-o" option, to save output to a local file.
+- Implemented nwts2rdb "-r" (rounding suppression) option.
 
 * Tue Mar 29 2016 Andrew Halper <ashalper@usgs.gov> 1.1.11-2
 - Rebuilt on Solaris SPARC because CentOS RPM would not install,
