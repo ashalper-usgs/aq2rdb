@@ -523,66 +523,6 @@ function required(options, propertyList) {
 } // checkRequiredOption
 
 /**
-   @function
-   @description Parse aq2rdb?t=UV endpoint's fields. Proceed to next
-                async.waterfall() function if successful.
-   @private
-   @callback
-   @param {object} requestURL request.url object to parse.
-   @param {function} node-async callback.
-*/
-function parseFields(requestURL, callback) {
-    var field;
-
-    try {
-        field = url.parse(requestURL, true).query;
-    }
-    catch (error) {
-        callback(error);
-        return;
-    }
-
-    // if any mandatory fields are missing
-    if (field.t === undefined || field.n === undefined ||
-        field.b === undefined || field.e === undefined ||
-        field.s === undefined || field.p === undefined) {
-        // terminate response with an error
-        callback(
-            "All of \"t\", \"n\", \"b\", \"e\", \"s\" and \"p\" " +
-                "fields must be present" 
-        );
-        return;
-    }
-
-    if ((field.p || field.s) && field.u) {
-        callback(
-            "Specify either \"-p\" and \"s\", or \"-u\", but not both"
-        );
-        return;
-    }
-
-    for (var name in field) {
-        if (name.match(/^(a|p|t|s|n|b|e|l|r|u|w)$/)) {
-            // aq2rdb fields
-        }
-        else {
-            callback('Unknown field "' + name + '"');
-            return;
-        }
-    }
-
-    // default "rounding suppression flag"
-    var rndsup = (field.r === undefined) ? false : field.r;
-
-    // pass parsed field values to next async.waterfall() function
-    callback(
-        null, field.t, rndsup, field.w, false, false, field.a,
-        field.n, field.p, field.s, field.u, field.b, field.e, field.l,
-        ""
-    );
-} // parseFields
-
-/**
    @description Parse version number from "package.json" and pass to a
                 callback function.
    @private
@@ -1025,7 +965,7 @@ httpdispatcher.onGet(
         */
         var parameterCode;
         var parameter, statCode, extendedFilters;
-        var uniqueId, during, editable, cflag, vflag;
+        var uniqueId, during, cflag, vflag;
         var rndsup, locTzCd;
 
         /**
@@ -1105,8 +1045,7 @@ httpdispatcher.onGet(
 
                     // write the header records
                     rdb.header(
-                        "NWIS-I DAILY-VALUES",
-                        (editable) ? "YES" : "NO",
+                        "NWIS-I DAILY-VALUES", "NO",
                         waterServicesSite,
                         timeSeriesDescription.SubLocationIdentifer,
                         parameter, statistic,
@@ -1209,8 +1148,7 @@ httpdispatcher.onGet(
                             // (indirectly) call rdb.header() (below) with
                             // these arguments
                             callback(
-                                null, "NWIS-I UNIT-VALUES",
-                                (editable) ? "YES" : "NO",
+                                null, "NWIS-I UNIT-VALUES", "NO",
                                 waterServicesSite,
                                 timeSeriesDescription.SubLocationIdentifer,
                                 /**
@@ -1349,11 +1287,64 @@ httpdispatcher.onGet(
                     return;
                 callback(null, request.url);
             },
-            parseFields,
+            function (callback) {
+                var field;
+
+                try {
+                    field = url.parse(requestURL, true).query;
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+
+                // if any mandatory fields are missing
+                if (field.t === undefined || field.n === undefined ||
+                    field.b === undefined || field.e === undefined ||
+                    field.s === undefined || field.p === undefined) {
+                    // terminate response with an error
+                    callback(
+                        "All of \"t\", \"n\", \"b\", \"e\", \"s\" and \"p\" " +
+                            "fields must be present" 
+                    );
+                    return;
+                }
+
+                if ((field.p || field.s) && field.u) {
+                    callback(
+                        "Specify either \"-p\" and \"s\", or " +
+                            "\"-u\", but not both"
+                    );
+                    return;
+                }
+
+                for (var name in field) {
+                    if (name.match(/^(a|p|t|s|n|b|e|l|r|u|w|c)$/)) {
+                        // aq2rdb fields
+                    }
+                    else {
+                        callback('Unknown field "' + name + '"');
+                        return;
+                    }
+                }
+
+                // default "rounding suppression flag"
+                rndsup = (field.r === undefined) ? false : field.r;
+
+                dataType = field.t.substring(0, 2).toUpperCase();
+
+                // pass parsed field values to next async.waterfall()
+                // function
+                callback(
+                    null, field.w, field.c, false, field.a, field.n,
+                    field.p, field.s, field.u, field.b, field.e,
+                    field.l, ""
+                );
+            },
             function rdbOut(
-                dataType, rndsup, wyflag, cflag, vflag, agencyCode,
-                siteNumber, parameterCode, instat, uniqueId, begdat,
-                enddat, locTzCd, titlline, callback
+                wyflag, cflag, vflag, agencyCode, siteNumber,
+                parameterCode, instat, uniqueId, begdat, enddat,
+                locTzCd, titlline, callback
             ) {
                 var datatyp, stat, uvtyp, interval;
                 var uvtypPrompted = false;
@@ -1362,8 +1353,6 @@ httpdispatcher.onGet(
 
                 // init control argument
                 var sopt = "10000000000000000000000000000000".split("");
-
-                dataType = dataType.substring(0, 2).toUpperCase();
 
                 // convert agency to 5 characters - default to USGS
                 if (agencyCode === undefined)
@@ -1465,9 +1454,9 @@ httpdispatcher.onGet(
                 }
 
                 callback(
-                    null, false, rndsup, cflag, vflag, dataType,
-                    agencyCode, siteNumber, parameterCode, uniqueId,
-                    interval, locTzCd
+                    null, rndsup, vflag, dataType, agencyCode,
+                    siteNumber, parameterCode, uniqueId, interval,
+                    locTzCd
                 );
             },
             /**
@@ -1475,14 +1464,12 @@ httpdispatcher.onGet(
                      crutch eventually.
             */
             function (
-                e, r, c, v, d, a, s, p, u, interval, locTzCd, callback
+                r, v, d, a, s, p, u, interval, locTzCd, callback
             ) {
                 // save values in outer scope to avoid passing these
                 // values through subsequent async.waterfal()
                 // functions' scopes where they are not referenced at
                 // all
-                editable = e;
-                cflag = c;
                 vflag = v;
                 dataType = d;
                 locationIdentifier = new LocationIdentifier(a, s);
