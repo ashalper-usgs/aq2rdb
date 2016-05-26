@@ -226,6 +226,7 @@ describe('aq2rdb', function () {
             it("should receive a usable TimeSeriesDescription " +
                "object for LocationIdentifier " + siteNo,
                function (done) {
+                   this.timeout(4000);
                    aquarius.getTimeSeriesDescription(
                        "USGS", siteNo, "Discharge", "Instantaneous",
                        "Points",
@@ -244,6 +245,7 @@ describe('aq2rdb', function () {
             it("should receive a \"More than one primary time " +
                "series found...\" error message",
                function (done) {
+                   this.timeout(4000);
                    aquarius.getTimeSeriesDescription(
                        "USGS", siteNo, "Specific cond at 25C",
                        undefined, "Daily",
