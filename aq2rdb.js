@@ -760,7 +760,9 @@ httpdispatcher.onGet(
                 for (var name in field) {
                     if (name === 'LocationIdentifier') {
                         locationIdentifier =
-                            new LocationIdentifier(field.LocationIdentifier);
+                            new aquaticInformatics.LocationIdentifier(
+                                field.LocationIdentifier
+                            );
                     }
                     else if (name.match(
                         /^(Parameter|ComputationIdentifier|QueryFrom|QueryTo)$/
@@ -1287,7 +1289,7 @@ httpdispatcher.onGet(
                     return;
                 callback(null, request.url);
             },
-            function (callback) {
+            function (requestURL, callback) {
                 var field;
 
                 try {
@@ -1472,7 +1474,8 @@ httpdispatcher.onGet(
                 // all
                 vflag = v;
                 dataType = d;
-                locationIdentifier = new LocationIdentifier(a, s);
+                locationIdentifier =
+                    new aquaticInformatics.LocationIdentifier(a, s);
                 parameterCode = p;
                 uniqueId = u;
                 during = interval;
