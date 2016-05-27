@@ -118,10 +118,12 @@ def usage():
 
 def main():
     outpath = None
+    z = None
     datatyp = None
     agency = "USGS"
     station = None
     parm = None
+    uniqueId = None
     stat = None
     begdat = None
     enddat = None
@@ -217,22 +219,25 @@ def main():
         prefix = "http://cidasdqaasaq2rd.cr.usgs.gov:8081/aq2rdb?"
 
         # TODO: this query bit needs to be in a retry loop
-        url = prefix + urllib.urlencode(
-            {
-             "t": datatyp,
-             "a": agency,
-             "n": station,
-             "p": parm,
-             "s": stat,
-             "b": begdat,
-             "e": enddat,
-             "r": str(rndsup).lower()}
-        )
 
-        # TODO: Include in url, if present.
-        # 
-        # "z": z,
-        # "u": uniqueId,
+        query = {
+             't': datatyp,
+             'a': agency,
+             'n': station,
+             'p': parm,
+             's': stat,
+             'b': begdat,
+             'e': enddat,
+             'r': str(rndsup).lower()
+        }
+
+        if z:
+            query['z'] = z
+
+        if uniqueId:
+            query['u'] = uniqueId
+
+        url = prefix + urllib.urlencode(query)
 
         uo = urllib.urlopen(url)
         response = uo.read()
