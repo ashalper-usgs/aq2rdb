@@ -237,9 +237,7 @@ def main():
         if uniqueId:
             query['u'] = uniqueId
 
-        url = prefix + urllib.urlencode(query)
-
-        uo = urllib.urlopen(url)
+        uo = urllib.urlopen(prefix + urllib.urlencode(query))
         response = uo.read()
 
         try:
