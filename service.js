@@ -162,11 +162,7 @@ NWISRA: function (host, userName, password, log, callback) {
                             response.statusCode.toString()
                     );
 
-                if (response.statusCode === 404) {
-                    callback("Site not found at http://" + host);
-                    return;
-                }
-                else if (
+                if (
                     response.statusCode < 200 || 300 <= response.statuscode
                 ) {
                     callback(
@@ -185,7 +181,7 @@ NWISRA: function (host, userName, password, log, callback) {
             host: host,
             method: "GET",
             headers: {"Authorization": "Bearer " + authentication.tokenId},
-            path: path + querystring.stringify(obj)
+            path: path + '?' + querystring.stringify(obj)
         }, queryCallback);
 
         /**
