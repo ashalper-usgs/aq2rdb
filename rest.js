@@ -137,10 +137,8 @@ var rest = module.exports = {
                 if (log)
                     console.log("rest.querySecure.response.statusCode: " +
                                 response.statusCode.toString());
-                if (response.statusCode === 404) {
-                    callback("Site not found at http://" + host);
-                }
-                else if (response.statusCode === 502) {
+
+                if (response.statusCode === 502) {
                     /**
                        @todo Bears further investigation into the
                              cause, when received from nwists.usgs.gov
