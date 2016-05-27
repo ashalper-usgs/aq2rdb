@@ -218,17 +218,22 @@ def main():
 
         # TODO: this query bit needs to be in a retry loop
         url = prefix + urllib.urlencode(
-            {"z": z,
+            {
              "t": datatyp,
              "a": agency,
              "n": station,
              "p": parm,
              "s": stat,
-             "u": uniqueId,
              "b": begdat,
              "e": enddat,
              "r": str(rndsup).lower()}
         )
+
+        # TODO: Include in url, if present.
+        # 
+        # "z": z,
+        # "u": uniqueId,
+
         uo = urllib.urlopen(url)
         response = uo.read()
 
