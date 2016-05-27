@@ -32,10 +32,10 @@ var rdb = require("../rdb.js");
 var rest = require("../rest.js");
 var service = require("../service.js");
 
-describe('adaps', function () {
-    describe('#IntervalDay', function () {
-        describe('#()', function () {
-            it('should construct', function () {
+describe("adaps", function () {
+    describe("#IntervalDay", function () {
+        describe("#()", function () {
+            it("should construct", function () {
                 var from = "19690218", to = "20160218";
                 var interval = new adaps.IntervalDay(from, to, false);
 
@@ -46,7 +46,7 @@ describe('adaps', function () {
     }); // IntervalDay
 }); // adaps
 
-describe('aq2rdb', function () {
+describe("aq2rdb", function () {
     /**
        @description Default/parse command-line options before running
                     all tests.
@@ -57,7 +57,7 @@ describe('aq2rdb', function () {
     });
 
     describe(
-        '#handle()', function () {
+        "#handle()", function () {
             var mockResponse;
 
             beforeEach(function () {
@@ -67,57 +67,58 @@ describe('aq2rdb', function () {
                     end: function () {}
                 });
 
-                mockResponse.expects('writeHead').once();
-                mockResponse.expects('end').once();
+                mockResponse.expects("writeHead").once();
+                mockResponse.expects("end").once();
             });
 
-            it('should handle ECONNREFUSED correctly', function () {
+            it("should handle ECONNREFUSED correctly", function () {
                 aq2rdb._private.handle(
-                    {code: 'ECONNREFUSED'}, mockResponse.object
+                    {code: "ECONNREFUSED"}, mockResponse.object
                 );
             });
-            it('should handle ReferenceErrors correctly', function () {
+            it("should handle ReferenceErrors correctly", function () {
                 aq2rdb._private.handle(
                     (new ReferenceError), mockResponse.object
                 );
             });
-            it('should handle errors typed as "string" correctly', function () {
+            it("should handle errors typed as \"string\" correctly",
+               function () {
+                   aq2rdb._private.handle(
+                       "It seems there was an error", mockResponse.object
+                   );
+               });
+            it("should handle all other errors correctly", function () {
                 aq2rdb._private.handle(
-                    'It seems there was an error', mockResponse.object
-                );
-            });
-            it('should handle all other errors correctly', function () {
-                aq2rdb._private.handle(
-                    {message: 'It seems there was an error'},
+                    {message: "It seems there was an error"},
                     mockResponse.object
                 );
             });
         }
     );
-    describe('#toNWISDateFormat()', function () {
-        it('should return "19690218"', function () {
+    describe("#toNWISDateFormat()", function () {
+        it("should return \"19690218\"", function () {
             assert.equal(
-                '19690218',
-                aq2rdb.toNWISDateFormat('1969-02-18T07:30:00.000')
+                "19690218",
+                aq2rdb.toNWISDateFormat("1969-02-18T07:30:00.000")
             );
         });
     });
-    describe('#toNWISTimeFormat()', function () {
-        it('should return "073000"', function () {
+    describe("#toNWISTimeFormat()", function () {
+        it("should return \"073000\"", function () {
             assert.equal(
-                '073000',
-                aq2rdb.toNWISTimeFormat('1969-02-18T07:30:00.000')
+                "073000",
+                aq2rdb.toNWISTimeFormat("1969-02-18T07:30:00.000")
             );
         });
     });
-    describe('/aq2rdb', function() {
+    describe("/aq2rdb", function() {
     });
     /** @see https://mochajs.org/#asynchronous-code */
-    describe('AQUARIUS', function () {
+    describe("AQUARIUS", function () {
         var aquarius;
 
-        describe('#()', function () {
-            it('should throw \'Required field "hostname" not found\' error',
+        describe("#()", function () {
+            it("should throw 'Required field \"hostname\" not found' error",
                function (done) {
                    aquarius = new aquaticInformatics.AQUARIUS(
                        "localhost",
@@ -126,15 +127,15 @@ describe('aq2rdb', function () {
                        "Not a password",
                        function (error) {
                            expect(error).equals(
-                               'Required field "hostname" not found'
+                               "Required field \"hostname\" not found"
                            );
                            done();
                        }
                    );
                });
 
-            it('should throw \'Required field "hostname" must have ' +
-               'a value\' error',
+            it("should throw 'Required field \"hostname\" must have " +
+               "a value' error",
                function (done) {
                    aquarius = new aquaticInformatics.AQUARIUS(
                        "localhost",
@@ -143,15 +144,15 @@ describe('aq2rdb', function () {
                        "Not a password",
                        function (error) {
                            expect(error).equals(
-                               'Required field "hostname" must have ' +
-                                   'a value'
+                               "Required field \"hostname\" must have " +
+                                   "a value"
                            );
                            done();
                        }
                    );
                });
 
-            it('should throw \'Required field "userName" not found\' error',
+            it("should throw 'Required field \"userName\" not found' error",
                function (done) {
                    aquarius = new aquaticInformatics.AQUARIUS(
                        "localhost",
@@ -160,15 +161,15 @@ describe('aq2rdb', function () {
                        "Not a password",
                        function (error) {
                            expect(error).equals(
-                               'Required field "userName" not found'
+                               "Required field \"userName\" not found"
                            );
                            done();
                        }
                    );
                });
 
-            it('should throw \'Required field "userName" must have ' +
-               'a value\' error',
+            it("should throw 'Required field \"userName\" must have " +
+               "a value' error",
                function (done) {
                    aquarius = new aquaticInformatics.AQUARIUS(
                        "localhost",
@@ -177,15 +178,15 @@ describe('aq2rdb', function () {
                        "Not a password",
                        function (error) {
                            expect(error).equals(
-                               'Required field "userName" must have ' +
-                                   'a value'
+                               "Required field \"userName\" must have " +
+                                   "a value"
                            );
                            done();
                        }
                    );
                });
 
-            it('should have non-empty-string token',
+            it("should have non-empty-string token",
                function (done) {
                    aquarius = new aquaticInformatics.AQUARIUS(
                        "localhost",
@@ -205,12 +206,12 @@ describe('aq2rdb', function () {
 
         }); // #()
 
-        describe('#getLocationData()', function () {
-            it('should receive a usable LocationDataServiceResponse object',
+        describe("#getLocationData()", function () {
+            it("should receive a usable LocationDataServiceResponse object",
                function (done) {
-                   this.timeout(4000);
+                   this.timeout(8000);
                    aquarius.getLocationData(
-                       '09380000', // COLORADO RIVER AT LEES FERRY, AZ
+                       "09380000", // COLORADO RIVER AT LEES FERRY, AZ
                        function (error, messageBody) {
                            if (error) throw error;
                            var locationDataServiceResponse =
@@ -223,7 +224,7 @@ describe('aq2rdb', function () {
                        });
                });
         }); // #getLocationData()
-        describe('#getTimeSeriesDescription()', function () {
+        describe("#getTimeSeriesDescription()", function () {
             var siteNo = "09380000"; // COLORADO RIVER AT LEES FERRY, AZ
 
             it("should receive a usable TimeSeriesDescription " +
@@ -248,7 +249,7 @@ describe('aq2rdb', function () {
             it("should receive a \"More than one primary time " +
                "series found...\" error message",
                function (done) {
-                   this.timeout(4000);
+                   this.timeout(8000);
                    aquarius.getTimeSeriesDescription(
                        "USGS", siteNo, "Specific cond at 25C",
                        undefined, "Daily",
@@ -269,14 +270,14 @@ describe('aq2rdb', function () {
                    );
                });
         });
-        describe('#getTimeSeriesCorrectedData()', function () {
-            it('should receive a usable TimeSeriesDataServiceResponse object',
+        describe("#getTimeSeriesCorrectedData()", function () {
+            it("should receive a usable TimeSeriesDataServiceResponse object",
                function (done) {
                    aquarius.getTimeSeriesCorrectedData(
-                       {TimeSeriesUniqueId: '7050c0c28bb8409295ef0e82ceda936e',
-                        ApplyRounding: 'true',
-                        QueryFrom: '2014-10-01T00:00:00-07:00:00',
-                        QueryTo: '2014-10-02T00:00:00-07:00:00'},
+                       {TimeSeriesUniqueId: "7050c0c28bb8409295ef0e82ceda936e",
+                        ApplyRounding: "true",
+                        QueryFrom: "2014-10-01T00:00:00-07:00:00",
+                        QueryTo: "2014-10-02T00:00:00-07:00:00"},
                        function (error, timeSeriesDataServiceResponse) {
                            if (error) throw error;
                            var timeSeriesDescriptions =
@@ -295,9 +296,9 @@ describe('aq2rdb', function () {
 
 }); // aq2rdb
 
-describe('rdb', function () {
-    describe('#header()', function () {
-        it('should match', function (done) {
+describe("rdb", function () {
+    describe("#header()", function () {
+        it("should match", function (done) {
             rdb.header(
                 "NWIS-I DAILY-VALUES", // fileType
                 "YES",                 // editable
