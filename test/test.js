@@ -110,6 +110,8 @@ describe('aq2rdb', function () {
             );
         });
     });
+    describe('/aq2rdb', function() {
+    });
     /** @see https://mochajs.org/#asynchronous-code */
     describe('AQUARIUS', function () {
         var aquarius;
@@ -206,6 +208,7 @@ describe('aq2rdb', function () {
         describe('#getLocationData()', function () {
             it('should receive a usable LocationDataServiceResponse object',
                function (done) {
+                   this.timeout(4000);
                    aquarius.getLocationData(
                        '09380000', // COLORADO RIVER AT LEES FERRY, AZ
                        function (error, messageBody) {
