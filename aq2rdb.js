@@ -1418,7 +1418,7 @@ httpdispatcher.onGet(
                 }
 
                 callback(
-                    null, rndsup, vflag, dataType, agencyCode,
+                    null, vflag, dataType, agencyCode,
                     siteNumber, parameterCode, uniqueId, interval,
                     locTzCd
                 );
@@ -1428,7 +1428,7 @@ httpdispatcher.onGet(
                      crutch eventually.
             */
             function (
-                r, v, d, a, s, p, u, interval, locTzCd, callback
+                v, d, a, s, p, u, interval, locTzCd, callback
             ) {
                 // save values in outer scope to avoid passing these
                 // values through subsequent async.waterfal()
@@ -1441,7 +1441,6 @@ httpdispatcher.onGet(
                 parameterCode = p;
                 uniqueId = u;
                 during = interval;
-                rndsup = r;
 
                 callback(null);
             },
