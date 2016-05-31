@@ -1219,7 +1219,7 @@ httpdispatcher.onGet(
                                 m.format("YYYYMMDD") + '\t' +
                                     m.format("HHmmss") + '\t' +
                                     waterServicesSite.tzCode + '\t' +
-                                    point.Value.Display + "\t\t \t\t" +
+                                    point.Value.Numeric + "\t\t \t\t" +
                                     // might not be
                                     // backwards-compatible with
                                     // nwts2rdb:
