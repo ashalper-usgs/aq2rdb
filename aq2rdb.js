@@ -1009,18 +1009,6 @@ httpdispatcher.onGet(
             async.waterfall([
                 function (callback) {
                     callback(
-                        null, options.waterServicesHostname,
-                        agencyCode, siteNumber, log
-                    );
-                },
-                site.request,
-                site.receive,
-                function (receivedSite, callback) {
-                    waterServicesSite = receivedSite; // set global
-                    callback(null);
-                },
-                function (callback) {
-                    callback(
                         null, agencyCode, siteNumber,
                         parameter.aquariusParameter, undefined,
                         "Daily"
@@ -1095,33 +1083,6 @@ httpdispatcher.onGet(
             var timeSeriesDescription;
 
             async.waterfall([
-                function (callback) {
-                    if (agencyCode === undefined) {
-                        callback("Required field \"agencyCode\" not found");
-                        return;
-                    }
-
-                    if (siteNumber === undefined) {
-                        callback("Required field \"siteNumber\" not found");
-                        return;
-                    }
-
-                    if (parameterCode === undefined) {
-                        callback(
-                            "Required AQUARIUS field \"Parameter\" not found"
-                        );
-                        return;
-                    }
-
-                    callback(
-                        null, options.waterServicesHostname, agencyCode,
-                        siteNumber, options.log
-                    );
-                },
-                function (receivedSite, callback) {
-                    waterServicesSite = receivedSite; // set global
-                    callback(null);
-                },
                 function (callback) {
                     callback(
                         null, agencyCode, siteNumber,
@@ -1334,19 +1295,20 @@ httpdispatcher.onGet(
                 rndsup = (field.r === undefined) ? false : field.r;
 
                 dataType = field.t.substring(0, 2).toUpperCase();
+                agencyCode = field.a;
+                siteNumber = field.n;
+                parameterCode = field.p;
 
                 // pass parsed field values to next async.waterfall()
                 // function
                 callback(
-                    null, field.w, field.c, false, field.a, field.n,
-                    field.p, field.s, field.u, field.b, field.e,
-                    field.l, ""
+                    null, field.w, field.c, false, field.s, field.u,
+                    field.b, field.e, field.l, ""
                 );
             },
             function rdbOut(
-                wyflag, cflag, vflag, agencyCode, siteNumber,
-                parameterCode, instat, uniqueId, begdat, enddat,
-                locTzCd, titlline, callback
+                wyflag, cflag, vflag, instat, uniqueId,
+                begdat, enddat, locTzCd, titlline, callback
             ) {
                 var datatyp, stat, uvtyp, interval;
                 var uvtypPrompted = false;
