@@ -129,7 +129,7 @@ var rdb = module.exports = {
         header +=
             '# //FILE TYPE="' + fileType + '" ' + 'EDITABLE=NO\n' +
             sprintf(
-        '# //STATION AGENCY="%-5s" NUMBER="%-15s" TIME_ZONE="%s" DST_FLAG=%s\n',
+       '# //STATION AGENCY="%-5s" NUMBER="%-15s" TIME_ZONE="%s" DST_FLAG=%s\n',
                 site.agencyCode, site.number, site.tzCode,
                 site.localTimeFlag
             ) + '# //STATION NAME="' + site.name + '"\n';
@@ -303,7 +303,7 @@ var rdb = module.exports = {
                 begdtm = begdat;
         }
 
-        begdtm = sprintf("%14s", begdtm).replace(' ', '0');
+        begdtm = sprintf("%-14s", begdtm).replace(' ', '0');
 
         return begdtm;      
     }, // fillBegDtm
@@ -345,7 +345,7 @@ var rdb = module.exports = {
 
         }
 
-        enddtm = sprintf("%14s", enddtm);
+        enddtm = sprintf("%-14s", enddtm);
         if (enddtm.substring(8, 14) === ' ') {
             if (enddtm.substring(0, 8) === "99999999")
                 enddtm = enddtm.substr(0, 8) +  "999999";
