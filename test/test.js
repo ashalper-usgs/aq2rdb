@@ -117,6 +117,8 @@ describe("aq2rdb", function () {
     describe("AQUARIUS", function () {
         var aquarius;
 
+        this.timeout(8000);     // AQUARIUS can be slow
+
         describe("#()", function () {
             it("should throw 'Required field \"hostname\" not found' error",
                function (done) {
@@ -209,7 +211,6 @@ describe("aq2rdb", function () {
         describe("#getLocationData()", function () {
             it("should receive a usable LocationDataServiceResponse object",
                function (done) {
-                   this.timeout(8000);
                    aquarius.getLocationData(
                        "09380000", // COLORADO RIVER AT LEES FERRY, AZ
                        function (error, messageBody) {
@@ -230,7 +231,6 @@ describe("aq2rdb", function () {
             it("should receive a usable TimeSeriesDescription " +
                "object for LocationIdentifier " + siteNo,
                function (done) {
-                   this.timeout(4000);
                    aquarius.getTimeSeriesDescription(
                        "USGS", siteNo, "Discharge", "Instantaneous",
                        "Points",
@@ -249,7 +249,6 @@ describe("aq2rdb", function () {
             it("should receive a \"More than one primary time " +
                "series found...\" error message",
                function (done) {
-                   this.timeout(8000);
                    aquarius.getTimeSeriesDescription(
                        "USGS", siteNo, "Specific cond at 25C",
                        undefined, "Daily",
