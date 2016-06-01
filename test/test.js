@@ -332,6 +332,8 @@ describe("rdb", function () {
     }); // #header()
 
     describe("#fillBegDtm()", function () {
+        // wyflag === true
+
         it("should return \"20121001000000\"", function () {
             assert.equal(rdb.fillBegDtm(true, "201310010000"),
                          "20121001000000");
@@ -347,25 +349,78 @@ describe("rdb", function () {
                          "00000000000000");
         });
 
+        it("should return \"00000000000000\"", function () {
+            assert.equal(rdb.fillBegDtm(true, "0000"),
+                         "00000000000000");
+        });
+
+        // wyflag === false
+
+        it("should return \"20131001000000\"", function () {
+            // truncate 15 character date to 14 characters
+            assert.equal(rdb.fillBegDtm(false, "201310010000000"),
+                         "20131001000000");
+        });
+
         it("should return \"20131001000000\"", function () {
             // complete start date-time seconds place
             assert.equal(rdb.fillBegDtm(false, "201310010000"),
                          "20131001000000");
         });
+
+        it("should return \"20131001000000\"", function () {
+            // suffix white space
+            assert.equal(rdb.fillBegDtm(false, "20131001    "),
+                         "20131001000000");
+        });
+
     });
 
     describe("#fillEndDtm()", function () {
-        // align dubious date to water year interval, "to" date-time
+        // wyflag === true
+
+        // year-typed point value to second-typed point value aligned
+        // on end of water year interval
+        it("should return \"20130930235959\"", function () {
+            assert.equal(rdb.fillEndDtm(true, "2013"), "20130930235959");
+        });
+
+        // align dubious date to water year interval end date-time
         // point
         it("should return \"20130930235959\"", function () {
             assert.equal(rdb.fillEndDtm(true, "20130"), "20130930235959");
         });
 
-        // complete end date-time seconds place
+        // end-user-exposed, representation of "until the end of time"
+        // predicate
+        it("should return \"99999999999999\"", function () {
+            assert.equal(rdb.fillEndDtm(true, "9999"), "99999999999999");
+        });
+
+        // wyflag === false
+
+        // default end date-time seconds place
         it("should return \"20131001000000\"", function () {
             assert.equal(rdb.fillEndDtm(false, "201310010000"),
                          "20131001000000");
         });
+
+        // truncate 15 character date to 14 characters
+        it("should return \"20131001000000\"", function () {
+            assert.equal(rdb.fillEndDtm(false, "201310010000000"),
+                         "20131001000000");
+        });
+
+        it("should return \"99999999999999\"", function () {
+            assert.equal(rdb.fillEndDtm(false, "99999999      "),
+                         "99999999999999");
+        });
+
+        it("should return \"19990909235959\"", function () {
+            assert.equal(rdb.fillEndDtm(false, "19990909      "),
+                         "19990909235959");
+        });
+
     });
 
 });
