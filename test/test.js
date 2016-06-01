@@ -329,5 +329,25 @@ describe("rdb", function () {
                 }
             );
         });
+    }); // #header()
+
+    // inputs
+    var wyflag = false;
+    var dtm = "201310010000";   // missing seconds place
+
+    // expected output
+    var exp = dtm + "00";
+
+    describe("#fillBegDtm()", function () {
+        it("should return \"" + exp + "\"", function () {
+            assert.equal(rdb.fillBegDtm(wyflag, dtm), exp);
+        });
     });
+
+    describe("#fillEndDtm()", function () {
+        it("should return \"" + exp + "\"", function () {
+            assert.equal(rdb.fillEndDtm(wyflag, dtm), exp);
+        });
+    });
+
 });
