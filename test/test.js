@@ -331,22 +331,25 @@ describe("rdb", function () {
         });
     }); // #header()
 
-    // inputs
-    var wyflag = false;
-    var dtm = "201310010000";   // missing seconds place
-
-    // expected output
-    var exp = dtm + "00";
-
     describe("#fillBegDtm()", function () {
-        it("should return \"" + exp + "\"", function () {
-            assert.equal(rdb.fillBegDtm(wyflag, dtm), exp);
+        it("should return \"20121001000000\"", function () {
+            assert.equal(rdb.fillBegDtm(true, "20130"), "20121001000000");
+        });
+
+        it("should return \"20131001000000\"", function () {
+            assert.equal(rdb.fillBegDtm(false, "201310010000"),
+                         "20131001000000");
         });
     });
 
     describe("#fillEndDtm()", function () {
-        it("should return \"" + exp + "\"", function () {
-            assert.equal(rdb.fillEndDtm(wyflag, dtm), exp);
+        it("should return \"20130930235959\"", function () {
+            assert.equal(rdb.fillEndDtm(true, "20130"), "20130930235959");
+        });
+
+        it("should return \"20131001000000\"", function () {
+            assert.equal(rdb.fillEndDtm(false, "201310010000"),
+                         "20131001000000");
         });
     });
 
