@@ -17,6 +17,18 @@ var querystring = require("querystring");
 
 var service = module.exports = {
 
+/**
+   @class
+   @classdesc NWIS-RA system interface prototype.
+   @public
+   @param {string} host DNS host name of NWIS-RA instance.
+   @param {string} userName NWIS-RA account, user name.
+   @param {string} password NWIS-RA account password.
+   @param {boolean} log Enable aq2rdb server logging if true; no
+          logging if false.
+   @param {function} callback Callback function to call when
+          construction complete.
+*/
 NWISRA: function (host, userName, password, log, callback) {
     var authentication;
     var parameters;
