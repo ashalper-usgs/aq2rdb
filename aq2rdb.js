@@ -1126,7 +1126,7 @@ httpdispatcher.onGet(
                         function (header, callback) {
                             response.write(
                                 header +
-                "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
+               "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
                                     "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
                                 "ascii"
                             );
@@ -1189,7 +1189,10 @@ httpdispatcher.onGet(
                         function (point, callback) {
                             var zone, m;
                             var tzCode = waterServicesSite.tzCode;
-                            var value;
+                            var value =
+                                (applyRounding === "False") ?
+                                point.Value.Numeric :
+                                point.Value.Display;
                             var localTimeFlag =
                                 waterServicesSite.localTimeFlag;
 
@@ -1213,7 +1216,7 @@ httpdispatcher.onGet(
                                 m.format("YYYYMMDD") + '\t' +
                                     m.format("HHmmss") + '\t' +
                                     waterServicesSite.tzCode + '\t' +
-                                    point.Value.Numeric + "\t\t \t\t" +
+                                    value + "\t\t \t\t" +
                                     // might not be
                                     // backwards-compatible with
                                     // nwts2rdb:
