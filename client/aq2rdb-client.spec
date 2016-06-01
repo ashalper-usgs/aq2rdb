@@ -1,6 +1,6 @@
 Name:           aq2rdb-client
-Version:        1.2.0
-Release:        2
+Version:        1.2.1
+Release:        1
 Summary:        A command-line program to call the aq2rdb Web service.
 Packager:       Andrew Halper <ashalper@usgs.gov>
 Vendor:         USGS Office of Water Information
@@ -39,6 +39,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc
 
 %changelog
+
+* Wed Jun 01 2016 Andrew Halper <ashalper@usgs.gov> 1.2.1-1
+- Corrected bug in "-r" option output.
 
 * Thu May 19 2016 Andrew Halper <ashalper@usgs.gov> 1.2.0-2
 - Added python-2.6.2-2 RPM to "Requires".
