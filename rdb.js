@@ -346,7 +346,7 @@ var rdb = module.exports = {
         }
 
         enddtm = sprintf("%-14s", enddtm);
-        if (enddtm.substring(8, 14) === ' ') {
+        if (enddtm.substring(8, 14) === "      ") {
             if (enddtm.substring(0, 8) === "99999999")
                 enddtm = enddtm.substr(0, 8) +  "999999";
             else
