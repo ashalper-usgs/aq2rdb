@@ -830,13 +830,6 @@ httpdispatcher.onGet(
                         rdb.header(
                             "NWIS-I DAILY-VALUES", "YES", site,
                             subLocationIdentifer, parameter,
-                            /**
-                               @todo Statistic code is locked up
-                                     within the scope of parseFields()
-                                     right now. Need to free it, and
-                                     look up (name,description) as
-                                     well if possible.
-                            */
                             {code: "", name: "", description: ""},
                             range,
                             callback
@@ -967,8 +960,7 @@ httpdispatcher.onGet(
         */
         var parameterCode;
         var parameter, statCode, extendedFilters;
-        var uniqueId, during, cflag, vflag;
-        var rndsup, locTzCd;
+        var uniqueId, during, cflag, vflag, applyRounding, locTzCd;
 
         /**
            @function
@@ -1149,12 +1141,13 @@ httpdispatcher.onGet(
                    @callback
                 */
                 function (uniqueId, callback) {
-                    // Note: "rndsup" value is inverted below for semantic
-                    // forwards-compatibility with AQUARIUS's
+                    // Note: "r" field ("rounding suppression")
+                    // Boolean truth value is inverted below for
+                    // semantic forwards-compatibility with AQUARIUS's
                     // "ApplyRounding" parameter.
                     var parameters = {
                         TimeSeriesUniqueId: uniqueId,
-                        ApplyRounding: eval(! rndsup).toString()
+                        ApplyRounding: applyRounding
                     };
 
                     parameters = appendIntervalSearchCondition(
@@ -1196,6 +1189,7 @@ httpdispatcher.onGet(
                         function (point, callback) {
                             var zone, m;
                             var tzCode = waterServicesSite.tzCode;
+                            var value;
                             var localTimeFlag =
                                 waterServicesSite.localTimeFlag;
 
@@ -1291,8 +1285,8 @@ httpdispatcher.onGet(
                     }
                 }
 
-                // default "rounding suppression flag"
-                rndsup = (field.r === undefined) ? false : field.r;
+                // "rounding suppression flag"
+                applyRounding = (field.r === undefined) ? "True" : "False";
 
                 dataType = field.t.substring(0, 2).toUpperCase();
                 agencyCode = field.a;
