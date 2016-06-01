@@ -303,7 +303,7 @@ var rdb = module.exports = {
                 begdtm = begdat;
         }
 
-        begdtm = sprintf("%-14s", begdtm).replace(' ', '0');
+        begdtm = sprintf("%-14s", begdtm).replace(/\s/g, '0');
 
         return begdtm;      
     }, // fillBegDtm
@@ -352,7 +352,7 @@ var rdb = module.exports = {
             else
                 enddtm = enddtm.substr(0, 8) + "235959";
         }
-        enddtm = enddtm.replace(' ', '0');
+        enddtm = enddtm.replace(/\s/g, '0');
         return enddtm;
     } // fillEndDtm
 
