@@ -129,7 +129,7 @@ describe("aq2rdb", function () {
     describe("AQUARIUS", function () {
         var aquarius;
 
-        this.timeout(10000);	// AQUARIUS can be slow
+        this.timeout(10000);    // AQUARIUS can be slow
 
         describe("#()", function () {
             it("should throw 'Required field \"hostname\" not found' error",
@@ -306,6 +306,21 @@ describe("aq2rdb", function () {
     }); // AQUARIUS
 
 }); // aq2rdb
+
+describe("aquaticInformatics", function () {
+    describe("#LocationIdentifier()", function () {
+        it("should construct", function () {
+            var locationIdentifier =
+                new aquaticInformatics.LocationIdentifier(
+		    "USGS", "123456789012345"
+		);
+
+            assert.equal(locationIdentifier.agencyCode(), "USGS");
+            assert.equal(locationIdentifier.siteNumber(),
+                         "123456789012345");
+        });
+    });
+});
 
 describe("rdb", function () {
     describe("#header()", function () {
