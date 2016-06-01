@@ -1652,6 +1652,20 @@ else {
        @private
        @type {object}
     */
+    /**
+       @todo Need to handle this error more gracefully:
+
+         aq2rdb: Initialized parameter mapping
+         aq2rdb: Received AQUARIUS authentication token successfully
+         aq2rdb: Loaded stat.json
+         events.js:154
+         throw er; // Unhandled 'error' event
+         ^
+
+         Error: listen EADDRINUSE :::8081
+
+       This occurs when aq2rdb is already running on the server.
+    */
     var server = http.createServer(handleRequest);
     var passwd = new Object();
 
