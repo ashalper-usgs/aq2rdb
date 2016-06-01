@@ -138,10 +138,10 @@ def main():
         status = 119
     else:
         # get command line arguments 
-        rndsup = False
-        wyflag = False
-        cflag = False
-        vflag = False
+        rndsup = None
+        wyflag = None
+        cflag = None
+        vflag = None
 
         error = False
 
@@ -227,9 +227,11 @@ def main():
              'p': parm,
              's': stat,
              'b': begdat,
-             'e': enddat,
-             'r': str(rndsup).lower()
+             'e': enddat
         }
+
+        if rndsup:
+            query['r'] = str(rndsup).lower()
 
         if z:
             query['z'] = z
