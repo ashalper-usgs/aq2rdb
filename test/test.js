@@ -333,20 +333,35 @@ describe("rdb", function () {
 
     describe("#fillBegDtm()", function () {
         it("should return \"20121001000000\"", function () {
-            assert.equal(rdb.fillBegDtm(true, "20130"), "20121001000000");
+            assert.equal(rdb.fillBegDtm(true, "201310010000"),
+                         "20121001000000");
+        });
+
+        it("should return \"20121001000000\"", function () {
+            assert.equal(rdb.fillBegDtm(true, "2013"),
+                         "20121001000000");
+        });
+
+        it("should return \"00000000000000\"", function () {
+            assert.equal(rdb.fillBegDtm(true, "-2013"),
+                         "00000000000000");
         });
 
         it("should return \"20131001000000\"", function () {
+            // complete start date-time seconds place
             assert.equal(rdb.fillBegDtm(false, "201310010000"),
                          "20131001000000");
         });
     });
 
     describe("#fillEndDtm()", function () {
+        // align dubious date to water year interval, "to" date-time
+        // point
         it("should return \"20130930235959\"", function () {
             assert.equal(rdb.fillEndDtm(true, "20130"), "20130930235959");
         });
 
+        // complete end date-time seconds place
         it("should return \"20131001000000\"", function () {
             assert.equal(rdb.fillEndDtm(false, "201310010000"),
                          "20131001000000");
