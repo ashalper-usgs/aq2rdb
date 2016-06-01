@@ -308,16 +308,45 @@ describe("aq2rdb", function () {
 }); // aq2rdb
 
 describe("aquaticInformatics", function () {
+    var locationIdentifier;
+
     describe("#LocationIdentifier()", function () {
         it("should construct", function () {
-            var locationIdentifier =
+            locationIdentifier =
                 new aquaticInformatics.LocationIdentifier(
-		    "USGS", "123456789012345"
-		);
+                    "USGS", "123456789012345"
+                );
+        });
+    });
 
+    describe("#LocationIdentifier().agencyCode()", function () {
+        it("should be \"USGS\"", function () {
             assert.equal(locationIdentifier.agencyCode(), "USGS");
+        });
+    });
+
+    describe("#LocationIdentifier().siteNumber()", function () {
+        it("should be \"123456789012345\"", function () {
             assert.equal(locationIdentifier.siteNumber(),
                          "123456789012345");
+        });
+    });
+
+    describe("#LocationIdentifier().toString()", function () { 
+        it("should be \"123456789012345\"", function () {
+            assert.equal(locationIdentifier.toString(),
+                         "123456789012345");
+        });
+
+        it("should be \"123456789012345-USFS\"", function () {
+            // reconstruct location identifier to check different path
+            // in toString() method
+            var locationIdentifier = new aquaticInformatics.LocationIdentifier(
+                "USFS", "123456789012345"
+            );
+
+            assert.equal(locationIdentifier.toString(),
+                         "123456789012345-USFS");
         });
     });
 });
