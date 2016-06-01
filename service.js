@@ -58,22 +58,13 @@ NWISRA: function (host, userName, password, log, callback) {
                         });
 
                     response.on("end", function () {
-                        if (log)
-                            console.log(
-                        "service.NWISRA.authenticate.response.statusCode: " +
-                                    response.statusCode.toString()
-                            );
-
-                        if (response.statusCode < 200 ||
-                            300 <= response.statuscode) {
+                        // "401 Unauthorized": authentication has failed
+                        if (response.statusCode === 401) {
                             callback(
-                                "Could not reference site at http://" + host +
-                                    path + "; HTTP status code was: " +
-                                    response.statusCode.toString()
+                                "Could not login to NWIS-RA Web services"
                             );
                             return;
                         }
-
                         callback(null, messageBody);
                     });
                 }
