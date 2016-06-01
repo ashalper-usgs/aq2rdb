@@ -44,6 +44,18 @@ describe("adaps", function () {
             });
         }); // ()
     }); // IntervalDay
+
+    describe("#IntervalSecond", function () {
+        describe("#()", function () {
+            it("should construct", function () {
+                var from = "19690218000000", to = "20160218000000";
+                var interval = new adaps.IntervalSecond(from, to, false);
+
+                assert.equal(from, interval.from);
+                assert.equal(to, interval.to);
+            });
+        });
+    });
 }); // adaps
 
 describe("aq2rdb", function () {
@@ -117,7 +129,7 @@ describe("aq2rdb", function () {
     describe("AQUARIUS", function () {
         var aquarius;
 
-        this.timeout(8000);     // AQUARIUS can be slow
+        this.timeout(10000);	// AQUARIUS can be slow
 
         describe("#()", function () {
             it("should throw 'Required field \"hostname\" not found' error",
