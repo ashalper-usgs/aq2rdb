@@ -749,4 +749,7 @@
     <ownedOperation xmi:type="uml:Operation" xmi:id="_yjIYYAKHEeaQE4v55jj7GQ" name="site"/>
   </packagedElement>
   <packagedElement xmi:type="uml:Dependency" xmi:id="_IKm18AJuEeaQE4v55jj7GQ" client="_v07QEAJjEeaQE4v55jj7GQ" supplier="_6b64YAJtEeaQE4v55jj7GQ"/>
+  <packagedElement xmi:type="uml:Package" xmi:id="_UHvv8CgWEeasi7cDBAji3g" name="service">
+    <packagedElement xmi:type="uml:Class" xmi:id="_ZsrYICgWEeasi7cDBAji3g" name="NWISRA"/>
+  </packagedElement>
 </uml:Model>
