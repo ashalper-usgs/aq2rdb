@@ -216,9 +216,19 @@ def main():
         if not loc_tz_cd:
             loc_tz_cd = "LOC"
 
-        prefix = "http://cidasdqaasaq2rd.cr.usgs.gov:8081/aq2rdb?"
+        # default host is QA
+        hostname = "cidasdqaasaq2rd.cr.usgs.gov"
 
-        # TODO: this query bit needs to be in a retry loop
+        # "dev" is short-hand for development server
+        if z == "dev":
+            hostname = "cidasddvasaq2rdb.cr.usgs.gov"
+        elif z != "qa":
+            # use host name passed in with argument
+            hostname = z
+
+        prefix = "http://" + hostname + ":8081/aq2rdb?"
+
+        # TODO: this query bit needs to be in a retry loop (or "try"?)
 
         query = {
              't': datatyp,
@@ -232,9 +242,6 @@ def main():
 
         if rndsup:
             query['r'] = str(rndsup).lower()
-
-        if z:
-            query['z'] = z
 
         if uniqueId:
             query['u'] = uniqueId
