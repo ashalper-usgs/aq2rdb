@@ -674,18 +674,7 @@ AQUARIUS: function (
                                 protocol: "http",
                                 host: hostname,
                                 pathname:
-                           "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                                query: {
-                                    format: "json",
-                                    LocationIdentifier: locationIdentifier,
-                                    Parameter: parameter,
-                                   ComputationIdentifier: computationIdentifier,
-                                    ComputationPeriodIdentifier:
-                                       computationPeriodIdentifier,
-                                    ExtendedFilters:
-                                    "[{FilterName:ACTIVE_FLAG,FilterValue:Y}," +
-                                "{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
-                                }
+                           "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList"
                             })
                     );
                     return;
