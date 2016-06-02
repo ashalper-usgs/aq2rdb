@@ -118,7 +118,7 @@ def usage():
 
 def main():
     outpath = None
-    z = None
+    z = "qa"
     datatyp = None
     agency = "USGS"
     station = None
