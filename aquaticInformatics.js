@@ -567,37 +567,31 @@ AQUARIUS: function (
         computationPeriodIdentifier, callback
     ) {
         // make (agencyCode,siteNo) digestible by AQUARIUS
-        var locationIdentifier = (agencyCode === "USGS") ?
-            siteNumber : siteNumber + '-' + agencyCode;
+        var locationIdentifier =
+            new aquaticInformatics.LocationIdentifier(
+                agencyCode, siteNumber
+            );
 
         var obj = {
             token: token,
             format: "json",
-            LocationIdentifier: locationIdentifier,
+            LocationIdentifier: locationIdentifier.toString(),
             Parameter: parameter,
             ComputationPeriodIdentifier: computationPeriodIdentifier,
             ExtendedFilters: "[{FilterName:ACTIVE_FLAG,FilterValue:Y}," +
                               "{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
         };
 
-        if (computationIdentifier)
-            obj["ComputationIdentifier"] = computationIdentifier;
+        rest.query(
+            hostname,
+            "GET",
+            undefined,      // HTTP headers
+            "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
+            obj,
+            false,
+            callback
+        );
 
-        try {
-            rest.query(
-                hostname,
-                "GET",
-                undefined,      // HTTP headers
-                "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-                obj,
-                false,
-                callback
-            );
-        }
-        catch (error) {
-            callback(error);
-            return;
-        }
     } // getTimeSeriesDescriptionList
 
     /**
@@ -615,7 +609,11 @@ AQUARIUS: function (
         agencyCode, siteNumber, parameter, computationIdentifier,
         computationPeriodIdentifier, outerCallback
     ) {
-        var locationIdentifier, timeSeriesDescription;
+        var locationIdentifier =
+            new aquaticInformatics.LocationIdentifier(
+                agencyCode, siteNumber
+            );
+        var timeSeriesDescription;
 
         async.waterfall([
             function (callback) {
@@ -662,11 +660,6 @@ AQUARIUS: function (
                @callback
             */
             function (timeSeriesDescriptions, callback) {
-                locationIdentifier =
-                    new aquaticInformatics.LocationIdentifier(
-                        agencyCode, siteNumber
-                    );
-
                 if (timeSeriesDescriptions.length === 0) {
                     callback(
                         "No time series description list found at " +
