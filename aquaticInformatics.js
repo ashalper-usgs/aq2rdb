@@ -13,6 +13,7 @@
 var async = require("async");
 var http = require("http");
 var querystring = require("querystring");
+var url = require("url");
 
 // aq2rdb modules
 var rest = require("./rest");
@@ -675,7 +676,6 @@ AQUARIUS: function (
                                 pathname:
                            "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
                                 query: {
-                                    token: token,
                                     format: "json",
                                     LocationIdentifier: locationIdentifier,
                                     Parameter: parameter,
@@ -684,7 +684,7 @@ AQUARIUS: function (
                                        computationPeriodIdentifier,
                                     ExtendedFilters:
                                     "[{FilterName:ACTIVE_FLAG,FilterValue:Y}," +
-                                        "{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
+                                "{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
                                 }
                             })
                     );
