@@ -577,9 +577,7 @@ AQUARIUS: function (
             format: "json",
             LocationIdentifier: locationIdentifier.toString(),
             Parameter: parameter,
-            ComputationPeriodIdentifier: computationPeriodIdentifier,
-            ExtendedFilters: "[{FilterName:ACTIVE_FLAG,FilterValue:Y}," +
-                              "{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
+            ComputationPeriodIdentifier: computationPeriodIdentifier
         };
 
         rest.query(
