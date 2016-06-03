@@ -108,6 +108,19 @@ var aquarius;
 var nwisRA;
 
 /**
+   @description An incomplete (but reportedly sufficient) mapping of
+                NWIS STAT.stat_cd to AQUARIUS ComputationIdentifier.
+   @global
+   @private
+   @type {object}
+*/
+var computationIdentifier = {
+    "00001": "Max",
+    "00002": "Min",
+    "00003": "Mean"
+};
+
+/**
    @description NWIS STAT, domain table object.
    @global
    @private
@@ -788,7 +801,7 @@ httpdispatcher.onGet(
                 callback(
                     null, locationIdentifier.agencyCode(),
                     locationIdentifier.siteNumber(), field.Parameter,
-                    undefined, "Daily"
+                    field.ComputationIdentifier, "Daily"
                 );
             },
             aquarius.getTimeSeriesDescription,
@@ -959,7 +972,7 @@ httpdispatcher.onGet(
                  former "P" prefix of this value.
         */
         var parameterCode;
-        var parameter, statCode, extendedFilters;
+        var parameter, statCd, extendedFilters;
         var uniqueId, during, cflag, vflag, applyRounding, locTzCd;
 
         /**
@@ -1000,10 +1013,18 @@ httpdispatcher.onGet(
 
             async.waterfall([
                 function (callback) {
+                    if (computationIdentifier[statCd] === undefined) {
+                        callback(
+                            "Unsupported statistic code \"" + statCd +
+                                "\""
+                        );
+                        return;
+                    }
+
                     callback(
                         null, agencyCode, siteNumber,
-                        parameter.aquariusParameter, undefined,
-                        "Daily"
+                        parameter.aquariusParameter,
+                        computationIdentifier[statCd], "Daily"
                     );
                 },
                 aquarius.getTimeSeriesDescription,
@@ -1011,15 +1032,15 @@ httpdispatcher.onGet(
                     // save TimeSeriesDescription in outer scope
                     timeSeriesDescription = tsd;
 
-                    var statistic = {code: statCode};
+                    var statistic = {code: statCd};
 
                     try {
-                        statistic.name = stat[statCode].name;
-                        statistic.description = stat[statCode].description;
+                        statistic.name = stat[statCd].name;
+                        statistic.description = stat[statCd].description;
                     }
                     catch (error) {
                         callback(
-                            "Invalid statistic code \"" + statCode +
+                            "Invalid statistic code \"" + statCd +
                                 "\""
                         );
                         return;
@@ -1304,11 +1325,10 @@ httpdispatcher.onGet(
                 );
             },
             function rdbOut(
-                wyflag, cflag, vflag, instat, uniqueId,
+                wyflag, cflag, vflag, instatCd, uniqueId,
                 begdat, enddat, locTzCd, titlline, callback
             ) {
-                var datatyp, stat, uvtyp, interval;
-                var uvtypPrompted = false;
+                var datatyp, uvtyp, interval, uvtypPrompted = false;
 
                 if (locTzCd === undefined) locTzCd = "LOC";
 
@@ -1327,10 +1347,10 @@ httpdispatcher.onGet(
                 // further processing depends on data type
 
                 if (dataType === 'DV') {
-                    if (instat === undefined)
+                    if (instatCd === undefined)
                         sopt[7] = '1';
                     else
-                        statCode = instat;
+                        statCd = instatCd;
                 }
 
                 if (dataType === 'DV' || dataType === 'DC' ||
@@ -1350,7 +1370,7 @@ httpdispatcher.onGet(
 
                 if (dataType === 'UV') {
                     
-                    uvtyp = instat.charAt(0).toUpperCase();
+                    uvtyp = instatCd.charAt(0).toUpperCase();
                     
                     if (! (uvtyp === 'C' || uvtyp === 'E' ||
                            uvtyp === 'M' || uvtyp === 'N' ||
