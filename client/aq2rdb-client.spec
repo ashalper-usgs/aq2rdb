@@ -1,5 +1,5 @@
 Name:           aq2rdb-client
-Version:        1.2.1
+Version:        1.3.0
 Release:        1
 Summary:        A command-line program to call the aq2rdb Web service.
 Packager:       Andrew Halper <ashalper@usgs.gov>
@@ -39,6 +39,9 @@ rm -rf ${RPM_BUILD_ROOT}
 %doc
 
 %changelog
+
+* Fri Jun 03 2016 Andrew Halper <ashalper@usgs.gov> 1.3.0-1
+- More coherent "-z" option operation.
 
 * Wed Jun 01 2016 Andrew Halper <ashalper@usgs.gov> 1.2.1-1
 - Corrected bug in "-r" option output.
