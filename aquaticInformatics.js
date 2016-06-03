@@ -577,7 +577,9 @@ AQUARIUS: function (
             format: "json",
             LocationIdentifier: locationIdentifier.toString(),
             Parameter: parameter,
-            ComputationPeriodIdentifier: computationPeriodIdentifier
+            ComputationIdentifier: computationIdentifier,
+            ComputationPeriodIdentifier: computationPeriodIdentifier,
+            ExtendedFilters: "[{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
         };
 
         rest.query(
@@ -589,7 +591,6 @@ AQUARIUS: function (
             false,
             callback
         );
-
     } // getTimeSeriesDescriptionList
 
     /**
