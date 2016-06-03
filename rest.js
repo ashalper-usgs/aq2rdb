@@ -80,6 +80,12 @@ var rest = module.exports = {
         if (method === "POST")
             var chunk = querystring.stringify(obj);
 
+        // don't use in production, because "path" could contain
+        // AQUARIUS authorization token string, and we don't want to
+        // log that
+        if (false)
+            console.log("rest.query: http://" + host + path);
+
         var request = http.request({
             host: host,
             method: method,
