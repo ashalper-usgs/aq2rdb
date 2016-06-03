@@ -18,11 +18,13 @@ process.env.NODE_ENV = "test";
 
 // Node.JS modules
 var assert = require("assert");
-var diff = require("diff");
 var expect = require("chai").expect;
 var fs = require("fs");
 var http = require("http");
+require('should');
+require('should-http');
 var sinon = require("sinon");
+var request = require("supertest");  
 
 // aq2rdb modules
 var aq2rdb = require("../aq2rdb.js");
@@ -479,4 +481,47 @@ describe("rdb", function () {
 
     });
 
+});
+
+ /*
+   These routing tests require aq2rdb to running on localhost. We
+   don't start aq2rdb from test.js because it requires
+   user-name/password authentication credentials for prerequisite Web
+   services (e.g., AQUARIUS) that we can't have in plaintext. You'll
+   need to do that from the command-line if these tests are to
+   succeed. See ../README.md for more.
+ */
+describe("routing", function () {
+    var url = "http://localhost:8081";
+
+    /**
+       @see https://thewayofcode.wordpress.com/2013/04/21/how-to-build-and-test-rest-api-with-nodejs-express-mocha/
+    */
+    describe("aq2rdb", function () {
+        it("should GET DV RDB for USGS 09380000",
+           function (done) {
+               // aq2rdb -n09380000 -tdv -p00065 -s00003 -b20131001 -e20131014
+               var fields = {
+                   n: "09380000",
+                   t: "dv",
+                   p: "00065",
+                   s: "00003",
+                   b: "20131001",
+                   e: "20131014"
+               };
+               request(url)
+                   .get("/aq2rdb")
+                   .send(fields)
+                   .end(        // handles the response
+                       function (error, response) {
+                           if (error) {
+                               throw error;
+                           }
+                           // should.js syntax
+                           response.should.have.status(200);
+                           done();
+                       }
+                   );
+           });
+    });
 });
