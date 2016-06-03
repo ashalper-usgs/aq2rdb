@@ -498,30 +498,54 @@ describe("routing", function () {
        @see https://thewayofcode.wordpress.com/2013/04/21/how-to-build-and-test-rest-api-with-nodejs-express-mocha/
     */
     describe("aq2rdb", function () {
-        it("should GET DV RDB for USGS 09380000",
-           function (done) {
-               // aq2rdb -n09380000 -tdv -p00065 -s00003 -b20131001 -e20131014
-               var fields = {
-                   n: "09380000",
-                   t: "dv",
-                   p: "00065",
-                   s: "00003",
-                   b: "20131001",
-                   e: "20131014"
-               };
-               request(url)
-                   .get("/aq2rdb")
-                   .send(fields)
-                   .end(        // handles the response
-                       function (error, response) {
-                           if (error) {
-                               throw error;
-                           }
-                           // should.js syntax
-                           response.should.have.status(200);
-                           done();
-                       }
-                   );
-           });
+        it("should GET DV RDB for USGS 09380000", function (done) {
+            // aq2rdb -n09380000 -tdv -p00065 -s00003 -b20131001 -e20131014
+            var fields = {
+                n: "09380000",
+                t: "dv",
+                p: "00065",
+                s: "00003",
+                b: "20131001",
+                e: "20131014"
+            };
+            request(url)
+                .get("/aq2rdb")
+                .send(fields)
+                .end(        // handles the response
+                    function (error, response) {
+                        if (error) {
+                            throw error;
+                        }
+                        // should.js syntax
+                        response.should.have.status(200);
+                        done();
+                    }
+                );
+        });
+
+        it("should GET UV RDB for USGS 09380000", function (done) {
+            // aq2rdb -n09380000 -tuv -sC -p00065 -b201310010000 -e201310140000
+            var fields = {
+                n: "09380000",
+                t: "uv",
+                p: "00065",
+                s: "C",
+                b: "201310010000",
+                e: "201310140000"
+            };
+            request(url)
+                .get("/aq2rdb")
+                .send(fields)
+                .end(        // handles the response
+                    function (error, response) {
+                        if (error) {
+                            throw error;
+                        }
+                        // should.js syntax
+                        response.should.have.status(200);
+                        done();
+                    }
+                );
+        });
     });
 });
