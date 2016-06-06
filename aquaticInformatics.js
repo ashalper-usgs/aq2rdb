@@ -190,9 +190,16 @@ AQUARIUS: function (
     request.on('error', function (error) {
         var statusMessage;
 
-        if (error.message === 'connect ECONNREFUSED') {
-            callback("Could not connect to GetAQToken service for " +
-                     "AQUARIUS authentication token");
+        if (error.code === "ECONNREFUSED") {
+            var message =               
+                "Could not connect to GetAQToken service at " +
+                error.address;
+
+            if (error.port !== undefined)
+                message += " on port " + error.port.toString();
+
+            message += " for AQUARIUS authentication token";
+            callback(message);
         }
         else {
             callback(error);
