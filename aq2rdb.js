@@ -585,38 +585,26 @@ function appendIntervalSearchCondition(
 ) {
     // if "from" interval boundary is not "from the beginning of time"
     if (during.from !== fromTheBeginningOfTimeToken) {
-        var queryFrom;
-
         try {
-            queryFrom = moment.tz(
-                moment(during.from, "YYYYMMDDHHmmss").format(),
-                tzCode
-            ).format();
+            parameters["QueryFrom"] = moment.tz(during.from, tzCode).format();
         }
         catch (error) {
             log(packageName + ".error", error);
             callback(error);
             return;
         }
-        parameters["QueryFrom"] = queryFrom;
     }
 
     // if "to" interval boundary is not "to the end of time"
     if (during.to !== toTheEndOfTimeToken) {
-        var queryTo;
-
         try {
-            queryTo = moment.tz(
-                moment(during.to, "YYYYMMDDHHmmss").format(),
-                tzCode
-            ).format();
+            parameters["QueryTo"] = moment.tz(during.to, tzCode).format();
         }
         catch (error) {
             log(packageName + ".error", error);
             callback(error);
             return;
         }
-        parameters["QueryTo"] = queryTo;
     }
 
     return parameters;
@@ -677,15 +665,7 @@ function dvTableBody(
                 parameters["QueryTo"] = t;
             }
 
-            try {
-                aquarius.getTimeSeriesCorrectedData(
-                    parameters, callback
-                );
-            }
-            catch (error) {
-                callback(error);
-                return;
-            }
+            aquarius.getTimeSeriesCorrectedData(parameters, callback);
         },
         aquarius.parseTimeSeriesDataServiceResponse,
         /**
@@ -1105,7 +1085,8 @@ httpdispatcher.onGet(
                 },
                 aquarius.getTimeSeriesDescription,
                 function (tsd, callback) {
-                    timeSeriesDescription = tsd; // set variable in outer scope
+                    // set variable declared in unitValues() scope
+                    timeSeriesDescription = tsd;
                     callback(null);
                 },
                 /**
