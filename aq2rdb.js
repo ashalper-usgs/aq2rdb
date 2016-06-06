@@ -586,7 +586,8 @@ function appendIntervalSearchCondition(
     // if "from" interval boundary is not "from the beginning of time"
     if (during.from !== fromTheBeginningOfTimeToken) {
         try {
-            parameters["QueryFrom"] = moment.tz(during.from, tzCode).format();
+            parameters["QueryFrom"] =
+                moment.tz(during.from, "YYYYMMDDHHmmss", tzCode).format();
         }
         catch (error) {
             log(packageName + ".error", error);
@@ -598,7 +599,8 @@ function appendIntervalSearchCondition(
     // if "to" interval boundary is not "to the end of time"
     if (during.to !== toTheEndOfTimeToken) {
         try {
-            parameters["QueryTo"] = moment.tz(during.to, tzCode).format();
+            parameters["QueryTo"] =
+                moment.tz(during.to, "YYYYMMDDHHmmss", tzCode).format();
         }
         catch (error) {
             log(packageName + ".error", error);
