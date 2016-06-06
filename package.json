@@ -1,6 +1,6 @@
 {
   "name": "aq2rdb",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "USGS-variant, RDB output from AQUARIUS.",
   "main": "aq2rdb.js",
   "directories": {
