@@ -782,8 +782,8 @@ httpdispatcher.onGet(
                     )) {
                         // AQUARIUS fields
                     }
-                    else {
-                        callback('Unknown field "' + name + '"');
+                    else if (name !== "") {
+                        callback("Unknown field \"" + name + "\"");
                         return;
                     }
                 }
@@ -1303,8 +1303,8 @@ httpdispatcher.onGet(
                     if (name.match(/^(a|p|t|s|n|b|e|l|r|u|w|c)$/)) {
                         // aq2rdb fields
                     }
-                    else {
-                        callback('Unknown field "' + name + '"');
+                    else if (name !== "") {
+                        callback("Unknown field \"" + name + "\"");
                         return;
                     }
                 }
