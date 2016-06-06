@@ -1332,9 +1332,6 @@ httpdispatcher.onGet(
 
                 if (locTzCd === undefined) locTzCd = "LOC";
 
-                // init control argument
-                var sopt = "10000000000000000000000000000000".split("");
-
                 // convert agency to 5 characters - default to USGS
                 if (agencyCode === undefined)
                     agencyCode = "USGS";
@@ -1347,22 +1344,14 @@ httpdispatcher.onGet(
                 // further processing depends on data type
 
                 if (dataType === 'DV') {
-                    if (instatCd === undefined)
-                        sopt[7] = '1';
-                    else
+                    if (instatCd !== undefined)
                         statCd = instatCd;
                 }
 
                 if (dataType === 'DV' || dataType === 'DC' ||
                     dataType === 'SV' || dataType === 'PK') {
                     // convert dates to 8 characters
-                    if (begdat === undefined || enddat === undefined) {
-                        if (wyflag)
-                            sopt[8] = '4';
-                        else
-                            sopt[9] = '3';
-                    }
-                    else {
+                    if (begdat !== undefined && enddat !== undefined) {
                         interval =
                             new adaps.IntervalDay(begdat, enddat, wyflag);
                     }
@@ -1387,13 +1376,7 @@ httpdispatcher.onGet(
                     }
 
                     // convert date/times to 14 characters
-                    if (begdat === undefined || enddat === undefined) {
-                        if (wyflag)
-                            sopt[8] = '4';
-                        else
-                            sopt[9] = '3';
-                    }
-                    else {
+                    if (begdat !== undefined && enddat !== undefined) {
                         interval =
                             new adaps.IntervalSecond(begdat, enddat, wyflag);
                     }
