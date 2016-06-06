@@ -1619,31 +1619,6 @@ catch (error) {
 }
 
 /**
-   @function
-   @description Attempt AQUARIUS handshaking to get authentication
-                token.
-   @private
-   @param {function} callback Callback function to call when
-   complete.
-*/
-function initAquarius(callback) {
-    try {
-        aquarius = new aquaticInformatics.AQUARIUS(
-            options.aquariusTokenHostname,
-            options.aquariusHostname,
-            options.aquariusUserName,
-            options.aquariusPassword, callback
-        );
-    }
-    catch (error) {
-        if (error) {
-            callback(error);
-            return;
-        }
-    }
-} // initAquarius
-
-/**
    @description Check for "version" CLI option.
 */
 if (options.version === true) {
@@ -1743,7 +1718,22 @@ else {
                         }
                     );
                 },
-                initAquarius,
+                /**
+                   @function
+                   @description Attempt AQUARIUS handshaking to get
+                                authentication token.
+                   @private
+                   @param {function} callback Callback function to call when
+                   complete.
+                */
+                function (callback) {
+                    aquarius = new aquaticInformatics.AQUARIUS(
+                        options.aquariusTokenHostname,
+                        options.aquariusHostname,
+                        options.aquariusUserName,
+                        options.aquariusPassword, callback
+                    );
+                },
                 function (callback) {
                     fs.readFile("stat.json", function (error, json) {
                         if (error) {
@@ -1778,21 +1768,25 @@ else {
                     );
                     /** @description Start listening for requests. */ 
                     server.listen(options.port, function () {
-                        log(
-                            packageName,
+                        log(packageName,
                             "Server listening on: http://localhost:" +
-                                options.port.toString()
-                        );
+                            options.port.toString());
                         // Reconstruct the "aquarius" object every 59
                         // minutes to renew lease on authentication
                         // token. See
                         // https://nodejs.org/api/timers.html#timers_setinterval_callback_delay_arg
                         setInterval(
                             function () {
-                                initAquarius(function (error, message) {
-                                    if (error)
-                                        log(error);
-                                });
+                                aquarius = new aquaticInformatics.AQUARIUS(
+                                    options.aquariusTokenHostname,
+                                    options.aquariusHostname,
+                                    options.aquariusUserName,
+                                    options.aquariusPassword,
+                                    function (error, message) {
+                                        if (error)
+                                            log(error);
+                                    }
+                                );
                             },
                             // call above function every 59 minutes:
                             59 * 60 * 1000
