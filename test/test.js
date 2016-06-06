@@ -547,5 +547,34 @@ describe("routing", function () {
                     }
                 );
         });
+
+        /**
+           @see https://usgs.slack.com/archives/aq2rdb/p1465229527000003
+        */
+        it("should GET UV RDB for USGS 09180500", function (done) {
+            // aq2rdb -tuv -sc -n09180500 -p00060 -b20101001000000
+            //        -e20101002000000
+            var fields = {
+                n: "09180500",
+                t: "uv",
+                p: "00060",
+                s: "c",
+                b: "20101001000000",
+                e: "20101002000000"
+            };
+            request(url)
+                .get("/aq2rdb")
+                .send(fields)
+                .end(        // handles the response
+                    function (error, response) {
+                        if (error) {
+                            throw error;
+                        }
+                        // should.js syntax
+                        response.should.have.status(200);
+                        done();
+                    }
+                );
+        });
     });
 });
