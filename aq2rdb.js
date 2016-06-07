@@ -1798,6 +1798,7 @@ else {
 */
 if (process.env.NODE_ENV === "test") {
     module.exports._private = {
+        appendIntervalSearchCondition: appendIntervalSearchCondition,
         cli: cli,
         docRequest: docRequest,
         dvTableRow: dvTableRow,
