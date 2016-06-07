@@ -24,7 +24,7 @@ setup(
     # single-sourcing the version across setup.py and the project
     # code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='1.3.0',
+    version='1.4.0',
 
     description='A command-line, aq2rdb Web service client.',
     long_description=long_description,
@@ -72,7 +72,7 @@ setup(
     # when your project is installed. For an analysis of
     # "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['sys', 'getopt', 'os.path', 'urllib'],
+    install_requires=['sys', 'getopt', 'os.path', 'urllib', 'future'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
