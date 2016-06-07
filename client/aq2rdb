@@ -11,7 +11,15 @@
 import sys
 import getopt
 from os.path import basename
-import urllib
+
+# Attempt to use urllib on both Python 2.7.x and 3.5.x.
+# See http://python-future.org/compatible_idioms.html#urllib-module
+
+from future.standard_library import install_aliases
+install_aliases()
+
+from urllib.parse import urlencode
+from urllib.request import urlopen
 
 # Display usage information for the aq2rdb command
 def usage():
@@ -246,7 +254,16 @@ def main():
         if uniqueId:
             query['u'] = uniqueId
 
-        uo = urllib.urlopen(prefix + urllib.urlencode(query))
+        uo = urlopen(prefix + urlencode(query))
+
+        # TODO - since we started supporting Python 2.7 and 3.5
+        # simultaneously, error messages started looking a little
+        # weird:
+        #
+        #   b'# aq2rdb: No time series description list found at http://nwists.usgs.gov/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList
+        #   '
+        #
+        # Need to investigate the interface of the .read() method.
         response = uo.read()
 
         try:
