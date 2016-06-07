@@ -104,13 +104,14 @@ NWISRA: function (host, userName, password, log, callback) {
                     return;
                 });
 
+                // authentication credentials get POSTed to the server
                 request.write(
                     querystring.stringify(
                         {username: userName, password: password}
                     )
                 );
 
-                request.end();
+                request.end();  // end transaction
             },
             function (messageBody, callback) {
                 if (messageBody) {
@@ -159,17 +160,11 @@ NWISRA: function (host, userName, password, log, callback) {
                 });
 
             response.on('end', function () {
-                if (log)
-                    console.log(
-                        "service.NWISRA.queryRemote.response.statusCode: " +
-                            response.statusCode.toString()
-                    );
-
                 if (
                     response.statusCode < 200 || 300 <= response.statuscode
                 ) {
                     callback(
-                        "Could not reference site at http://" + host +
+                        "Received an error from http://" + host +
                             path + "; HTTP status code was: " +
                             response.statusCode.toString()
                     );
@@ -213,23 +208,34 @@ NWISRA: function (host, userName, password, log, callback) {
     */
     this.query = function (obj, log, callback) {
         // if NWIS-RA is logged-into
-        if (authentication)
+        if (authentication) {
             queryRemote(
                 "/service/data/view/parameters/json",
                 obj,
                 log,
                 callback
             );
-        else
+        }
+        else {
             // emulate the query by referring to local copy of JSON data
-            callback(
-                parameters.find(function (record) {
-                    if (obj["parameters.PARM_CD"] === record.PARM_CD)
-                        return true;
-                    else
-                        return false;
-                })
-            );
+            var parameter = parameters.find(function (record) {
+                if (obj["parameters.PARM_CD"] === record.PARM_CD)
+                    return true;
+                else
+                    return false;
+            });
+
+            if (parameter === undefined) {
+                callback(
+                    "Could not find a corresponding AQUARIUS " +
+                        "Parameter name for USGS parameter code \"" +
+                        record.PARM_CD + "\""
+                );
+                return;
+            }
+
+            callback(parameter);
+        }
     } // query
 
     // constructor
