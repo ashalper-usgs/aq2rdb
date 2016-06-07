@@ -653,6 +653,24 @@ AQUARIUS: function (
                     return;
                 }
 
+                /**
+                   @see https://usgs.slack.com/archives/aq2rdb/p1465259148000017
+                */
+                if (
+  timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions === undefined
+                ) {
+                    callback(
+                        "No time series description list found at " +
+                            url.format({
+                                protocol: "http",
+                                host: hostname,
+                                pathname:
+                           "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList"
+                            })
+                    );
+                    return;
+                }
+
                 callback(
                     null,
                 timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
