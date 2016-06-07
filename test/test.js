@@ -69,9 +69,23 @@ describe("aq2rdb", function () {
         aq2rdb._private.options = aq2rdb._private.cli.parse();
         done();
     });
-
-    describe(
-        "#handle()", function () {
+    describe("#toNWISDateFormat()", function () {
+        it("should return \"19690218\"", function () {
+            assert.equal(
+                "19690218",
+                aq2rdb.toNWISDateFormat("1969-02-18T07:30:00.000")
+            );
+        });
+    });
+    describe("#toNWISTimeFormat()", function () {
+        it("should return \"073000\"", function () {
+            assert.equal(
+                "073000",
+                aq2rdb.toNWISTimeFormat("1969-02-18T07:30:00.000")
+            );
+        });
+    });
+    describe("#handle()", function () {
             var mockResponse;
 
             beforeEach(function () {
@@ -109,25 +123,65 @@ describe("aq2rdb", function () {
             });
         }
     );
-    describe("#toNWISDateFormat()", function () {
-        it("should return \"19690218\"", function () {
-            assert.equal(
-                "19690218",
-                aq2rdb.toNWISDateFormat("1969-02-18T07:30:00.000")
+    describe("#appendIntervalSearchCondition()", function () {
+        it("should be equal", function () {
+            assert.deepEqual(
+                {QueryFrom: "2013-10-01T00:00:00-07:00",
+                 QueryTo: "2013-10-14T00:00:00-07:00"},
+                aq2rdb._private.appendIntervalSearchCondition(
+                    {}, {from: "20131001", to: "20131014"}, "MST",
+                    "00000000", "99999999", function (error) {
+                        throw new Error(error);
+                    }
+                )
             );
         });
     });
-    describe("#toNWISTimeFormat()", function () {
-        it("should return \"073000\"", function () {
-            assert.equal(
-                "073000",
-                aq2rdb.toNWISTimeFormat("1969-02-18T07:30:00.000")
-            );
+}); // aq2rdb
+
+describe("aquaticInformatics", function () {
+    var locationIdentifier;
+
+    describe("#LocationIdentifier()", function () {
+        it("should construct", function () {
+            locationIdentifier =
+                new aquaticInformatics.LocationIdentifier(
+                    "USGS", "123456789012345"
+                );
         });
     });
-    describe("/aq2rdb", function() {
+
+    describe("#LocationIdentifier().agencyCode()", function () {
+        it("should be \"USGS\"", function () {
+            assert.equal(locationIdentifier.agencyCode(), "USGS");
+        });
     });
-    /** @see https://mochajs.org/#asynchronous-code */
+
+    describe("#LocationIdentifier().siteNumber()", function () {
+        it("should be \"123456789012345\"", function () {
+            assert.equal(locationIdentifier.siteNumber(),
+                         "123456789012345");
+        });
+    });
+
+    describe("#LocationIdentifier().toString()", function () { 
+        it("should be \"123456789012345\"", function () {
+            assert.equal(locationIdentifier.toString(),
+                         "123456789012345");
+        });
+
+        it("should be \"123456789012345-USFS\"", function () {
+            // reconstruct location identifier to check different path
+            // in toString() method
+            var locationIdentifier = new aquaticInformatics.LocationIdentifier(
+                "USFS", "123456789012345"
+            );
+
+            assert.equal(locationIdentifier.toString(),
+                         "123456789012345-USFS");
+        });
+    });
+
     describe("AQUARIUS", function () {
         var aquarius;
 
@@ -304,54 +358,8 @@ describe("aq2rdb", function () {
                    );
                });          
         }); // #getTimeSeriesCorrectedData()
-
     }); // AQUARIUS
-
-}); // aq2rdb
-
-describe("aquaticInformatics", function () {
-    var locationIdentifier;
-
-    describe("#LocationIdentifier()", function () {
-        it("should construct", function () {
-            locationIdentifier =
-                new aquaticInformatics.LocationIdentifier(
-                    "USGS", "123456789012345"
-                );
-        });
-    });
-
-    describe("#LocationIdentifier().agencyCode()", function () {
-        it("should be \"USGS\"", function () {
-            assert.equal(locationIdentifier.agencyCode(), "USGS");
-        });
-    });
-
-    describe("#LocationIdentifier().siteNumber()", function () {
-        it("should be \"123456789012345\"", function () {
-            assert.equal(locationIdentifier.siteNumber(),
-                         "123456789012345");
-        });
-    });
-
-    describe("#LocationIdentifier().toString()", function () { 
-        it("should be \"123456789012345\"", function () {
-            assert.equal(locationIdentifier.toString(),
-                         "123456789012345");
-        });
-
-        it("should be \"123456789012345-USFS\"", function () {
-            // reconstruct location identifier to check different path
-            // in toString() method
-            var locationIdentifier = new aquaticInformatics.LocationIdentifier(
-                "USFS", "123456789012345"
-            );
-
-            assert.equal(locationIdentifier.toString(),
-                         "123456789012345-USFS");
-        });
-    });
-});
+}); // aquaticInformatics
 
 describe("rdb", function () {
     describe("#header()", function () {
@@ -480,8 +488,7 @@ describe("rdb", function () {
         });
 
     });
-
-});
+}); // rdb
 
  /*
    These routing tests require aq2rdb to running on localhost. We
@@ -576,5 +583,40 @@ describe("routing", function () {
                     }
                 );
         });
+
+        /**
+           @see https://usgs.slack.com/archives/aq2rdb/p1465229527000003
+        */
+        it("should GET correct time points UV RDB for USGS 09380000",
+           function (done) {
+               // aq2rdb -n09380000 -sC -tuv -p00065 -b201310010000
+               // -e201310150000
+               var fields = {
+                   n: "09380000",
+                   t: "uv",
+                   p: "00065",
+                   s: "C",
+                   b: "201310010000",
+                   e: "201310150000"
+               };
+               request(url)
+                   .get("/aq2rdb")
+                   .send(fields)
+                   .end(        // handles the response
+                       function (error, response) {
+                           /**
+                              @todo check dates at begin/end of interval
+                                    for correctness
+                           */
+                           if (error) {
+                               throw error;
+                           }
+                           // should.js syntax
+                           response.should.have.status(200);
+                           done();
+                       }
+                   );
+           }
+          );
     });
 });
