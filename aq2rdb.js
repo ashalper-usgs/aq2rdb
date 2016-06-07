@@ -1401,9 +1401,8 @@ httpdispatcher.onGet(
                 }
 
                 callback(
-                    null, vflag, dataType, agencyCode,
-                    siteNumber, parameterCode, uniqueId, interval,
-                    locTzCd
+                    null, vflag, dataType, agencyCode, siteNumber,
+                    uniqueId, interval, locTzCd
                 );
             },
             /**
@@ -1411,7 +1410,7 @@ httpdispatcher.onGet(
                      crutch eventually.
             */
             function (
-                v, d, a, s, p, u, interval, locTzCd, callback
+                v, d, a, s, u, interval, locTzCd, callback
             ) {
                 // save values in outer scope to avoid passing these
                 // values through subsequent async.waterfal()
@@ -1421,7 +1420,6 @@ httpdispatcher.onGet(
                 dataType = d;
                 locationIdentifier =
                     new aquaticInformatics.LocationIdentifier(a, s);
-                parameterCode = p;
                 uniqueId = u;
                 during = interval;
 
