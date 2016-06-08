@@ -17,9 +17,11 @@ from os.path import basename
 
 from future.standard_library import install_aliases
 install_aliases()
+from future.utils import bytes_to_native_str
 
 from urllib.parse import urlencode
 from urllib.request import urlopen
+from urllib.error import HTTPError
 
 # Display usage information for the aq2rdb command
 def usage():
@@ -254,20 +256,16 @@ def main():
         if uniqueId:
             query['u'] = uniqueId
 
-        uo = urlopen(prefix + urlencode(query))
+        try:
+            uo = urlopen(prefix + urlencode(query))
+        except HTTPError as e:
+            print("# aq2rdb: received HTTP error from server; status code \"" +
+                  str(e.code) + "\"; \"" + e.read() + "\"")
 
-        # TODO - since we started supporting Python 2.7 and 3.5
-        # simultaneously, error messages started looking a little
-        # weird:
-        #
-        #   b'# aq2rdb: No time series description list found at http://nwists.usgs.gov/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList
-        #   '
-        #
-        # Need to investigate the interface of the .read() method.
         response = uo.read()
 
         try:
-            rdb = str(response)
+            rdb = bytes_to_native_str(response, "ascii")
         except:
             rdb = None
 
