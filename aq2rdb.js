@@ -937,6 +937,44 @@ httpdispatcher.onGet(
     }
 ); // GetUVTable
 
+class Query {
+  constructor(
+      agencyCode = "USGS", siteNumber, parameterCode,
+      suppressRounding = false, referenceToWaterYear = false
+) {
+    this.agencyCode = agencyCode;
+    this.siteNumber = siteNumber;
+    this.parameterCode = parameterCode;
+    this.suppressRounding = suppressRounding;
+    this.referenceToWaterYear = referenceToWaterYear;
+  }
+} // Query
+
+class DVQuery extends Query {
+  constructor(
+      agencyCode, siteNumber, parameterCode, suppressRounding,
+      referenceToWaterYear, from, to
+) {
+      super(agencyCode, siteNumber, parameterCode, suppressRounding,
+            referenceToWaterYear);
+      this.from = from;
+      this.to = to;
+  }
+} // DVQuery
+
+class UVQuery extends Query {
+  constructor(
+      agencyCode, siteNumber, parameterCode, suppressRounding,
+      referenceToWaterYear, from, to, datetimeSingleColumn = false
+) {
+      super(agencyCode, siteNumber, parameterCode, suppressRounding,
+            referenceToWaterYear);
+      this.from = from;
+      this.to = to;
+      this.datetimeSingleColumn = datetimeSingleColumn;
+  }
+} // UVQuery
+
 /**
    @description aq2rdb endpoint, service request handler.
 */
@@ -1323,6 +1361,11 @@ httpdispatcher.onGet(
 
                 // convert station to 15 characters
                 siteNumber = siteNumber.substring(0, 15);
+
+                var query = new Query(
+                    agencyCode, siteNumber, parameterCode, field.r,
+                    wyflag
+                );
 
                 // further processing depends on data type
 
