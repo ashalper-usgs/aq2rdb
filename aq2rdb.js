@@ -921,588 +921,90 @@ httpdispatcher.onGet(
                 callback(null);
             }
         ],
-            /**
-               @description node-async error handler function for
-                            outer-most, GetUVTable async.waterfall
-                            function.
-               @callback
-            */
-            function (error) {
-                if (error) {
-                    handle(error, response);
-                }
-                response.end();
+        /**
+           @description node-async error handler function for
+                        outer-most, GetUVTable async.waterfall
+                        function.
+           @callback
+        */
+        function (error) {
+            if (error) {
+                handle(error, response);
             }
-        );
+            response.end();
+        });
     }
 ); // GetUVTable
 
-class Query {
-  constructor(
-      agencyCode = "USGS", siteNumber, parameterCode,
-      suppressRounding = false, referenceToWaterYear = false
-) {
-    this.agencyCode = agencyCode;
-    this.siteNumber = siteNumber;
-    this.parameterCode = parameterCode;
-    this.suppressRounding = suppressRounding;
-    this.referenceToWaterYear = referenceToWaterYear;
-  }
-} // Query
-
-class DVQuery extends Query {
-  constructor(
-      agencyCode, siteNumber, parameterCode, suppressRounding,
-      referenceToWaterYear, from, to
-) {
-      super(agencyCode, siteNumber, parameterCode, suppressRounding,
-            referenceToWaterYear);
-      this.from = from;
-      this.to = to;
-  }
-} // DVQuery
-
-class UVQuery extends Query {
-  constructor(
-      agencyCode, siteNumber, parameterCode, suppressRounding,
-      referenceToWaterYear, from, to, datetimeSingleColumn = false
-) {
-      super(agencyCode, siteNumber, parameterCode, suppressRounding,
-            referenceToWaterYear);
-      this.from = from;
-      this.to = to;
-      this.datetimeSingleColumn = datetimeSingleColumn;
-  }
-} // UVQuery
-
 /**
-   @description aq2rdb endpoint, service request handler.
+   @class
+   @classdesc aq2rdb query object prototype.
+   @public
+   @param {string} text AQUARIUS LocationIdentifier string.
 */
-httpdispatcher.onGet(
-    '/' + packageName,
+class Query {
     /**
-       @callback
+       @constructs
     */
-    function (request, response) {
-        var dataType, agencyCode, siteNumber, locationIdentifier;
-        var waterServicesSite;
-        /**
-           @todo Need to check downstream depedendencies in aq2rdb
-                 endpoint's async.waterfall function for presence of
-                 former "P" prefix of this value.
-        */
-        var parameterCode;
-        var parameter, statCd, extendedFilters;
-        var uniqueId, during, cflag, vflag, applyRounding, locTzCd;
+    constructor(
+        agencyCode = "USGS", siteNumber, parameterCode,
+        suppressRounding = false, referenceToWaterYear = false
+    ) {
+        this.agencyCode = agencyCode.substring(0, 5);
+        this.siteNumber = siteNumber.substring(0, 15);
+	// query USGS Site Web Service to retrieve additional site
+	// properties needed in RDB comment block
+	var site = new usgs.Site(
+	    options.waterServicesHostname,
+	    this.agencyCode, this.siteNumber,
+	    options.log
+	);
+        this.parameterCode = parameterCode;
+        this.suppressRounding = suppressRounding;
+        this.referenceToWaterYear = referenceToWaterYear;
+    }
 
-        /**
-           @function
-           @description node-if-async predicate function, called by
-                        ifAsync() in async.waterfall() below.
-           @see https://github.com/ironSource/node-if-async
-        */
-        function dataTypeIsDV(callback) {
-            if (dataType === "DV")
-                callback(null, true);
-            else
-                callback(null, false);
-        }
+    get applyRounding() {
+        // logic of AQUARIUS's "apply rounding flag" is the
+        // inversion of NWIS's "suppress rounding flag"
+        return (field.r === undefined) ? "True" : "False";
+    }
 
-        /**
-           @function
-           @description node-if-async predicate function, called by
-                        ifAsync() in async.waterfall() below.
-           @see https://github.com/ironSource/node-if-async
-        */
-        function dataTypeIsUV(callback) {
-            if (dataType === "UV")
-                callback(null, true);
-            else
-                callback(null, false);
-        }
-
-        /**
-           @function
-           @description A Node.js emulation of legacy NWIS,
-                        FDVRDBOUT() Fortran subroutine: "Write DV data
-                        in rdb FORMAT" [sic].
-        */
-        function dailyValues(callback) {
-            var parameters = Object();
-            var timeSeriesDescription;
-
-            async.waterfall([
-                function (callback) {
-                    if (computationIdentifier[statCd] === undefined) {
-                        callback(
-                            "Unsupported statistic code \"" + statCd +
-                                "\""
-                        );
-                        return;
-                    }
-
-                    callback(
-                        null, agencyCode, siteNumber,
-                        parameter.aquariusParameter,
-                        computationIdentifier[statCd], "Daily"
-                    );
-                },
-                aquarius.getTimeSeriesDescription,
-                function (tsd, callback) {                  
-                    // save TimeSeriesDescription in outer scope
-                    timeSeriesDescription = tsd;
-
-                    var statistic = {code: statCd};
-
-                    try {
-                        statistic.name = stat[statCd].name;
-                        statistic.description = stat[statCd].description;
-                    }
-                    catch (error) {
-                        callback(
-                            "Invalid statistic code \"" + statCd +
-                                "\""
-                        );
-                        return;
-                    }
-
-                    // write the header records
-                    rdb.header(
-                        "NWIS-I DAILY-VALUES", "NO",
-                        waterServicesSite,
-                        timeSeriesDescription.SubLocationIdentifer,
-                        parameter, statistic,
-                        /**
-                           @todo Hard-coded object here is likely not
-                                 correct under all circumstances.
-                        */
-                        {name: "FINAL",
-                         description: "EDITED AND COMPUTED DAILY VALUES"},
-                        {start: during.from, end: during.to},
-                        callback
-                    );
-                },
-                function (header, callback) {
-                    // write RDB column headings
-                    response.write(
-                        header +
-                    "DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n" +
-                            "8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n",
-                        "ascii"
-                    );
-
-                    callback(
-                        null, timeSeriesDescription.UniqueId,
-                        during.from, during.to,
-             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
-                        response
-                    );
-                },
-                dvTableBody
-            ],
-                function (error) {
-                    if (error) {
-                        callback(error);
-                        return;
-                    }
-                    else {
-                        callback(null);
-                    }
-                }
-            ); // async.waterfall
-        } // dailyValues
-
-        function unitValues(callback) {
-            var timeSeriesDescription;
-
-            async.waterfall([
-                function (callback) {
-                    callback(
-                        null, agencyCode, siteNumber,
-                        parameter.aquariusParameter, "Instantaneous",
-                        "Points"
-                    );
-                },
-                aquarius.getTimeSeriesDescription,
-                function (tsd, callback) {
-                    // set variable declared in unitValues() scope
-                    timeSeriesDescription = tsd;
-                    callback(null);
-                },
-                /**
-                   @description Write RDB column names and column data
-                                type definitions to HTTP response.
-                   @callback
-                */
-                function (callback) {
-                    async.waterfall([
-                        /**
-                           @function
-                           @description Write RDB header to HTTP response.
-                           @callback
-                        */
-                        function (callback) {
-                            // (indirectly) call rdb.header() (below) with
-                            // these arguments
-                            callback(
-                                null, "NWIS-I UNIT-VALUES", "NO",
-                                waterServicesSite,
-                                timeSeriesDescription.SubLocationIdentifer,
-                                /**
-                                   @todo need to find out what to pass
-                                         in for "statistic" parameter
-                                         when doing UVs below.
-                                */
-                                parameter, undefined,
-                                /**
-                                   @todo this is pragmatically
-                                         hard-coded now, but there is
-                                         a relationship to "cflag"
-                                         value above.
-                                */
-                                {code: 'C', name: "COMPUTED"},
-                                {start: during.from, end: during.to}
-                            );
-                        },
-                        rdb.header,
-                        function (header, callback) {
-                            response.write(
-                                header +
-               "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
-                                    "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
-                                "ascii"
-                            );
-                            callback(null);
-                        }
-                    ]);
-                    callback(null, timeSeriesDescription.UniqueId);
-                },
-                /**
-                   @description Call AQUARIUS GetTimeSeriesCorrectedData
-                                service.
-                   @callback
-                */
-                function (uniqueId, callback) {
-                    // Note: "r" field ("rounding suppression")
-                    // Boolean truth value is inverted below for
-                    // semantic forwards-compatibility with AQUARIUS's
-                    // "ApplyRounding" parameter.
-                    var parameters = {
-                        TimeSeriesUniqueId: uniqueId,
-                        ApplyRounding: applyRounding
-                    };
-
-                    parameters = appendIntervalSearchCondition(
-                        parameters, during,
-                        waterServicesSite.tzCode,
-                        "00000000000000", "99999999999999",
-                        callback
-                    );
-
-                    try {
-                        aquarius.getTimeSeriesCorrectedData(
-                            parameters, callback
-                        );
-                    }
-                    catch (error) {
-                        callback(error);
-                        return;
-                    }
-                },
-                /**
-                   @description Receive response from AQUARIUS
-                                GetTimeSeriesCorrectedData service.
-                   @callback
-                */
-                aquarius.parseTimeSeriesDataServiceResponse,
-                /**
-                   @description Write time series data as RDB rows to
-                                HTTP response.
-                   @callback
-                */
-                function (timeSeriesDataServiceResponse, callback) {
-                    async.each(
-                        timeSeriesDataServiceResponse.Points,
-                        /**
-                           @description Write an RDB row for one time
-                                        series point.
-                           @callback
-                        */
-                        function (point, callback) {
-                            var zone, m;
-                            var tzCode = waterServicesSite.tzCode;
-                            var value =
-                                (applyRounding === "False") ?
-                                point.Value.Numeric :
-                                point.Value.Display;
-                            var localTimeFlag =
-                                waterServicesSite.localTimeFlag;
-
-                            try {
-                                zone = tzName[tzCode][localTimeFlag];
-                            }
-                            catch (error) {
-                                callback(
-                                    "Could not look up IANA time zone " +
-                                        "name for site time zone spec. " +
-                                        "(" + tzCode + "," + localTimeFlag + ")"
-                                );
-                                return;
-                            }
-
-                            // reference AQUARIUS timestamp to site's
-                            // (NWIS) time zone spec.
-                            m = moment.tz(point.Timestamp, zone);
-
-                            response.write(
-                                m.format("YYYYMMDD") + '\t' +
-                                    m.format("HHmmss") + '\t' +
-                                    waterServicesSite.tzCode + '\t' +
-                                    value + "\t\t \t\t" +
-                                    // might not be
-                                    // backwards-compatible with
-                                    // nwts2rdb:
-        timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0) +
-                                    '\n'
-                            );
-                            callback(null);
-                        }
-                    );
-                    callback(null);
-                }
-            ],
-                function (error) {
-                    if (error) {
-                        callback(error);
-                        return;
-                    }
-                    else {
-                        callback(null);
-                    }
-                }
-            ); // async.waterfall
-        } // unitValues
-
+    /**
+       @todo site.request() and site.receive() can be done in parallel
+             with the requesting/receiving of parameter code mapping.
+    */
+    get site () {
         async.waterfall([
             function (callback) {
-                if (docRequest(request.url, "/aq2rdb", response, callback))
-                    return;
-                callback(null, request.url);
-            },
-            function (requestURL, callback) {
-                var field;
-
-                try {
-                    field = url.parse(requestURL, true).query;
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                // if any mandatory fields are missing
-                if (field.t === undefined || field.n === undefined ||
-                    field.b === undefined || field.e === undefined ||
-                    field.s === undefined || field.p === undefined) {
-                    // terminate response with an error
-                    callback(
-                        "All of \"t\", \"n\", \"b\", \"e\", \"s\" and \"p\" " +
-                            "fields must be present" 
-                    );
-                    return;
-                }
-
-                if ((field.p || field.s) && field.u) {
-                    callback(
-                        "Specify either \"-p\" and \"s\", or " +
-                            "\"-u\", but not both"
-                    );
-                    return;
-                }
-
-                for (var name in field) {
-                    if (name.match(/^(a|p|t|s|n|b|e|l|r|u|w|c)$/)) {
-                        // aq2rdb fields
-                    }
-                    else if (name !== "") {
-                        callback("Unknown field \"" + name + "\"");
-                        return;
-                    }
-                }
-
-                // "rounding suppression flag"
-                applyRounding = (field.r === undefined) ? "True" : "False";
-
-                dataType = field.t.substring(0, 2).toUpperCase();
-                agencyCode = field.a;
-                siteNumber = field.n;
-                parameterCode = field.p;
-
-                // pass parsed field values to next async.waterfall()
-                // function
                 callback(
-                    null, field.w, field.c, false, field.s, field.u,
-                    field.b, field.e, field.l, ""
+                    null, options.waterServicesHostname,
+                    locationIdentifier.agencyCode(),
+                    locationIdentifier.siteNumber(),
+                    options.log
                 );
             },
-            function rdbOut(
-                wyflag, cflag, vflag, instatCd, uniqueId,
-                begdat, enddat, locTzCd, titlline, callback
-            ) {
-                var datatyp, uvtyp, interval, uvtypPrompted = false;
-
-                if (locTzCd === undefined) locTzCd = "LOC";
-
-                // convert agency to 5 characters - default to USGS
-                if (agencyCode === undefined)
-                    agencyCode = "USGS";
-                else
-                    agencyCode = agencyCode.substring(0, 5);
-
-                // convert station to 15 characters
-                siteNumber = siteNumber.substring(0, 15);
-
-                var query = new Query(
-                    agencyCode, siteNumber, parameterCode, field.r,
-                    wyflag
-                );
-
-                // further processing depends on data type
-
-                if (dataType === 'DV') {
-                    if (instatCd !== undefined)
-                        statCd = instatCd;
-                }
-
-                if (dataType === 'DV' || dataType === 'DC' ||
-                    dataType === 'SV' || dataType === 'PK') {
-                    // convert dates to 8 characters
-                    if (begdat !== undefined && enddat !== undefined) {
-                        interval =
-                            new adaps.IntervalDay(begdat, enddat, wyflag);
-                    }
-                }
-
-                if (dataType === 'UV') {
-                    
-                    uvtyp = instatCd.charAt(0).toUpperCase();
-                    
-                    if (! (uvtyp === 'C' || uvtyp === 'E' ||
-                           uvtyp === 'M' || uvtyp === 'N' ||
-                           uvtyp === 'R' || uvtyp === 'S')) {
-                        // Position of this is an artifact of the
-                        // nwts2rdb legacy code: it might need to be
-                        // moved earlier in HTTP query parameter
-                        // validation code.
-                        callback(
-                            'UV type code must be ' +
-                                '"M", "N", "E", "R", "S", or "C"'
-                        );
-                        return;
-                    }
-
-                    // convert date/times to 14 characters
-                    if (begdat !== undefined && enddat !== undefined) {
-                        interval =
-                            new adaps.IntervalSecond(begdat, enddat, wyflag);
-                    }
-
-                }
-
-                // This is where, formerly, NWF_RDB_OUT():
-                // 
-                //    get PRIMARY DD that goes with parm if parm supplied
-                //
-                // Since the algorithmic equivalent is now deep within
-                // the bowels of unitValues(), it is no longer
-                // here. This comment is just a reminder that it used
-                // to be here, in case it is later discovered that the
-                // primary identification is necessary before
-                // unitValues() does it.
-
-                // retrieving measured uvs and transport_cd not
-                // supplied, prompt for it
-                if (uvtypPrompted && dataType === "UV" &&
-                    (uvtyp === 'M' || uvtyp === 'N') &&
-                    transport_cd === undefined) {
-                    /**
-                       @todo Convert to callback error?
-                    */
-                    /*
-                      nw_query_meas_uv_type(
-                         agencyCode, siteNumber, ddid, begdtm,
-                         enddtm, loc_tz_cd, transport_cd,
-                         sensor_type_id, *998)
-                      if (transport_cd === undefined) {
-                      WRITE (0,2150) agencyCode, siteNumber, ddid
-                      2150
-                         FORMAT (/,"No MEASURED UV data for station "",A5,A15,
-                      "", DD "',A4,'".  Aborting.",/)
-                      return irc;
-                      END IF
-                    */
-                }
-
-                callback(
-                    null, vflag, dataType, agencyCode, siteNumber,
-                    uniqueId, interval, locTzCd
-                );
-            },
-            /**
-               @todo It would be quite nice to get rid of this scoping
-                     crutch eventually.
-            */
-            function (
-                v, d, a, s, u, interval, locTzCd, callback
-            ) {
-                // save values in outer scope to avoid passing these
-                // values through subsequent async.waterfal()
-                // functions' scopes where they are not referenced at
-                // all
-                vflag = v;
-                dataType = d;
-                locationIdentifier =
-                    new aquaticInformatics.LocationIdentifier(a, s);
-                uniqueId = u;
-                during = interval;
-
+            site.request,
+            site.receive,
+            function (receivedSite, callback) {
+                waterServicesSite = receivedSite; // set global
                 callback(null);
-            },
-            function (callback) {
-                /**
-                   @todo site.request() and site.receive() can be done
-                         in parallel with the requesting/receiving of
-                         parameter code mapping below.
-                */
-                async.waterfall([
-                    function (callback) {
-                        callback(
-                            null, options.waterServicesHostname,
-                            locationIdentifier.agencyCode(),
-                            locationIdentifier.siteNumber(),
-                            options.log
-                        );
-                    },
-                    site.request,
-                    site.receive,
-                    function (receivedSite, callback) {
-                        waterServicesSite = receivedSite; // set global
-                        callback(null);
-                    }
-                ],
-                    function (error) {
-                        // if the location was not found
-                        if (error === 404)
-                            callback(
-                                "Location " +
-                                    locationIdentifier.toString() +
-                                    " does not exist"
-                            );
-                        else
-                            callback(error);
-                    }
+            }
+        ],
+        function (error) {
+            // if the location was not found
+            if (error === 404)
+                callback(
+                    "Location " + locationIdentifier.toString() +
+                        " does not exist"
                 );
-            },
+            else
+                callback(error);
+        });
+    }
+
+    get parameter () {
+        async.waterfall([
             /**
                @function
                @description Query
@@ -1512,7 +1014,7 @@ httpdispatcher.onGet(
                @callback
                @param {string} NWIS-RA authorization token.
                @param {function} callback async.waterfall() callback
-                                 function.
+                      function.
             */
             function (callback) {
                 nwisRA.query(
@@ -1542,29 +1044,329 @@ httpdispatcher.onGet(
                 };
 
                 callback(null);
-            },
-            //  get data and output to files
-            ifAsync(dataTypeIsDV).then(
-                dailyValues
-            )
-            .elseIf(dataTypeIsUV).then(
-                unitValues
-            )
-        ],
-            /**
-               @description node-async error handler function.
-               @callback
-            */
-            function (error) {
-                if (error)
-                    response.end(
-                        "# " + packageName + ": " + error + '\n',
-                        "ascii"
+            }
+        ]);
+    } // parameter
+} // Query
+
+/**
+   @class
+   @classdesc aq2rdb, daily values query object prototype.
+   @public
+   @param {string} text AQUARIUS LocationIdentifier string.
+*/
+class DVQuery extends Query {
+    /**
+       @constructs
+    */
+    constructor(
+        agencyCode, siteNumber, parameterCode, suppressRounding,
+        referenceToWaterYear, statisticCode, from, to
+    ) {
+        super(agencyCode, siteNumber, parameterCode, suppressRounding,
+              referenceToWaterYear);
+        this.statisticCode = statisticCode;
+        this.interval = new adaps.IntervalDay(from, to, referenceToWaterYear);
+    }
+
+    /**
+       @method
+       @description A Node.js emulation of legacy NWIS,
+                    FDVRDBOUT() Fortran subroutine: "Write DV data
+                    in rdb FORMAT" [sic].
+    */
+    results(callback) {
+        var parameters = Object();
+        var timeSeriesDescription;
+
+        async.waterfall([
+            function (callback) {
+                if (computationIdentifier[statCd] === undefined) {
+                    callback(
+                        "Unsupported statistic code \"" + statCd +
+                            "\""
                     );
-                else
-                    response.end();
+                    return;
+                }
+
+                callback(
+                    null, agencyCode, siteNumber,
+                    parameter.aquariusParameter,
+                    computationIdentifier[statCd], "Daily"
+                );
+            },
+            aquarius.getTimeSeriesDescription,
+            function (tsd, callback) {                  
+                // save TimeSeriesDescription in outer scope
+                timeSeriesDescription = tsd;
+
+                var statistic = {code: statCd};
+
+                try {
+                    statistic.name = stat[statCd].name;
+                    statistic.description = stat[statCd].description;
+                }
+                catch (error) {
+                    callback(
+                        "Invalid statistic code \"" + statCd +
+                            "\""
+                    );
+                    return;
+                }
+
+                // write the header records
+                rdb.header(
+                    "NWIS-I DAILY-VALUES", "NO",
+                    waterServicesSite,
+                    timeSeriesDescription.SubLocationIdentifer,
+                    parameter, statistic,
+                    /**
+                       @todo Hard-coded object here is likely not
+                       correct under all circumstances.
+                    */
+                    {name: "FINAL",
+                     description: "EDITED AND COMPUTED DAILY VALUES"},
+                    {start: during.from, end: during.to},
+                    callback
+                );
+            },
+            function (header, callback) {
+                // write RDB column headings
+                response.write(
+                    header +
+                "DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n" +
+                        "8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n",
+                    "ascii"
+                );
+
+                callback(
+                    null, timeSeriesDescription.UniqueId,
+                    during.from, during.to,
+             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
+                    response
+                );
+            },
+            dvTableBody
+        ],
+        function (error) {
+            if (error) {
+                callback(error);
+                return;
+            }
+            else {
+                callback(null);
+            }
+        }); // async.waterfall
+    } // results
+} // DVQuery
+
+/**
+   @class
+   @classdesc aq2rdb, unit values query object prototype.
+   @public
+   @param {string} text AQUARIUS LocationIdentifier string.
+*/
+class UVQuery extends Query {
+    /**
+       @constructs
+    */
+    constructor(
+        agencyCode, siteNumber, parameterCode, suppressRounding,
+        referenceToWaterYear, type, from, to,
+        datetimeSingleColumn = false
+    ) {
+        super(agencyCode, siteNumber, parameterCode, suppressRounding,
+              referenceToWaterYear);
+        
+        var t = type.charAt(0).toUpperCase();
+        // "C" is the only UV type supported right now, but at the
+        // time of this writing, nwts2rdb also supports
+        // {"E", "M", "N", "R", "S"}
+        if (t !== 'C') {
+            // Position of this is an artifact of the nwts2rdb legacy
+            // code: it might need to be moved earlier in HTTP query
+            // parameter validation code.
+            throw 'UV type code must be "M", "N", "E", "R", "S", or "C"';
+            return;
+        }
+        this.type = t;
+
+        // convert date/times to 14 characters
+        if (from !== undefined && to !== undefined) {
+            this.interval = new adaps.IntervalSecond(
+                from, to, referenceToWaterYear
+            );
+        }
+
+        this.datetimeSingleColumn = datetimeSingleColumn;
+    } // constructor
+
+    results(callback) {
+        /**
+           @todo These are only here to expose a UVQuery instance's
+                 properties to the scope of the Promise constructor's
+                 anonymous function below, which is annoying. It would
+                 be nice to find out if there's a more OO way of doing
+                 it.
+        */
+        var agencyCode = this.agencyCode;
+        var siteNumber = this.siteNumber;
+
+        log("UVQuery.results().agencyCode", agencyCode);
+
+        var p = new Promise(
+            function (resolve, reject) {
+                aquarius.getTimeSeriesDescription(
+                    agencyCode, siteNumber,
+                    /** @todo Hard-coded; need
+                        parameter.aquariusParameter here instead */
+                    "Discharge",
+                    "Instantaneous", "Points",
+                    function (timeSeriesDescription, callback) {
+                        /**
+                           @todo probably need to check value of
+                                 "callback" parameter here, and call
+                                 either resolve() or reject()
+                                 accordingly?
+                        */
+                        resolve({timeSeriesDescription, callback});
+                    }
+                );
             }
         );
+
+        p.then(
+            function (val) {
+                log("UVQuery.results().p.then()", JSON.stringify(val));
+                callback(null);
+            })
+        .catch(
+            function (reason) {
+                log("UVQuery.results().p.catch()", reason);
+                callback(reason);
+            });
+
+    } // results
+} // UVQuery
+
+/**
+   @description aq2rdb endpoint, service request handler.
+*/
+httpdispatcher.onGet(
+    '/' + packageName,
+    /**
+       @callback
+    */
+    function (request, response) {
+        var field, dataType;
+
+        async.waterfall([
+            function (callback) {
+                // if this is a documentation page request
+                if (docRequest(request.url, "/aq2rdb", response, callback))
+                    return;     // go no further
+
+                callback(null, request.url);
+            },
+            function (requestURL, callback) {
+                try {
+                    field = url.parse(requestURL, true).query;
+                }
+                catch (error) {
+                    callback(error);
+                    return;
+                }
+
+                // if there are none of the two sets of mandatory
+                // fields present
+                if ((field.t === undefined || field.n === undefined ||
+                     field.b === undefined || field.e === undefined ||
+                     field.s === undefined || field.p === undefined)
+                    &&
+                    (field.u === undefined || field.b === undefined ||
+                     field.e === undefined)) {
+                    // terminate response with an error
+                    callback(
+                        "All of \"t\", \"n\", \"b\", \"e\", \"s\" and \"p\" " +
+                            "fields, or all of \"u\", \"b\", and \"e\"" +
+                            "fields must be present"
+                    );
+                    return;
+                }
+
+                // if USGS parameter-code or statistic-code, and
+                // AQUARIUS UniqueId were specified
+                if ((field.p || field.s) && field.u) {
+                    callback(
+                        "Specify either \"-p\" and \"s\", or " +
+                            "\"-u\", but not both"
+                    );
+                    return;
+                }
+
+                for (var name in field) {
+                    if (name.match(/^(a|p|t|s|n|b|e|l|r|u|w|c)$/)) {
+                        // aq2rdb fields
+                    }
+                    else if (name !== "") {
+                        callback("Unknown field \"" + name + "\"");
+                        return;
+                    }
+                }
+
+                // "t" field is type of query desired
+                dataType = field.t.substring(0, 2).toUpperCase();
+
+                // further processing depends on data type
+
+                if (dataType === 'DV') {
+                    var dvQuery;
+
+                    dvQuery = new DVQuery(
+                        field.a, field.n, field.p, field.r, field.w,
+                        field.s, field.b, field.e
+                    );
+
+                    dvQuery.results(callback);
+                }
+
+                if (dataType === 'UV') {
+                    var uvQuery;
+
+                    try {
+                        // note that due to regrettable data modeling
+                        // in nwts2rdb, statistic code parameter value
+                        // (the "-s" option's argument; field.s here)
+                        // is actually unit values type code in the
+                        // context of unit values queries
+                        uvQuery = new UVQuery(
+                            field.a, field.n, field.p, field.r,
+                            field.w, field.s, field.b, field.e,
+                            field.c
+                        );
+                    }
+                    catch (error) {
+                        log(packageName, error);
+                        callback(error);
+                    }
+
+                    uvQuery.results(callback);
+                }
+            }
+        ],
+        /**
+           @description node-async error handler function.
+           @callback
+         */
+        function (error) {
+            if (error)
+                response.end(
+                    "# " + packageName + ": " + error + '\n',
+                    "ascii"
+                );
+            else
+                response.end();
+        });
     }
 ); // aq2rdb
 
