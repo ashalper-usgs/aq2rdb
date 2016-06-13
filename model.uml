@@ -798,7 +798,7 @@
         <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
       </ownedAttribute>
       <ownedAttribute xmi:type="uml:Property" xmi:id="_qYKvkDGOEea2xeL4zA6Vww" name="localTimeFlag">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
+        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
       </ownedAttribute>
     </packagedElement>
     <packagedElement xmi:type="uml:Dependency" xmi:id="_AOafkDGOEea2xeL4zA6Vww" name="Site.agencyCode" client="_X0LFYDGNEea2xeL4zA6Vww" supplier="_qbMq4DGNEea2xeL4zA6Vww"/>

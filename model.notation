@@ -1594,7 +1594,7 @@
         <layoutConstraint xmi:type="notation:Bounds" xmi:id="_RfIO4jGNEea2xeL4zA6Vww"/>
       </children>
       <element xmi:type="uml:Package" href="model.uml#_Re_E8DGNEea2xeL4zA6Vww"/>
-      <layoutConstraint xmi:type="notation:Bounds" xmi:id="_RfGZsTGNEea2xeL4zA6Vww" x="445" y="594" width="222" height="232"/>
+      <layoutConstraint xmi:type="notation:Bounds" xmi:id="_RfGZsTGNEea2xeL4zA6Vww" x="445" y="594" width="450" height="232"/>
     </children>
     <styles xmi:type="notation:StringValueStyle" xmi:id="_Bx7n0W0tEeWacZFUJCoMig" name="diagram_compatibility_version" stringValue="1.1.0"/>
     <styles xmi:type="notation:DiagramStyle" xmi:id="_Bx7n0m0tEeWacZFUJCoMig"/>
