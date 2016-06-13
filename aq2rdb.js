@@ -904,76 +904,37 @@ httpdispatcher.onGet(
        @callback
     */
     function (request, response) {
-        var field, token, locationIdentifier, site, parameter;
-
-        async.waterfall([
-            function (callback) {
-                if (docRequest(request.url, "/aq2rdb/GetUVTable",
-                               response, callback))
-                    return;
-                callback(null);
-            },
-            function (callback) {
-                /**
-                   @todo See if code can be factored-out of "/aq2rdb"
-                         endpoint to (re-)implement GetUVTable.
-                */
-                callback(null);
-            }
-        ],
-            /**
-               @description node-async error handler function for
-                            outer-most, GetUVTable async.waterfall
-                            function.
-               @callback
-            */
-            function (error) {
-                if (error) {
-                    handle(error, response);
+        // if this is a documentation page request
+        log(packageName + ".request.url", request.url);
+        if (request.url === "/" + packageName + "/GetUVTable") {
+            var p = new Promise(
+                function (resolve, reject) {
+                    // read documentation page
+                    fs.readFile(
+                        "doc/GetUVTable.html",
+                        function (error, html) {
+                            if (error)
+                                reject(error);
+                            else
+                                resolve(html);
+                        }
+                    );
                 }
-                response.end();
-            }
-        );
-    }
+            );
+
+            p.then(
+                function (html) {
+                    // serve documentation page
+                    response.writeHeader(200, {"Content-Type": "text/html"});
+                    response.end(html);
+                })
+                .catch(
+                    function (error) {
+                        log(packageName, error);
+                    });
+        }
+    } // aq2rdb/GetUVTable path
 ); // GetUVTable
-
-class Query {
-  constructor(
-      agencyCode = "USGS", siteNumber, parameterCode,
-      suppressRounding = false, referenceToWaterYear = false
-) {
-    this.agencyCode = agencyCode;
-    this.siteNumber = siteNumber;
-    this.parameterCode = parameterCode;
-    this.suppressRounding = suppressRounding;
-    this.referenceToWaterYear = referenceToWaterYear;
-  }
-} // Query
-
-class DVQuery extends Query {
-  constructor(
-      agencyCode, siteNumber, parameterCode, suppressRounding,
-      referenceToWaterYear, from, to
-) {
-      super(agencyCode, siteNumber, parameterCode, suppressRounding,
-            referenceToWaterYear);
-      this.from = from;
-      this.to = to;
-  }
-} // DVQuery
-
-class UVQuery extends Query {
-  constructor(
-      agencyCode, siteNumber, parameterCode, suppressRounding,
-      referenceToWaterYear, from, to, datetimeSingleColumn = false
-) {
-      super(agencyCode, siteNumber, parameterCode, suppressRounding,
-            referenceToWaterYear);
-      this.from = from;
-      this.to = to;
-      this.datetimeSingleColumn = datetimeSingleColumn;
-  }
-} // UVQuery
 
 /**
    @description aq2rdb endpoint, service request handler.
