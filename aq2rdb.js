@@ -904,6 +904,8 @@ httpdispatcher.onGet(
        @callback
     */
     function (request, response) {
+        var field;
+
         // if this is a documentation page request
         if (request.url === "/" + packageName + "/GetUVTable") {
             var p = new Promise(
@@ -933,6 +935,32 @@ httpdispatcher.onGet(
                         response.end("# " + packageName + ": " + error);
                         log(packageName, error);
                     });
+
+            return;
+        }
+
+        try {
+            field = url.parse(request.url, true).query;
+        }
+        catch (error) {
+            callback(error);
+            return;
+        }
+
+        // if any required fields are omitted
+        if (field.TimeSeriesIdentifier === undefined &&
+            (field.LocationIdentifier === undefined ||
+             field.Parameter === undefined ||
+             field.ComputationIdentifier === undefined)) {
+            // respond with error
+            response.writeHeader(400, {"Content-Type": "text/plain"});  
+            response.end(
+                "# " + packageName +
+                    ": TimeSeriesIdentifier, or LocationIdentifer " +
+                    "and Parameter and ComputationIdentifier fields " +
+                    "must be present"
+            );
+            return;
         }
     }
 ); // GetUVTable
