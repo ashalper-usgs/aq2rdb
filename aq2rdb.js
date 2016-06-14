@@ -899,41 +899,41 @@ httpdispatcher.onGet(
    @description GetUVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
-    '/' + packageName + "/GetUVTable",
+    "/" + packageName + "/GetUVTable",
     /**
        @callback
     */
     function (request, response) {
-        var field, token, locationIdentifier, site, parameter;
-
-        async.waterfall([
-            function (callback) {
-                if (docRequest(request.url, "/aq2rdb/GetUVTable",
-                               response, callback))
-                    return;
-                callback(null);
-            },
-            function (callback) {
-                /**
-                   @todo See if code can be factored-out of "/aq2rdb"
-                         endpoint to (re-)implement GetUVTable.
-                */
-                callback(null);
-            }
-        ],
-            /**
-               @description node-async error handler function for
-                            outer-most, GetUVTable async.waterfall
-                            function.
-               @callback
-            */
-            function (error) {
-                if (error) {
-                    handle(error, response);
+        // if this is a documentation page request
+        if (request.url === "/" + packageName + "/GetUVTable") {
+            var p = new Promise(
+                function (resolve, reject) {
+                    // read the documentation page
+                    fs.readFile(
+                        "doc/GetUVTable.html",
+                        function (error, html) {
+                            if (error) {
+                                reject(error);
+                                return;
+                            }
+                            resolve(html);
+                        }
+                    );
                 }
-                response.end();
-            }
-        );
+            );
+
+            p.then(
+                function (html) {
+                    // serve the documentation page
+                    response.writeHeader(200, {"Content-Type": "text/html"});  
+                    response.end(html);
+                })
+                .catch(
+                    function (error) {
+                        response.end("# " + packageName + ": " + error);
+                        log(packageName, error);
+                    });
+        }
     }
 ); // GetUVTable
 
