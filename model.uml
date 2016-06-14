@@ -38,6 +38,24 @@
         <ownedParameter xmi:type="uml:Parameter" xmi:id="_6h6m4GbWEeW2ybKigGMHUA" name="aq2rdbResponse" type="_GIQ-8GbXEeW2ybKigGMHUA"/>
       </ownedOperation>
     </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="_2ECmAGbZEeW2ybKigGMHUA" name="Query">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_1ch78G0tEeWacZFUJCoMig" name="token" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_WtXooGbaEeW2ybKigGMHUA" name="environment" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_iq6YsGbaEeW2ybKigGMHUA" name="agencyCode" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_qTbCMGbaEeW2ybKigGMHUA" name="siteNumber" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_HuYEUGbbEeW2ybKigGMHUA" name="from" type="_-HctsGbXEeW2ybKigGMHUA">
+        <lowerValue xmi:type="uml:LiteralInteger" xmi:id="_O1YjQGbbEeW2ybKigGMHUA"/>
+        <upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="_O1ZxYGbbEeW2ybKigGMHUA" value="1"/>
+      </ownedAttribute>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_Pq85UGbbEeW2ybKigGMHUA" name="to" type="_-HctsGbXEeW2ybKigGMHUA">
+        <lowerValue xmi:type="uml:LiteralInteger" xmi:id="_R6D1MGbbEeW2ybKigGMHUA"/>
+        <upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="_R6EcQGbbEeW2ybKigGMHUA" value="1"/>
+      </ownedAttribute>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_QO--AGbcEeW2ybKigGMHUA" name="statisticName" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="_AKfRkGbaEeW2ybKigGMHUA" name="DVQuery">
+      <generalization xmi:type="uml:Generalization" xmi:id="_J5OnwGbaEeW2ybKigGMHUA" general="_2ECmAGbZEeW2ybKigGMHUA"/>
+    </packagedElement>
     <packagedElement xmi:type="uml:Class" xmi:id="_b6y_cGeNEeWJu7PhhXLrqQ" name="TimeSeriesCorrectedData">
       <ownedAttribute xmi:type="uml:Property" xmi:id="_1LK3gGeNEeWJu7PhhXLrqQ" name="responseVersion" type="_DA0YsGeOEeWJu7PhhXLrqQ">
         <lowerValue xmi:type="uml:LiteralInteger" xmi:id="_Owd54GeSEeWJu7PhhXLrqQ"/>
@@ -210,7 +228,9 @@
       <ownedAttribute xmi:type="uml:Property" xmi:id="_yC42wJ0pEeW0_5GYJNErLQ" name="localTimeFlag" type="_hhmHkGbXEeW2ybKigGMHUA"/>
     </packagedElement>
     <packagedElement xmi:type="uml:Dependency" xmi:id="_LLHfcJ0qEeW0_5GYJNErLQ" client="_ApXUwJ0mEeW0_5GYJNErLQ" supplier="_hvmq8J0oEeW0_5GYJNErLQ"/>
-    <packagedElement xmi:type="uml:Class" xmi:id="_afwNcBC1EeaYL67HiZ0LQA" name="UVQuery"/>
+    <packagedElement xmi:type="uml:Class" xmi:id="_afwNcBC1EeaYL67HiZ0LQA" name="UVQuery">
+      <generalization xmi:type="uml:Generalization" xmi:id="_fq2ZUBC1EeaYL67HiZ0LQA" general="_2ECmAGbZEeW2ybKigGMHUA"/>
+    </packagedElement>
   </packagedElement>
   <packagedElement xmi:type="uml:Package" xmi:id="_dpt3EGbXEeW2ybKigGMHUA" name="JavaScript">
     <packagedElement xmi:type="uml:DataType" xmi:id="_hhmHkGbXEeW2ybKigGMHUA" name="String"/>
@@ -297,6 +317,45 @@
       <upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="_6_PAgGeQEeWJu7PhhXLrqQ" value="*"/>
     </ownedEnd>
     <ownedEnd xmi:type="uml:Property" xmi:id="_47V2JGeQEeWJu7PhhXLrqQ" name="timeseriescorrecteddata" type="_b6y_cGeNEeWJu7PhhXLrqQ" association="_47V2IGeQEeWJu7PhhXLrqQ"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Class" xmi:id="_8GS3sG1NEeWacZFUJCoMig" name="RDBTable" isAbstract="true"/>
+  <packagedElement xmi:type="uml:Class" xmi:id="_au9qIG1OEeWacZFUJCoMig" name="Header" isAbstract="true">
+    <ownedOperation xmi:type="uml:Operation" xmi:id="_gfkW0G1OEeWacZFUJCoMig" name="toString">
+      <ownedParameter xmi:type="uml:Parameter" xmi:id="_n-0WoG1OEeWacZFUJCoMig" type="_hhmHkGbXEeW2ybKigGMHUA" direction="return"/>
+    </ownedOperation>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Class" xmi:id="_rynYYG1OEeWacZFUJCoMig" name="Heading" isAbstract="true">
+    <ownedOperation xmi:type="uml:Operation" xmi:id="_vPCb8G1OEeWacZFUJCoMig" name="toString">
+      <ownedParameter xmi:type="uml:Parameter" xmi:id="_ymb1kG1OEeWacZFUJCoMig" type="_hhmHkGbXEeW2ybKigGMHUA" direction="return"/>
+    </ownedOperation>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Association" xmi:id="_2p98cG1OEeWacZFUJCoMig" memberEnd="_2qA_wW1OEeWacZFUJCoMig _2qA_wm1OEeWacZFUJCoMig">
+    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_2p98cW1OEeWacZFUJCoMig" source="org.eclipse.papyrus">
+      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_2qA_wG1OEeWacZFUJCoMig" key="nature" value="UML_Nature"/>
+    </eAnnotations>
+    <ownedEnd xmi:type="uml:Property" xmi:id="_2qA_wm1OEeWacZFUJCoMig" name="rdbtable" type="_8GS3sG1NEeWacZFUJCoMig" association="_2p98cG1OEeWacZFUJCoMig"/>
+    <ownedEnd xmi:type="uml:Property" xmi:id="_2qA_wW1OEeWacZFUJCoMig" name="header" type="_au9qIG1OEeWacZFUJCoMig" aggregation="composite" association="_2p98cG1OEeWacZFUJCoMig"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Association" xmi:id="_3PMJYG1OEeWacZFUJCoMig" memberEnd="_3PMJY21OEeWacZFUJCoMig _3PMJZG1OEeWacZFUJCoMig">
+    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_3PMJYW1OEeWacZFUJCoMig" source="org.eclipse.papyrus">
+      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_3PMJYm1OEeWacZFUJCoMig" key="nature" value="UML_Nature"/>
+    </eAnnotations>
+    <ownedEnd xmi:type="uml:Property" xmi:id="_3PMJZG1OEeWacZFUJCoMig" name="rdbtable" type="_8GS3sG1NEeWacZFUJCoMig" association="_3PMJYG1OEeWacZFUJCoMig"/>
+    <ownedEnd xmi:type="uml:Property" xmi:id="_3PMJY21OEeWacZFUJCoMig" name="heading" type="_rynYYG1OEeWacZFUJCoMig" aggregation="composite" association="_3PMJYG1OEeWacZFUJCoMig"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Class" xmi:id="_LBOwgG1PEeWacZFUJCoMig" name="Body" isAbstract="true"/>
+  <packagedElement xmi:type="uml:Association" xmi:id="_P3YAEG1PEeWacZFUJCoMig" memberEnd="_P3YAE21PEeWacZFUJCoMig _P3YAFG1PEeWacZFUJCoMig">
+    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_P3YAEW1PEeWacZFUJCoMig" source="org.eclipse.papyrus">
+      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_P3YAEm1PEeWacZFUJCoMig" key="nature" value="UML_Nature"/>
+    </eAnnotations>
+    <ownedEnd xmi:type="uml:Property" xmi:id="_P3YAFG1PEeWacZFUJCoMig" name="rdbtable" type="_8GS3sG1NEeWacZFUJCoMig" association="_P3YAEG1PEeWacZFUJCoMig"/>
+    <ownedEnd xmi:type="uml:Property" xmi:id="_P3YAE21PEeWacZFUJCoMig" name="body" type="_LBOwgG1PEeWacZFUJCoMig" aggregation="composite" association="_P3YAEG1PEeWacZFUJCoMig"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Class" xmi:id="__24igG1PEeWacZFUJCoMig" name="Response" isAbstract="true"/>
+  <packagedElement xmi:type="uml:Class" xmi:id="_I3qmgG1QEeWacZFUJCoMig" name="Request" isAbstract="true"/>
+  <packagedElement xmi:type="uml:Class" xmi:id="_7YxgkG3gEeWWXI905mrYGQ" name="Resource" isAbstract="true">
+    <ownedAttribute xmi:type="uml:Property" xmi:id="_CgslgG3hEeWWXI905mrYGQ" name="name" type="_hhmHkGbXEeW2ybKigGMHUA"/>
+    <ownedAttribute xmi:type="uml:Property" xmi:id="_Sj_qAG3hEeWWXI905mrYGQ" name="uri" type="_hhmHkGbXEeW2ybKigGMHUA"/>
   </packagedElement>
   <packagedElement xmi:type="uml:Activity" xmi:id="_kJmOQHjjEeWSJsf5P-lLZw" name="GetDVTable" node="_4wSlcHjjEeWSJsf5P-lLZw">
     <node xmi:type="uml:InitialNode" xmi:id="_4wSlcHjjEeWSJsf5P-lLZw" name=""/>
@@ -693,115 +752,4 @@
   <packagedElement xmi:type="uml:Package" xmi:id="_UHvv8CgWEeasi7cDBAji3g" name="service">
     <packagedElement xmi:type="uml:Class" xmi:id="_ZsrYICgWEeasi7cDBAji3g" name="NWISRA"/>
   </packagedElement>
-  <packagedElement xmi:type="uml:Package" xmi:id="_pCjs4C8wEeaKlf94ofP48Q" name="aq2rdb">
-    <packagedElement xmi:type="uml:Interface" xmi:id="_xzQGcC8wEeaKlf94ofP48Q" name="Query">
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_5U1MEC8xEeaKlf94ofP48Q" name="suppressRounding">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
-        <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_EOF0oC8yEeaKlf94ofP48Q"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_MERGsC8yEeaKlf94ofP48Q" name="referenceToWaterYear">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
-        <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_Sc3AcC8yEeaKlf94ofP48Q"/>
-      </ownedAttribute>
-    </packagedElement>
-    <packagedElement xmi:type="uml:Interface" xmi:id="_7CD_YC8wEeaKlf94ofP48Q" name="DV">
-      <generalization xmi:type="uml:Generalization" xmi:id="_yblxcC8zEeaKlf94ofP48Q" general="_xzQGcC8wEeaKlf94ofP48Q"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_VegB8C8xEeaKlf94ofP48Q" name="statisticCode">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_lGMIgC8xEeaKlf94ofP48Q" name="beginPoint">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_uXJ9kC8xEeaKlf94ofP48Q" name="endPoint">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-    </packagedElement>
-    <packagedElement xmi:type="uml:Interface" xmi:id="_8hvCYC8wEeaKlf94ofP48Q" name="UV">
-      <generalization xmi:type="uml:Generalization" xmi:id="_zI_qAC8zEeaKlf94ofP48Q" general="_xzQGcC8wEeaKlf94ofP48Q"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_zlM6UC8yEeaKlf94ofP48Q" name="type" type="_3atzUC8yEeaKlf94ofP48Q"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_kPFPcC8zEeaKlf94ofP48Q" name="startPoint">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_qN7McC8zEeaKlf94ofP48Q" name="endPoint">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_f-YrwC8yEeaKlf94ofP48Q" name="datetimeSingleColumn">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
-        <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_llTQ8C8yEeaKlf94ofP48Q"/>
-      </ownedAttribute>
-    </packagedElement>
-    <packagedElement xmi:type="uml:Enumeration" xmi:id="_3atzUC8yEeaKlf94ofP48Q" name="UVType">
-      <ownedLiteral xmi:type="uml:EnumerationLiteral" xmi:id="_D1B-8C8zEeaKlf94ofP48Q" name="C">
-        <specification xmi:type="uml:LiteralString" xmi:id="_D1B-8S8zEeaKlf94ofP48Q" name="Computed" value="C"/>
-      </ownedLiteral>
-    </packagedElement>
-    <packagedElement xmi:type="uml:Dependency" xmi:id="_gx_dgC8zEeaKlf94ofP48Q" name="UV.type" client="_8hvCYC8wEeaKlf94ofP48Q" supplier="_3atzUC8yEeaKlf94ofP48Q"/>
-    <packagedElement xmi:type="uml:Class" xmi:id="_f5suIC80EeaKlf94ofP48Q" name="Query">
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_Q7BdcC82EeaKlf94ofP48Q" name="agencyCode" type="_qbMq4DGNEea2xeL4zA6Vww">
-        <defaultValue xmi:type="uml:LiteralString" xmi:id="_VfSS0C82EeaKlf94ofP48Q" value="USGS"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_aXW1AC82EeaKlf94ofP48Q" name="siteNumber">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_h4KUAC82EeaKlf94ofP48Q" name="parameterCode" type="_LzhisC83EeaKlf94ofP48Q"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_rSb2EC82EeaKlf94ofP48Q" name="suppressRounding">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
-        <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_uXAaUC82EeaKlf94ofP48Q"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_0BXVEC82EeaKlf94ofP48Q" name="referenceToWaterYear">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
-        <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_5Ij4YC82EeaKlf94ofP48Q"/>
-      </ownedAttribute>
-      <ownedOperation xmi:type="uml:Operation" xmi:id="_KZrZ4C9CEeaKlf94ofP48Q" name="results"/>
-    </packagedElement>
-    <packagedElement xmi:type="uml:Class" xmi:id="_mETPMC80EeaKlf94ofP48Q" name="DVQuery">
-      <generalization xmi:type="uml:Generalization" xmi:id="_GFU0UC84EeaKlf94ofP48Q" general="_f5suIC80EeaKlf94ofP48Q"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_G8FSoC83EeaKlf94ofP48Q" name="statisticCode" type="_gEceMC83EeaKlf94ofP48Q"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_OL5S0C84EeaKlf94ofP48Q" name="from">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_TheQYC84EeaKlf94ofP48Q" name="to">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-    </packagedElement>
-    <packagedElement xmi:type="uml:Class" xmi:id="_nALBkC80EeaKlf94ofP48Q" name="UVQuery">
-      <generalization xmi:type="uml:Generalization" xmi:id="_GuS40C84EeaKlf94ofP48Q" general="_f5suIC80EeaKlf94ofP48Q"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_4FPkwC83EeaKlf94ofP48Q" name="type" type="_3atzUC8yEeaKlf94ofP48Q"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_qTJRYC84EeaKlf94ofP48Q" name="from">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_xN9ucC84EeaKlf94ofP48Q" name="to">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_8cThEC82EeaKlf94ofP48Q" name="datetimeSingleColumn">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
-        <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_Bqwi8C83EeaKlf94ofP48Q"/>
-      </ownedAttribute>
-    </packagedElement>
-    <packagedElement xmi:type="uml:Enumeration" xmi:id="_LzhisC83EeaKlf94ofP48Q" name="ParameterCode"/>
-    <packagedElement xmi:type="uml:Dependency" xmi:id="_af6eoC83EeaKlf94ofP48Q" name="Query.parameterCode" client="_f5suIC80EeaKlf94ofP48Q" supplier="_LzhisC83EeaKlf94ofP48Q"/>
-    <packagedElement xmi:type="uml:Enumeration" xmi:id="_gEceMC83EeaKlf94ofP48Q" name="StatisticCode"/>
-    <packagedElement xmi:type="uml:Dependency" xmi:id="_sUdeUC83EeaKlf94ofP48Q" name="DV.statisticCode" client="_mETPMC80EeaKlf94ofP48Q" supplier="_gEceMC83EeaKlf94ofP48Q"/>
-    <packagedElement xmi:type="uml:Dependency" xmi:id="_9xG7YC83EeaKlf94ofP48Q" name="UV.type" client="_nALBkC80EeaKlf94ofP48Q" supplier="_3atzUC8yEeaKlf94ofP48Q"/>
-    <packagedElement xmi:type="uml:Dependency" xmi:id="_D95CADGOEea2xeL4zA6Vww" name="Query.agencyCode" client="_f5suIC80EeaKlf94ofP48Q" supplier="_qbMq4DGNEea2xeL4zA6Vww"/>
-  </packagedElement>
-  <packagedElement xmi:type="uml:Package" xmi:id="_Re_E8DGNEea2xeL4zA6Vww" name="USGS">
-    <packagedElement xmi:type="uml:Class" xmi:id="_X0LFYDGNEea2xeL4zA6Vww" name="Site">
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_koaz8DGNEea2xeL4zA6Vww" name="agencyCode" type="_qbMq4DGNEea2xeL4zA6Vww"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_JO8r8DGOEea2xeL4zA6Vww" name="number">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_UzY_gDGOEea2xeL4zA6Vww" name="name">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_dZjkEDGOEea2xeL4zA6Vww" name="tzCode">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_qYKvkDGOEea2xeL4zA6Vww" name="localTimeFlag">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-    </packagedElement>
-    <packagedElement xmi:type="uml:Dependency" xmi:id="_AOafkDGOEea2xeL4zA6Vww" name="Site.agencyCode" client="_X0LFYDGNEea2xeL4zA6Vww" supplier="_qbMq4DGNEea2xeL4zA6Vww"/>
-  </packagedElement>
-  <packagedElement xmi:type="uml:Enumeration" xmi:id="_qbMq4DGNEea2xeL4zA6Vww" name="AgencyCode" isAbstract="true"/>
 </uml:Model>
