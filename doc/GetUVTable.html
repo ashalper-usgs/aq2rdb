@@ -172,7 +172,7 @@
       <div>
         <h2>GetUVTable</h2>
 	<!-- TODO: convert to div(s): -->
-        <table summary="A list of routes for this Web service.">
+        <table class="routes" summary="A list of routes for this Web service.">
           <caption>
             The following routes are available for this service:
           </caption>
@@ -186,7 +186,8 @@
           </tbody>
         </table>
 
-        <table summary="GetUVTable Web service, formal parameters.">
+        <table class="params"
+               summary="GetUVTable Web service, formal parameters.">
           <caption>
             <b>GetUVTable</b> Request Parameters:
           </caption>
@@ -202,6 +203,22 @@
           </thead>
 
           <tbody>
+            <tr>
+              <td>userName</td>
+              <td>query</td>
+              <td>string</td>
+              <td>Yes</td>
+              <td>AQUARIUS user name.</td>
+            </tr>
+
+            <tr>
+              <td>password</td>
+              <td>query</td>
+              <td>string</td>
+              <td>Yes</td>
+              <td>AQUARIUS password.</td>
+            </tr>
+
             <tr>
               <td>LocationIdentifier</td>
               <td>query</td>
@@ -289,7 +306,8 @@ values in the subsequent table.
 
 	<p>The columns included in the RDB table are:</p>
 	</div>
-        <table summary="GetUVTable Web service, response fields.">
+        <table class="params"
+               summary="GetUVTable Web service, response fields.">
 
           <thead>
             <tr>
