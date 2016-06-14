@@ -716,7 +716,7 @@ function dvTableBody(
    @description GetDVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
-    '/' + packageName + '/GetDVTable',
+    "/" + packageName + "/GetDVTable",
     /**
        @callback
     */
@@ -733,7 +733,7 @@ httpdispatcher.onGet(
                @callback
             */
             function (callback) {
-                if (docRequest(request.url, '/aq2rdb/GetDVTable',
+                if (docRequest(request.url, "/aq2rdb/GetDVTable",
                                response, callback))
                     return;
                 callback(null);
@@ -753,7 +753,7 @@ httpdispatcher.onGet(
                 }
 
                 for (var name in field) {
-                    if (name === 'LocationIdentifier') {
+                    if (name === "LocationIdentifier") {
                         locationIdentifier =
                             new aquaticInformatics.LocationIdentifier(
                                 field.LocationIdentifier
@@ -771,12 +771,12 @@ httpdispatcher.onGet(
                 }
 
                 if (locationIdentifier === undefined) {
-                    callback('Required field "LocationIdentifier" not found');
+                    callback("Required field \"LocationIdentifier\" not found");
                     return;
                 }
 
                 if (field.Parameter === undefined) {
-                    callback('Required field "Parameter" not found');
+                    callback("Required field \"Parameter\" not found");
                     return;
                 }
 
@@ -847,11 +847,11 @@ httpdispatcher.onGet(
                         }
 
                         var header = aq2rdb.rdbHeaderBody(
-                            'NWIS-I DAILY-VALUES', site,
+                            "NWIS-I DAILY-VALUES", site,
                             timeSeriesDescription.SubLocationIdentifer,
                             {start: start, end: end}
                         );
-                        response.write(header, 'ascii');
+                        response.write(header, "ascii");
                         callback(null);
                     },
                     /**
@@ -863,8 +863,8 @@ httpdispatcher.onGet(
                     */
                     function (callback) {
                         response.write(
-                            'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
-                                '8D\t6S\t16N\t1S\t32S\t1S\t1S\n', 'ascii'
+                            "DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n" +
+                                "8D\t6S\t16N\t1S\t32S\t1S\t1S\n", "ascii"
                         );
 
                         callback(
@@ -895,17 +895,78 @@ httpdispatcher.onGet(
     }
 ); // GetDVTable
 
+function getUVTable(requestURL) {
+    var field = url.parse(requestURL, true).query;
+    var locationIdentifier;
+    var site;
+
+    for (var name in field) {
+        if (name.match(
+      /^(LocationIdentifier|Parameter|ComputationIdentifier|QueryFrom|QueryTo)$/
+        )) {
+            // AQUARIUS fields
+        }
+        else if (name !== "") {
+            throw "Unknown field \"" + name + "\"";
+            return;
+        }
+    }
+
+    if (field.LocationIdentifier !== undefined) {
+	locationIdentifier =
+	    new aquaticInformatics.LocationIdentifier(
+		field.LocationIdentifier
+	    );
+    }
+
+    var p = new Promise(
+        function (resolve, reject) {
+	    var site = require("./site");
+
+	    site.request(
+		options.waterServicesHostname,
+		locationIdentifier.agencyCode(),
+		locationIdentifier.siteNumber(),
+		options.log,
+                // calling into (non-Promise-aware) site.request()
+                // here, hence the extra callback
+                function (messageBody, error) {
+                    if (error === undefined)
+                        resolve(messageBody);
+                    else
+                        reject(error);
+                }
+            );
+        }
+    );
+
+    p.then(
+        function (messageBody) {
+            site.receive(messageBody, function (error, siteObject) {
+                if (error !== null) {
+                    throw error;
+                    return;
+                }
+                site = siteObject;
+		log(packageName + ".getUVTable().site", site);
+            });
+        })
+        .catch(
+            function (error) {
+                log(packageName, error);
+            });
+} // getUVTable
+
 /**
    @description GetUVTable endpoint service request handler.
 */
 httpdispatcher.onGet(
-    '/' + packageName + "/GetUVTable",
+    "/" + packageName + "/GetUVTable",
     /**
        @callback
     */
     function (request, response) {
         // if this is a documentation page request
-        log(packageName + ".request.url", request.url);
         if (request.url === "/" + packageName + "/GetUVTable") {
             var p = new Promise(
                 function (resolve, reject) {
@@ -933,6 +994,8 @@ httpdispatcher.onGet(
                         log(packageName, error);
                     });
         }
+        else
+            getUVTable(request.url); // Web service request
     } // aq2rdb/GetUVTable path
 ); // GetUVTable
 
@@ -940,7 +1003,7 @@ httpdispatcher.onGet(
    @description aq2rdb endpoint, service request handler.
 */
 httpdispatcher.onGet(
-    '/' + packageName,
+    "/" + packageName,
     /**
        @callback
     */
