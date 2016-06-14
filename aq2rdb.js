@@ -214,6 +214,11 @@ var tzName = {
 // in the object initializer above.
 tzName["ZP-11"] = {N: "Etc/GMT-11", Y: "Etc/GMT-11"};
 
+class Site {
+    constructor(agencyCode, number, name, tzCode, localTimeFlag) {
+    } // constructor
+} // Site
+
 /**
    @description Exports public functions to external dependent modules.
    @global
