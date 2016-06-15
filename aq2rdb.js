@@ -226,15 +226,15 @@ class Site {
         this.number = locationIdentifier.siteNumber();
     } // constructor
 
-    /**
-       @see http://www.tomas-dvorak.cz/posts/nodejs-request-without-dependencies/
-    */
     init() {
-        var p = new Promise((resolve, reject) => {
-            const lib = require('http');
+        /**
+           @see http://www.tomas-dvorak.cz/posts/nodejs-request-without-dependencies/
+        */
+        var getSiteRDB = new Promise((resolve, reject) => {
+            const lib = require("http");
             const request = lib.get(
-                'http://' + options.waterServicesHostname +
-                    '/nwis/site/?' + querystring.stringify(
+                "http://" + options.waterServicesHostname +
+                    "/nwis/site/?" + querystring.stringify(
                         {format: "rdb",
                          site: this.agencyCode + ":" + this.number,
                          siteOutput: "expanded"}
@@ -245,7 +245,7 @@ class Site {
                         response.statusCode > 299) {
                         reject(
                             new Error(
-                                'Failed to load page, status code: ' +
+                                "Failed to load page, status code: " +
                                     response.statusCode
                             )
                         );
@@ -253,16 +253,42 @@ class Site {
                     // temporary data holder
                     const body = [];
                     // on every content chunk, push it to the data array
-                    response.on('data', (chunk) => body.push(chunk));
+                    response.on("data", (chunk) => body.push(chunk));
                     // we are done, resolve promise with those joined chunks
-                    response.on('end', () => resolve(body.join('')));
+                    response.on("end", () => resolve(body.join("")));
                 });
             // handle connection errors of the request
-            request.on('error', (err) => reject(err));
+            request.on("error", (err) => reject(err));
         });
 
-        p.then((messageBody) => console.log(messageBody))
-            .catch((err) => console.error(err));
+        // expose run-time scope of "this" to scope of promise below
+        var instance = this;
+
+        return getSiteRDB.then((messageBody) => {
+            try {
+                // parse (station_nm,tz_cd,local_time_fg) from RDB
+                // response
+                var row = messageBody.split('\n');
+                // RDB column names
+                var columnName = row[row.length - 4].split('\t');
+                // site column values are in last row of table
+                var siteField = row[row.length - 2].split('\t');
+
+                // the necessary site fields
+                instance.agencyCode =
+                    siteField[columnName.indexOf("agency_cd")];
+                instance.number = siteField[columnName.indexOf("site_no")];
+                instance.name = siteField[columnName.indexOf("station_nm")];
+                instance.tzCode = siteField[columnName.indexOf("tz_cd")];
+                instance.localTimeFlag =
+                    siteField[columnName.indexOf("local_time_fg")];
+            }
+            catch (error) {
+                throw error;
+            }
+        }).catch((err) => {
+            throw err;
+        });
     } // init
 } // Site
 
@@ -1037,9 +1063,16 @@ httpdispatcher.onGet(
            Why init() after construction?
            @see http://stackoverflow.com/questions/24398699/is-it-bad-practice-to-have-a-constructor-function-return-a-promise
         */
-        site.init();
-        /** @todo */
-        response.end("(" + site.agencyCode + "," + site.number + ")");
+        var p = site.init();
+        p.then(() =>
+               response.end(
+                   "(" + site.agencyCode + "," + site.number + "," +
+                       site.name + ")"
+               ))
+            .catch((error) => response.end(
+                "# " + packageName + ": Could not load site " +
+                    site.agencyCode + " " + site.number + ": " + error
+            ));
     }
 ); // GetUVTable
 
