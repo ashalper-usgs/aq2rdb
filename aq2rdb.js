@@ -258,7 +258,12 @@ class Site {
                     response.on("end", () => resolve(body.join("")));
                 });
             // handle connection errors of the request
-            request.on("error", (err) => reject(err));
+            /**
+               @todo errors need to be triaged and the ultimate error
+                     messages delivered to the client made more
+                     helpful here.
+            */
+            request.on("error", (error) => reject(error));
         });
 
         // expose run-time scope of "this" to scope of promise below
@@ -286,8 +291,8 @@ class Site {
             catch (error) {
                 throw error;
             }
-        }).catch((err) => {
-            throw err;
+        }).catch((error) => {
+            throw error;
         });
     } // init
 } // Site
@@ -1046,7 +1051,7 @@ httpdispatcher.onGet(
             "LocationIdentifier" in field && "Parameter" in field &&
             "ComputationIdentifier" in field) {
             // respond with error
-            response.writeHeader(400, {"Content-Type": "text/plain"});  
+            response.writeHeader(400, {"Content-Type": "text/plain"});
             response.end(
                 "# " + packageName +
                     ": Either TimeSeriesIdentifier, or LocationIdentifer " +
@@ -1058,17 +1063,27 @@ httpdispatcher.onGet(
 
         // parse LocationIdentifier string from TimeSeriesIdentifier
         var locationIdentifier = field.TimeSeriesIdentifier.split('@')[1];
+
+        if (locationIdentifier === undefined ||
+            locationIdentifier === "") {
+            response.writeHeader(400, {"Content-Type": "text/plain"});
+            response.end(
+                "# " + packageName + ": Could not find a " +
+                    "LocationIdentifier in TimeSeriesIdentifier \"" +
+                    field.TimeSeriesIdentifier + "\""
+            );
+            return;
+        }
+
         var site = new Site(locationIdentifier);
         /**
            Why init() after construction?
            @see http://stackoverflow.com/questions/24398699/is-it-bad-practice-to-have-a-constructor-function-return-a-promise
         */
-        var p = site.init();
-        p.then(() =>
-               response.end(
-                   "(" + site.agencyCode + "," + site.number + "," +
-                       site.name + ")"
-               ))
+        site.init().then(() => response.end(
+            "(" + site.agencyCode + "," + site.number + "," +
+                site.name + ")"
+        ))
             .catch((error) => response.end(
                 "# " + packageName + ": Could not load site " +
                     site.agencyCode + " " + site.number + ": " + error
