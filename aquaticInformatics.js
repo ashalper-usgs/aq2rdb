@@ -568,6 +568,7 @@ AQUARIUS: function (
                        computation period identifier.
        @param {function} callback async.waterfall() callback
               function.
+       @see http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDescriptionServiceRequest
     */
     function getTimeSeriesDescriptionList(
         agencyCode, siteNumber, parameter, computationIdentifier,
