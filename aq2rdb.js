@@ -22,6 +22,7 @@ var moment = require("moment-timezone");
 var path = require("path");
 var sprintf = require("sprintf-js").sprintf;
 var url = require("url");
+var querystring = require('querystring');
 
 // aq2rdb modules
 var adaps = require("./adaps");
@@ -213,6 +214,117 @@ var tzName = {
 // parser, but ends in "SyntaxError: Unexpected token -" when included
 // in the object initializer above.
 tzName["ZP-11"] = {N: "Etc/GMT-11", Y: "Etc/GMT-11"};
+
+class Site {
+    constructor(locationIdentiferString) {
+        var locationIdentifier =
+	    new aquaticInformatics.LocationIdentifier(
+		locationIdentiferString
+	    );
+
+	this.agencyCode = locationIdentifier.agencyCode();
+	this.number = locationIdentifier.siteNumber();
+    } // constructor
+
+    init() {
+	/**
+	   @see http://stackoverflow.com/questions/28375619/chainable-promise-based-class-interfaces-in-javascript
+	*/
+        var promise = new Promise(function (resolve, reject) {
+            /**
+               @description Handle response from HTTP query.
+               @callback
+            */
+            function callback(response) {
+                var messageBody = "";
+
+                // accumulate response
+                response.on(
+                    "data",
+                    function (chunk) {
+                        messageBody += chunk;
+                    });
+
+                response.on("end", function () {
+                    if (response.statusCode === 404) {
+                        reject(response.statusCode);
+                    }
+                    else if (
+                        response.statusCode < 200 || 300 <= response.statuscode
+                    ) {
+                        reject(
+                            "Could not successfully query service at " +
+                                "http://" + host + path +
+                                "; HTTP status code was: " +
+                                response.statusCode.toString()
+                        );
+                        return;
+                    }
+                    else {
+                        resolve(messageBody);
+                    }
+
+                    return;
+                });
+            }
+
+            path = "/nwis/site/?" + querystring.stringify(
+                {format: "rdb",
+                 site: "USGS" + ":" +
+                       "09380000",
+                 siteOutput: "expanded"}
+            );
+
+            var request = http.request({
+                host: options.waterServicesHostname,
+                method: "GET",
+                path: path
+            }, callback);
+
+            /**
+               @description Handle service invocation errors.
+            */
+            request.on("error", function (error) {
+                reject(error);
+                return;
+            });
+
+            request.end();
+        });
+        
+        promise.then(
+            function (messageBody) {
+                /** @todo this might need to be a promise too */
+                try {
+                    // parse (station_nm,tz_cd,local_time_fg) from RDB
+                    // response
+                    var row = messageBody.split('\n');
+                    // RDB column names
+                    var columnName = row[row.length - 4].split('\t');
+                    // site column values are in last row of table
+                    var siteField = row[row.length - 2].split('\t');
+
+                    // the necessary site fields
+                    this.agencyCode =
+                        siteField[columnName.indexOf('agency_cd')];
+                    this.number = siteField[columnName.indexOf('site_no')];
+                    this.name = siteField[columnName.indexOf('station_nm')];
+                    this.tzCode = siteField[columnName.indexOf('tz_cd')];
+                    this.localTimeFlag =
+                        siteField[columnName.indexOf('local_time_fg')];
+                }
+                catch (error) {
+                    throw error;
+                    return;
+                }
+            })
+            .catch(
+                function (error) {
+                    log(packageName, error);
+		    throw error;
+                });
+    } // init
+} // Site
 
 /**
    @description Exports public functions to external dependent modules.
@@ -947,11 +1059,12 @@ httpdispatcher.onGet(
             return;
         }
 
+	log(packageName, Object.getOwnPropertySymbols(field));
+
         // if any required fields are omitted
-        if (field.TimeSeriesIdentifier === undefined &&
-            (field.LocationIdentifier === undefined ||
-             field.Parameter === undefined ||
-             field.ComputationIdentifier === undefined)) {
+        if ("TimeSeriesIdentifier" in field &&
+	    ("LocationIdentifier" in field || "Parameter" in field ||
+             "ComputationIdentifier" in field)) {
             // respond with error
             response.writeHeader(400, {"Content-Type": "text/plain"});  
             response.end(
@@ -962,6 +1075,27 @@ httpdispatcher.onGet(
             );
             return;
         }
+
+        // if we have redundant information
+        if ("TimeSeriesIdentifier" in field &&
+	    "LocationIdentifier" in field && "Parameter" in field &&
+            "ComputationIdentifier" in field) {
+            // respond with error
+            response.writeHeader(400, {"Content-Type": "text/plain"});  
+            response.end(
+                "# " + packageName +
+                    ": Either TimeSeriesIdentifier, or LocationIdentifer " +
+                    "and Parameter and ComputationIdentifier fields " +
+                    "must be present; not both"
+            );
+            return;
+        }
+
+	var locationIdentifier = field.TimeSeriesIdentifier.split('@')[1];
+	log(packageName + ".locationIdentifier", locationIdentifier);
+        var site = new Site(locationIdentifier);
+
+        response.end("(" + site.agencyCode + "," + site.number + ")");
     }
 ); // GetUVTable
 
