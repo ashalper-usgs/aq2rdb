@@ -237,6 +237,7 @@
     <packagedElement xmi:type="uml:DataType" xmi:id="_-HctsGbXEeW2ybKigGMHUA" name="Date"/>
     <packagedElement xmi:type="uml:DataType" xmi:id="_DA0YsGeOEeWJu7PhhXLrqQ" name="Number"/>
     <packagedElement xmi:type="uml:DataType" xmi:id="_YtQrcGeYEeWJu7PhhXLrqQ" name="Boolean"/>
+    <packagedElement xmi:type="uml:Class" xmi:id="_VmcL8DMhEea51d0Ndtws7w" name="Promise"/>
   </packagedElement>
   <packagedElement xmi:type="uml:Association" xmi:id="_Z7B_wGeQEeWJu7PhhXLrqQ" memberEnd="_Z7EcAGeQEeWJu7PhhXLrqQ _Z7EcAWeQEeWJu7PhhXLrqQ">
     <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_Z7DN4GeQEeWJu7PhhXLrqQ" source="org.eclipse.papyrus">
@@ -751,5 +752,41 @@
   <packagedElement xmi:type="uml:Dependency" xmi:id="_IKm18AJuEeaQE4v55jj7GQ" client="_v07QEAJjEeaQE4v55jj7GQ" supplier="_6b64YAJtEeaQE4v55jj7GQ"/>
   <packagedElement xmi:type="uml:Package" xmi:id="_UHvv8CgWEeasi7cDBAji3g" name="service">
     <packagedElement xmi:type="uml:Class" xmi:id="_ZsrYICgWEeasi7cDBAji3g" name="NWISRA"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Package" xmi:id="_Mwfw4DMfEea51d0Ndtws7w" name="USGS">
+    <packagedElement xmi:type="uml:Class" xmi:id="_QOPqIDMfEea51d0Ndtws7w" name="Site">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_la_UsDMfEea51d0Ndtws7w" name="agencyCode" type="_oyElQDMfEea51d0Ndtws7w"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_4oGCwDMfEea51d0Ndtws7w" name="number" type="_-IUxIDMfEea51d0Ndtws7w"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_HkMjwDMiEea51d0Ndtws7w" name="name">
+        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
+      </ownedAttribute>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_QeBrMDMiEea51d0Ndtws7w" name="tzCode" type="_Wr0qMDMiEea51d0Ndtws7w"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_k_MCIDMiEea51d0Ndtws7w" name="localTimeFlag" type="_sLkwUDMiEea51d0Ndtws7w"/>
+      <ownedOperation xmi:type="uml:Operation" xmi:id="__c0CYDMgEea51d0Ndtws7w" name="initialize">
+        <ownedParameter xmi:type="uml:Parameter" xmi:id="_K6ltQDMhEea51d0Ndtws7w" name="locationIdentifier">
+          <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
+        </ownedParameter>
+        <ownedParameter xmi:type="uml:Parameter" xmi:id="_hSpUYDMhEea51d0Ndtws7w" type="_VmcL8DMhEea51d0Ndtws7w" direction="return"/>
+      </ownedOperation>
+      <ownedOperation xmi:type="uml:Operation" xmi:id="_zjHbEDMhEea51d0Ndtws7w" name="locationIdentifier">
+        <ownedParameter xmi:type="uml:Parameter" xmi:id="_6iF_YDMhEea51d0Ndtws7w" direction="return">
+          <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
+        </ownedParameter>
+      </ownedOperation>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Enumeration" xmi:id="_oyElQDMfEea51d0Ndtws7w" name="AgencyCode" isAbstract="true"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_1dOpQDMfEea51d0Ndtws7w" name="Site.agencyCode" client="_QOPqIDMfEea51d0Ndtws7w" supplier="_oyElQDMfEea51d0Ndtws7w"/>
+    <packagedElement xmi:type="uml:DataType" xmi:id="_-IUxIDMfEea51d0Ndtws7w" name="SiteNumber" isAbstract="true"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_35RYcDMgEea51d0Ndtws7w" name="Site.number" client="_QOPqIDMfEea51d0Ndtws7w" supplier="_-IUxIDMfEea51d0Ndtws7w"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_oumvoDMhEea51d0Ndtws7w" name="Site.initialize()" client="_QOPqIDMfEea51d0Ndtws7w" supplier="_VmcL8DMhEea51d0Ndtws7w"/>
+    <packagedElement xmi:type="uml:Enumeration" xmi:id="_Wr0qMDMiEea51d0Ndtws7w" name="TZCode" isAbstract="true"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_cM7iUDMiEea51d0Ndtws7w" name="Site.tzCode" client="_QOPqIDMfEea51d0Ndtws7w" supplier="_Wr0qMDMiEea51d0Ndtws7w"/>
+    <packagedElement xmi:type="uml:Package" xmi:id="_wb7LMDMiEea51d0Ndtws7w" name="NWIS">
+      <packagedElement xmi:type="uml:Enumeration" xmi:id="_sLkwUDMiEea51d0Ndtws7w" name="Flag" isAbstract="true"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_75mvcDMiEea51d0Ndtws7w" name="Site.localTimeFlag" client="_QOPqIDMfEea51d0Ndtws7w" supplier="_sLkwUDMiEea51d0Ndtws7w"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:Package" xmi:id="_WBBhEDMfEea51d0Ndtws7w" name="aq2rdb">
+    <packagedElement xmi:type="uml:Class" xmi:id="_dA42MDMfEea51d0Ndtws7w" name="UVTable" isAbstract="true"/>
   </packagedElement>
 </uml:Model>
