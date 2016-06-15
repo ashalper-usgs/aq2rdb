@@ -53,7 +53,10 @@ LocationIdentifier: function (
        @description Agency code accessor method.
     */
     this.agencyCode = function () {
-        return agencyCode;
+        if (agencyCode === undefined)
+            return "USGS";
+        else
+            return agencyCode;
     }
 
     /**
