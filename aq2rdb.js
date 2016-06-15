@@ -218,111 +218,51 @@ tzName["ZP-11"] = {N: "Etc/GMT-11", Y: "Etc/GMT-11"};
 class Site {
     constructor(locationIdentiferString) {
         var locationIdentifier =
-	    new aquaticInformatics.LocationIdentifier(
-		locationIdentiferString
-	    );
-
-	this.agencyCode = locationIdentifier.agencyCode();
-	this.number = locationIdentifier.siteNumber();
-    } // constructor
-
-    init() {
-	/**
-	   @see http://stackoverflow.com/questions/28375619/chainable-promise-based-class-interfaces-in-javascript
-	*/
-        var promise = new Promise(function (resolve, reject) {
-            /**
-               @description Handle response from HTTP query.
-               @callback
-            */
-            function callback(response) {
-                var messageBody = "";
-
-                // accumulate response
-                response.on(
-                    "data",
-                    function (chunk) {
-                        messageBody += chunk;
-                    });
-
-                response.on("end", function () {
-                    if (response.statusCode === 404) {
-                        reject(response.statusCode);
-                    }
-                    else if (
-                        response.statusCode < 200 || 300 <= response.statuscode
-                    ) {
-                        reject(
-                            "Could not successfully query service at " +
-                                "http://" + host + path +
-                                "; HTTP status code was: " +
-                                response.statusCode.toString()
-                        );
-                        return;
-                    }
-                    else {
-                        resolve(messageBody);
-                    }
-
-                    return;
-                });
-            }
-
-            path = "/nwis/site/?" + querystring.stringify(
-                {format: "rdb",
-                 site: "USGS" + ":" +
-                       "09380000",
-                 siteOutput: "expanded"}
+            new aquaticInformatics.LocationIdentifier(
+                locationIdentiferString
             );
 
-            var request = http.request({
-                host: options.waterServicesHostname,
-                method: "GET",
-                path: path
-            }, callback);
+        this.agencyCode = locationIdentifier.agencyCode();
+        this.number = locationIdentifier.siteNumber();
+    } // constructor
 
-            /**
-               @description Handle service invocation errors.
-            */
-            request.on("error", function (error) {
-                reject(error);
-                return;
-            });
-
-            request.end();
-        });
-        
-        promise.then(
-            function (messageBody) {
-                /** @todo this might need to be a promise too */
-                try {
-                    // parse (station_nm,tz_cd,local_time_fg) from RDB
-                    // response
-                    var row = messageBody.split('\n');
-                    // RDB column names
-                    var columnName = row[row.length - 4].split('\t');
-                    // site column values are in last row of table
-                    var siteField = row[row.length - 2].split('\t');
-
-                    // the necessary site fields
-                    this.agencyCode =
-                        siteField[columnName.indexOf('agency_cd')];
-                    this.number = siteField[columnName.indexOf('site_no')];
-                    this.name = siteField[columnName.indexOf('station_nm')];
-                    this.tzCode = siteField[columnName.indexOf('tz_cd')];
-                    this.localTimeFlag =
-                        siteField[columnName.indexOf('local_time_fg')];
-                }
-                catch (error) {
-                    throw error;
-                    return;
-                }
-            })
-            .catch(
-                function (error) {
-                    log(packageName, error);
-		    throw error;
+    /**
+       @see http://www.tomas-dvorak.cz/posts/nodejs-request-without-dependencies/
+    */
+    init() {
+        var p = new Promise((resolve, reject) => {
+            const lib = require('http');
+            const request = lib.get(
+                'http://' + options.waterServicesHostname +
+                    '/nwis/site/?' + querystring.stringify(
+                        {format: "rdb",
+                         site: this.agencyCode + ":" + this.number,
+                         siteOutput: "expanded"}
+                    ),
+                (response) => {
+                    // handle HTTP errors
+                    if (response.statusCode < 200 ||
+                        response.statusCode > 299) {
+                        reject(
+                            new Error(
+                                'Failed to load page, status code: ' +
+                                    response.statusCode
+                            )
+                        );
+                    }
+                    // temporary data holder
+                    const body = [];
+                    // on every content chunk, push it to the data array
+                    response.on('data', (chunk) => body.push(chunk));
+                    // we are done, resolve promise with those joined chunks
+                    response.on('end', () => resolve(body.join('')));
                 });
+            // handle connection errors of the request
+            request.on('error', (err) => reject(err));
+        });
+
+        p.then((messageBody) => console.log(messageBody))
+            .catch((err) => console.error(err));
     } // init
 } // Site
 
@@ -1051,6 +991,7 @@ httpdispatcher.onGet(
             return;
         }
 
+        // parse REST query
         try {
             field = url.parse(request.url, true).query;
         }
@@ -1059,11 +1000,9 @@ httpdispatcher.onGet(
             return;
         }
 
-	log(packageName, Object.getOwnPropertySymbols(field));
-
         // if any required fields are omitted
         if ("TimeSeriesIdentifier" in field &&
-	    ("LocationIdentifier" in field || "Parameter" in field ||
+            ("LocationIdentifier" in field || "Parameter" in field ||
              "ComputationIdentifier" in field)) {
             // respond with error
             response.writeHeader(400, {"Content-Type": "text/plain"});  
@@ -1078,7 +1017,7 @@ httpdispatcher.onGet(
 
         // if we have redundant information
         if ("TimeSeriesIdentifier" in field &&
-	    "LocationIdentifier" in field && "Parameter" in field &&
+            "LocationIdentifier" in field && "Parameter" in field &&
             "ComputationIdentifier" in field) {
             // respond with error
             response.writeHeader(400, {"Content-Type": "text/plain"});  
@@ -1091,10 +1030,15 @@ httpdispatcher.onGet(
             return;
         }
 
-	var locationIdentifier = field.TimeSeriesIdentifier.split('@')[1];
-	log(packageName + ".locationIdentifier", locationIdentifier);
+        // parse LocationIdentifier string from TimeSeriesIdentifier
+        var locationIdentifier = field.TimeSeriesIdentifier.split('@')[1];
         var site = new Site(locationIdentifier);
-
+        /**
+           Why init() after construction?
+           @see http://stackoverflow.com/questions/24398699/is-it-bad-practice-to-have-a-constructor-function-return-a-promise
+        */
+        site.init();
+        /** @todo */
         response.end("(" + site.agencyCode + "," + site.number + ")");
     }
 ); // GetUVTable
