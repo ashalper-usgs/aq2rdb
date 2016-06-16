@@ -17,6 +17,7 @@ var commandLineArgs = require("command-line-args");
 var ifAsync = require("if-async");
 var fs = require("fs");
 var http = require("http");
+var https = require('https');
 var httpdispatcher = require("httpdispatcher");
 var moment = require("moment-timezone");
 var path = require("path");
@@ -231,8 +232,7 @@ class Site {
            @see http://www.tomas-dvorak.cz/posts/nodejs-request-without-dependencies/
         */
         var getSiteRDB = new Promise((resolve, reject) => {
-            const lib = require("http");
-            const request = lib.get(
+            const request = http.get(
                 "http://" + options.waterServicesHostname +
                     "/nwis/site/?" + querystring.stringify(
                         {format: "rdb",
@@ -242,13 +242,9 @@ class Site {
                 (response) => {
                     // handle HTTP errors
                     if (response.statusCode < 200 ||
-                        response.statusCode > 299) {
-                        reject(
-                            new Error(
-                                "Failed to load page, status code: " +
-                                    response.statusCode
-                            )
-                        );
+                        299 < response.statusCode) {
+                        reject(response.statusCode);
+                        return;
                     }
                     // temporary data holder
                     const body = [];
@@ -712,8 +708,8 @@ function dvTableBody(
 ) {
     async.waterfall([
         function (callback) {
-            aquarius.getRemarkCodes();
-            callback(null);
+            /** @see JIRA issue AQRDB-34 */
+            aquarius.getRemarkCodes(callback);
         },
         /**
            @function
@@ -1062,10 +1058,10 @@ httpdispatcher.onGet(
         }
 
         // parse LocationIdentifier string from TimeSeriesIdentifier
-        var locationIdentifier = field.TimeSeriesIdentifier.split('@')[1];
+        var locationIdentifierString = field.TimeSeriesIdentifier.split('@')[1];
 
-        if (locationIdentifier === undefined ||
-            locationIdentifier === "") {
+        if (locationIdentifierString === undefined ||
+            locationIdentifierString === "") {
             response.writeHeader(400, {"Content-Type": "text/plain"});
             response.end(
                 "# " + packageName + ": Could not find a " +
@@ -1075,7 +1071,7 @@ httpdispatcher.onGet(
             return;
         }
 
-        var site = new Site(locationIdentifier);
+        var site = new Site(locationIdentifierString);
         /**
            Why init() after construction?
            @see http://stackoverflow.com/questions/24398699/is-it-bad-practice-to-have-a-constructor-function-return-a-promise
@@ -1088,6 +1084,44 @@ httpdispatcher.onGet(
                 "# " + packageName + ": Could not load site " +
                     site.agencyCode + " " + site.number + ": " + error
             ));
+
+        /**
+           @todo this needs to be moved to .then() method block above?
+        */
+        var getTimeSeriesDescriptionList =
+            new Promise((resolve, reject) => {
+                const request = https.get(
+                    "https://" + options.aquariusHostname +
+                        "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList" +
+                        querystring.stringify({
+                            token: aquarius.token(),
+                            format: "json",
+                            LocationIdentifier: locationIdentifierString
+                        }),
+                    (response) => {
+                        // handle HTTP errors
+                        if (response.statusCode < 200 ||
+                            response.statusCode > 299) {
+                            reject(response.statusCode);
+                            return;
+                        }
+                        const body = [];
+                        response.on("data", (chunk) => body.push(chunk));
+                        response.on("end", () => resolve(body.join("")));
+                    });
+                /**
+                   @todo errors need to be triaged and the ultimate error
+                   messages delivered to the client made more
+                   helpful here.
+                */
+                request.on("error", (error) => reject(error));
+            });
+
+        getTimeSeriesDescriptionList.then((json) => {
+            console.log(json);
+        }).catch((error) => {
+            throw error;
+        });
     }
 ); // GetUVTable
 
