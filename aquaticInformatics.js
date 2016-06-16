@@ -410,8 +410,8 @@ AQUARIUS: function (
                         return;
                     }
 
-                    // put remark codes in an array for faster access later
-                    instance.remarkCodes = new Array();
+                    // store remark codes in object for faster access later
+                    instance.remarkCodes = new Object();
                     async.each(
                         qualifierListServiceResponse.Qualifiers,
                         /** @callback */
