@@ -708,7 +708,8 @@ function dvTableBody(
 ) {
     async.waterfall([
         function (callback) {
-            /** @see JIRA issue AQRDB-34 */
+	    // load mapping of NWIS remark codes to AQUARIUS
+	    // qualifiers
             aquarius.getRemarkCodes(callback);
         },
         /**
