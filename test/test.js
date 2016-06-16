@@ -356,6 +356,7 @@ describe("aquaticInformatics", function () {
                    );
                });
         });
+
         describe("#getTimeSeriesCorrectedData()", function () {
             it("should receive a usable TimeSeriesDataServiceResponse object",
                function (done) {
@@ -377,6 +378,21 @@ describe("aquaticInformatics", function () {
                    );
                });          
         }); // #getTimeSeriesCorrectedData()
+
+        describe("#getRemarkCodes()", function () {
+            it("should load remark codes",
+               function (done) {
+                   aquarius.getRemarkCodes(
+                       function (error) {
+                           if (error) throw error;
+                           expect(
+                               Object.keys(aquarius.remarkCodes).length
+                           ).to.be.above(0);
+                           done();
+                       });
+               });
+        }); // #getRemarkCodes()
+        
     }); // AQUARIUS
 }); // aquaticInformatics
 
