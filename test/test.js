@@ -293,6 +293,7 @@ describe("aquaticInformatics", function () {
                        });
                });
         }); // #getLocationData()
+
         describe("#getTimeSeriesDescription()", function () {
             var siteNo = "09380000"; // COLORADO RIVER AT LEES FERRY, AZ
 
@@ -300,8 +301,8 @@ describe("aquaticInformatics", function () {
                "object for LocationIdentifier " + siteNo,
                function (done) {
                    aquarius.getTimeSeriesDescription(
-                       "USGS", siteNo, "Discharge", "Instantaneous",
-                       "Points",
+                       "USGS", siteNo,
+                       "Discharge", "Instantaneous", "Points",
                        function (error, timeSeriesDescription) {
                            if (error) throw error;
                            expect(
@@ -313,12 +314,11 @@ describe("aquaticInformatics", function () {
                    );
                });
 
-            siteNo = "01646500";
             it("should receive a \"More than one primary time " +
                "series found...\" error message",
                function (done) {
                    aquarius.getTimeSeriesDescription(
-                       "USGS", siteNo, "Specific cond at 25C",
+                       "USGS", "01646500", "Specific cond at 25C",
                        undefined, "Daily",
                        function (error, timeSeriesDescription) {
                            assert.equal(
@@ -331,6 +331,25 @@ describe("aquaticInformatics", function () {
     "#   Specific cond at 25C.uS/cm.Max@01646500\n" +
     "#   Specific cond at 25C.uS/cm.Mean@01646500\n" +
     "#   Specific cond at 25C.uS/cm.Min@01646500\n"
+                           );
+                           done();
+                       }
+                   );
+               });
+
+            /** @see JIRA issue AQRDB-33 */
+            it("should throw \"No time series description list " +
+               "found...\" error",
+               function (done) {
+                   aquarius.getTimeSeriesDescription(
+                       "USGS", "XXXXXXXX",
+                       "Discharge", "Instantaneous", "Points",
+                       function (error, timeSeriesDescription) {
+                           assert.equal(
+                               error.startsWith(
+                                   "No time series description list found at "
+                               ),
+                               true
                            );
                            done();
                        }
