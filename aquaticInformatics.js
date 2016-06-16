@@ -355,12 +355,11 @@ AQUARIUS: function (
        @public
        @description Cache remark codes.
     */
-    this.getRemarkCodes = function () {
-        // if remark codes have not been loaded yet
-        if (remarkCodes === undefined) {
-            // load them
-            remarkCodes = new Object();
+    this.getRemarkCodes = function (callback) {
+        var instance = this;
 
+        // if remark codes have not been loaded yet
+        if (instance.remarkCodes === undefined) {
             async.waterfall([
                 /**
                    @function
@@ -412,12 +411,12 @@ AQUARIUS: function (
                     }
 
                     // put remark codes in an array for faster access later
-                    remarkCodes = new Array();
+                    instance.remarkCodes = new Array();
                     async.each(
                         qualifierListServiceResponse.Qualifiers,
                         /** @callback */
                         function (qualifierMetadata, callback) {
-                            remarkCodes[qualifierMetadata.Identifier] =
+                            instance.remarkCodes[qualifierMetadata.Identifier] =
                                 qualifierMetadata.Code;
                             callback(null);
                         }
@@ -425,7 +424,13 @@ AQUARIUS: function (
 
                     callback(null);
                 }
-            ]);
+            ],
+            function (error) {
+                if (error)
+                    callback(error);
+                else
+                    callback(null);
+            });
         }
     } // getRemarkCodes
 
