@@ -885,36 +885,6 @@ httpdispatcher.onGet(
             */
             function (site, callback) {
                 async.series([
-                    /**
-                       @function
-                       @description Write HTTP response header.
-                       @callback
-                    */
-                    function (callback) {
-                        response.writeHead(
-                            200, {"Content-Type": "text/plain"}
-                        );
-                        callback(null);
-                    },
-                    /**
-                       @function
-                       @description Write RDB header to HTTP response.
-                       @callback
-                    */
-                    function (callback) {
-                        rdb.header(
-                            "NWIS-I DAILY-VALUES", "YES", site,
-                            subLocationIdentifer, parameter,
-                            {code: "", name: "", description: ""},
-                            range,
-                            callback
-                        );
-                    },
-                    /**
-                       @function
-                       @description Write RDB body to HTTP response.
-                       @callback
-                    */
                     function (callback) {
                         var start, end;
 
@@ -926,24 +896,18 @@ httpdispatcher.onGet(
                             end = aq2rdb.toNWISDateFormat(field.QueryTo);
                         }
 
-                        var header = aq2rdb.rdbHeaderBody(
-                            'NWIS-I DAILY-VALUES', site,
-                            timeSeriesDescription.SubLocationIdentifer,
-                            {start: start, end: end}
+                        response.writeHead(
+                            200, {"Content-Type": "text/plain"}
                         );
-                        response.write(header, 'ascii');
-                        callback(null);
-                    },
-                    /**
-                       @function
-                       @description Write RDB heading (a different
-                                    thing than RDB header, above) to
-                                    HTTP response.
-                       @callback
-                    */
-                    function (callback) {
+
                         response.write(
-                            'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
+                            rdb.header(
+                                "NWIS-I DAILY-VALUES", "YES", site,
+                                subLocationIdentifer, parameter,
+                                {code: "", name: "", description: ""},
+                                {start: start, end: end}
+                            ) +
+                                'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
                                 '8D\t6S\t16N\t1S\t32S\t1S\t1S\n', 'ascii'
                         );
 
@@ -954,6 +918,9 @@ httpdispatcher.onGet(
                             response
                         );
                     },
+                    /**
+                       @description Write RDB body to HTTP response.
+                    */
                     dvTableBody
                 ]);
                 callback(null);
