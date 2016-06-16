@@ -33,7 +33,7 @@ var rdb = module.exports = {
     */
     header: function (
         fileType, editable, site, subLocationIdentifer, parameter,
-        statistic, type, range, callback
+        statistic, type, range
     ) {
         var header =
             "# //UNITED STATES GEOLOGICAL SURVEY " +
@@ -226,7 +226,7 @@ var rdb = module.exports = {
         */
         header += "\"\n";
 
-        callback(null, header);
+        return header;
     }, // header
 
     /**
