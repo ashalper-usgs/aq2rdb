@@ -708,8 +708,8 @@ function dvTableBody(
 ) {
     async.waterfall([
         function (callback) {
-	    // load mapping of NWIS remark codes to AQUARIUS
-	    // qualifiers
+            // load mapping of NWIS remark codes to AQUARIUS
+            // qualifiers
             aquarius.getRemarkCodes(callback);
         },
         /**
@@ -1077,14 +1077,10 @@ httpdispatcher.onGet(
            Why init() after construction?
            @see http://stackoverflow.com/questions/24398699/is-it-bad-practice-to-have-a-constructor-function-return-a-promise
         */
-        site.init().then(() => response.end(
-            "(" + site.agencyCode + "," + site.number + "," +
-                site.name + ")"
-        ))
-            .catch((error) => response.end(
-                "# " + packageName + ": Could not load site " +
-                    site.agencyCode + " " + site.number + ": " + error
-            ));
+        site.init().catch((error) => response.end(
+            "# " + packageName + ": Could not load site " +
+                site.agencyCode + " " + site.number + ": " + error
+        ));
 
         /**
            @todo this needs to be moved to .then() method block above?
@@ -1111,9 +1107,9 @@ httpdispatcher.onGet(
                         response.on("end", () => resolve(body.join("")));
                     });
                 /**
-                   @todo errors need to be triaged and the ultimate error
-                   messages delivered to the client made more
-                   helpful here.
+                   @todo errors need to be triaged and the ultimate
+                         error messages delivered to the client made
+                         more helpful here.
                 */
                 request.on("error", (error) => reject(error));
             });
@@ -1218,19 +1214,22 @@ httpdispatcher.onGet(
                     }
 
                     // write the header records
-                    rdb.header(
-                        "NWIS-I DAILY-VALUES", "NO",
-                        waterServicesSite,
-                        timeSeriesDescription.SubLocationIdentifer,
-                        parameter, statistic,
-                        /**
-                           @todo Hard-coded object here is likely not
-                                 correct under all circumstances.
-                        */
-                        {name: "FINAL",
-                         description: "EDITED AND COMPUTED DAILY VALUES"},
-                        {start: during.from, end: during.to},
-                        callback
+                    callback(
+                        null,
+                        rdb.header(
+                            "NWIS-I DAILY-VALUES", "NO",
+                            waterServicesSite,
+                            timeSeriesDescription.SubLocationIdentifer,
+                            parameter, statistic,
+                            /**
+                               @todo Hard-coded object here is likely
+                                     not correct under all
+                                     circumstances.
+                            */
+                            {name: "FINAL",
+                             description: "EDITED AND COMPUTED DAILY VALUES"},
+                            {start: during.from, end: during.to}
+                        )
                     );
                 },
                 function (header, callback) {
@@ -1293,29 +1292,28 @@ httpdispatcher.onGet(
                            @callback
                         */
                         function (callback) {
-                            // (indirectly) call rdb.header() (below) with
-                            // these arguments
                             callback(
-                                null, "NWIS-I UNIT-VALUES", "NO",
-                                waterServicesSite,
-                                timeSeriesDescription.SubLocationIdentifer,
-                                /**
-                                   @todo need to find out what to pass
-                                         in for "statistic" parameter
-                                         when doing UVs below.
-                                */
-                                parameter, undefined,
-                                /**
-                                   @todo this is pragmatically
-                                         hard-coded now, but there is
-                                         a relationship to "cflag"
-                                         value above.
-                                */
-                                {code: 'C', name: "COMPUTED"},
-                                {start: during.from, end: during.to}
+                                null,
+                                rdb.header(
+                                    "NWIS-I UNIT-VALUES", "NO",
+                                    waterServicesSite,
+                                    timeSeriesDescription.SubLocationIdentifer,
+                                    /**
+                                       @todo need to find out what to
+                                             pass in for "statistic"
+                                             parameter when doing UVs
+                                             below.
+                                    */
+                                    parameter, undefined,
+                                    /**
+                                       @todo this is pragmatically
+                                             hard-coded now
+                                    */
+                                    {code: 'C', name: "COMPUTED"},
+                                    {start: during.from, end: during.to}
+                                )
                             );
                         },
-                        rdb.header,
                         function (header, callback) {
                             response.write(
                                 header +
