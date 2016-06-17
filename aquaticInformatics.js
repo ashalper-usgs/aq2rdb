@@ -599,6 +599,8 @@ AQUARIUS: function (
         agencyCode, siteNumber, parameter, computationIdentifier,
         computationPeriodIdentifier, callback
     ) {
+        // expose this in async.waterfall function scope below
+        var instance = this;
         var locationIdentifier =
             new aquaticInformatics.LocationIdentifier(
                 agencyCode, siteNumber
@@ -607,7 +609,7 @@ AQUARIUS: function (
 
         async.waterfall([
             function (callback) {
-                getTimeSeriesDescriptionList({
+                instance.getTimeSeriesDescriptionList({
                     LocationIdentifier: locationIdentifier.toString(),
                     Parameter: parameter,
                     ComputationIdentifier: computationIdentifier,
