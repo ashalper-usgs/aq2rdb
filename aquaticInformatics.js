@@ -367,21 +367,17 @@ AQUARIUS: function (
                    @callback
                 */
                 function (callback) {
-                    try {
-                        rest.query(
+                    rest.query(
+                            "http",
                             hostname,
                             "GET",
                             undefined,      // HTTP headers
                             "/AQUARIUS/Publish/V2/GetQualifierList/",
                             {token: token, format: "json"},
-                            false,
-                            callback
-                        );
-                    }
-                    catch (error) {
-                        callback(error);
-                        return;
-                    }
+                            false
+                        )
+                        .then((messageBody) => callback(null, messageBody))
+                        .catch((error) => callback(error));
                 },
                 /**
                    @function
@@ -599,14 +595,19 @@ AQUARIUS: function (
         };
 
         rest.query(
+            "http",
             hostname,
             "GET",
             undefined,      // HTTP headers
             "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
             obj,
-            false,
-            callback
-        );
+            false
+        )
+            .then((messageBody) => callback(null, messageBody))
+            .catch((error) => {
+                console.log(".catch() called: " + error);
+                callback(error);
+            });
     } // getTimeSeriesDescriptionList
 
     /**
@@ -622,7 +623,7 @@ AQUARIUS: function (
     */
     this.getTimeSeriesDescription = function (
         agencyCode, siteNumber, parameter, computationIdentifier,
-        computationPeriodIdentifier, outerCallback
+        computationPeriodIdentifier, callback
     ) {
         var locationIdentifier =
             new aquaticInformatics.LocationIdentifier(
@@ -635,7 +636,8 @@ AQUARIUS: function (
                 getTimeSeriesDescriptionList(
                     agencyCode, siteNumber, parameter,
                     computationIdentifier,
-                    computationPeriodIdentifier, callback
+                    computationPeriodIdentifier,
+                    callback
                 );
             },
             /**
@@ -662,51 +664,10 @@ AQUARIUS: function (
                     return;
                 }
 
-                /**
-                   @see https://usgs.slack.com/archives/aq2rdb/p1465259148000017
-                */
-                if (
-  timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions === undefined
-                ) {
-                    callback(
-                        "No time series description list found at " +
-                            url.format({
-                                protocol: "http",
-                                host: hostname,
-                                pathname:
-                           "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList"
-                            })
-                    );
-                    return;
-                }
-
                 callback(
                     null,
                 timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
                 );
-            },
-            /**
-               @function
-               @description Check for zero TimeSeriesDescriptions
-                            returned from AQUARIUS Web service query
-                            above.
-               @callback
-            */
-            function (timeSeriesDescriptions, callback) {
-                if (timeSeriesDescriptions.length === 0) {
-                    callback(
-                        "No time series description list found at " +
-                            url.format({
-                                protocol: "http",
-                                host: hostname,
-                                pathname:
-                           "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList"
-                            })
-                    );
-                    return;
-                }
-
-                callback(null, timeSeriesDescriptions);
             },
             /**
                @function
@@ -715,11 +676,6 @@ AQUARIUS: function (
                @callback
             */
             function (timeSeriesDescriptions, callback) {
-                /**
-                   @private
-                   @todo Need to decide whether <code>distill()</code>
-                         is to be public method or private function.
-                */
                 timeSeriesDescription = distill(
                     timeSeriesDescriptions, locationIdentifier,
                     callback
@@ -731,10 +687,20 @@ AQUARIUS: function (
             }
         ],
         function (error) {
-            if (error)
-                outerCallback(error);
+            if (error === 400)
+                callback(
+                    "No time series description list found at " +
+                        url.format({
+                            protocol: "http",
+                            host: hostname,
+                            pathname:
+                            "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList"
+                        })
+                );
+            else if (error)
+                callback(error);
             else
-                outerCallback(null, timeSeriesDescription);
+                callback(null, timeSeriesDescription);
         });
     } // getTimeSeriesDescription
 
