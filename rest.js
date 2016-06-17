@@ -15,187 +15,49 @@ var querystring = require('querystring');
 
 var rest = module.exports = {
     /**
-       @function
-       @description Call a REST Web service with an HTTP query; send
-                    response via a callback.
-       @public
-       @param {string} host Host part of HTTP query URL.
-       @param {string} method HTTP request method (e.g. "GET", "POST").
-       @param {object} headers HTTP requst headers.
-       @param {string} path Path part of HTTP query URL.
-       @param {object} field An array of attribute-value pairs to bind
-              in HTTP query URL.
-       @param {function} callback Callback function to call if/when
-              response from Web service is received.
+       @see http://www.tomas-dvorak.cz/posts/nodejs-request-without-dependencies/
     */
-    query: function (host, method, headers, path, obj, log, callback) {
-        /**
-           @description Handle response from HTTP query.
-           @callback
-        */
-        function queryCallback(response) {
-            var messageBody = '';
+    query: function (protocol, host, method, headers, path, obj, log) {
+        // return new pending promise
+        return new Promise((resolve, reject) => {
+            // select http or https module, depending on reqested url
+            const lib =
+                (protocol === 'https') ? require('https') : require('http');
 
-            // accumulate response
-            response.on(
-                'data',
-                function (chunk) {
-                    messageBody += chunk;
-                });
+            if (method === "GET" && obj !== undefined)
+                path += '?' + querystring.stringify(obj);
 
-            response.on('end', function () {
-                /**
-                   @todo This is a (brittle) hack, that really should
-                         be checked in site.request(). Unfortunately,
-                         it was much easier to implement here, given
-                         the current state of the code. Plans are to
-                         fix it in 1.2.x.
-                */
-                if (host === "waterservices.usgs.gov" &&
-                    response.statusCode === 404) {
-                    callback(response.statusCode);
-                }
-                else if (
-                    response.statusCode < 200 || 300 <= response.statuscode
-                ) {
-                    callback(
-                        "Could not successfully query service at " +
-                            "http://" + host + path +
-                            "; HTTP status code was: " +
-                            response.statusCode.toString()
-                    );
-                    return;
-                }
-                else {
-                    callback(null, messageBody);
-                }
+            if (method === "POST")
+                var chunk = querystring.stringify(obj);
 
-                return;
+            const request = lib.get({
+                host: host,
+                method: method,
+                headers: headers,
+                path: path
+            }, (response) => {
+                // handle HTTP errors
+                if (response.statusCode < 200 || 299 < response.statusCode) {
+		    /**
+		       @todo might need to change reject()'s argument
+                             here to make error handling more
+			     sophisticated.
+		    */
+                    reject(response.statusCode);
+		}
+                // temporary data holder
+                const body = [];
+                // on every content chunk, push it to the data array
+                response.on('data', (chunk) => body.push(chunk));
+                // we are done, resolve promise with those joined chunks
+                response.on('end', () => resolve(body.join('')));
             });
-        }
+            // handle connection errors of the request
+            request.on('error', (err) => reject(err));
 
-        if (method === "GET" && obj !== undefined)
-            path += '?' + querystring.stringify(obj);
-
-        if (method === "POST")
-            var chunk = querystring.stringify(obj);
-
-        // don't use in production, because "path" could contain
-        // AQUARIUS authorization token string, and we don't want to
-        // log that
-        if (false)
-            console.log("rest.query: http://" + host + path);
-
-        var request = http.request({
-            host: host,
-            method: method,
-            headers: headers,
-            path: path
-        }, queryCallback);
-
-        /**
-           @description Handle service invocation errors.
-        */
-        request.on("error", function (error) {
-            if (log)
-                console.log("rest.query: error: " + error);
-            callback(error);
-            return;
+            // post query if POST request
+            if (method === "POST")
+                request.write(chunk);
         });
-
-        if (method === "POST")
-            request.write(chunk);
-
-        request.end();
-    }, // query
-
-    /**
-       @function
-       @description Call a REST Web service with an HTTPS query; send
-                    response via a callback.
-       @public
-       @param {string} host Host part of HTTP query URL.
-       @param {string} method HTTP request method (e.g. "GET", "POST").
-       @param {object} headers HTTP requst headers.
-       @param {string} path Path part of HTTP query URL.
-       @param {object} obj An array of attribute-value pairs to bind in
-              HTTP query URL.
-       @param {boolean} log Enable logging when true.
-       @param {function} callback Callback function to call if/when
-              response from Web service is received.
-    */
-    querySecure: function (host, method, headers, path, obj, log, callback) {
-        /**
-           @description Handle response from HTTPS query.
-           @callback
-        */
-        function queryCallback(response) {
-            var messageBody = '';
-
-            // accumulate response
-            response.on(
-                'data',
-                function (chunk) {
-                    messageBody += chunk;
-                });
-
-            response.on('end', function () {
-                if (log)
-                    console.log("rest.querySecure.response.statusCode: " +
-                                response.statusCode.toString());
-
-                if (response.statusCode === 502) {
-                    /**
-                       @todo Bears further investigation into the
-                             cause, when received from nwists.usgs.gov
-                             at least.
-                    */
-                    callback(
-                        "Received HTTP status code \"502\" " +
-                            "(Bad Gateway) from " + host
-                    );
-                }
-                else if (
-                    response.statusCode < 200 || 300 <= response.statuscode
-                )
-                    callback(
-                        "Could not reference site at http://" + host +
-                            path + "; HTTP status code was: " +
-                            response.statusCode.toString()
-                    );
-                else
-                    callback(null, messageBody);
-                return;
-            });
-        }
-
-        if (method === "GET" && obj !== undefined)
-            path += '?' + querystring.stringify(obj);
-
-        if (method === "POST")
-            var chunk = querystring.stringify(obj);
-
-        var request = https.request({
-            host: host,
-            method: method,
-            headers: headers,
-            path: path
-        }, queryCallback);
-
-        /**
-           @description Handle service invocation errors.
-        */
-        request.on("error", function (error) {
-            if (log)
-                console.log("rest.querySecure: " + error);
-            callback(error);
-            return;
-        });
-
-        if (method === "POST")
-            request.write(chunk);
-
-        request.end();
-    } // querySecure
-
+    } // query
 } // rest
