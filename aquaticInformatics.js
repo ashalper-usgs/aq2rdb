@@ -557,18 +557,18 @@ AQUARIUS: function (
     } // distill
 
     /**
-       @function
+       @method
        @description Query AQUARIUS GetTimeSeriesDescriptionList
                     service to get list of AQUARIUS, time series
                     UniqueIds related to aq2rdb, location and
                     parameter.
-       @private
+       @public
        @param {object} field An object having
                        GetTimeSeriesDescriptionList Web service
                        field/values as attribute/value pairs.
        @see http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDescriptionServiceRequest
     */
-    function getTimeSeriesDescriptionList(field) {
+    this.getTimeSeriesDescriptionList = function (field) {
         field["token"] = token;
         field["format"] = "json";
 
@@ -586,6 +586,7 @@ AQUARIUS: function (
     /**
        @method
        @description Get a TimeSeriesDescription object from AQUARIUS.
+       @public
        @param {string} agencyCode USGS agency code.
        @param {string} siteNumber USGS site number.
        @param {string} parameter AQUARIUS parameter.
