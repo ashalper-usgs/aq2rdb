@@ -739,8 +739,12 @@
       <ownedAttribute xmi:type="uml:Property" xmi:id="_44-SUDQaEeaIg5PHHJAQ_g" name="SubLocationIdentifier">
         <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
       </ownedAttribute>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_1QJvEjSqEeaK9MyPntmx3A" name="timeseriesdescription" type="_zTC94DQVEeaIg5PHHJAQ_g" association="_1QJIADSqEeaK9MyPntmx3A"/>
     </packagedElement>
     <packagedElement xmi:type="uml:Class" xmi:id="_ptw28DQbEeaIg5PHHJAQ_g" name="TimeSeriesDataServiceResponse">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_bqnmsDSnEeaK9MyPntmx3A" name="ResponseVersion" visibility="private">
+        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Integer"/>
+      </ownedAttribute>
       <ownedAttribute xmi:type="uml:Property" xmi:id="_5I4hIDQbEeaIg5PHHJAQ_g" name="Points" type="_SM0fsDQcEeaIg5PHHJAQ_g"/>
     </packagedElement>
     <packagedElement xmi:type="uml:Dependency" xmi:id="_XHrQIDQcEeaIg5PHHJAQ_g" name="TimeSeriesDataServiceResponse.Points" client="_ptw28DQbEeaIg5PHHJAQ_g" supplier="_SM0fsDQcEeaIg5PHHJAQ_g"/>
@@ -915,5 +919,17 @@
       <upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="_R_JaoDQdEeaIg5PHHJAQ_g" value="*"/>
     </ownedEnd>
     <ownedEnd xmi:type="uml:Property" xmi:id="_L-36QzQdEeaIg5PHHJAQ_g" name="timeseriesdataserviceresponse" type="_ptw28DQbEeaIg5PHHJAQ_g" association="_L-36QDQdEeaIg5PHHJAQ_g"/>
+  </packagedElement>
+  <packagedElement xmi:type="uml:AssociationClass" xmi:id="_1QJIADSqEeaK9MyPntmx3A" name="TimeSeriesDescriptionParameter" isAbstract="true" memberEnd="_1QJvEjSqEeaK9MyPntmx3A _1QJvEzSqEeaK9MyPntmx3A">
+    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_1QJvEDSqEeaK9MyPntmx3A" source="org.eclipse.papyrus">
+      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_1QJvETSqEeaK9MyPntmx3A" key="nature" value="UML_Nature"/>
+    </eAnnotations>
+    <ownedAttribute xmi:type="uml:Property" xmi:id="_LIIvADSrEeaK9MyPntmx3A" name="code">
+      <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
+    </ownedAttribute>
+    <ownedAttribute xmi:type="uml:Property" xmi:id="_UMWhgDSrEeaK9MyPntmx3A" name="Parameter">
+      <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
+    </ownedAttribute>
+    <ownedEnd xmi:type="uml:Property" xmi:id="_1QJvEzSqEeaK9MyPntmx3A" name="parameter" type="_zaoPwDQZEeaIg5PHHJAQ_g" association="_1QJIADSqEeaK9MyPntmx3A"/>
   </packagedElement>
 </uml:Model>
