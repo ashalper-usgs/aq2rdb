@@ -950,7 +950,8 @@ httpdispatcher.onGet(
         }
 
         // parse LocationIdentifier string from TimeSeriesIdentifier
-        var locationIdentifierString = field.TimeSeriesIdentifier.split('@')[1];
+        var locationIdentifierString =
+            field.TimeSeriesIdentifier.split('@')[1];
 
         if (locationIdentifierString === undefined ||
             locationIdentifierString === "") {
