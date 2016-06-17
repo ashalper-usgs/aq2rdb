@@ -28,8 +28,6 @@ var rdb = module.exports = {
        @param {object} type Code and name of type of values
                        [e.g. ("C","COMPUTED")].
        @param {object} range Time series query, date range.
-       @param {function} callback Callback function to call when
-              complete.
     */
     header: function (
         fileType, editable, site, subLocationIdentifer, parameter,
