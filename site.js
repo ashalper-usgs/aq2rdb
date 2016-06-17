@@ -32,23 +32,22 @@ var site = module.exports = {
     request: function (
         waterServicesHostname, agencyCode, siteNumber, log, callback
     ) {
-        try {
-            rest.query(
-                waterServicesHostname,
-                "GET",
-                undefined,      // HTTP headers
-                "/nwis/site/",
-                {format: "rdb",
-                 site: agencyCode + ':' + siteNumber,
-                 siteOutput: "expanded"}, log, callback
-            );
-        }
-        catch (error) {
-            if (log)
-                console.log("site.request: error: " + error);
-            callback(error);
-        }
-        return;
+        rest.query(
+            "http",
+            waterServicesHostname,
+            "GET",
+            undefined,      // HTTP headers
+            "/nwis/site/",
+            {format: "rdb",
+             site: agencyCode + ':' + siteNumber,
+             siteOutput: "expanded"}, log
+        )
+            .then((messageBody) => callback(null, messageBody))
+            .catch((error) => {
+                if (log)
+                    console.log("site.request: error: " + error);
+                callback(error);
+            });
     }, // request
 
     /**
