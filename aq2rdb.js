@@ -971,43 +971,19 @@ httpdispatcher.onGet(
                     site.agencyCode + " " + site.number + ": " + error
             ));
 
-        /**
-           @todo this needs to be moved to .then() method block above?
-        */
-        var getTimeSeriesDescriptionList =
-            new Promise((resolve, reject) => {
-                const request = https.get(
-                    "https://" + options.aquariusHostname +
-                        "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList" +
-                        querystring.stringify({
-                            token: aquarius.token(),
-                            format: "json",
-                            LocationIdentifier: locationIdentifierString
-                        }),
-                    (response) => {
-                        // handle HTTP errors
-                        if (response.statusCode < 200 ||
-                            response.statusCode > 299) {
-                            reject(response.statusCode);
-                            return;
-                        }
-                        const body = [];
-                        response.on("data", (chunk) => body.push(chunk));
-                        response.on("end", () => resolve(body.join("")));
-                    });
+        // site object might not be loaded yet here, but that's OK,
+        // because we only need (agencyCode,number) tuple, which is
+        // initialized by Site constructor above
+        aquaticInformatics.getTimeSeriesDescriptionList({
+            LocationIdentifier: locationIdentifierString
+        })
+            .then((json) => {
                 /**
-                   @todo errors need to be triaged and the ultimate
-                         error messages delivered to the client made
-                         more helpful here.
+                   @todo parse JSON, then project on TimeSeriesIdentifier
                 */
-                request.on("error", (error) => reject(error));
-            });
-
-        getTimeSeriesDescriptionList.then((json) => {
-            console.log(json);
-        }).catch((error) => {
-            throw error;
-        });
+                console.log(json);
+            })
+            .catch((error) => {throw error;});
     }
 ); // GetUVTable
 
