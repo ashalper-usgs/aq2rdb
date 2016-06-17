@@ -576,7 +576,7 @@ AQUARIUS: function (
     */
     function getTimeSeriesDescriptionList(
         agencyCode, siteNumber, parameter, computationIdentifier,
-        computationPeriodIdentifier, callback
+        computationPeriodIdentifier
     ) {
         // make (agencyCode,siteNo) digestible by AQUARIUS
         var locationIdentifier =
@@ -594,7 +594,7 @@ AQUARIUS: function (
             ExtendedFilters: "[{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
         };
 
-        rest.query(
+        return rest.query(
             "http",
             hostname,
             "GET",
@@ -602,12 +602,7 @@ AQUARIUS: function (
             "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
             obj,
             false
-        )
-            .then((messageBody) => callback(null, messageBody))
-            .catch((error) => {
-                console.log(".catch() called: " + error);
-                callback(error);
-            });
+        );
     } // getTimeSeriesDescriptionList
 
     /**
@@ -636,9 +631,10 @@ AQUARIUS: function (
                 getTimeSeriesDescriptionList(
                     agencyCode, siteNumber, parameter,
                     computationIdentifier,
-                    computationPeriodIdentifier,
-                    callback
-                );
+                    computationPeriodIdentifier
+                )
+                .then((messageBody) => callback(null, messageBody))
+                .catch((error) => callback(error));
             },
             /**
                @function
