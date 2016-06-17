@@ -965,14 +965,11 @@ httpdispatcher.onGet(
         }
 
         var site = new usgs.Site(locationIdentifierString);
-        /**
-           Why init() after construction?
-           @see http://stackoverflow.com/questions/24398699/is-it-bad-practice-to-have-a-constructor-function-return-a-promise
-        */
-        site.init().catch((error) => response.end(
-            "# " + packageName + ": Could not load site " +
-                site.agencyCode + " " + site.number + ": " + error
-        ));
+        site.load(options.waterServicesHostname).catch(
+            (error) => response.end(
+                "# " + packageName + ": Could not load site " +
+                    site.agencyCode + " " + site.number + ": " + error
+            ));
 
         /**
            @todo this needs to be moved to .then() method block above?
