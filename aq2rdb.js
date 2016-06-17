@@ -968,13 +968,13 @@ httpdispatcher.onGet(
         site.load(options.waterServicesHostname).catch(
             (error) => response.end(
                 "# " + packageName + ": Could not load site " +
-                    site.agencyCode + " " + site.number + ": " + error
+                    site.agencyCode + " " + site.number
             ));
 
         // site object might not be loaded yet here, but that's OK,
         // because we only need (agencyCode,number) tuple, which is
         // initialized by Site constructor above
-        aquaticInformatics.getTimeSeriesDescriptionList({
+        aquarius.getTimeSeriesDescriptionList({
             LocationIdentifier: locationIdentifierString
         })
             .then((json) => {
