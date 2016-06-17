@@ -563,36 +563,14 @@ AQUARIUS: function (
                     UniqueIds related to aq2rdb, location and
                     parameter.
        @private
-       @param {string} agencyCode USGS agency code.
-       @param {string} siteNumber USGS site number.
-       @param {string} parameter AQUARIUS parameter.
-       @param {string} computationIdentifier AQUARIUS computation
-                       identifier.
-       @param {string} computationPeriodIdentifier AQUARIUS
-                       computation period identifier.
-       @param {function} callback async.waterfall() callback
-              function.
+       @param {object} field An object having
+                       GetTimeSeriesDescriptionList Web service
+                       field/values as attribute/value pairs.
        @see http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDescriptionServiceRequest
     */
-    function getTimeSeriesDescriptionList(
-        agencyCode, siteNumber, parameter, computationIdentifier,
-        computationPeriodIdentifier
-    ) {
-        // make (agencyCode,siteNo) digestible by AQUARIUS
-        var locationIdentifier =
-            new aquaticInformatics.LocationIdentifier(
-                agencyCode, siteNumber
-            );
-
-        var obj = {
-            token: token,
-            format: "json",
-            LocationIdentifier: locationIdentifier.toString(),
-            Parameter: parameter,
-            ComputationIdentifier: computationIdentifier,
-            ComputationPeriodIdentifier: computationPeriodIdentifier,
-            ExtendedFilters: "[{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
-        };
+    function getTimeSeriesDescriptionList(field) {
+        field["token"] = token;
+        field["format"] = "json";
 
         return rest.query(
             "http",
@@ -600,7 +578,7 @@ AQUARIUS: function (
             "GET",
             undefined,      // HTTP headers
             "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-            obj,
+            field,
             false
         );
     } // getTimeSeriesDescriptionList
@@ -628,11 +606,14 @@ AQUARIUS: function (
 
         async.waterfall([
             function (callback) {
-                getTimeSeriesDescriptionList(
-                    agencyCode, siteNumber, parameter,
-                    computationIdentifier,
-                    computationPeriodIdentifier
-                )
+                getTimeSeriesDescriptionList({
+                    LocationIdentifier: locationIdentifier.toString(),
+                    Parameter: parameter,
+                    ComputationIdentifier: computationIdentifier,
+                    ComputationPeriodIdentifier: computationPeriodIdentifier,
+                    ExtendedFilters:
+                        "[{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
+                })
                 .then((messageBody) => callback(null, messageBody))
                 .catch((error) => callback(error));
             },
