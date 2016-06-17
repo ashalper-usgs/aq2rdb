@@ -920,9 +920,9 @@ httpdispatcher.onGet(
         }
 
         // if any required fields are omitted
-        if ("TimeSeriesIdentifier" in field &&
-            ("LocationIdentifier" in field || "Parameter" in field ||
-             "ComputationIdentifier" in field)) {
+        if (! ("TimeSeriesIdentifier" in field) ||
+            ! ("LocationIdentifier" in field && "Parameter" in field &&
+               "ComputationIdentifier" in field)) {
             // respond with error
             response.writeHeader(400, {"Content-Type": "text/plain"});  
             response.end(
