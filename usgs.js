@@ -8,28 +8,31 @@
 
 'use strict';
 
-class Site {
-    constructor(locationIdentiferString) {
-        var locationIdentifier =
-            new aquaticInformatics.LocationIdentifier(
-                locationIdentiferString
-            );
+var aquaticInformatics = require("./aquaticInformatics");
+var rest = require("./rest");
 
-        this.agencyCode = locationIdentifier.agencyCode();
-        this.number = locationIdentifier.siteNumber();
-    } // constructor
+var usgs = module.exports = {
 
-    load(host) {
-	var instance = this;
+Site: function (locationIdentiferString) {
+    var locationIdentifier =
+        new aquaticInformatics.LocationIdentifier(
+            locationIdentiferString
+        );
 
-	return rest.query(
-	    "http", host, "GET", undefined, "/nwis/site/?",
-	    {format: "rdb",
-             site: this.agencyCode + ":" + this.number,
-             siteOutput: "expanded"}, options.log
-	)
-	    .then((messageBody) => {
-		try {
+    this.agencyCode = locationIdentifier.agencyCode();
+    this.number = locationIdentifier.siteNumber();
+
+    this.load = function (host) {
+        var instance = this;
+
+        return rest.query(
+            "http", host, "GET", undefined, "/nwis/site/?",
+            {format: "rdb",
+             site: instance.agencyCode + ":" + instance.number,
+             siteOutput: "expanded"}, false
+        )
+            .then((messageBody) => {
+                try {
                     // parse (station_nm,tz_cd,local_time_fg) from RDB
                     // response
                     var row = messageBody.split('\n');
@@ -40,21 +43,23 @@ class Site {
 
                     // the necessary site fields
                     instance.agencyCode =
-			siteField[columnName.indexOf("agency_cd")];
+                        siteField[columnName.indexOf("agency_cd")];
                     instance.number =
-			siteField[columnName.indexOf("site_no")];
+                        siteField[columnName.indexOf("site_no")];
                     instance.name =
-			siteField[columnName.indexOf("station_nm")];
+                        siteField[columnName.indexOf("station_nm")];
                     instance.tzCode =
-			siteField[columnName.indexOf("tz_cd")];
+                        siteField[columnName.indexOf("tz_cd")];
                     instance.localTimeFlag =
-			siteField[columnName.indexOf("local_time_fg")];
-		}
-		catch (error) {
+                        siteField[columnName.indexOf("local_time_fg")];
+                }
+                catch (error) {
                     throw error;
-		}
+                }
             }).catch((error) => {
-		throw error;
+                throw error;
             });
     } // load
 } // Site
+
+} // usgs
