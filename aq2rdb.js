@@ -971,17 +971,19 @@ httpdispatcher.onGet(
                     site.agencyCode + " " + site.number
             ));
 
-        // site object might not be loaded yet here, but that's OK,
-        // because we only need (agencyCode,number) tuple, which is
-        // initialized by Site constructor above
+        // site object probably is not loaded yet here, but that's OK,
+        // because here we're querying AQUARIUS by LocationIdentifier
         aquarius.getTimeSeriesDescriptionList({
             LocationIdentifier: locationIdentifierString
         })
             .then((json) => {
-                /**
-                   @todo parse JSON, then project on TimeSeriesIdentifier
-                */
-                console.log(json);
+                return new Promise(function (resolve, reject) {
+                    /**
+                       @todo parse JSON, then project on TimeSeriesIdentifier
+                    */
+                    console.log(json);
+                    response.end();
+                });
             })
             .catch((error) => {throw error;});
     }
