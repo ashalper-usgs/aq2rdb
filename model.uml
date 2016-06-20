@@ -878,7 +878,7 @@
   </packagedElement>
   <packagedElement xmi:type="uml:Interaction" xmi:id="_hEIakDQOEeaIg5PHHJAQ_g" name="GetUVTable">
     <ownedAttribute xmi:type="uml:Property" xmi:id="_VCNZcTQREeaIg5PHHJAQ_g" name="" type="_Mi1O0DQQEeaIg5PHHJAQ_g"/>
-    <lifeline xmi:type="uml:Lifeline" xmi:id="_9GLosDQREeaIg5PHHJAQ_g" name="cb" represents="_l45fMDQQEeaIg5PHHJAQ_g"/>
+    <lifeline xmi:type="uml:Lifeline" xmi:id="_FTvugDccEeawOJ1wzoEhgA"/>
   </packagedElement>
   <packagedElement xmi:type="uml:Class" xmi:id="_Mi1O0DQQEeaIg5PHHJAQ_g" name="HttpDispatcher">
     <ownedOperation xmi:type="uml:Operation" xmi:id="_StokMDQQEeaIg5PHHJAQ_g" name="onGet">

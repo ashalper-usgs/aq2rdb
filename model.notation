@@ -5319,18 +5319,10 @@
     <children xmi:type="notation:Shape" xmi:id="_h_CjoTQOEeaIg5PHHJAQ_g" type="2001">
       <children xmi:type="notation:DecorationNode" xmi:id="_h_CjojQOEeaIg5PHHJAQ_g" type="5001"/>
       <children xmi:type="notation:DecorationNode" xmi:id="_h_CjozQOEeaIg5PHHJAQ_g" type="7001">
-        <children xmi:type="notation:Shape" xmi:id="_9GOsADQREeaIg5PHHJAQ_g" type="3001">
-          <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_CvFx8DQSEeaIg5PHHJAQ_g" source="PapyrusCSSForceValue">
-            <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_CvFx8TQSEeaIg5PHHJAQ_g" key="fillColor" value="true"/>
-          </eAnnotations>
-          <children xmi:type="notation:DecorationNode" xmi:id="_9GOsAjQREeaIg5PHHJAQ_g" type="5002"/>
-          <styles xmi:type="notation:StringListValueStyle" xmi:id="_FoPwYDQSEeaIg5PHHJAQ_g" name="maskLabel">
-            <stringListValue>representsSelector</stringListValue>
-            <stringListValue>representsName</stringListValue>
-            <stringListValue>representsType</stringListValue>
-          </styles>
-          <element xmi:type="uml:Lifeline" href="model.uml#_9GLosDQREeaIg5PHHJAQ_g"/>
-          <layoutConstraint xmi:type="notation:Bounds" xmi:id="_9GOsATQREeaIg5PHHJAQ_g" x="25" y="10" width="100" height="696"/>
+        <children xmi:type="notation:Shape" xmi:id="_FT6GkDccEeawOJ1wzoEhgA" type="3001">
+          <children xmi:type="notation:DecorationNode" xmi:id="_FT6toDccEeawOJ1wzoEhgA" type="5002"/>
+          <element xmi:type="uml:Lifeline" href="model.uml#_FTvugDccEeawOJ1wzoEhgA"/>
+          <layoutConstraint xmi:type="notation:Bounds" xmi:id="_FT6GkTccEeawOJ1wzoEhgA" x="55" y="10" width="100" height="697"/>
         </children>
         <layoutConstraint xmi:type="notation:Bounds" xmi:id="_h_CjpDQOEeaIg5PHHJAQ_g"/>
       </children>
