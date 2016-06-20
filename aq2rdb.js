@@ -949,9 +949,11 @@ httpdispatcher.onGet(
             return;
         }
 
+        var timeSeriesIdentifier = field.TimeSeriesIdentifier;
+
         // parse LocationIdentifier string from TimeSeriesIdentifier
         var locationIdentifierString =
-            field.TimeSeriesIdentifier.split('@')[1];
+            timeSeriesIdentifier.split('@')[1];
 
         if (locationIdentifierString === undefined ||
             locationIdentifierString === "") {
@@ -973,15 +975,26 @@ httpdispatcher.onGet(
 
         // site object probably is not loaded yet here, but that's OK,
         // because here we're querying AQUARIUS by LocationIdentifier
+        // (which has site ID embedded in it)
         aquarius.getTimeSeriesDescriptionList({
             LocationIdentifier: locationIdentifierString
         })
             .then((json) => {
                 return new Promise(function (resolve, reject) {
-                    /**
-                       @todo parse JSON, then project on TimeSeriesIdentifier
-                    */
-                    console.log(json);
+                    var timeSeriesDescriptionListServiceResponse =
+                        JSON.parse(json);
+                    var timeSeriesDescriptions =
+               timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions;
+
+                    for (var i = 0, l = timeSeriesDescriptions.length;
+                         i < l; i++) {
+                        if (timeSeriesIdentifier ===
+                            timeSeriesDescriptions[i].Identifier)
+                            console.log(
+                                timeSeriesDescriptions[i].Identifier
+                            );
+                    }
+
                     response.end();
                 });
             })
