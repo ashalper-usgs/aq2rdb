@@ -968,10 +968,6 @@ httpdispatcher.onGet(
 
         var site = new usgs.Site(locationIdentifierString);
         var siteLoad = site.load(options.waterServicesHostname);
-
-        // site object probably is not loaded yet here, but that's OK,
-        // because here we're querying AQUARIUS by LocationIdentifier
-        // (which has site ID embedded in it)
         var getTimeSeriesDescriptionList =
             aquarius.getTimeSeriesDescriptionList({
                 LocationIdentifier: locationIdentifierString
@@ -994,6 +990,8 @@ httpdispatcher.onGet(
                     projection.push(timeSeriesDescriptions[i]);
             }
 
+            var timeSeriesDescription;
+
             // check arity
             if (projection.length === 0)
                 throw 'No TimeSeriesDescription found matching ' +
@@ -1003,6 +1001,8 @@ httpdispatcher.onGet(
                 throw 'More than one TimeSeriesDescription matching ' +
                 'TimeSeriesIdentifier "' +
                 timeSeriesIdentifier + '" found'
+            else
+                timeSeriesDescription = projection[0];
 
             var header = "# //UNITED STATES GEOLOGICAL SURVEY " +
                 "      http://water.usgs.gov/\n" +
@@ -1027,7 +1027,13 @@ httpdispatcher.onGet(
         '# //STATION AGENCY="%-5s" NUMBER="%-15s" TIME_ZONE="%s" DST_FLAG=%s\n',
                     site.agencyCode, site.number, site.tzCode,
                     site.localTimeFlag
-                ) + '# //STATION NAME="' + site.name + '"\n';
+                ) + '# //STATION NAME="' + site.name + '"\n' +
+                '# //TimeSeriesIdentifier="' + timeSeriesIdentifier + '"\n';
+
+            if (timeSeriesDescription.subLocationIdentifer !== undefined) {
+                header += '# //SUBLOCATION ID="' +
+                    subLocationIdentifer + '"\n';
+            }
 
             response.end(header, "ascii");
         }, function (reason) {
