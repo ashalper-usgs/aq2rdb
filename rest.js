@@ -30,6 +30,9 @@ var rest = module.exports = {
             if (method === "POST")
                 var chunk = querystring.stringify(obj);
 
+            if (false)
+                console.log(protocol + "://" + host + path);
+
             const request = lib.get({
                 host: host,
                 method: method,
@@ -38,13 +41,13 @@ var rest = module.exports = {
             }, (response) => {
                 // handle HTTP errors
                 if (response.statusCode < 200 || 299 < response.statusCode) {
-		    /**
-		       @todo might need to change reject()'s argument
+                    /**
+                       @todo might need to change reject()'s argument
                              here to make error handling more
-			     sophisticated.
-		    */
+                             sophisticated.
+                    */
                     reject(response.statusCode);
-		}
+                }
                 // temporary data holder
                 const body = [];
                 // on every content chunk, push it to the data array
