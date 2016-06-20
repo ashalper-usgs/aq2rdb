@@ -57,7 +57,11 @@ Site: function (locationIdentiferString) {
                     throw error;
                 }
             }).catch((error) => {
-                throw error;
+                if (error === 400)
+                    throw "Could not find site " + this.agencyCode +
+                    " " + this.number + " at " + host;
+                else
+                    throw error;
             });
     } // load
 } // Site
