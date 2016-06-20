@@ -967,38 +967,73 @@ httpdispatcher.onGet(
         }
 
         var site = new usgs.Site(locationIdentifierString);
-        site.load(options.waterServicesHostname).catch(
-            (error) => response.end(
-                "# " + packageName + ": Could not load site " +
-                    site.agencyCode + " " + site.number
-            ));
+        var siteLoad = site.load(options.waterServicesHostname);
 
         // site object probably is not loaded yet here, but that's OK,
         // because here we're querying AQUARIUS by LocationIdentifier
         // (which has site ID embedded in it)
-        aquarius.getTimeSeriesDescriptionList({
-            LocationIdentifier: locationIdentifierString
-        })
-            .then((json) => {
-                return new Promise(function (resolve, reject) {
-                    var timeSeriesDescriptionListServiceResponse =
-                        JSON.parse(json);
-                    var timeSeriesDescriptions =
-               timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions;
+        var getTimeSeriesDescriptionList =
+            aquarius.getTimeSeriesDescriptionList({
+                LocationIdentifier: locationIdentifierString
+            });
 
-                    for (var i = 0, l = timeSeriesDescriptions.length;
-                         i < l; i++) {
-                        if (timeSeriesIdentifier ===
-                            timeSeriesDescriptions[i].Identifier)
-                            console.log(
-                                timeSeriesDescriptions[i].Identifier
-                            );
-                    }
+        Promise.all([
+            siteLoad,
+            getTimeSeriesDescriptionList
+        ]).then(function (prerequisite) {
+            var timeSeriesDescriptionListServiceResponse =
+                JSON.parse(prerequisite[1]);
+            var timeSeriesDescriptions =
+                timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions;
+            var projection = new Array();
 
-                    response.end();
-                });
-            })
-            .catch((error) => {throw error;});
+            for (var i = 0, l = timeSeriesDescriptions.length; i < l; i++) {
+                if (timeSeriesIdentifier ===
+                    timeSeriesDescriptions[i].Identifier)
+                    // save matched record
+                    projection.push(timeSeriesDescriptions[i]);
+            }
+
+            // check arity
+            if (projection.length === 0)
+                throw 'No TimeSeriesDescription found matching ' +
+                'TimeSeriesIdentifier "' +
+                timeSeriesIdentifier + '"';
+            else if (1 < projection.length)
+                throw 'More than one TimeSeriesDescription matching ' +
+                'TimeSeriesIdentifier "' +
+                timeSeriesIdentifier + '" found'
+
+            var header = "# //UNITED STATES GEOLOGICAL SURVEY " +
+                "      http://water.usgs.gov/\n" +
+                "# //NATIONAL WATER INFORMATION SYSTEM " +
+                "    http://water.usgs.gov/data.html\n" +
+                "# //DATA ARE PROVISIONAL AND SUBJECT TO " +
+                "CHANGE UNTIL PUBLISHED BY USGS\n" +
+                "# //RETRIEVED: " +
+                moment().format("YYYY-MM-DD HH:mm:ss") + '\n' +
+                '# //FILE TYPE="NWIS-I UNIT-VALUES" ' + 'EDITABLE=NO\n';
+
+            /**
+               @todo this part might be a bit
+                     weird/inviting-a-race-condition, because
+                     Site.load().then() is getting called to populate
+                     site properties within usgs.Site, when it seems
+                     like we should be dealing with it via
+                     prerequisite[0]?
+            */
+            header +=
+                sprintf(
+        '# //STATION AGENCY="%-5s" NUMBER="%-15s" TIME_ZONE="%s" DST_FLAG=%s\n',
+                    site.agencyCode, site.number, site.tzCode,
+                    site.localTimeFlag
+                ) + '# //STATION NAME="' + site.name + '"\n';
+
+            response.end(header, "ascii");
+        });
+        /**
+           @todo need to catch errors here or server will hang
+        */
     }
 ); // GetUVTable
 
