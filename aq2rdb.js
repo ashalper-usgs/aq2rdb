@@ -1030,10 +1030,9 @@ httpdispatcher.onGet(
                 ) + '# //STATION NAME="' + site.name + '"\n';
 
             response.end(header, "ascii");
+        }, function (reason) {
+            response.end("# " + reason, "ascii");
         });
-        /**
-           @todo need to catch errors here or server will hang
-        */
     }
 ); // GetUVTable
 
