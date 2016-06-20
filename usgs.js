@@ -26,7 +26,7 @@ Site: function (locationIdentiferString) {
         var instance = this;
 
         return rest.query(
-            "http", host, "GET", undefined, "/nwis/site/?",
+            "http", host, "GET", undefined, "/nwis/site/",
             {format: "rdb",
              site: instance.agencyCode + ":" + instance.number,
              siteOutput: "expanded"}, false
