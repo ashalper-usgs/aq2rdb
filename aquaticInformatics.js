@@ -279,51 +279,20 @@ AQUARIUS: function (
        @param {function} callback Callback to call if/when
               GetTimeSeriesCorrectedData service responds.
     */
-    this.getTimeSeriesCorrectedData = function (parameters, callback) {
-        /**
-           @description Handle response from GetTimeSeriesCorrectedData.
-           @callback
-        */
-        function getTimeSeriesCorrectedDataCallback(response) {
-            var messageBody = "";
-            var timeSeriesCorrectedData;
-
-            // accumulate response
-            response.on(
-                "data",
-                function (chunk) {
-                    messageBody += chunk;
-                });
-
-            response.on("end", function () {
-                callback(null, messageBody);
-                return;
-            });
-        } // getTimeSeriesCorrectedDataCallback
-
-        // these parameters span every GetTimeSeriesCorrectedData
+    this.getTimeSeriesCorrectedData = function (fields) {
+        // these fields span every GetTimeSeriesCorrectedData
         // call for our purposes, so they're not passed in
-        parameters["token"] = token;
-        parameters["format"] = "json";
-
-        var path = "/AQUARIUS/Publish/V2/GetTimeSeriesCorrectedData?" +
-            querystring.stringify(parameters);
-
-        var request = http.request({
-            host: hostname,
-            path: path
-        }, getTimeSeriesCorrectedDataCallback);
+        fields["token"] = token;
+        fields["format"] = "json";
 
         /**
-           @description Handle GetTimeSeriesCorrectedData service
-           invocation errors.
+           @todo replace with return rest.query()
         */
-        request.on("error", function (error) {
-            callback(error);
-            return;
-        });
-
-        request.end();
+        return rest.query(
+            "http", hostname, "GET", undefined,
+            "/AQUARIUS/Publish/V2/GetTimeSeriesCorrectedData", fields,
+            false
+        );
     } // getTimeSeriesCorrectedData
 
     /**
