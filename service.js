@@ -11,7 +11,7 @@
 
 // Node.JS modules
 var async = require("async");
-var https = require('https');
+var https = require("https");
 var fs = require("fs");
 var querystring = require("querystring");
 
