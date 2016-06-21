@@ -15,6 +15,16 @@ var sprintf = require("sprintf-js").sprintf;
 var rdb = module.exports = {
     /**
        @function
+       @description Format a string as an RDB comment.
+       @public
+       @param {string} s String to format.
+    */
+    comment: function (s) {
+        return "# " + s;
+    },
+
+    /**
+       @function
        @description Create RDB header block.
        @public
        @param {string} fileType Type of time series data (e.g. "NWIS-I
