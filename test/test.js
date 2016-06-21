@@ -387,14 +387,14 @@ describe("aquaticInformatics", function () {
         describe("#getRemarkCodes()", function () {
             it("should load remark codes",
                function (done) {
-                   aquarius.getRemarkCodes(
-                       function (error) {
-                           if (error) throw error;
+                   aquarius.getRemarkCodes()
+                       .then(() => {
                            expect(
                                Object.keys(aquarius.remarkCodes).length
                            ).to.be.above(0);
                            done();
-                       });
+                       })
+                       .catch((error) => {throw error;});
                });
         }); // #getRemarkCodes()
         
