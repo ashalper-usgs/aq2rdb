@@ -635,7 +635,9 @@ function dvTableBody(
         function (callback) {
             // load mapping of NWIS remark codes to AQUARIUS
             // qualifiers
-            aquarius.getRemarkCodes(callback);
+            aquarius.getRemarkCodes()
+                .then(() => callback(null))
+                .catch((error) => callback(error));
         },
         /**
            @function
