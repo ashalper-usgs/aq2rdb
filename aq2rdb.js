@@ -949,14 +949,40 @@ httpdispatcher.onGet(
             return;
         }
 
+        // check syntax of QueryFrom value
+        if ("QueryFrom" in field) {
+            try {
+                var d = new Date(field.QueryFrom);
+            }
+            catch (error) {
+                throw error;
+                return;
+            }
+        }
+        var queryFrom = field.QueryFrom;
+
+        // check syntax of QueryTo value
+        if ("QueryTo" in field) {
+            try {
+                var d = new Date(field.QueryTo);
+            }
+            catch (error) {
+                throw error;
+                return;
+            }
+        }
+        var queryTo = field.QueryTo;
+
         var timeSeriesIdentifier = field.TimeSeriesIdentifier;
 
         // parse LocationIdentifier string from TimeSeriesIdentifier
         var locationIdentifierString =
             timeSeriesIdentifier.split('@')[1];
 
+        // if LocationIdentifier value is not usable
         if (locationIdentifierString === undefined ||
             locationIdentifierString === "") {
+            // end with error message
             response.writeHeader(400, {"Content-Type": "text/plain"});
             response.end(
                 "# " + packageName + ": Could not find a " +
@@ -1035,10 +1061,35 @@ httpdispatcher.onGet(
                     subLocationIdentifer + '"\n';
             }
 
-            response.end(header, "ascii");
-        }, function (reason) {
-            response.end("# " + reason, "ascii");
-        });
+            response.write(header, "ascii");
+
+            // RDB heading (a different thing than a header)
+            response.write(
+                header +
+                    "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
+                    "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
+                "ascii"
+            );
+        }, function (error) {   // error handler for Promise.all() above
+            response.end("# " + error, "ascii");
+        }).then(() => {
+            aquarius.getTimeSeriesCorrectedData(
+                {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
+                 ApplyRounding: "true",
+                 QueryFrom: queryFrom,
+                 QueryTo: queryTo}
+            )
+                .then((timeSeriesDataServiceResponse) => {
+                    /**
+                       @todo RDB table body iteration
+                    */
+                    response.end(
+                        JSON.stringify(timeSeriesDataServiceResponse),
+                        "ascii"
+                    );
+                });
+        })
+            .catch((error) => {response.end("# " + error, "ascii");});
     }
 ); // GetUVTable
 
