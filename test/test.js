@@ -357,25 +357,30 @@ describe("aquaticInformatics", function () {
                });
         });
 
+        // GetTimeSeriesCorrectedData path appears to be really slow
+        // at present
+        this.timeout(40000);
+
         describe("#getTimeSeriesCorrectedData()", function () {
             it("should receive a usable TimeSeriesDataServiceResponse object",
                function (done) {
                    aquarius.getTimeSeriesCorrectedData(
                        {TimeSeriesUniqueId: "7050c0c28bb8409295ef0e82ceda936e",
                         ApplyRounding: "true",
-                        QueryFrom: "2014-10-01T00:00:00-07:00:00",
-                        QueryTo: "2014-10-02T00:00:00-07:00:00"},
-                       function (error, timeSeriesDataServiceResponse) {
-                           if (error) throw error;
+                        QueryFrom: "2014-10-01T00:00:00",
+                        QueryTo: "2014-10-02T00:00:00"}
+                   )
+                       .then((timeSeriesDataServiceResponse) => {
                            var timeSeriesDescriptions =
                                JSON.parse(timeSeriesDataServiceResponse);
+
                            expect(
                                Object.getOwnPropertyNames(
                                    timeSeriesDescriptions
                                ).length).to.be.above(0);
                            done();
-                       }
-                   );
+                       })
+                       .catch((error) => {throw error});
                });          
         }); // #getTimeSeriesCorrectedData()
 
