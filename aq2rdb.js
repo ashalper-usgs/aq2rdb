@@ -986,6 +986,7 @@ httpdispatcher.onGet(
         }
 
         // check syntax of QueryFrom value
+        var queryFrom;
         if ("QueryFrom" in field) {
             try {
                 var d = new Date(field.QueryFrom);
@@ -994,10 +995,11 @@ httpdispatcher.onGet(
                 throw error;
                 return;
             }
+            queryFrom = field.QueryFrom;
         }
-        var queryFrom = field.QueryFrom;
 
         // check syntax of QueryTo value
+        var queryTo;
         if ("QueryTo" in field) {
             try {
                 var d = new Date(field.QueryTo);
@@ -1006,8 +1008,8 @@ httpdispatcher.onGet(
                 throw error;
                 return;
             }
+            queryTo = field.QueryTo;
         }
-        var queryTo = field.QueryTo;
 
         var timeSeriesIdentifier = field.TimeSeriesIdentifier;
 
@@ -1064,25 +1066,6 @@ httpdispatcher.onGet(
                 timeSeriesIdentifier + '" found'
             else
                 timeSeriesDescription = projection[0];
-        }, function (error) {   // error handler for Promise.all() above
-            response.end("# " + error, "ascii");
-        }).then(() => {
-            aquarius.getTimeSeriesCorrectedData(
-                {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
-                 ApplyRounding: "true",
-                 QueryFrom: queryFrom,
-                 QueryTo: queryTo}
-            )
-                .then((timeSeriesDataServiceResponse) => {
-                    log(packageName +
-                            ".timeSeriesDataServiceResponse",
-                        timeSeriesDataServiceResponse.Points
-                    );
-
-                    if (timeSeriesDataServiceResponse.Points === undefined) {
-                        response.end(rdb.comment("No points found"), "ascii");
-                        return;
-                    }
 
             var header = "# //UNITED STATES GEOLOGICAL SURVEY " +
                 "      http://water.usgs.gov/\n" +
@@ -1115,6 +1098,28 @@ httpdispatcher.onGet(
                     subLocationIdentifer + '"\n';
             }
 
+            header += '# //RANGE START="';
+            if (queryFrom === undefined) {
+                // hacky, legacy NWIS syntax for representing "from
+                // the beginning of time" predicate
+                header += "00000000000000";
+            }
+            else {
+                header += aq2rdb.toNWISDatetimeFormat(queryFrom);
+            }
+            header += '"';
+    
+            header += ' END="';
+            if (queryTo === undefined) {
+                // hacky, legacy NWIS syntax for representing "until
+                // the end of time" predicate
+                header += "99999999999999";
+            }
+            else {
+                header += aq2rdb.toNWISDatetimeFormat(queryTo);
+            }
+            header += '"\n';
+
             response.write(header, "ascii");
 
             // RDB heading (a different thing than a header)
@@ -1124,6 +1129,22 @@ httpdispatcher.onGet(
                     "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
                 "ascii"
             );
+        }, function (error) {   // error handler for Promise.all() above
+            response.end("# " + error, "ascii");
+        }).then(() => {
+            aquarius.getTimeSeriesCorrectedData(
+                {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
+                 ApplyRounding: "true",
+                 QueryFrom: queryFrom,
+                 QueryTo: queryTo}
+            )
+                .then((timeSeriesDataServiceResponse) => {
+                    // if there are no unit values
+                    if (timeSeriesDataServiceResponse.Points === undefined) {
+                        // stop
+                        response.end();
+                        return;
+                    }
 
                     uvTableBody(
                         /**
