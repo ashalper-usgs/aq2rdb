@@ -32,7 +32,6 @@ var adaps = require("../adaps.js");
 var aquaticInformatics = require("../aquaticInformatics.js");
 var rdb = require("../rdb.js");
 var rest = require("../rest.js");
-var service = require("../service.js");
 
 describe("adaps", function () {
     describe("#IntervalDay", function () {
