@@ -292,9 +292,10 @@ function handle(error) {
        @see https://nodejs.org/api/errors.html#errors_error_code
     */
     if (error.code === 'ECONNREFUSED') {
-        statusMessage = '# ' + packageName +
-            ': Connection error; a common cause of this ' +
-            'is GetAQToken being unreachable';
+        statusMessage = rdb.comment(
+            packageName + ': Connection error; a common cause of ' +
+                'this is GetAQToken being unreachable'
+        );
         /**
            @description "Bad Gateway"
            @private
@@ -716,6 +717,41 @@ function dvTableBody(
     ); // async.waterfall
 } // dvTableBody
 
+function uvTableBody (
+    applyRounding, tzCode, localTimeFlag, qaCode, points, response
+) {
+    return new Promise(function (resolve, reject) {
+        for (var i = 0, l = points.length; i < l; i++) {
+            var zone, m;
+            var value = (applyRounding === "False") ?
+                point[i].Value.Numeric : point[i].Value.Display;
+
+            try {
+                zone = tzName[tzCode][localTimeFlag];
+            }
+            catch (error) {
+                reject(
+                    "Could not look up IANA time zone " +
+                        "name for site time zone spec. " +
+                        "(" + tzCode + "," + localTimeFlag + ")"
+                );
+                return;
+            }
+
+            // reference AQUARIUS timestamp to site's (NWIS) time zone
+            // spec.
+            m = moment.tz(point[i].Timestamp, zone);
+
+            response.write(
+                m.format("YYYYMMDD") + '\t' + m.format("HHmmss") +
+                    '\t' + waterServicesSite.tzCode + '\t' + value +
+                    "\t\t \t\t" + qaCode + '\n'
+            );
+        }
+        resolve();
+    });
+} // uvTableBody
+
 /**
    @description GetDVTable endpoint service request handler.
 */
@@ -992,6 +1028,7 @@ httpdispatcher.onGet(
             return;
         }
 
+        var timeSeriesDescription;
         var site = new usgs.Site(locationIdentifierString);
         var siteLoad = site.load(options.waterServicesHostname);
         var getTimeSeriesDescriptionList =
@@ -1016,8 +1053,6 @@ httpdispatcher.onGet(
                     projection.push(timeSeriesDescriptions[i]);
             }
 
-            var timeSeriesDescription;
-
             // check arity
             if (projection.length === 0)
                 throw 'No TimeSeriesDescription found matching ' +
@@ -1029,6 +1064,25 @@ httpdispatcher.onGet(
                 timeSeriesIdentifier + '" found'
             else
                 timeSeriesDescription = projection[0];
+        }, function (error) {   // error handler for Promise.all() above
+            response.end("# " + error, "ascii");
+        }).then(() => {
+            aquarius.getTimeSeriesCorrectedData(
+                {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
+                 ApplyRounding: "true",
+                 QueryFrom: queryFrom,
+                 QueryTo: queryTo}
+            )
+                .then((timeSeriesDataServiceResponse) => {
+                    log(packageName +
+                            ".timeSeriesDataServiceResponse",
+                        timeSeriesDataServiceResponse.Points
+                    );
+
+                    if (timeSeriesDataServiceResponse.Points === undefined) {
+                        response.end(rdb.comment("No points found"), "ascii");
+                        return;
+                    }
 
             var header = "# //UNITED STATES GEOLOGICAL SURVEY " +
                 "      http://water.usgs.gov/\n" +
@@ -1070,26 +1124,27 @@ httpdispatcher.onGet(
                     "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
                 "ascii"
             );
-        }, function (error) {   // error handler for Promise.all() above
-            response.end("# " + error, "ascii");
-        }).then(() => {
-            aquarius.getTimeSeriesCorrectedData(
-                {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
-                 ApplyRounding: "true",
-                 QueryFrom: queryFrom,
-                 QueryTo: queryTo}
-            )
-                .then((timeSeriesDataServiceResponse) => {
-                    /**
-                       @todo RDB table body iteration
-                    */
-                    response.end(
-                        JSON.stringify(timeSeriesDataServiceResponse),
-                        "ascii"
-                    );
+
+                    uvTableBody(
+                        /**
+                           @todo What should applyRounding be in this
+                                 context?
+                        */
+                        true,
+                        site.tzCode,
+                        site.localTimeFlag,
+                        // QA code ("QA" RDB column): might not be
+                        // backwards-compatible with nwts2rdb
+         timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0),
+                        timeSeriesDataServiceResponse.Points,
+                        response
+                    )
+                    .then(() => {response.end();})
+                    .catch((error) =>
+                           {response.end(rdb.comment(error), "ascii");});
                 });
         })
-            .catch((error) => {response.end("# " + error, "ascii");});
+            .catch((error) => {response.end(rdb.comment(error), "ascii");});
     }
 ); // GetUVTable
 
@@ -1341,54 +1396,22 @@ httpdispatcher.onGet(
                    @callback
                 */
                 function (timeSeriesDataServiceResponse, callback) {
-                    async.each(
+                    // Write RDB table body to HTTP response; this is
+                    // a promise interacting with async.waterfall(),
+                    // which is a bit weird, but should be OK until we
+                    // can re-factor the rest.
+                    uvTableBody(
+                        applyRounding,
+                        waterServicesSite.tzCode,
+                        waterServicesSite.localTimeFlag,
+                        // QA code ("QA" RDB column): might not be
+                        // backwards-compatible with nwts2rdb
+         timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0),
                         timeSeriesDataServiceResponse.Points,
-                        /**
-                           @description Write an RDB row for one time
-                                        series point.
-                           @callback
-                        */
-                        function (point, callback) {
-                            var zone, m;
-                            var tzCode = waterServicesSite.tzCode;
-                            var value =
-                                (applyRounding === "False") ?
-                                point.Value.Numeric :
-                                point.Value.Display;
-                            var localTimeFlag =
-                                waterServicesSite.localTimeFlag;
-
-                            try {
-                                zone = tzName[tzCode][localTimeFlag];
-                            }
-                            catch (error) {
-                                callback(
-                                    "Could not look up IANA time zone " +
-                                        "name for site time zone spec. " +
-                                        "(" + tzCode + "," + localTimeFlag + ")"
-                                );
-                                return;
-                            }
-
-                            // reference AQUARIUS timestamp to site's
-                            // (NWIS) time zone spec.
-                            m = moment.tz(point.Timestamp, zone);
-
-                            response.write(
-                                m.format("YYYYMMDD") + '\t' +
-                                    m.format("HHmmss") + '\t' +
-                                    waterServicesSite.tzCode + '\t' +
-                                    value + "\t\t \t\t" +
-                                    // might not be
-                                    // backwards-compatible with
-                                    // nwts2rdb:
-        timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0) +
-                                    '\n'
-                            );
-                            callback(null);
-                        }
-                    );
-                    callback(null);
+                        response
+                    )
+                        .then(() => callback(null))
+                        .catch((error) => callback(error));
                 }
             ],
                 function (error) {
