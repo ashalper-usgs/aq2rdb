@@ -29,7 +29,6 @@ var querystring = require('querystring');
 var adaps = require("./adaps");
 var aquaticInformatics = require("./aquaticInformatics");
 var rdb = require("./rdb");
-var service = require("./service");
 var site = require("./site");
 var usgs = require("./usgs");
 
@@ -1883,7 +1882,7 @@ else {
                 function (callback) {
                     async.waterfall([
                         function (callback) {
-                            nwisRA = new service.NWISRA(
+                            nwisRA = new usgs.NWISRA(
                                 passwd.nwisRAHostname,
                                 passwd.nwisRAUserName,
                                 passwd.nwisRAPassword, options.log,
