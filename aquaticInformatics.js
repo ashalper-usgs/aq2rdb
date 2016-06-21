@@ -96,7 +96,7 @@ LocationIdentifier: function (
 AQUARIUS: function (
     aquariusTokenHostname, hostname, userName, password, callback
 ) {
-    var aquariusTokenHostname, token, remarkCodes;
+    var aquariusTokenHostname, token;
     var port = "8080";
     var path = "/services/GetAQToken?";
     var uriString = "http://" + hostname + "/AQUARIUS/";
@@ -324,78 +324,43 @@ AQUARIUS: function (
        @public
        @description Cache remark codes.
     */
-    this.getRemarkCodes = function (callback) {
-        var instance = this;
-
+    this.getRemarkCodes = function () {
         // if remark codes have not been loaded yet
-        if (instance.remarkCodes === undefined) {
-            async.waterfall([
-                /**
-                   @function
-                   @description Request remark codes from AQUARIUS.
-                   @callback
-                */
-                function (callback) {
-                    rest.query(
-                            "http",
-                            hostname,
-                            "GET",
-                            undefined,      // HTTP headers
-                            "/AQUARIUS/Publish/V2/GetQualifierList/",
-                            {token: token, format: "json"},
-                            false
-                        )
-                        .then((messageBody) => callback(null, messageBody))
-                        .catch((error) => callback(error));
-                },
-                /**
-                   @function
-                   @description Receive remark codes from AQUARIUS.
-                   @callback
-                */
-                function (messageBody, callback) {
-                    var qualifierListServiceResponse;
+        if (this.remarkCodes === undefined) {
+            return rest.query(
+                "http", hostname, "GET", undefined, // HTTP headers
+                "/AQUARIUS/Publish/V2/GetQualifierList/",
+                {token: token, format: "json"}, false
+            ).then((messageBody) => {
+                var qualifierListServiceResponse;
 
-                    try {
-                        qualifierListServiceResponse =
-                            JSON.parse(messageBody);
-                    }
-                    catch (error) {
-                        callback(error);
-                        return;
-                    }
-
-                    // if we didn't get the remark codes domain table
-                    if (qualifierListServiceResponse === undefined) {
-                        callback(
-                            "Could not get remark codes from http://" +
-                                hostname +
-                                "/AQUARIUS/Publish/V2/GetQualifierList/"
-                        );
-                        return;
-                    }
-
-                    // store remark codes in object for faster access later
-                    instance.remarkCodes = new Object();
-                    async.each(
-                        qualifierListServiceResponse.Qualifiers,
-                        /** @callback */
-                        function (qualifierMetadata, callback) {
-                            instance.remarkCodes[qualifierMetadata.Identifier] =
-                                qualifierMetadata.Code;
-                            callback(null);
-                        }
-                    );
-
-                    callback(null);
+                try {
+                    qualifierListServiceResponse =
+                        JSON.parse(messageBody);
                 }
-            ],
-            function (error) {
-                if (error)
-                    callback(error);
-                else
-                    callback(null);
-            });
+                catch (error) {
+                    throw error;
+                    return;
+                }
+
+                // if we didn't get the remark codes domain table
+                if (qualifierListServiceResponse === undefined) {
+                    throw new Error(
+                        "Could not get remark codes from http://" +
+                            hostname +
+                            "/AQUARIUS/Publish/V2/GetQualifierList/"
+                    );
+                    return;
+                }
+
+                // store remark codes in object for faster access later
+                this.remarkCodes = new Object();
+                var qualifiers = qualifierListServiceResponse.Qualifiers;
+                for (var i = 0, l = qualifiers.length; i < l; i++) {
+                    this.remarkCodes[qualifiers[i].Identifier] =
+                        qualifiers[i].Code;
+                }
+            }); // .then
         }
     } // getRemarkCodes
 
