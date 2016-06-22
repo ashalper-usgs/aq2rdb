@@ -205,25 +205,13 @@
     </packagedElement>
     <packagedElement xmi:type="uml:Dependency" xmi:id="_LLHfcJ0qEeW0_5GYJNErLQ" client="_ApXUwJ0mEeW0_5GYJNErLQ" supplier="_hvmq8J0oEeW0_5GYJNErLQ"/>
     <packagedElement xmi:type="uml:Package" xmi:id="_cctDcDijEeaOI_GGEKelgg" name="client">
-      <ownedComment xmi:type="uml:Comment" xmi:id="_YIj8oDjCEeaOI_GGEKelgg" annotatedElement="_EPF30DjCEeaOI_GGEKelgg">
+      <ownedComment xmi:type="uml:Comment" xmi:id="_YIj8oDjCEeaOI_GGEKelgg">
         <body>UVQuery.c, when true, means &quot;combine date and time in a single column&quot; here.</body>
       </ownedComment>
       <ownedComment xmi:type="uml:Comment" xmi:id="_qffQoDjCEeaOI_GGEKelgg" annotatedElement="_32A3wDjAEeaOI_GGEKelgg">
         <body>DVQuery.c, when true, means &quot;only computed daily values will be retrieved&quot; here.</body>
       </ownedComment>
       <packagedElement xmi:type="uml:Class" xmi:id="_nQOQYDijEeaOI_GGEKelgg" name="Query" isAbstract="true">
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_43aJgDijEeaOI_GGEKelgg" name="o">
-          <ownedComment xmi:type="uml:Comment" xmi:id="_HAwCwDikEeaOI_GGEKelgg" annotatedElement="_43aJgDijEeaOI_GGEKelgg">
-            <body>outfile</body>
-          </ownedComment>
-          <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-          <lowerValue xmi:type="uml:LiteralInteger" xmi:id="_AZKqwDikEeaOI_GGEKelgg"/>
-          <upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="_AZNuEDikEeaOI_GGEKelgg" value="1"/>
-        </ownedAttribute>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_QZQqQDikEeaOI_GGEKelgg" name="z">
-          <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-          <defaultValue xmi:type="uml:LiteralString" xmi:id="_eUaWgDikEeaOI_GGEKelgg" value="qa"/>
-        </ownedAttribute>
         <ownedAttribute xmi:type="uml:Property" xmi:id="_xlACIDi_EeaOI_GGEKelgg" name="l">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
           <defaultValue xmi:type="uml:LiteralString" xmi:id="_1jdbwDi_EeaOI_GGEKelgg" value="LOC"/>
@@ -243,7 +231,6 @@
         </ownedAttribute>
       </packagedElement>
       <packagedElement xmi:type="uml:Class" xmi:id="_0opNkDikEeaOI_GGEKelgg" name="nwts2rdbQuery" isAbstract="true">
-        <generalization xmi:type="uml:Generalization" xmi:id="_Ik8j8DilEeaOI_GGEKelgg" general="_nQOQYDijEeaOI_GGEKelgg"/>
         <ownedAttribute xmi:type="uml:Property" xmi:id="_MFZL4DilEeaOI_GGEKelgg" name="t">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
         </ownedAttribute>
@@ -262,46 +249,36 @@
         </ownedAttribute>
       </packagedElement>
       <packagedElement xmi:type="uml:Class" xmi:id="_8lLmUDikEeaOI_GGEKelgg" name="TimeSeriesIdentifierQuery" isAbstract="true">
-        <generalization xmi:type="uml:Generalization" xmi:id="_JNlRQDilEeaOI_GGEKelgg" general="_nQOQYDijEeaOI_GGEKelgg"/>
+        <generalization xmi:type="uml:Generalization" xmi:id="_jNd-EDjOEeaOI_GGEKelgg" general="_nQOQYDijEeaOI_GGEKelgg"/>
         <ownedAttribute xmi:type="uml:Property" xmi:id="_HEqAcDimEeaOI_GGEKelgg" name="u" type="_VkE3kGbVEeW2ybKigGMHUA"/>
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_1fN3IDjOEeaOI_GGEKelgg" name="b" type="_U-VZIDi-EeaOI_GGEKelgg"/>
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_InkoEDjPEeaOI_GGEKelgg" name="e" type="_U-VZIDi-EeaOI_GGEKelgg"/>
       </packagedElement>
       <packagedElement xmi:type="uml:Dependency" xmi:id="_TfphgDimEeaOI_GGEKelgg" name="TimeSeriesIdentifierQuery.u" client="_8lLmUDikEeaOI_GGEKelgg" supplier="_VkE3kGbVEeW2ybKigGMHUA"/>
       <packagedElement xmi:type="uml:Class" xmi:id="_ivHmQDivEeaOI_GGEKelgg" name="nwts2rdbDVQuery" isAbstract="true">
         <generalization xmi:type="uml:Generalization" xmi:id="_7O_1gDivEeaOI_GGEKelgg" general="_0opNkDikEeaOI_GGEKelgg"/>
-        <generalization xmi:type="uml:Generalization" xmi:id="_OKtB0DjBEeaOI_GGEKelgg" general="_32A3wDjAEeaOI_GGEKelgg"/>
+        <generalization xmi:type="uml:Generalization" xmi:id="_dVRmMDjPEeaOI_GGEKelgg" general="_32A3wDjAEeaOI_GGEKelgg"/>
       </packagedElement>
       <packagedElement xmi:type="uml:Class" xmi:id="_pwIx8DivEeaOI_GGEKelgg" name="nwts2rdbUVQuery" isAbstract="true">
         <generalization xmi:type="uml:Generalization" xmi:id="_8BaJ4DivEeaOI_GGEKelgg" general="_0opNkDikEeaOI_GGEKelgg"/>
-        <generalization xmi:type="uml:Generalization" xmi:id="_TqC_YDjBEeaOI_GGEKelgg" general="_BujqMDjBEeaOI_GGEKelgg"/>
-      </packagedElement>
-      <packagedElement xmi:type="uml:Class" xmi:id="_ZpInQDixEeaOI_GGEKelgg" name="TimeSeriesIdentifierDVQuery" isAbstract="true">
-        <generalization xmi:type="uml:Generalization" xmi:id="_0IZ7YDixEeaOI_GGEKelgg" general="_8lLmUDikEeaOI_GGEKelgg"/>
-        <generalization xmi:type="uml:Generalization" xmi:id="_YpQEUDjBEeaOI_GGEKelgg" general="_32A3wDjAEeaOI_GGEKelgg"/>
-      </packagedElement>
-      <packagedElement xmi:type="uml:Class" xmi:id="_fgteoDixEeaOI_GGEKelgg" name="TimeSeriesIdentifierUVQuery" isAbstract="true">
-        <generalization xmi:type="uml:Generalization" xmi:id="_1WXjUDixEeaOI_GGEKelgg" general="_8lLmUDikEeaOI_GGEKelgg"/>
-        <generalization xmi:type="uml:Generalization" xmi:id="_WurOADjBEeaOI_GGEKelgg" general="_BujqMDjBEeaOI_GGEKelgg"/>
+        <generalization xmi:type="uml:Generalization" xmi:id="_eJR2ADjPEeaOI_GGEKelgg" general="_BujqMDjBEeaOI_GGEKelgg"/>
       </packagedElement>
       <packagedElement xmi:type="uml:Class" xmi:id="_32A3wDjAEeaOI_GGEKelgg" name="DVQuery" isAbstract="true">
+        <generalization xmi:type="uml:Generalization" xmi:id="_Ik8j8DilEeaOI_GGEKelgg" general="_nQOQYDijEeaOI_GGEKelgg"/>
         <ownedAttribute xmi:type="uml:Property" xmi:id="_RpG_MDi9EeaOI_GGEKelgg" name="b" type="_PbliQDi-EeaOI_GGEKelgg"/>
         <ownedAttribute xmi:type="uml:Property" xmi:id="_y8eA0Di-EeaOI_GGEKelgg" name="e" type="_PbliQDi-EeaOI_GGEKelgg"/>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_w7XkYDjBEeaOI_GGEKelgg" name="c">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_UA8UEDjPEeaOI_GGEKelgg" name="c">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
-          <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_RTce8DjCEeaOI_GGEKelgg"/>
+          <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_YmXAADjPEeaOI_GGEKelgg"/>
         </ownedAttribute>
       </packagedElement>
       <packagedElement xmi:type="uml:Class" xmi:id="_BujqMDjBEeaOI_GGEKelgg" name="UVQuery" isAbstract="true">
+        <generalization xmi:type="uml:Generalization" xmi:id="_2ztXIDjJEeaOI_GGEKelgg" general="_nQOQYDijEeaOI_GGEKelgg"/>
         <ownedAttribute xmi:type="uml:Property" xmi:id="_PRdgcDi_EeaOI_GGEKelgg" name="b" type="_U-VZIDi-EeaOI_GGEKelgg"/>
         <ownedAttribute xmi:type="uml:Property" xmi:id="_S9a00Di_EeaOI_GGEKelgg" name="e" type="_U-VZIDi-EeaOI_GGEKelgg"/>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_EPF30DjCEeaOI_GGEKelgg" name="c">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_w7XkYDjBEeaOI_GGEKelgg" name="c">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
-          <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_N-ShADjCEeaOI_GGEKelgg"/>
-        </ownedAttribute>
-      </packagedElement>
-      <packagedElement xmi:type="uml:Class" xmi:id="_SosTQDjFEeaOI_GGEKelgg" name="MeasuredUVQuery" isAbstract="true">
-        <generalization xmi:type="uml:Generalization" xmi:id="_tsjiMDjFEeaOI_GGEKelgg" general="_BujqMDjBEeaOI_GGEKelgg"/>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_h6nlMDjFEeaOI_GGEKelgg" name="y">
-          <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
+          <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_RTce8DjCEeaOI_GGEKelgg"/>
         </ownedAttribute>
       </packagedElement>
     </packagedElement>
