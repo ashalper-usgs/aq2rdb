@@ -33,7 +33,7 @@ def usage():
     )
     sys.stderr.write("                -aagency\n")
     sys.stderr.write("                -nstation\n")
-    sys.stderr.write("                -uUniqueId\n")
+    sys.stderr.write("                -uTimeSeriesIdentifier\n")
     sys.stderr.write(
         "                -pparm AND\n"
     )
@@ -41,10 +41,7 @@ def usage():
     sys.stderr.write(
         "                  uvtype (M)easured, E)dited, R)corrections,\n"
     )
-    sys.stderr.write("                          S)hifts, C)computed, or\n")
-    sys.stderr.write(
-        "                          N)Raw Measured (no conversion of input ratings))\n"
-    )
+    sys.stderr.write("                          S)hifts, or C)computed\n")
     sys.stderr.write(
         "                -bbegdate (yyyymmdd) (dv) OR\n"
     )
@@ -111,20 +108,12 @@ def usage():
     sys.stderr.write("       If -y is present, it is ignored unless Measured Unit-Values\n")
     sys.stderr.write("             are specified as arguments.\n")
     sys.stderr.write("             If omitted, defaults to preferred input.\n")
-    sys.stderr.write("       If -m is present, it is ignored.\n")
     sys.stderr.write("       If -i is omitted, the standard S_STRT title line is used.\n")
     sys.stderr.write("\n")
     sys.stderr.write("       If -o is omitted, writes to stdout, and -m cannot be used\n")
-    sys.stderr.write("       If -m is present, outfile is used as the output file name prefix.\n")
-    sys.stderr.write("             If omitted, all rows in the control file must be the\n")
-    sys.stderr.write("             same datatype.\n")
     sys.stderr.write("       If -l is omitted, it will default to \"LOC\"\n")
     sys.stderr.write("       If -r is present, rounding is suppressed,\n")
     sys.stderr.write("             otherwise rounded values are output.\n")
-    sys.stderr.write("       If -c is present and daily-values are being output, only computed\n")
-    sys.stderr.write("             daily values will be retrieved.\n")
-    sys.stderr.write("             If unit-values are being output, date and time\n")
-    sys.stderr.write("             are combined into a single datetime column.\n")
 
 def main():
     outpath = None
@@ -133,7 +122,7 @@ def main():
     agency = "USGS"
     station = None
     parm = None
-    uniqueId = None
+    timeSeriesIdentifier = None
     stat = None
     begdat = None
     enddat = None
@@ -178,7 +167,7 @@ def main():
             elif opt == "-n":
                 station = arg
             elif opt == "-u":
-                uniqueId = arg
+                timeSeriesIdentifier = arg
             elif opt == "-p":
                 parm = arg
             elif opt == "-s":
@@ -253,8 +242,8 @@ def main():
         if rndsup:
             query['r'] = str(rndsup).lower()
 
-        if uniqueId:
-            query['u'] = uniqueId
+        if timeSeriesIdentifier:
+            query['u'] = timeSeriesIdentifier
 
         try:
             uo = urlopen(prefix + urlencode(query))
