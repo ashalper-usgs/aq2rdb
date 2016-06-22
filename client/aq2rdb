@@ -23,6 +23,75 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 from urllib.error import HTTPError
 
+class Query:
+    def __init__(self, loctzcd, rounding_suppression, water_year_flag,
+                 title_line):
+        # attribute names are ugly here because we tried to keep them
+        # 1:1 with their corresponding references in the (legacy)
+        # usage statement
+        self.loctzcd = loctzcd
+        self.rounding_suppression = rounding_suppression
+        self.water_year_flag = water_year_flag
+        self.title_line = title_line
+
+class DVQuery(Query):
+    def __init__(self, loctzcd, rounding_suppression, water_year_flag,
+                 title_line, begdate, enddate, computed_only):
+        Query.__init__(self, loctzcd, rounding_suppression,
+                       water_year_flag, title_line)
+        self.begdate = begdate
+        self.enddate = enddate
+        self.computed_only = computed_only
+
+class UVQuery(Query):
+    def __init__(self, loctzcd, rounding_suppression, water_year_flag,
+                 title_line, begdtm, enddtm, combine_date_and_time):
+        Query.__init__(self, loctzcd, rounding_suppression,
+                       water_year_flag, title_line)
+        self.begdtm = begdtm
+        self.enddtm = enddtm
+        self.combine_date_and_time = combine_date_and_time
+
+class TimeSeriesIdentifierQuery(Query):
+    def __init__(self, loctzcd, rounding_suppression, water_year_flag,
+                 title_line, time_series_identifier, begdtm, enddtm):
+        Query.__init__(self, loctzcd, rounding_suppression,
+                       water_year_flag, title_line)
+        self.time_series_identifier = time_series_identifier
+        self.begdtm = begdtm
+        self.enddtm = enddtm
+
+class nwts2rdbQuery:
+    def __init__(self, datatype, agency, station, parm, statistic):
+        self.datatype = datatype
+        self.agency = agency
+        self.station = station
+        self.parm = parm
+        self.statistic = statistic
+
+# the dreaded multiple inheritance; actually makes things simpler
+# (trust me, and see class diagram in Papyrus model)
+
+class nwts2rdbDVQuery(nwts2rdbQuery, DVQuery):
+    def __init__(self, datatype, agency, station, parm, statistic,
+                 loctzcd, rounding_suppression, water_year_flag,
+                 title_line, begdate, enddate, computed_only):
+        nwts2rdbQuery.__init__(self, datatype, agency, station, parm,
+                               statistic)
+        DVQuery.__init__(self, loctzcd, rounding_suppression,
+                         water_year_flag, title_line, begdate,
+                         enddate, computed_only)
+
+class nwts2rdbUVQuery(nwts2rdbQuery, UVQuery):
+    def __init__(self, datatype, agency, station, parm, statistic,
+                 loctzcd, rounding_suppression, water_year_flag,
+                 title_line, begdtm, enddtm, combine_date_and_time):
+        nwts2rdbQuery.__init__(self, datatype, agency, station, parm,
+                               statistic)
+        UVQuery.__init__(self, loctzcd, rounding_suppression,
+                         water_year_flag, title_line, begdtm, enddtm,
+                         combine_date_and_time)
+
 # Display usage information for the aq2rdb command
 def usage():
     sys.stderr.write("\n")
