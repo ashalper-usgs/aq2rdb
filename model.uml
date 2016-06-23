@@ -8,7 +8,7 @@
   <packagedElement xmi:type="uml:Package" xmi:id="_EzMpcGbXEeW2ybKigGMHUA" name="http">
     <packagedElement xmi:type="uml:DataType" xmi:id="_GIQ-8GbXEeW2ybKigGMHUA" name="ServerResponse"/>
   </packagedElement>
-  <packagedElement xmi:type="uml:Package" xmi:id="_SRHAEGbXEeW2ybKigGMHUA" name="+">
+  <packagedElement xmi:type="uml:Package" xmi:id="_SRHAEGbXEeW2ybKigGMHUA" name="aq2rdb" URI="">
     <packagedElement xmi:type="uml:Class" xmi:id="_VkE3kGbVEeW2ybKigGMHUA" name="TimeSeriesIdentifier">
       <ownedAttribute xmi:type="uml:Property" xmi:id="_aiNTkGbXEeW2ybKigGMHUA" name="text" type="_hhmHkGbXEeW2ybKigGMHUA"/>
       <ownedOperation xmi:type="uml:Operation" xmi:id="_pkRkkGbXEeW2ybKigGMHUA" name="TimeSeriesIdentifier">
@@ -282,6 +282,31 @@
         </ownedAttribute>
       </packagedElement>
     </packagedElement>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_KM5vQDlgEea2bomBu3yjRg" name="Header.parameter" client="_KM7kcTlgEea2bomBu3yjRg" supplier="_zTC94DQVEeaIg5PHHJAQ_g"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_KM6WUDlgEea2bomBu3yjRg" name="Header.site" client="_KM7kcTlgEea2bomBu3yjRg" supplier="_QOPqIDMfEea51d0Ndtws7w"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_KM69YDlgEea2bomBu3yjRg" name="Header.statistic" client="_KM7kdzlgEea2bomBu3yjRg" supplier="_kkY7oDQWEeaIg5PHHJAQ_g"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_KM69YTlgEea2bomBu3yjRg" name="Header.subLocationIdentifier" client="_KM7kcTlgEea2bomBu3yjRg" supplier="_zaoPwDQZEeaIg5PHHJAQ_g"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_KM69YjlgEea2bomBu3yjRg" name="Header.type" client="_KM7kcTlgEea2bomBu3yjRg" supplier="_WSaOUDQXEeaIg5PHHJAQ_g"/>
+    <packagedElement xmi:type="uml:Dependency" xmi:id="_KM69YzlgEea2bomBu3yjRg" client="_KM7kcDlgEea2bomBu3yjRg" supplier="_ptw28DQbEeaIg5PHHJAQ_g"/>
+    <packagedElement xmi:type="uml:Class" xmi:id="_KM7kcDlgEea2bomBu3yjRg" name="Body" isAbstract="true"/>
+    <packagedElement xmi:type="uml:Class" xmi:id="_KM7kcTlgEea2bomBu3yjRg" name="Header" isAbstract="true">
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_KM7kcjlgEea2bomBu3yjRg" name="fileType">
+        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
+      </ownedAttribute>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_KM7kczlgEea2bomBu3yjRg" name="editable">
+        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
+      </ownedAttribute>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_KM7kdDlgEea2bomBu3yjRg" name="site" type="_QOPqIDMfEea51d0Ndtws7w"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_KM7kdTlgEea2bomBu3yjRg" name="subLocationIdentifer">
+        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
+      </ownedAttribute>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_KM7kdjlgEea2bomBu3yjRg" name="parameter" type="_zTC94DQVEeaIg5PHHJAQ_g"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_KM7kdzlgEea2bomBu3yjRg" name="statistic" type="_kkY7oDQWEeaIg5PHHJAQ_g"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_KM7keDlgEea2bomBu3yjRg" name="type" type="_WSaOUDQXEeaIg5PHHJAQ_g"/>
+      <ownedAttribute xmi:type="uml:Property" xmi:id="_KM7keTlgEea2bomBu3yjRg" name="range" type="_17K6sGbVEeW2ybKigGMHUA"/>
+    </packagedElement>
+    <packagedElement xmi:type="uml:Class" xmi:id="_KM8LgDlgEea2bomBu3yjRg" name="Heading" isAbstract="true"/>
+    <packagedElement xmi:type="uml:Class" xmi:id="_KM8LgTlgEea2bomBu3yjRg" name="UVTable" isAbstract="true"/>
   </packagedElement>
   <packagedElement xmi:type="uml:Package" xmi:id="_dpt3EGbXEeW2ybKigGMHUA" name="JavaScript">
     <packagedElement xmi:type="uml:DataType" xmi:id="_hhmHkGbXEeW2ybKigGMHUA" name="String"/>
@@ -898,33 +923,6 @@
     </packagedElement>
     <packagedElement xmi:type="uml:Class" xmi:id="_ZsrYICgWEeasi7cDBAji3g" name="NWISRA"/>
   </packagedElement>
-  <packagedElement xmi:type="uml:Package" xmi:id="_WBBhEDMfEea51d0Ndtws7w" name="aq2rdb">
-    <packagedElement xmi:type="uml:Class" xmi:id="_dA42MDMfEea51d0Ndtws7w" name="UVTable" isAbstract="true"/>
-    <packagedElement xmi:type="uml:Class" xmi:id="_ovQg8DQTEeaIg5PHHJAQ_g" name="Header" isAbstract="true">
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_nyKKEDQUEeaIg5PHHJAQ_g" name="fileType">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_whDM0DQUEeaIg5PHHJAQ_g" name="editable">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_14ytkDQUEeaIg5PHHJAQ_g" name="site" type="_QOPqIDMfEea51d0Ndtws7w"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_FmbrIDQVEeaIg5PHHJAQ_g" name="subLocationIdentifer">
-        <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
-      </ownedAttribute>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_Jm9r4DQWEeaIg5PHHJAQ_g" name="parameter" type="_zTC94DQVEeaIg5PHHJAQ_g"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_gC2qIDQWEeaIg5PHHJAQ_g" name="statistic" type="_kkY7oDQWEeaIg5PHHJAQ_g"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_uvucUDQYEeaIg5PHHJAQ_g" name="type" type="_WSaOUDQXEeaIg5PHHJAQ_g"/>
-      <ownedAttribute xmi:type="uml:Property" xmi:id="_8eboADQYEeaIg5PHHJAQ_g" name="range" type="_17K6sGbVEeW2ybKigGMHUA"/>
-    </packagedElement>
-    <packagedElement xmi:type="uml:Class" xmi:id="_EmyBcDQUEeaIg5PHHJAQ_g" name="Heading" isAbstract="true"/>
-    <packagedElement xmi:type="uml:Class" xmi:id="_R5d_gDQUEeaIg5PHHJAQ_g" name="Body" isAbstract="true"/>
-    <packagedElement xmi:type="uml:Dependency" xmi:id="__C5FoDQUEeaIg5PHHJAQ_g" name="Header.site" client="_ovQg8DQTEeaIg5PHHJAQ_g" supplier="_QOPqIDMfEea51d0Ndtws7w"/>
-    <packagedElement xmi:type="uml:Dependency" xmi:id="_SMcT8DQWEeaIg5PHHJAQ_g" name="Header.parameter" client="_ovQg8DQTEeaIg5PHHJAQ_g" supplier="_zTC94DQVEeaIg5PHHJAQ_g"/>
-    <packagedElement xmi:type="uml:Dependency" xmi:id="__VGlEDQWEeaIg5PHHJAQ_g" name="Header.statistic" client="_gC2qIDQWEeaIg5PHHJAQ_g" supplier="_kkY7oDQWEeaIg5PHHJAQ_g"/>
-    <packagedElement xmi:type="uml:Dependency" xmi:id="_Bw3gEDQbEeaIg5PHHJAQ_g" name="Header.type" client="_ovQg8DQTEeaIg5PHHJAQ_g" supplier="_WSaOUDQXEeaIg5PHHJAQ_g"/>
-    <packagedElement xmi:type="uml:Dependency" xmi:id="_ORtxgDQbEeaIg5PHHJAQ_g" name="Header.subLocationIdentifier" client="_ovQg8DQTEeaIg5PHHJAQ_g" supplier="_zaoPwDQZEeaIg5PHHJAQ_g"/>
-    <packagedElement xmi:type="uml:Dependency" xmi:id="_jtfhIDQcEeaIg5PHHJAQ_g" client="_R5d_gDQUEeaIg5PHHJAQ_g" supplier="_ptw28DQbEeaIg5PHHJAQ_g"/>
-  </packagedElement>
   <packagedElement xmi:type="uml:Interaction" xmi:id="_hEIakDQOEeaIg5PHHJAQ_g" name="GetUVTable">
     <ownedAttribute xmi:type="uml:Property" xmi:id="_VCNZcTQREeaIg5PHHJAQ_g" name="" type="_Mi1O0DQQEeaIg5PHHJAQ_g"/>
     <lifeline xmi:type="uml:Lifeline" xmi:id="_FTvugDccEeawOJ1wzoEhgA"/>
@@ -936,27 +934,6 @@
       </ownedParameter>
       <ownedParameter xmi:type="uml:Parameter" xmi:id="_l45fMDQQEeaIg5PHHJAQ_g" name="cb" type="_wG7ZcDQQEeaIg5PHHJAQ_g"/>
     </ownedOperation>
-  </packagedElement>
-  <packagedElement xmi:type="uml:Association" xmi:id="_5Cb0gDQTEeaIg5PHHJAQ_g" memberEnd="_5Cb0gzQTEeaIg5PHHJAQ_g _5Cb0hDQTEeaIg5PHHJAQ_g">
-    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_5Cb0gTQTEeaIg5PHHJAQ_g" source="org.eclipse.papyrus">
-      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_5Cb0gjQTEeaIg5PHHJAQ_g" key="nature" value="UML_Nature"/>
-    </eAnnotations>
-    <ownedEnd xmi:type="uml:Property" xmi:id="_5Cb0hDQTEeaIg5PHHJAQ_g" name="header" type="_ovQg8DQTEeaIg5PHHJAQ_g" aggregation="composite" association="_5Cb0gDQTEeaIg5PHHJAQ_g"/>
-    <ownedEnd xmi:type="uml:Property" xmi:id="_5Cb0gzQTEeaIg5PHHJAQ_g" name="uvtable" type="_dA42MDMfEea51d0Ndtws7w" association="_5Cb0gDQTEeaIg5PHHJAQ_g"/>
-  </packagedElement>
-  <packagedElement xmi:type="uml:Association" xmi:id="_JT1mcDQUEeaIg5PHHJAQ_g" memberEnd="_JT4pwjQUEeaIg5PHHJAQ_g _JT4pwzQUEeaIg5PHHJAQ_g">
-    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_JT4pwDQUEeaIg5PHHJAQ_g" source="org.eclipse.papyrus">
-      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_JT4pwTQUEeaIg5PHHJAQ_g" key="nature" value="UML_Nature"/>
-    </eAnnotations>
-    <ownedEnd xmi:type="uml:Property" xmi:id="_JT4pwzQUEeaIg5PHHJAQ_g" name="heading" type="_EmyBcDQUEeaIg5PHHJAQ_g" aggregation="composite" association="_JT1mcDQUEeaIg5PHHJAQ_g"/>
-    <ownedEnd xmi:type="uml:Property" xmi:id="_JT4pwjQUEeaIg5PHHJAQ_g" name="uvtable" type="_dA42MDMfEea51d0Ndtws7w" association="_JT1mcDQUEeaIg5PHHJAQ_g"/>
-  </packagedElement>
-  <packagedElement xmi:type="uml:Association" xmi:id="_V4mukDQUEeaIg5PHHJAQ_g" memberEnd="_V4mukzQUEeaIg5PHHJAQ_g _V4mulDQUEeaIg5PHHJAQ_g">
-    <eAnnotations xmi:type="ecore:EAnnotation" xmi:id="_V4mukTQUEeaIg5PHHJAQ_g" source="org.eclipse.papyrus">
-      <details xmi:type="ecore:EStringToStringMapEntry" xmi:id="_V4mukjQUEeaIg5PHHJAQ_g" key="nature" value="UML_Nature"/>
-    </eAnnotations>
-    <ownedEnd xmi:type="uml:Property" xmi:id="_V4mulDQUEeaIg5PHHJAQ_g" name="body" type="_R5d_gDQUEeaIg5PHHJAQ_g" aggregation="composite" association="_V4mukDQUEeaIg5PHHJAQ_g"/>
-    <ownedEnd xmi:type="uml:Property" xmi:id="_V4mukzQUEeaIg5PHHJAQ_g" name="uvtable" type="_dA42MDMfEea51d0Ndtws7w" association="_V4mukDQUEeaIg5PHHJAQ_g"/>
   </packagedElement>
   <packagedElement xmi:type="uml:DataType" xmi:id="_SM0fsDQcEeaIg5PHHJAQ_g" name="List"/>
   <packagedElement xmi:type="uml:Association" xmi:id="_L-36QDQdEeaIg5PHHJAQ_g" memberEnd="_L-36QzQdEeaIg5PHHJAQ_g _L-69kDQdEeaIg5PHHJAQ_g">
