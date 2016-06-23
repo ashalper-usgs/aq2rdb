@@ -23,6 +23,75 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 from urllib.error import HTTPError
 
+# attribute names are ugly here because we tried to keep them 1:1 with
+# their corresponding references in the (legacy) usage statement
+
+class Query:
+    def __init__(self, loctzcd, rounding_suppression, water_year_flag,
+                 title_line):
+        self.loctzcd = loctzcd
+        self.rounding_suppression = rounding_suppression
+        self.water_year_flag = water_year_flag
+        self.title_line = title_line
+
+class DVQuery(Query):
+    def __init__(self, loctzcd, rounding_suppression, water_year_flag,
+                 title_line, begdate, enddate, computed_only):
+        Query.__init__(self, loctzcd, rounding_suppression,
+                       water_year_flag, title_line)
+        self.begdate = begdate
+        self.enddate = enddate
+        self.computed_only = computed_only
+
+class UVQuery(Query):
+    def __init__(self, loctzcd, rounding_suppression, water_year_flag,
+                 title_line, begdtm, enddtm, combine_date_and_time):
+        Query.__init__(self, loctzcd, rounding_suppression,
+                       water_year_flag, title_line)
+        self.begdtm = begdtm
+        self.enddtm = enddtm
+        self.combine_date_and_time = combine_date_and_time
+
+class TimeSeriesIdentifierQuery(Query):
+    def __init__(self, loctzcd, rounding_suppression, water_year_flag,
+                 title_line, time_series_identifier, begdtm, enddtm):
+        Query.__init__(self, loctzcd, rounding_suppression,
+                       water_year_flag, title_line)
+        self.time_series_identifier = time_series_identifier
+        self.begdtm = begdtm
+        self.enddtm = enddtm
+
+class nwts2rdbQuery:
+    def __init__(self, datatype, agency, station, parm, statistic):
+        self.datatype = datatype
+        self.agency = agency
+        self.station = station
+        self.parm = parm
+        self.statistic = statistic
+
+# the dreaded multiple inheritance; actually makes things simpler
+# (trust me, and see class diagram in Papyrus model)
+
+class nwts2rdbDVQuery(nwts2rdbQuery, DVQuery):
+    def __init__(self, datatype, agency, station, parm, statistic,
+                 loctzcd, rounding_suppression, water_year_flag,
+                 title_line, begdate, enddate, computed_only):
+        nwts2rdbQuery.__init__(self, datatype, agency, station, parm,
+                               statistic)
+        DVQuery.__init__(self, loctzcd, rounding_suppression,
+                         water_year_flag, title_line, begdate,
+                         enddate, computed_only)
+
+class nwts2rdbUVQuery(nwts2rdbQuery, UVQuery):
+    def __init__(self, datatype, agency, station, parm, statistic,
+                 loctzcd, rounding_suppression, water_year_flag,
+                 title_line, begdtm, enddtm, combine_date_and_time):
+        nwts2rdbQuery.__init__(self, datatype, agency, station, parm,
+                               statistic)
+        UVQuery.__init__(self, loctzcd, rounding_suppression,
+                         water_year_flag, title_line, begdtm, enddtm,
+                         combine_date_and_time)
+
 # Display usage information for the aq2rdb command
 def usage():
     sys.stderr.write("\n")
@@ -33,7 +102,7 @@ def usage():
     )
     sys.stderr.write("                -aagency\n")
     sys.stderr.write("                -nstation\n")
-    sys.stderr.write("                -uUniqueId\n")
+    sys.stderr.write("                -uTimeSeriesIdentifier\n")
     sys.stderr.write(
         "                -pparm AND\n"
     )
@@ -41,10 +110,7 @@ def usage():
     sys.stderr.write(
         "                  uvtype (M)easured, E)dited, R)corrections,\n"
     )
-    sys.stderr.write("                          S)hifts, C)computed, or\n")
-    sys.stderr.write(
-        "                          N)Raw Measured (no conversion of input ratings))\n"
-    )
+    sys.stderr.write("                          S)hifts, or C)computed\n")
     sys.stderr.write(
         "                -bbegdate (yyyymmdd) (dv) OR\n"
     )
@@ -111,20 +177,12 @@ def usage():
     sys.stderr.write("       If -y is present, it is ignored unless Measured Unit-Values\n")
     sys.stderr.write("             are specified as arguments.\n")
     sys.stderr.write("             If omitted, defaults to preferred input.\n")
-    sys.stderr.write("       If -m is present, it is ignored.\n")
     sys.stderr.write("       If -i is omitted, the standard S_STRT title line is used.\n")
     sys.stderr.write("\n")
     sys.stderr.write("       If -o is omitted, writes to stdout, and -m cannot be used\n")
-    sys.stderr.write("       If -m is present, outfile is used as the output file name prefix.\n")
-    sys.stderr.write("             If omitted, all rows in the control file must be the\n")
-    sys.stderr.write("             same datatype.\n")
     sys.stderr.write("       If -l is omitted, it will default to \"LOC\"\n")
     sys.stderr.write("       If -r is present, rounding is suppressed,\n")
     sys.stderr.write("             otherwise rounded values are output.\n")
-    sys.stderr.write("       If -c is present and daily-values are being output, only computed\n")
-    sys.stderr.write("             daily values will be retrieved.\n")
-    sys.stderr.write("             If unit-values are being output, date and time\n")
-    sys.stderr.write("             are combined into a single datetime column.\n")
 
 def main():
     outpath = None
@@ -133,7 +191,7 @@ def main():
     agency = "USGS"
     station = None
     parm = None
-    uniqueId = None
+    timeSeriesIdentifier = None
     stat = None
     begdat = None
     enddat = None
@@ -178,7 +236,7 @@ def main():
             elif opt == "-n":
                 station = arg
             elif opt == "-u":
-                uniqueId = arg
+                timeSeriesIdentifier = arg
             elif opt == "-p":
                 parm = arg
             elif opt == "-s":
@@ -253,8 +311,8 @@ def main():
         if rndsup:
             query['r'] = str(rndsup).lower()
 
-        if uniqueId:
-            query['u'] = uniqueId
+        if timeSeriesIdentifier:
+            query['u'] = timeSeriesIdentifier
 
         try:
             uo = urlopen(prefix + urlencode(query))
