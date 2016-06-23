@@ -59,7 +59,7 @@ var site = module.exports = {
               Site Web Service.
        @param {function} callback Callback to call when complete.
     */
-    receive: function (messageBody, callback) {
+    receive: function(messageBody, callback) {
         var site = new Object;
 
         /**
