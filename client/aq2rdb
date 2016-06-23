@@ -23,12 +23,12 @@ from urllib.parse import urlencode
 from urllib.request import urlopen
 from urllib.error import HTTPError
 
+# attribute names are ugly here because we tried to keep them 1:1 with
+# their corresponding references in the (legacy) usage statement
+
 class Query:
     def __init__(self, loctzcd, rounding_suppression, water_year_flag,
                  title_line):
-        # attribute names are ugly here because we tried to keep them
-        # 1:1 with their corresponding references in the (legacy)
-        # usage statement
         self.loctzcd = loctzcd
         self.rounding_suppression = rounding_suppression
         self.water_year_flag = water_year_flag
