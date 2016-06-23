@@ -15,6 +15,16 @@ var sprintf = require("sprintf-js").sprintf;
 var rdb = module.exports = {
     /**
        @function
+       @description Format a string as an RDB comment.
+       @public
+       @param {string} s String to format.
+    */
+    comment: function (s) {
+        return "# " + s;
+    },
+
+    /**
+       @function
        @description Create RDB header block.
        @public
        @param {string} fileType Type of time series data (e.g. "NWIS-I
@@ -28,12 +38,10 @@ var rdb = module.exports = {
        @param {object} type Code and name of type of values
                        [e.g. ("C","COMPUTED")].
        @param {object} range Time series query, date range.
-       @param {function} callback Callback function to call when
-              complete.
     */
     header: function (
         fileType, editable, site, subLocationIdentifer, parameter,
-        statistic, type, range, callback
+        statistic, type, range
     ) {
         var header =
             "# //UNITED STATES GEOLOGICAL SURVEY " +
@@ -226,7 +234,7 @@ var rdb = module.exports = {
         */
         header += "\"\n";
 
-        callback(null, header);
+        return header;
     }, // header
 
     /**
