@@ -1880,27 +1880,14 @@ else {
                                 authentication token.
                 */
                 function (callback) {
-                    async.waterfall([
-                        function (callback) {
-                            nwisRA = new usgs.NWISRA(
-                                passwd.nwisRAHostname,
-                                passwd.nwisRAUserName,
-                                passwd.nwisRAPassword, options.log,
-                                callback
-                            );
-                            // no callback here; it is called from
-                            // NWISRA() when complete
-                        }
-                    ],
-                        function (error) {
-                            if (error)
-                                callback(error);
-                            else
-                                callback(
-                                    null, "Initialized parameter mapping"
-                                );
-                        }
+                    nwisRA = new usgs.NWISRA(
+                        passwd.nwisRAHostname,
+                        passwd.nwisRAUserName,
+                        passwd.nwisRAPassword, options.log
                     );
+                    nwisRA.authenticate()
+                        .then(callback(null, "Initialized parameter mapping"))
+                        .catch((error) => callback(error));
                 },
                 /**
                    @function
