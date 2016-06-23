@@ -206,53 +206,53 @@
     <packagedElement xmi:type="uml:Dependency" xmi:id="_LLHfcJ0qEeW0_5GYJNErLQ" client="_ApXUwJ0mEeW0_5GYJNErLQ" supplier="_hvmq8J0oEeW0_5GYJNErLQ"/>
     <packagedElement xmi:type="uml:Package" xmi:id="_cctDcDijEeaOI_GGEKelgg" name="client">
       <ownedComment xmi:type="uml:Comment" xmi:id="_YIj8oDjCEeaOI_GGEKelgg">
-        <body>UVQuery.c, when true, means &quot;combine date and time in a single column&quot; here.</body>
+        <body>UVQuery.combine_date_and_time, when true, means &quot;combine date and time in a single column&quot; here.</body>
       </ownedComment>
       <ownedComment xmi:type="uml:Comment" xmi:id="_qffQoDjCEeaOI_GGEKelgg" annotatedElement="_32A3wDjAEeaOI_GGEKelgg">
         <body>DVQuery.c, when true, means &quot;only computed daily values will be retrieved&quot; here.</body>
       </ownedComment>
       <packagedElement xmi:type="uml:Class" xmi:id="_nQOQYDijEeaOI_GGEKelgg" name="Query" isAbstract="true">
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_xlACIDi_EeaOI_GGEKelgg" name="l">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_xlACIDi_EeaOI_GGEKelgg" name="loctzcd">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
           <defaultValue xmi:type="uml:LiteralString" xmi:id="_1jdbwDi_EeaOI_GGEKelgg" value="LOC"/>
         </ownedAttribute>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_8wecEDi_EeaOI_GGEKelgg" name="r">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_8wecEDi_EeaOI_GGEKelgg" name="rounding_suppression">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
           <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_H8SNMDjAEeaOI_GGEKelgg"/>
         </ownedAttribute>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_aKRnoDjAEeaOI_GGEKelgg" name="w">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_aKRnoDjAEeaOI_GGEKelgg" name="water_year_flag">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
           <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_dBsgsDjAEeaOI_GGEKelgg"/>
         </ownedAttribute>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_zZTUgDjDEeaOI_GGEKelgg" name="i">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_zZTUgDjDEeaOI_GGEKelgg" name="title_line">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
           <lowerValue xmi:type="uml:LiteralInteger" xmi:id="_2pWwADjDEeaOI_GGEKelgg"/>
           <upperValue xmi:type="uml:LiteralUnlimitedNatural" xmi:id="_2pWwATjDEeaOI_GGEKelgg" value="1"/>
         </ownedAttribute>
       </packagedElement>
       <packagedElement xmi:type="uml:Class" xmi:id="_0opNkDikEeaOI_GGEKelgg" name="nwts2rdbQuery" isAbstract="true">
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_MFZL4DilEeaOI_GGEKelgg" name="t">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_MFZL4DilEeaOI_GGEKelgg" name="datatype">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
         </ownedAttribute>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_XV520DilEeaOI_GGEKelgg" name="a">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_XV520DilEeaOI_GGEKelgg" name="agency">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
           <defaultValue xmi:type="uml:LiteralString" xmi:id="_e7RswDilEeaOI_GGEKelgg" value="USGS"/>
         </ownedAttribute>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_8fpJkDilEeaOI_GGEKelgg" name="n">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_8fpJkDilEeaOI_GGEKelgg" name="station">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
         </ownedAttribute>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_nrpgwDimEeaOI_GGEKelgg" name="p">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_nrpgwDimEeaOI_GGEKelgg" name="parm">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
         </ownedAttribute>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_zv4HoDimEeaOI_GGEKelgg" name="s">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_zv4HoDimEeaOI_GGEKelgg" name="statistic">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#String"/>
         </ownedAttribute>
       </packagedElement>
       <packagedElement xmi:type="uml:Class" xmi:id="_8lLmUDikEeaOI_GGEKelgg" name="TimeSeriesIdentifierQuery" isAbstract="true">
         <generalization xmi:type="uml:Generalization" xmi:id="_jNd-EDjOEeaOI_GGEKelgg" general="_nQOQYDijEeaOI_GGEKelgg"/>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_HEqAcDimEeaOI_GGEKelgg" name="u" type="_VkE3kGbVEeW2ybKigGMHUA"/>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_1fN3IDjOEeaOI_GGEKelgg" name="b" type="_U-VZIDi-EeaOI_GGEKelgg"/>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_InkoEDjPEeaOI_GGEKelgg" name="e" type="_U-VZIDi-EeaOI_GGEKelgg"/>
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_HEqAcDimEeaOI_GGEKelgg" name="time_series_identifier" type="_VkE3kGbVEeW2ybKigGMHUA"/>
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_1fN3IDjOEeaOI_GGEKelgg" name="begdtm" type="_U-VZIDi-EeaOI_GGEKelgg"/>
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_InkoEDjPEeaOI_GGEKelgg" name="enddtm" type="_U-VZIDi-EeaOI_GGEKelgg"/>
       </packagedElement>
       <packagedElement xmi:type="uml:Dependency" xmi:id="_TfphgDimEeaOI_GGEKelgg" name="TimeSeriesIdentifierQuery.u" client="_8lLmUDikEeaOI_GGEKelgg" supplier="_VkE3kGbVEeW2ybKigGMHUA"/>
       <packagedElement xmi:type="uml:Class" xmi:id="_ivHmQDivEeaOI_GGEKelgg" name="nwts2rdbDVQuery" isAbstract="true">
@@ -265,18 +265,18 @@
       </packagedElement>
       <packagedElement xmi:type="uml:Class" xmi:id="_32A3wDjAEeaOI_GGEKelgg" name="DVQuery" isAbstract="true">
         <generalization xmi:type="uml:Generalization" xmi:id="_Ik8j8DilEeaOI_GGEKelgg" general="_nQOQYDijEeaOI_GGEKelgg"/>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_RpG_MDi9EeaOI_GGEKelgg" name="b" type="_PbliQDi-EeaOI_GGEKelgg"/>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_y8eA0Di-EeaOI_GGEKelgg" name="e" type="_PbliQDi-EeaOI_GGEKelgg"/>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_UA8UEDjPEeaOI_GGEKelgg" name="c">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_RpG_MDi9EeaOI_GGEKelgg" name="begdate" type="_PbliQDi-EeaOI_GGEKelgg"/>
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_y8eA0Di-EeaOI_GGEKelgg" name="enddate" type="_PbliQDi-EeaOI_GGEKelgg"/>
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_UA8UEDjPEeaOI_GGEKelgg" name="computed_only">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
           <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_YmXAADjPEeaOI_GGEKelgg"/>
         </ownedAttribute>
       </packagedElement>
       <packagedElement xmi:type="uml:Class" xmi:id="_BujqMDjBEeaOI_GGEKelgg" name="UVQuery" isAbstract="true">
         <generalization xmi:type="uml:Generalization" xmi:id="_2ztXIDjJEeaOI_GGEKelgg" general="_nQOQYDijEeaOI_GGEKelgg"/>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_PRdgcDi_EeaOI_GGEKelgg" name="b" type="_U-VZIDi-EeaOI_GGEKelgg"/>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_S9a00Di_EeaOI_GGEKelgg" name="e" type="_U-VZIDi-EeaOI_GGEKelgg"/>
-        <ownedAttribute xmi:type="uml:Property" xmi:id="_w7XkYDjBEeaOI_GGEKelgg" name="c">
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_PRdgcDi_EeaOI_GGEKelgg" name="begdtm" type="_U-VZIDi-EeaOI_GGEKelgg"/>
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_S9a00Di_EeaOI_GGEKelgg" name="enddtm" type="_U-VZIDi-EeaOI_GGEKelgg"/>
+        <ownedAttribute xmi:type="uml:Property" xmi:id="_w7XkYDjBEeaOI_GGEKelgg" name="combine_date_and_time">
           <type xmi:type="uml:PrimitiveType" href="pathmap://UML_LIBRARIES/UMLPrimitiveTypes.library.uml#Boolean"/>
           <defaultValue xmi:type="uml:LiteralBoolean" xmi:id="_RTce8DjCEeaOI_GGEKelgg"/>
         </ownedAttribute>
