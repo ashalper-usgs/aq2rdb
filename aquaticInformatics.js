@@ -53,7 +53,10 @@ LocationIdentifier: function (
        @description Agency code accessor method.
     */
     this.agencyCode = function () {
-        return agencyCode;
+        if (agencyCode === undefined)
+            return "USGS";
+        else
+            return agencyCode;
     }
 
     /**
@@ -93,7 +96,7 @@ LocationIdentifier: function (
 AQUARIUS: function (
     aquariusTokenHostname, hostname, userName, password, callback
 ) {
-    var aquariusTokenHostname, token, remarkCodes;
+    var aquariusTokenHostname, token;
     var port = "8080";
     var path = "/services/GetAQToken?";
     var uriString = "http://" + hostname + "/AQUARIUS/";
@@ -276,51 +279,20 @@ AQUARIUS: function (
        @param {function} callback Callback to call if/when
               GetTimeSeriesCorrectedData service responds.
     */
-    this.getTimeSeriesCorrectedData = function (parameters, callback) {
-        /**
-           @description Handle response from GetTimeSeriesCorrectedData.
-           @callback
-        */
-        function getTimeSeriesCorrectedDataCallback(response) {
-            var messageBody = "";
-            var timeSeriesCorrectedData;
-
-            // accumulate response
-            response.on(
-                "data",
-                function (chunk) {
-                    messageBody += chunk;
-                });
-
-            response.on("end", function () {
-                callback(null, messageBody);
-                return;
-            });
-        } // getTimeSeriesCorrectedDataCallback
-
-        // these parameters span every GetTimeSeriesCorrectedData
+    this.getTimeSeriesCorrectedData = function (fields) {
+        // these fields span every GetTimeSeriesCorrectedData
         // call for our purposes, so they're not passed in
-        parameters["token"] = token;
-        parameters["format"] = "json";
-
-        var path = "/AQUARIUS/Publish/V2/GetTimeSeriesCorrectedData?" +
-            querystring.stringify(parameters);
-
-        var request = http.request({
-            host: hostname,
-            path: path
-        }, getTimeSeriesCorrectedDataCallback);
+        fields["token"] = token;
+        fields["format"] = "json";
 
         /**
-           @description Handle GetTimeSeriesCorrectedData service
-           invocation errors.
+           @todo replace with return rest.query()
         */
-        request.on("error", function (error) {
-            callback(error);
-            return;
-        });
-
-        request.end();
+        return rest.query(
+            "http", hostname, "GET", undefined,
+            "/AQUARIUS/Publish/V2/GetTimeSeriesCorrectedData", fields,
+            false
+        );
     } // getTimeSeriesCorrectedData
 
     /**
@@ -354,75 +326,41 @@ AQUARIUS: function (
     */
     this.getRemarkCodes = function () {
         // if remark codes have not been loaded yet
-        if (remarkCodes === undefined) {
-            // load them
-            remarkCodes = new Object();
+        if (this.remarkCodes === undefined) {
+            return rest.query(
+                "http", hostname, "GET", undefined, // HTTP headers
+                "/AQUARIUS/Publish/V2/GetQualifierList/",
+                {token: token, format: "json"}, false
+            ).then((messageBody) => {
+                var qualifierListServiceResponse;
 
-            async.waterfall([
-                /**
-                   @function
-                   @description Request remark codes from AQUARIUS.
-                   @callback
-                */
-                function (callback) {
-                    try {
-                        rest.query(
-                            hostname,
-                            "GET",
-                            undefined,      // HTTP headers
-                            "/AQUARIUS/Publish/V2/GetQualifierList/",
-                            {token: token, format: "json"},
-                            false,
-                            callback
-                        );
-                    }
-                    catch (error) {
-                        callback(error);
-                        return;
-                    }
-                },
-                /**
-                   @function
-                   @description Receive remark codes from AQUARIUS.
-                   @callback
-                */
-                function (messageBody, callback) {
-                    var qualifierListServiceResponse;
-
-                    try {
-                        qualifierListServiceResponse =
-                            JSON.parse(messageBody);
-                    }
-                    catch (error) {
-                        callback(error);
-                        return;
-                    }
-
-                    // if we didn't get the remark codes domain table
-                    if (qualifierListServiceResponse === undefined) {
-                        callback(
-                            "Could not get remark codes from http://" +
-                                hostname +
-                                "/AQUARIUS/Publish/V2/GetQualifierList/"
-                        );
-                        return;
-                    }
-
-                    // put remark codes in an array for faster access later
-                    remarkCodes = new Array();
-                    async.each(
-                        qualifierListServiceResponse.Qualifiers,
-                        /** @callback */
-                        function (qualifierMetadata, callback) {
-                            remarkCodes[qualifierMetadata.Identifier] =
-                                qualifierMetadata.Code;
-                            callback(null);
-                        }
-                    );
-
-                    callback(null);
+                try {
+                    qualifierListServiceResponse =
+                        JSON.parse(messageBody);
                 }
-            ]);
+                catch (error) {
+                    throw error;
+                    return;
+                }
+
+                // if we didn't get the remark codes domain table
+                if (qualifierListServiceResponse === undefined) {
+                    throw new Error(
+                        "Could not get remark codes from http://" +
+                            hostname +
+                            "/AQUARIUS/Publish/V2/GetQualifierList/"
+                    );
+                    return;
+                }
+
+                // store remark codes in object for faster access later
+                this.remarkCodes = new Object();
+                var qualifiers = qualifierListServiceResponse.Qualifiers;
+                for (var i = 0, l = qualifiers.length; i < l; i++) {
+                    this.remarkCodes[qualifiers[i].Identifier] =
+                        qualifiers[i].Code;
+                }
+            }); // .then
         }
     } // getRemarkCodes
 
@@ -553,56 +491,36 @@ AQUARIUS: function (
     } // distill
 
     /**
-       @function
+       @method
        @description Query AQUARIUS GetTimeSeriesDescriptionList
                     service to get list of AQUARIUS, time series
                     UniqueIds related to aq2rdb, location and
                     parameter.
-       @private
-       @param {string} agencyCode USGS agency code.
-       @param {string} siteNumber USGS site number.
-       @param {string} parameter AQUARIUS parameter.
-       @param {string} computationIdentifier AQUARIUS computation
-                       identifier.
-       @param {string} computationPeriodIdentifier AQUARIUS
-                       computation period identifier.
-       @param {function} callback async.waterfall() callback
-              function.
+       @public
+       @param {object} field An object having
+                       GetTimeSeriesDescriptionList Web service
+                       field/values as attribute/value pairs.
+       @see http://nwists.usgs.gov/AQUARIUS/Publish/v2/json/metadata?op=TimeSeriesDescriptionServiceRequest
     */
-    function getTimeSeriesDescriptionList(
-        agencyCode, siteNumber, parameter, computationIdentifier,
-        computationPeriodIdentifier, callback
-    ) {
-        // make (agencyCode,siteNo) digestible by AQUARIUS
-        var locationIdentifier =
-            new aquaticInformatics.LocationIdentifier(
-                agencyCode, siteNumber
-            );
+    this.getTimeSeriesDescriptionList = function (field) {
+        field["token"] = token;
+        field["format"] = "json";
 
-        var obj = {
-            token: token,
-            format: "json",
-            LocationIdentifier: locationIdentifier.toString(),
-            Parameter: parameter,
-            ComputationIdentifier: computationIdentifier,
-            ComputationPeriodIdentifier: computationPeriodIdentifier,
-            ExtendedFilters: "[{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
-        };
-
-        rest.query(
+        return rest.query(
+            "http",
             hostname,
             "GET",
             undefined,      // HTTP headers
             "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList",
-            obj,
-            false,
-            callback
+            field,
+            false
         );
     } // getTimeSeriesDescriptionList
 
     /**
        @method
        @description Get a TimeSeriesDescription object from AQUARIUS.
+       @public
        @param {string} agencyCode USGS agency code.
        @param {string} siteNumber USGS site number.
        @param {string} parameter AQUARIUS parameter.
@@ -613,8 +531,10 @@ AQUARIUS: function (
     */
     this.getTimeSeriesDescription = function (
         agencyCode, siteNumber, parameter, computationIdentifier,
-        computationPeriodIdentifier, outerCallback
+        computationPeriodIdentifier, callback
     ) {
+        // expose this in async.waterfall function scope below
+        var instance = this;
         var locationIdentifier =
             new aquaticInformatics.LocationIdentifier(
                 agencyCode, siteNumber
@@ -623,11 +543,16 @@ AQUARIUS: function (
 
         async.waterfall([
             function (callback) {
-                getTimeSeriesDescriptionList(
-                    agencyCode, siteNumber, parameter,
-                    computationIdentifier,
-                    computationPeriodIdentifier, callback
-                );
+                instance.getTimeSeriesDescriptionList({
+                    LocationIdentifier: locationIdentifier.toString(),
+                    Parameter: parameter,
+                    ComputationIdentifier: computationIdentifier,
+                    ComputationPeriodIdentifier: computationPeriodIdentifier,
+                    ExtendedFilters:
+                        "[{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
+                })
+                .then((messageBody) => callback(null, messageBody))
+                .catch((error) => callback(error));
             },
             /**
                @function
@@ -653,51 +578,10 @@ AQUARIUS: function (
                     return;
                 }
 
-                /**
-                   @see https://usgs.slack.com/archives/aq2rdb/p1465259148000017
-                */
-                if (
-  timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions === undefined
-                ) {
-                    callback(
-                        "No time series description list found at " +
-                            url.format({
-                                protocol: "http",
-                                host: hostname,
-                                pathname:
-                           "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList"
-                            })
-                    );
-                    return;
-                }
-
                 callback(
                     null,
                 timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
                 );
-            },
-            /**
-               @function
-               @description Check for zero TimeSeriesDescriptions
-                            returned from AQUARIUS Web service query
-                            above.
-               @callback
-            */
-            function (timeSeriesDescriptions, callback) {
-                if (timeSeriesDescriptions.length === 0) {
-                    callback(
-                        "No time series description list found at " +
-                            url.format({
-                                protocol: "http",
-                                host: hostname,
-                                pathname:
-                           "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList"
-                            })
-                    );
-                    return;
-                }
-
-                callback(null, timeSeriesDescriptions);
             },
             /**
                @function
@@ -706,11 +590,6 @@ AQUARIUS: function (
                @callback
             */
             function (timeSeriesDescriptions, callback) {
-                /**
-                   @private
-                   @todo Need to decide whether <code>distill()</code>
-                         is to be public method or private function.
-                */
                 timeSeriesDescription = distill(
                     timeSeriesDescriptions, locationIdentifier,
                     callback
@@ -722,10 +601,20 @@ AQUARIUS: function (
             }
         ],
         function (error) {
-            if (error)
-                outerCallback(error);
+            if (error === 400)
+                callback(
+                    "No time series description list found at " +
+                        url.format({
+                            protocol: "http",
+                            host: hostname,
+                            pathname:
+                            "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList"
+                        })
+                );
+            else if (error)
+                callback(error);
             else
-                outerCallback(null, timeSeriesDescription);
+                callback(null, timeSeriesDescription);
         });
     } // getTimeSeriesDescription
 
