@@ -9,7 +9,6 @@
 'use strict';
 
 // Node.JS modules
-var async = require("async");
 var https = require("https");
 var fs = require("fs");
 var querystring = require("querystring");
@@ -95,100 +94,91 @@ NWISRA: function (host, userName, password, log, callback) {
        @private
      */
     function authenticate(callback) {
-        async.waterfall([
-            function (callback) {
-                var path = "/service/auth/authenticate";
+        var p = new Promise(function (resolve, reject) {
+            var path = "/service/auth/authenticate";
 
-                /**
-                   @description Handle response from HTTPS query.
-                   @callback
-                */
-                function queryCallback(response) {
-                    var messageBody = "";
+            /**
+               @description Handle response from HTTPS query.
+               @callback
+            */
+            function queryCallback(response) {
+                var messageBody = "";
 
-                    // accumulate response
-                    response.on(
-                        "data",
-                        function (chunk) {
-                            messageBody += chunk;
-                        });
-
-                    response.on("end", function () {
-                        // "401 Unauthorized": authentication has failed
-                        if (response.statusCode === 401) {
-                            callback(
-                                "Could not login to NWIS-RA Web services"
-                            );
-                            return;
-                        }
-                        callback(null, messageBody);
+                // accumulate response
+                response.on(
+                    "data",
+                    function (chunk) {
+                        messageBody += chunk;
                     });
-                }
 
-                var request = https.request({
-                    host: host,
-                    method: "POST",
-                    headers:
-                        {"content-type": "application/x-www-form-urlencoded"},
-                    path: path
-                }, queryCallback);
-
-                /**
-                   @description Handle service invocation errors.
-                */
-                request.on("error", function (error) {
-                    if (error.code === "ENOTFOUND") {
-                        // can't get to the NWIS-RA server; use local file
-                        fs.readFile("parameters.json", function (error, json) {
-                            if (error) {
-                                callback(error);
-                                return;
-                            }
-
-                            try {
-                                parameters = JSON.parse(json);
-                            }
-                            catch (error) {
-                                callback(error);
-                                return;
-                            }
-                        });
-                        callback(null, null);
-                    }
-                    else
-                        callback(error);
-                    return;
-                });
-
-                // authentication credentials get POSTed to the server
-                request.write(
-                    querystring.stringify(
-                        {username: userName, password: password}
-                    )
-                );
-
-                request.end();  // end transaction
-            },
-            function (messageBody, callback) {
-                if (messageBody) {
-                    try {
-                        authentication = JSON.parse(messageBody);
-                    }
-                    catch (error) {
-                        callback(error);
+                response.on("end", function () {
+                    // "401 Unauthorized": authentication has failed
+                    if (response.statusCode === 401) {
+                        reject(
+                            "Could not login to NWIS-RA Web services"
+                        );
                         return;
                     }
+                    resolve(messageBody);
+                });
+            }
+
+            var request = https.request({
+                host: host,
+                method: "POST",
+                headers:
+                {"content-type": "application/x-www-form-urlencoded"},
+                path: path
+            }, queryCallback);
+
+            /**
+               @description Handle service invocation errors.
+            */
+            request.on("error", function (error) {
+                if (error.code === "ENOTFOUND") {
+                    // can't get to the NWIS-RA server; use local file
+                    fs.readFile("parameters.json", function (error, json) {
+                        if (error) {
+                            reject(error);
+                            return;
+                        }
+
+                        try {
+                            parameters = JSON.parse(json);
+                        }
+                        catch (error) {
+                            reject(error);
+                            return;
+                        }
+                    });
+                    reject(error);
                 }
-                callback(null);
-            }
-        ],
-            function (error) {
-                if (error)
-                    callback(error);
                 else
-                    callback(null);
+                    reject(error);
+                return;
+            });
+
+            // authentication credentials get POSTed to the server
+            request.write(
+                querystring.stringify(
+                    {username: userName, password: password}
+                )
+            );
+
+            request.end();  // end transaction
+        });
+
+        p.then((messageBody) => {
+            try {
+                authentication = JSON.parse(messageBody);
             }
-        );
+            catch (error) {
+                callback(error);
+                return;
+            }
+        }).catch((error) => {
+            callback(error);
+        });
     } // authenticate
 
     /**
