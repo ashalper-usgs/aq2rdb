@@ -32,7 +32,6 @@ var adaps = require("../adaps.js");
 var aquaticInformatics = require("../aquaticInformatics.js");
 var rdb = require("../rdb.js");
 var rest = require("../rest.js");
-var service = require("../service.js");
 
 describe("adaps", function () {
     describe("#IntervalDay", function () {
@@ -293,6 +292,7 @@ describe("aquaticInformatics", function () {
                        });
                });
         }); // #getLocationData()
+
         describe("#getTimeSeriesDescription()", function () {
             var siteNo = "09380000"; // COLORADO RIVER AT LEES FERRY, AZ
 
@@ -300,8 +300,8 @@ describe("aquaticInformatics", function () {
                "object for LocationIdentifier " + siteNo,
                function (done) {
                    aquarius.getTimeSeriesDescription(
-                       "USGS", siteNo, "Discharge", "Instantaneous",
-                       "Points",
+                       "USGS", siteNo,
+                       "Discharge", "Instantaneous", "Points",
                        function (error, timeSeriesDescription) {
                            if (error) throw error;
                            expect(
@@ -313,12 +313,11 @@ describe("aquaticInformatics", function () {
                    );
                });
 
-            siteNo = "01646500";
             it("should receive a \"More than one primary time " +
                "series found...\" error message",
                function (done) {
                    aquarius.getTimeSeriesDescription(
-                       "USGS", siteNo, "Specific cond at 25C",
+                       "USGS", "01646500", "Specific cond at 25C",
                        undefined, "Daily",
                        function (error, timeSeriesDescription) {
                            assert.equal(
@@ -336,35 +335,75 @@ describe("aquaticInformatics", function () {
                        }
                    );
                });
+
+            /** @see JIRA issue AQRDB-33 */
+            it("should throw \"No time series description list " +
+               "found...\" error",
+               function (done) {
+                   aquarius.getTimeSeriesDescription(
+                       "USGS", "XXXXXXXX",
+                       "Discharge", "Instantaneous", "Points",
+                       function (error, timeSeriesDescription) {
+                           assert.equal(
+                               error.startsWith(
+                                   "No time series description list found at "
+                               ),
+                               true
+                           );
+                           done();
+                       }
+                   );
+               });
         });
+
+        // GetTimeSeriesCorrectedData path appears to be really slow
+        // at present
+        this.timeout(40000);
+
         describe("#getTimeSeriesCorrectedData()", function () {
             it("should receive a usable TimeSeriesDataServiceResponse object",
                function (done) {
                    aquarius.getTimeSeriesCorrectedData(
                        {TimeSeriesUniqueId: "7050c0c28bb8409295ef0e82ceda936e",
                         ApplyRounding: "true",
-                        QueryFrom: "2014-10-01T00:00:00-07:00:00",
-                        QueryTo: "2014-10-02T00:00:00-07:00:00"},
-                       function (error, timeSeriesDataServiceResponse) {
-                           if (error) throw error;
+                        QueryFrom: "2014-10-01T00:00:00",
+                        QueryTo: "2014-10-02T00:00:00"}
+                   )
+                       .then((timeSeriesDataServiceResponse) => {
                            var timeSeriesDescriptions =
                                JSON.parse(timeSeriesDataServiceResponse);
+
                            expect(
                                Object.getOwnPropertyNames(
                                    timeSeriesDescriptions
                                ).length).to.be.above(0);
                            done();
-                       }
-                   );
+                       })
+                       .catch((error) => {throw error});
                });          
         }); // #getTimeSeriesCorrectedData()
+
+        describe("#getRemarkCodes()", function () {
+            it("should load remark codes",
+               function (done) {
+                   aquarius.getRemarkCodes()
+                       .then(() => {
+                           expect(
+                               Object.keys(aquarius.remarkCodes).length
+                           ).to.be.above(0);
+                           done();
+                       })
+                       .catch((error) => {throw error;});
+               });
+        }); // #getRemarkCodes()
+        
     }); // AQUARIUS
 }); // aquaticInformatics
 
 describe("rdb", function () {
     describe("#header()", function () {
-        it("should match", function (done) {
-            rdb.header(
+        it("should match", function () {
+            var header = rdb.header(
                 "NWIS-I DAILY-VALUES", // fileType
                 "YES",                 // editable
                 // site
@@ -382,18 +421,15 @@ describe("rdb", function () {
                 // type
                 {name: "FINAL",
                  description: "EDITED AND COMPUTED DAILY VALUES"},
-                {start: "20141001", end: "20150930"}, // range
-                function (error, header) {
-                    // Messy, but there is evidently a problem with
-                    // passing pattern strings to
-                    // expect().to.match(). See
-                    // https://github.com/jmendiara/karma-jquery-chai/issues/3
-                    // for more.
-                    expect(header).to.match(
-/^# \/\/UNITED STATES GEOLOGICAL SURVEY       http:\/\/water.usgs.gov\/\n# \/\/NATIONAL WATER INFORMATION SYSTEM     http:\/\/water.usgs.gov\/data.html\n# \/\/DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS\n# \/\/RETRIEVED: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\n# \/\/FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=NO\n# \/\/STATION AGENCY="USGS " NUMBER="123456789012345" TIME_ZONE="MST" DST_FLAG=Y\n# \/\/STATION NAME="NOT A SITE"\n# \/\/PARAMETER CODE="00060" SNAME="Discharge"\n# \/\/PARAMETER LNAME="Discharge, cubic feet per second"\n# \/\/STATISTIC CODE="00003" SNAME="MEAN"\n# \/\/STATISTIC LNAME="MEAN VALUES"\n# \/\/TYPE NAME="FINAL" DESC = "EDITED AND COMPUTED DAILY VALUES"\n# \/\/RANGE START="20141001" END="20150930"/);
-                    done();
-                }
+                {start: "20141001", end: "20150930"} // range
             );
+
+            // Messy, but there is evidently a problem with passing
+            // pattern strings to expect().to.match(). See
+            // https://github.com/jmendiara/karma-jquery-chai/issues/3
+            // for more.
+            expect(header).to.match(
+/^# \/\/UNITED STATES GEOLOGICAL SURVEY       http:\/\/water.usgs.gov\/\n# \/\/NATIONAL WATER INFORMATION SYSTEM     http:\/\/water.usgs.gov\/data.html\n# \/\/DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS\n# \/\/RETRIEVED: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\n# \/\/FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=NO\n# \/\/STATION AGENCY="USGS " NUMBER="123456789012345" TIME_ZONE="MST" DST_FLAG=Y\n# \/\/STATION NAME="NOT A SITE"\n# \/\/PARAMETER CODE="00060" SNAME="Discharge"\n# \/\/PARAMETER LNAME="Discharge, cubic feet per second"\n# \/\/STATISTIC CODE="00003" SNAME="MEAN"\n# \/\/STATISTIC LNAME="MEAN VALUES"\n# \/\/TYPE NAME="FINAL" DESC = "EDITED AND COMPUTED DAILY VALUES"\n# \/\/RANGE START="20141001" END="20150930"/);
         });
     }); // #header()
 
