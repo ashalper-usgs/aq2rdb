@@ -1,5 +1,5 @@
 Name:           aq2rdb-client
-Version:        1.4.0
+Version:        2.0.0
 Release:        1
 Summary:        A command-line program to call the aq2rdb Web service.
 Packager:       Andrew Halper <ashalper@usgs.gov>
