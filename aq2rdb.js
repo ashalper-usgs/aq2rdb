@@ -624,26 +624,13 @@ function appendIntervalSearchCondition(
    @param {string} queryTo End date of interval predicate.
    @param {string} tzName moment.tz time zone name.
    @param {object} response HTTP response object to send table body to.
-   @param {function} callback Callback function to call when complete.
 */
 function dvTableBody(
-    timeSeriesUniqueId, queryFrom, queryTo, tzName, response, callback
+    timeSeriesUniqueId, queryFrom, queryTo, tzName, response
 ) {
-    async.waterfall([
-        function (callback) {
-            // load mapping of NWIS remark codes to AQUARIUS
-            // qualifiers
-            aquarius.getRemarkCodes()
-                .then(() => callback(null))
-                .catch((error) => callback(error));
-        },
-        /**
-           @function
-           @description Query AQUARIUS GetTimeSeriesCorrectedData to
-                        get related daily values.
-           @callback
-        */
-        function (callback) {
+    // load mapping of NWIS remark codes to AQUARIUS qualifiers
+    aquarius.getRemarkCodes()
+        .then(() => {
             var f, t;
             var parameters = {
                 TimeSeriesUniqueId: timeSeriesUniqueId,
@@ -655,7 +642,7 @@ function dvTableBody(
                     f = moment.tz(queryFrom, tzName).format("YYYY-MM-DD");
                 }
                 catch (error) {
-                    callback(error);
+                    throw error;
                     return;
                 }
                 parameters["QueryFrom"] = f;
@@ -666,55 +653,34 @@ function dvTableBody(
                     t = moment.tz(queryTo, tzName).format("YYYY-MM-DD");
                 }
                 catch (error) {
-                    callback(error);
+                    throw error;
                     return;
                 }
                 parameters["QueryTo"] = t;
             }
 
-            aquarius.getTimeSeriesCorrectedData(parameters, callback);
-        },
-        aquarius.parseTimeSeriesDataServiceResponse,
-        /**
-           @function
-           @description Write each RDB row to HTTP response.
-           @callback
-        */
-        function (timeSeriesDataServiceResponse, callback) {
-            async.each(
-                timeSeriesDataServiceResponse.Points,
-                /**
-                   @description Write an RDB row for one time series
-                   point.
-                   @callback
-                */
-                function (timeSeriesPoint, callback) {
-                    response.write(
-                        dvTableRow(
-                            timeSeriesPoint.Timestamp,
-                            timeSeriesPoint.Value,
-                            timeSeriesDataServiceResponse.Qualifiers,
-                            aquarius.remarkCodes,
+            return aquarius.getTimeSeriesCorrectedData(parameters);
+        })
+        .then((messageBody) => {
+            return aquarius.parseTimeSeriesDataServiceResponse(messageBody);
+        })
+        .then((timeSeriesDataServiceResponse) => {
+            var p = timeSeriesDataServiceResponse.Points;
+
+            for (var i = 0, l = p.length; i < l; i++) {
+                response.write(
+                    dvTableRow(
+                        p[i].Timestamp,
+                        p[i].Value,
+                        timeSeriesDataServiceResponse.Qualifiers,
+                        aquarius.remarkCodes,
           timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
-                        ),
-                        "ascii"
-                    );
-                    callback(null);
-                }
-            );
-            callback(null);
-        }
-    ],
-        function (error) {
-            if (error) {
-                callback(error);
-                return;
+                    ),
+                    "ascii"
+                );
             }
-            else {
-                callback(null);
-            }
-        }
-    ); // async.waterfall
+        })
+        .catch((error) => {throw error;});
 } // dvTableBody
 
 function uvTableBody (
