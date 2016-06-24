@@ -529,10 +529,8 @@ describe("routing", function () {
                 .send(fields)
                 .end(        // handles the response
                     function (error, response) {
-                        if (error) {
+                        if (error)
                             throw error;
-                        }
-                        // should.js syntax
                         response.should.have.status(200);
                         done();
                     }
@@ -554,10 +552,8 @@ describe("routing", function () {
                 .send(fields)
                 .end(        // handles the response
                     function (error, response) {
-                        if (error) {
+                        if (error)
                             throw error;
-                        }
-                        // should.js syntax
                         response.should.have.status(200);
                         done();
                     }
@@ -583,10 +579,8 @@ describe("routing", function () {
                 .send(fields)
                 .end(        // handles the response
                     function (error, response) {
-                        if (error) {
+                        if (error)
                             throw error;
-                        }
-                        // should.js syntax
                         response.should.have.status(200);
                         done();
                     }
@@ -617,15 +611,34 @@ describe("routing", function () {
                               @todo check dates at begin/end of interval
                                     for correctness
                            */
-                           if (error) {
+                           if (error)
                                throw error;
-                           }
-                           // should.js syntax
                            response.should.have.status(200);
                            done();
                        }
                    );
-           }
-          );
+           });
+
+        describe("GetDVTable", function () {
+            it("should GET DV RDB from aq2rdb/GetDVTable for USGS 09380000",
+               function (done) {
+                   var fields = {
+                       LocationIdentifier: "09380000",
+                       Parameter: "Discharge",
+                       QueryFrom: "2015-01-01T00:00:00-07:00",
+                       QueryTo: "2015-01-03T00:00:00-07:00"
+                   };
+
+                   request(url)
+                       .get("/aq2rdb/GetDVTable")
+                       .send(fields)
+                       .end(function (error, response) {
+                           if (error)
+                               throw error;
+                           response.should.have.status(200);
+                           done();
+                       });
+               });
+        });
     });
 });
