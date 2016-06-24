@@ -827,7 +827,19 @@ httpdispatcher.onGet(
                     field.ComputationIdentifier, "Daily"
                 );
             },
-            aquarius.getTimeSeriesDescription,
+            function (
+                agencyCode, siteNumber, parameter,
+                computationIdentifier, computationPeriodIdentifier
+            ) {
+                aquarius.getTimeSeriesDescription(
+                    agencyCode, siteNumber, parameter,
+                    computationIdentifier, computationPeriodIdentifier
+                )
+                    .then((timeSeriesDescription) => callback(
+                        null, timeSeriesDescription
+                    ))
+                    .catch((error) => callback(error));
+            },
             function (tsd, callback) {
                 timeSeriesDescription = tsd;
 
