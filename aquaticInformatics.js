@@ -240,8 +240,6 @@ AQUARIUS: function (
        @description Call AQUARIUS GetTimeSeriesCorrectedData Web service.
        @param {object} parameters AQUARIUS
               GetTimeSeriesCorrectedData service HTTP parameters.
-       @param {function} callback Callback to call if/when
-              GetTimeSeriesCorrectedData service responds.
     */
     this.getTimeSeriesCorrectedData = function (fields) {
         // these fields span every GetTimeSeriesCorrectedData
@@ -378,11 +376,11 @@ AQUARIUS: function (
 
                 for (var i = 0,
                      l = primaryTimeSeriesDescriptions.length; i < l;
-                     i++)
+                     i++) {
                     error += "#   " +
-                    JSON.stringify(primaryTimeSeriesDescriptions[i]) +
-                    "\n";
-
+			primaryTimeSeriesDescriptions[i].Identifier +
+			"\n";
+		}
                 throw error;
             }
         } // switch (timeSeriesDescriptions.length)
