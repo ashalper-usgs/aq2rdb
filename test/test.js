@@ -279,17 +279,17 @@ describe("aquaticInformatics", function () {
             it("should receive a usable LocationDataServiceResponse object",
                function (done) {
                    aquarius.getLocationData(
-                       "09380000", // COLORADO RIVER AT LEES FERRY, AZ
-                       function (error, messageBody) {
-                           if (error) throw error;
-                           var locationDataServiceResponse =
-                               JSON.parse(messageBody);
-                           expect(
-                               Object.getOwnPropertyNames(
-                                   locationDataServiceResponse
-                               ).length).to.be.above(0);
-                           done();
-                       });
+                       "09380000" // COLORADO RIVER AT LEES FERRY, AZ
+                   ).then((messageBody) => {
+                       var locationDataServiceResponse =
+                           JSON.parse(messageBody);
+
+                       expect(
+                           Object.getOwnPropertyNames(
+                               locationDataServiceResponse
+                           ).length).to.be.above(0);
+                       done();
+                   }).catch((error) => {throw error;});
                });
         }); // #getLocationData()
 
@@ -301,16 +301,15 @@ describe("aquaticInformatics", function () {
                function (done) {
                    aquarius.getTimeSeriesDescription(
                        "USGS", siteNo,
-                       "Discharge", "Instantaneous", "Points",
-                       function (error, timeSeriesDescription) {
-                           if (error) throw error;
-                           expect(
-                               Object.getOwnPropertyNames(
-                                   timeSeriesDescription
-                               ).length).to.be.above(0);
+                       "Discharge", "Instantaneous", "Points"
+                   )
+                       .then((timeSeriesDescription) => {
+                           expect(Object.getOwnPropertyNames(
+                               timeSeriesDescription
+                           ).length).to.be.above(0);
                            done();
-                       }
-                   );
+                       })
+                       .catch((error) => {throw error;});
                });
 
             it("should receive a \"More than one primary time " +
@@ -318,8 +317,10 @@ describe("aquaticInformatics", function () {
                function (done) {
                    aquarius.getTimeSeriesDescription(
                        "USGS", "01646500", "Specific cond at 25C",
-                       undefined, "Daily",
-                       function (error, timeSeriesDescription) {
+                       undefined, "Daily"
+                   )
+                       .catch((error) => {
+                           console.log(error);
                            assert.equal(
                                error,
     "More than one primary time series found for \"01646500\":\n" +
@@ -332,8 +333,7 @@ describe("aquaticInformatics", function () {
     "#   Specific cond at 25C.uS/cm.Min@01646500\n"
                            );
                            done();
-                       }
-                   );
+                       });
                });
 
             /** @see JIRA issue AQRDB-33 */
@@ -342,8 +342,9 @@ describe("aquaticInformatics", function () {
                function (done) {
                    aquarius.getTimeSeriesDescription(
                        "USGS", "XXXXXXXX",
-                       "Discharge", "Instantaneous", "Points",
-                       function (error, timeSeriesDescription) {
+                       "Discharge", "Instantaneous", "Points"
+                   )
+                       .catch((error) => {
                            assert.equal(
                                error.startsWith(
                                    "No time series description list found at "
@@ -351,8 +352,7 @@ describe("aquaticInformatics", function () {
                                true
                            );
                            done();
-                       }
-                   );
+                       });
                });
         });
 
