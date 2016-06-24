@@ -58,7 +58,7 @@ var cli = commandLineArgs([
     {name: "port", alias: 'p', type: Number, defaultValue: 8081},
     /** @description DNS name of AQUARIUS Web service host. */
     {name: "aquariusHostname", alias: 'a', type: String,
-     defaultValue: "nwists.usgs.gov"},
+     defaultValue: "testqa.owicloud.org"},
     /**
        @description AQUARIUS Web service host, service account user
                     name.
