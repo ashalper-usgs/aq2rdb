@@ -10,7 +10,6 @@
 'use strict';
 
 // Node.JS modules
-var async = require("async");
 var http = require("http");
 var querystring = require("querystring");
 var url = require("url");
@@ -224,51 +223,16 @@ AQUARIUS: function (
        @method
        @description Call AQUARIUS GetLocationData Web service.
        @param {string} locationIdentifier AQUARIUS location identifier.
-       @param {function} callback Callback function to call if/when
-              response from GetLocationData is received.
     */
-    this.getLocationData = function (locationIdentifier, callback) {
-        /**
-           @description Handle response from GetLocationData.
-           @callback
-        */
-        function getLocationDataCallback(response) {
-            var messageBody = "";
-
-            // accumulate response
-            response.on(
-                "data",
-                function (chunk) {
-                    messageBody += chunk;
-                });
-
-            response.on("end", function () {
-                callback(null, messageBody);
-                return;
-            });
-        }
-        
-        var path = "/AQUARIUS/Publish/V2/GetLocationData?" +
-            querystring.stringify(
-                {token: token, format: "json",
-                 LocationIdentifier: locationIdentifier}
-            );
-
-        var request = http.request({
-            host: hostname,
-            path: path                
-        }, getLocationDataCallback);
-
-        /**
-           @description Handle GetLocationData service invocation
-                        errors.
-        */
-        request.on("error", function (error) {
-            callback(error);
-            return;
-        });
-
-        request.end();
+    this.getLocationData = function (locationIdentifier) {
+        return rest.query(
+            "http", hostname, "GET", undefined,
+            "/AQUARIUS/Publish/V2/GetLocationData?" +
+                querystring.stringify(
+                    {token: token, format: "json",
+                     LocationIdentifier: locationIdentifier}
+                )
+        );
     } // getLocationData
 
     /**
@@ -373,121 +337,57 @@ AQUARIUS: function (
        @param {object} timeSeriesDescriptions An array of AQUARIUS
               TimeSeriesDescription objects.
        @param {object} locationIdentifier A LocationIdentifier object.
-       @param {function} callback Callback function to call if/when
-              one-and-only-one candidate TimeSeriesDescription object
-              is found, or, to call with node-async, raise error
-              convention.
     */
-    function distill(
-        timeSeriesDescriptions, locationIdentifier, callback
-    ) {
-        var timeSeriesDescription;
-
+    function distill(timeSeriesDescriptions, locationIdentifier) {
         switch (timeSeriesDescriptions.length) {
         case 0:
-            callback(
-                "No time series descriptions found for LocationIdentifier \"" +
-                    locationIdentifier + "\""
-            );
+            throw 'No time series descriptions found for ' +
+                'LocationIdentifier "' + locationIdentifier + '"';
             break;
         case 1:
-            timeSeriesDescription = timeSeriesDescriptions[0];
             break;
         default:
-            /**
-               @description Filter out set of primary time series.
-            */
-            async.filter(
-                timeSeriesDescriptions,
-                /**
-                   @function
-                   @description Primary time series filter iterator
-                                function.
-                   @callback
-                */
-                function (timeSeriesDescription, callback) {
-                    /**
-                       @description Detect
-                       {"Name": "PRIMARY_FLAG",
-                       "Value": "Primary"} in
-                       TimeSeriesDescription.ExtendedAttributes
-                    */
-                    async.detect(
-                        timeSeriesDescription.ExtendedAttributes,
-                        /**
-                           @function
-                           @description Primary time series,
-                                        async.detect truth value
-                                        function.
-                           @callback
-                        */
-                        function (extendedAttribute, callback) {
-                            // if this time series description is
-                            // (hopefully) the (only) primary one
-                            if (extendedAttribute.Name === "PRIMARY_FLAG"
-                                &&
-                                extendedAttribute.Value === "Primary") {
-                                callback(true);
-                            }
-                            else {
-                                callback(false);
-                            }
-                        },
-                        /**
-                           @function
-                           @description Primary time series,
-                                        async.detect final function.
-                           @callback
-                        */
-                        function (result) {
-                            // notify async.filter that we...
-                            if (result === undefined) {
-                                // ...did not find a primary time series
-                                // description
-                                callback(false);
-                            }
-                            else {
-                                // ...found a primary time series
-                                // description
-                                callback(true);
-                            }
-                        }
-                    );
-                },
-                /**
-                   @function
-                   @description Check arity of primary time series
-                                descriptions returned from AQUARIUS
-                                GetTimeSeriesDescriptionList.
-                   @callback
-                */
-                function (primaryTimeSeriesDescriptions) {
-                    // if there is 1-and-only-1 primary time
-                    // series description
-                    if (primaryTimeSeriesDescriptions.length === 1) {
-                        timeSeriesDescription = timeSeriesDescriptions[0];
-                    }
-                    else {
-                        // raise error
-                        var error =
-                            "More than one primary time series found for \"" +
-                            locationIdentifier.toString() + "\":\n" +
-                            "#\n";
-                        async.each(
-                            primaryTimeSeriesDescriptions,
-                            /** @callback */
-                            function (desc, callback) {
-                                error += "#   " + desc.Identifier + "\n";
-                                callback(null);
-                            }
+            var primaryTimeSeriesDescriptions = new Array();
+
+            for (var i = 0, l = timeSeriesDescriptions.length; i < l; i++) {
+                var tuples = timeSeriesDescriptions[i].ExtendedAttributes;
+
+                tuples.find(function (t) {
+                    // if this is a primary TimeSeriesDescription
+                    if (t.Name === "PRIMARY_FLAG" &&
+                        t.Value === "Primary")
+                        // save it
+                        primaryTimeSeriesDescriptions.push(
+                            timeSeriesDescriptions[i]
                         );
-                        callback(error);
-                    }
-                }
-            ); // async.filter
+                });
+            }
+
+            if (1 < primaryTimeSeriesDescriptions.length) {
+                // raise error
+                /**
+                   @todo this is a hack arising from a lack of
+                         sophistication in rdb.comment() algorithm (it
+                         can only create correct RDB comments from
+                         single-line strings)
+                */
+                var error =
+                    "More than one primary time series found for \"" +
+                    locationIdentifier.toString() + "\":\n" +
+                    "#\n";
+
+                for (var i = 0,
+                     l = primaryTimeSeriesDescriptions.length; i < l;
+                     i++)
+                    error += "#   " +
+                    JSON.stringify(primaryTimeSeriesDescriptions[i]) +
+                    "\n";
+
+                throw error;
+            }
         } // switch (timeSeriesDescriptions.length)
 
-        callback(null, timeSeriesDescription);
+        return timeSeriesDescriptions[0];
     } // distill
 
     /**
@@ -527,46 +427,17 @@ AQUARIUS: function (
        @param {string} computationIdentifier AQUARIUS computation identifier.
        @param {string} computationPeriodIdentifier AQUARIUS computation
                        period identifier.
-       @param {function} outerCallback Callback function to call when complete.
     */
     this.getTimeSeriesDescription = function (
         agencyCode, siteNumber, parameter, computationIdentifier,
-        computationPeriodIdentifier, callback
+        computationPeriodIdentifier
     ) {
-        // expose this in async.waterfall function scope below
-        var instance = this;
         var locationIdentifier =
             new aquaticInformatics.LocationIdentifier(
                 agencyCode, siteNumber
             );
-        var timeSeriesDescription;
-
-        async.waterfall([
-            function (callback) {
-                instance.getTimeSeriesDescriptionList({
-                    LocationIdentifier: locationIdentifier.toString(),
-                    Parameter: parameter,
-                    ComputationIdentifier: computationIdentifier,
-                    ComputationPeriodIdentifier: computationPeriodIdentifier,
-                    ExtendedFilters:
-                        "[{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
-                })
-                .then((messageBody) => callback(null, messageBody))
-                .catch((error) => callback(error));
-            },
-            /**
-               @function
-               @description Receive response from AQUARIUS
-                            GetTimeSeriesDescriptionList, then parse
-                            list of related TimeSeriesDescriptions to
-                            query AQUARIUS GetTimeSeriesCorrectedData
-                            service.
-               @callback
-               @param {string} messageBody Message body part of HTTP
-                               response from
-                               GetTimeSeriesDescriptionList.
-            */
-            function (messageBody, callback) {
+        var timeSeriesDescriptions = function (messageBody) {
+            return new Promise(function (resolve, reject) {
                 var timeSeriesDescriptionListServiceResponse;
 
                 try {
@@ -574,48 +445,63 @@ AQUARIUS: function (
                         JSON.parse(messageBody);
                 }
                 catch (error) {
-                    callback(error);
+                    reject(error);
                     return;
                 }
 
-                callback(
-                    null,
+                resolve(
                 timeSeriesDescriptionListServiceResponse.TimeSeriesDescriptions
                 );
-            },
-            /**
-               @function
-               @description For each AQUARIUS time series description,
-                            weed out non-primary ones.
-               @callback
-            */
-            function (timeSeriesDescriptions, callback) {
-                timeSeriesDescription = distill(
-                    timeSeriesDescriptions, locationIdentifier,
-                    callback
+            });
+        };
+        var timeSeriesDescription =
+            function (timeSeriesDescriptions, locationIdentifier) {
+                return new Promise(function (resolve, reject) {
+                    var t;
+
+                    try {
+                        t = distill(
+                            timeSeriesDescriptions, locationIdentifier
+                        );
+                    }
+                    catch (error) {
+                        reject(error);
+                    }
+                    resolve(t);
+                });
+            };
+        
+        return this.getTimeSeriesDescriptionList({
+            LocationIdentifier: locationIdentifier.toString(),
+            Parameter: parameter,
+            ComputationIdentifier: computationIdentifier,
+            ComputationPeriodIdentifier: computationPeriodIdentifier,
+            ExtendedFilters: "[{FilterName:PRIMARY_FLAG,FilterValue:Primary}]"
+        })
+            .then((messageBody) => {
+                return timeSeriesDescriptions(messageBody);
+            })
+            .then((timeSeriesDescriptions) => {
+                return timeSeriesDescription(
+                    timeSeriesDescriptions, locationIdentifier
                 );
-            },
-            function (tsd, callback) {
-                timeSeriesDescription = tsd;
-                callback(null);
-            }
-        ],
-        function (error) {
-            if (error === 400)
-                callback(
-                    "No time series description list found at " +
-                        url.format({
-                            protocol: "http",
-                            host: hostname,
-                            pathname:
-                            "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList"
-                        })
-                );
-            else if (error)
-                callback(error);
-            else
-                callback(null, timeSeriesDescription);
-        });
+            })
+            .catch((error) => {
+                if (error === 400)
+                    throw "No time series description list found at " +
+                            url.format({
+                                protocol: "http",
+                                host: hostname,
+                                pathname:
+                        "/AQUARIUS/Publish/V2/GetTimeSeriesDescriptionList"
+                            });
+                else if (error === 503)
+                    throw 'Received HTTP error 503 ' +
+                    '"Service Unavailable" from AQUARIUS; the ' +
+                    'server might be down';
+                else
+                    throw error;
+            });
     } // getTimeSeriesDescription
 
 } // AQUARIUS
