@@ -388,7 +388,7 @@ function docRequest(url, servicePath, response, callback) {
    @description Create RDB, DV table row.
    @private
    @param {string} timestamp AQUARIUS timestamp string.
-   @param {object} value Time series daily value.
+   @param {object} value Time series daily value object.
    @param {object} qualifiers AQUARIUS
           QualifierListServiceResponse.Qualifiers.
    @param {object} remarkCodes An array (as domain table) of daily
@@ -409,7 +409,7 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
                     section of the response. It will have begin and
                     end dates for various qualification periods.
     */
-    async.detect(qualifiers, function (qualifier, callback) {
+    for (var i = 0, l = qualifiers.length; i < l; i++) {
         var pointTime, startTime, endTime;
 
         try {
@@ -447,11 +447,10 @@ function dvTableRow(timestamp, value, qualifiers, remarkCodes, qa) {
                     qualifier.Identifier + '"';
                 return;
             }
-            callback(true);
+            break;
         }
-    }, function (result) {
-        row += "\t ";
-    });
+    }
+    row += "\t ";
 
     /**
        @author Scott Bartholoma <sbarthol@usgs.gov>
