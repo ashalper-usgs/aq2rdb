@@ -302,14 +302,12 @@ describe("aquaticInformatics", function () {
                    aquarius.getTimeSeriesDescription(
                        "USGS", siteNo,
                        "Discharge", "Instantaneous", "Points"
-                   )
-                       .then((timeSeriesDescription) => {
-                           expect(Object.getOwnPropertyNames(
-                               timeSeriesDescription
-                           ).length).to.be.above(0);
-                           done();
-                       })
-                       .catch((error) => {throw error;});
+                   ).then((timeSeriesDescription) => {
+                       expect(Object.getOwnPropertyNames(
+                           timeSeriesDescription
+                       ).length).to.be.above(0);
+                       done();
+                   }).catch((error) => {throw error;});
                });
 
             it("should receive a \"More than one primary time " +
@@ -318,22 +316,16 @@ describe("aquaticInformatics", function () {
                    aquarius.getTimeSeriesDescription(
                        "USGS", "01646500", "Specific cond at 25C",
                        undefined, "Daily"
-                   )
-                       .catch((error) => {
-                           console.log(error);
-                           assert.equal(
-                               error,
-    "More than one primary time series found for \"01646500\":\n" +
-    "#\n" +
-    "#   Specific cond at 25C.uS/cm.From multiparameter sonde.Max@01646500\n" +
-    "#   Specific cond at 25C.uS/cm.From multiparameter sonde.Mean@01646500\n" +
-    "#   Specific cond at 25C.uS/cm.From multiparameter sonde.Min@01646500\n" +
-    "#   Specific cond at 25C.uS/cm.Max@01646500\n" +
-    "#   Specific cond at 25C.uS/cm.Mean@01646500\n" +
-    "#   Specific cond at 25C.uS/cm.Min@01646500\n"
-                           );
-                           done();
-                       });
+                   ).catch((error) => {
+                       assert(
+                           error.startsWith(
+                'More than one primary time series found for "01646500":\n' +
+                                   '#\n' +
+                                   '#   '
+                           )
+                       );
+                       done();
+                   });
                });
 
             /** @see JIRA issue AQRDB-33 */
@@ -368,18 +360,16 @@ describe("aquaticInformatics", function () {
                         ApplyRounding: "true",
                         QueryFrom: "2014-10-01T00:00:00",
                         QueryTo: "2014-10-02T00:00:00"}
-                   )
-                       .then((timeSeriesDataServiceResponse) => {
-                           var timeSeriesDescriptions =
-                               JSON.parse(timeSeriesDataServiceResponse);
+                   ).then((timeSeriesDataServiceResponse) => {
+                       var timeSeriesDescriptions =
+                           JSON.parse(timeSeriesDataServiceResponse);
 
-                           expect(
-                               Object.getOwnPropertyNames(
-                                   timeSeriesDescriptions
-                               ).length).to.be.above(0);
-                           done();
-                       })
-                       .catch((error) => {throw error});
+                       expect(
+                           Object.getOwnPropertyNames(
+                               timeSeriesDescriptions
+                           ).length).to.be.above(0);
+                       done();
+                   }).catch((error) => {throw error});
                });          
         }); // #getTimeSeriesCorrectedData()
 
