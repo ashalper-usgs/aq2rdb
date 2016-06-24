@@ -262,23 +262,19 @@ AQUARIUS: function (
        @description Parse AQUARIUS TimeSeriesDataServiceResponse
                     received from GetTimeSeriesCorrectedData service.
        @param {string} messageBody Message from AQUARIUS Web service.
-       @param {function} callback Callback function to call when
-                                  response is received.
     */
-    this.parseTimeSeriesDataServiceResponse = function (
-        messageBody, callback
-    ) {
+    this.parseTimeSeriesDataServiceResponse = function (messageBody) {
         var timeSeriesDataServiceResponse;
 
         try {
             timeSeriesDataServiceResponse = JSON.parse(messageBody);
         }
         catch (error) {
-            callback(error);
+            throw error;
             return;
         }
 
-        callback(null, timeSeriesDataServiceResponse);
+        return timeSeriesDataServiceResponse;
     } // parsetimeSeriesDataServiceResponse
 
     /**
