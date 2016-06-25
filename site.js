@@ -26,13 +26,11 @@ var site = module.exports = {
        @param {string} siteNumber Site number string (a.k.a. "site ID").
        @param {boolean} log Enable server console logging if true; No
               logging otherwise.
-       @param {function} callback Callback function to call when
-              complete.
     */
     request: function (
-        waterServicesHostname, agencyCode, siteNumber, log, callback
+        waterServicesHostname, agencyCode, siteNumber, log
     ) {
-        rest.query(
+        return rest.query(
             "http",
             waterServicesHostname,
             "GET",
@@ -41,13 +39,7 @@ var site = module.exports = {
             {format: "rdb",
              site: agencyCode + ':' + siteNumber,
              siteOutput: "expanded"}, log
-        )
-            .then((messageBody) => callback(null, messageBody))
-            .catch((error) => {
-                if (log)
-                    console.log("site.request: error: " + error);
-                callback(error);
-            });
+        );
     }, // request
 
     /**
@@ -57,9 +49,8 @@ var site = module.exports = {
        @callback
        @param {string} messageBody Message body of HTTP response from USGS
               Site Web Service.
-       @param {function} callback Callback to call when complete.
     */
-    receive: function(messageBody, callback) {
+    receive: function (messageBody) {
         var site = new Object;
 
         /**
@@ -83,11 +74,11 @@ var site = module.exports = {
             site.localTimeFlag = siteField[columnName.indexOf('local_time_fg')];
         }
         catch (error) {
-            callback(error);
+            throw error;
             return;
         }
 
-        callback(null, site);
+        return site;
     } // receive
 
 } // site
