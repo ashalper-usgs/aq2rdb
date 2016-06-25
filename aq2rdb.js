@@ -360,27 +360,20 @@ function jsonParseErrorMessage(response, message) {
    @param {string} name Endpoint name.
    @param {object} response IncomingMessage object created by Node.js
                    http.Server.
-   @param {function} callback Callback function to call when complete.
 */
-function docRequest(url, servicePath, response, callback) {
-    // if this is a documentation request
-    if (url === servicePath) {
+function docRequest(url, servicePath, response) {
+    return new Promise(function (resolve, reject) {
         // read and serve the documentation page
         fs.readFile(
             "doc/" + path.basename(servicePath) + ".html",
             function (error, html) {
-                if (error) {
-                    callback(error);
-                    return true;
-                }
-                response.writeHeader(200, {"Content-Type": "text/html"});  
-                response.end(html);
+                if (error)
+                    reject(error);
+                else
+                    resolve(html);
             }
         );
-        return true;
-    }
-    else
-        return false;
+    });
 } // docRequest
 
 /**
@@ -577,13 +570,11 @@ function getVersion(callback) {
           condition.
    @param {string} toTheEndOfTimeToken Token used in NWIS ADAPS to
           represent the "to the end of time" search condition.
-   @param {function} callback Callback function to call when complete.
    @see http://momentjs.com/timezone/docs/#/using-timezones/
 */
 function appendIntervalSearchCondition(
     parameters, during, tzCode,
-    fromTheBeginningOfTimeToken, toTheEndOfTimeToken,
-    callback
+    fromTheBeginningOfTimeToken, toTheEndOfTimeToken
 ) {
     // if "from" interval boundary is not "from the beginning of time"
     if (during.from !== fromTheBeginningOfTimeToken) {
@@ -729,37 +720,26 @@ httpdispatcher.onGet(
     function (request, response) {
         var field, token, locationIdentifier, timeSeriesDescription;
 
-        /**
-           @see https://github.com/caolan/async
-        */
-        async.waterfall([
-            /**
-               @function
-               @description Check for documentation request.
-               @callback
-            */
-            function (callback) {
-                if (docRequest(request.url, '/aq2rdb/GetDVTable',
-                               response, callback))
-                    return;
-                callback(null);
-            },
-            /**
-               @function
-               @description Parse fields and values in GetDVTable URL.
-               @callback
-            */
-            function (callback) {
+        // if this is a documentation page request
+        if (request.url === "/aq2rdb/GetDVTable")
+            // serve the documentation page
+            docRequest(request.url)
+            .then((html) => {
+                response.writeHeader(200, {"Content-Type": "text/html"});  
+                response.end(html);
+            });
+        else {
+            var p = new Promise(function (resolve, reject) {
                 try {
                     field = url.parse(request.url, true).query;
                 }
                 catch (error) {
-                    callback(error);
+                    reject(error);
                     return;
                 }
 
                 for (var name in field) {
-                    if (name === 'LocationIdentifier') {
+                    if (name === "LocationIdentifier") {
                         locationIdentifier =
                             new aquaticInformatics.LocationIdentifier(
                                 field.LocationIdentifier
@@ -771,112 +751,86 @@ httpdispatcher.onGet(
                         // AQUARIUS fields
                     }
                     else if (name !== "") {
-                        callback("Unknown field \"" + name + "\"");
+                        reject("Unknown field \"" + name + "\"");
                         return;
                     }
                 }
 
                 if (locationIdentifier === undefined) {
-                    callback('Required field "LocationIdentifier" not found');
+                    reject('Required field "LocationIdentifier" not found');
                     return;
                 }
 
                 if (field.Parameter === undefined) {
-                    callback('Required field "Parameter" not found');
+                    reject('Required field "Parameter" not found');
                     return;
                 }
 
-                callback(
-                    null, locationIdentifier.agencyCode(),
+                resolve(
+                    locationIdentifier.agencyCode(),
                     locationIdentifier.siteNumber(), field.Parameter,
                     field.ComputationIdentifier, "Daily"
                 );
-            },
-            function (
-                agencyCode, siteNumber, parameter,
-                computationIdentifier, computationPeriodIdentifier
-            ) {
-                aquarius.getTimeSeriesDescription(
-                    agencyCode, siteNumber, parameter,
-                    computationIdentifier, computationPeriodIdentifier
-                )
-                    .then((timeSeriesDescription) => callback(
-                        null, timeSeriesDescription
-                    ))
-                    .catch((error) => callback(error));
-            },
-            function (tsd, callback) {
-                timeSeriesDescription = tsd;
+            });
 
-                callback(
-                    null, options.waterServicesHostname,
-                    locationIdentifier.agencyCode(),
-                    locationIdentifier.siteNumber(), options.log
+            p.then((agencyCode, siteNumber, parameter,
+                    computationIdentifier, computationPeriodIdentifier) => {
+                        return aquarius.getTimeSeriesDescription(
+                            agencyCode, siteNumber, parameter,
+                            computationIdentifier,
+                            computationPeriodIdentifier
+                        );
+                    })
+                .then((tsd) => {
+                    /** @todo Bad. Try to factor out. */
+                    timeSeriesDescription = tsd;
+
+                    return site.request(
+                        options.waterServicesHostname,
+                        locationIdentifier.agencyCode(),
+                        locationIdentifier.siteNumber(), options.log
+                    );
+                })
+                .then((messageBody) => {
+                    return site.receive(messageBody);
+                })
+                .then((site) => {
+                    var start, end;
+
+                    if (field.QueryFrom !== undefined) {
+                        start = aq2rdb.toNWISDateFormat(field.QueryFrom);
+                    }
+
+                    if (field.QueryTo !== undefined) {
+                        end = aq2rdb.toNWISDateFormat(field.QueryTo);
+                    }
+
+                    response.writeHead(
+                        200, {"Content-Type": "text/plain"}
+                    );
+
+                    response.write(
+                        rdb.header(
+                            "NWIS-I DAILY-VALUES", "YES", site,
+                            subLocationIdentifer, parameter,
+                            {code: "", name: "", description: ""},
+                            {start: start, end: end}
+                        ) +
+                            'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
+                            '8D\t6S\t16N\t1S\t32S\t1S\t1S\n', 'ascii'
+                    );
+
+                    return;
+                })
+            .then(() => {
+                dvTableBody(
+                    timeSeriesDescription.UniqueId,
+                    field.QueryFrom, field.QueryTo,
+              tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
+                    response
                 );
-            },
-            site.request,
-            site.receive,
-            /**
-               @function
-               @description Write RDB header and heading.
-               @callback
-            */
-            function (site, callback) {
-                async.series([
-                    function (callback) {
-                        var start, end;
-
-                        if (field.QueryFrom !== undefined) {
-                            start = aq2rdb.toNWISDateFormat(field.QueryFrom);
-                        }
-
-                        if (field.QueryTo !== undefined) {
-                            end = aq2rdb.toNWISDateFormat(field.QueryTo);
-                        }
-
-                        response.writeHead(
-                            200, {"Content-Type": "text/plain"}
-                        );
-
-                        response.write(
-                            rdb.header(
-                                "NWIS-I DAILY-VALUES", "YES", site,
-                                subLocationIdentifer, parameter,
-                                {code: "", name: "", description: ""},
-                                {start: start, end: end}
-                            ) +
-                                'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
-                                '8D\t6S\t16N\t1S\t32S\t1S\t1S\n', 'ascii'
-                        );
-
-                        callback(
-                            null, timeSeriesDescription.UniqueId,
-                            field.QueryFrom, field.QueryTo,
-             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
-                            response
-                        );
-                    },
-                    /**
-                       @description Write RDB body to HTTP response.
-                    */
-                    dvTableBody
-                ]);
-                callback(null);
-            }
-        ],
-        /**
-           @description node-async error handler function for
-                        outer-most, GetDVTable async.waterfall
-                        function.
-           @callback
-        */
-        function (error) {
-            if (error) {
-                handle(error, response);
-            }
-            response.end();
+            });
         }
-      );
     }
 ); // GetDVTable
 
@@ -1160,8 +1114,8 @@ httpdispatcher.onGet(
         var waterServicesSite;
         /**
            @todo Need to check downstream depedendencies in aq2rdb
-                 endpoint's async.waterfall function for presence of
-                 former "P" prefix of this value.
+                 endpoint for presence of former "P" prefix of this
+                 value.
         */
         var parameterCode;
         var parameter, statCd, extendedFilters;
@@ -1203,226 +1157,128 @@ httpdispatcher.onGet(
             var parameters = Object();
             var timeSeriesDescription;
 
-            async.waterfall([
-                function (callback) {
-                    if (computationIdentifier[statCd] === undefined) {
-                        callback(
-                            "Unsupported statistic code \"" + statCd +
-                                "\""
-                        );
-                        return;
-                    }
+            if (computationIdentifier[statCd] === undefined) {
+                throw 'Unsupported statistic code "' + statCd + '"';
+                return;
+            }
 
-                    callback(
-                        null, agencyCode, siteNumber,
-                        parameter.aquariusParameter,
-                        computationIdentifier[statCd], "Daily"
-                    );
-                },
-                aquarius.getTimeSeriesDescription,
-                function (tsd, callback) {                  
-                    // save TimeSeriesDescription in outer scope
-                    timeSeriesDescription = tsd;
+            aquarius.getTimeSeriesDescription(
+                agencyCode, siteNumber, parameter.aquariusParameter,
+                computationIdentifier[statCd], "Daily"
+            )
+            .then((tsd) => {
+                /** @todo Bad. Try to factor out. */
+                // save TimeSeriesDescription in outer scope
+                timeSeriesDescription = tsd;
 
-                    var statistic = {code: statCd};
+                var statistic = {code: statCd};
 
-                    try {
-                        statistic.name = stat[statCd].name;
-                        statistic.description = stat[statCd].description;
-                    }
-                    catch (error) {
-                        callback(
-                            "Invalid statistic code \"" + statCd +
-                                "\""
-                        );
-                        return;
-                    }
-
-                    // write the header records
-                    callback(
-                        null,
-                        rdb.header(
-                            "NWIS-I DAILY-VALUES", "NO",
-                            waterServicesSite,
-                            timeSeriesDescription.SubLocationIdentifer,
-                            parameter, statistic,
-                            /**
-                               @todo Hard-coded object here is likely
-                                     not correct under all
-                                     circumstances.
-                            */
-                            {name: "FINAL",
-                             description: "EDITED AND COMPUTED DAILY VALUES"},
-                            {start: during.from, end: during.to}
-                        )
-                    );
-                },
-                function (header, callback) {
-                    // write RDB column headings
-                    response.write(
-                        header +
-                    "DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n" +
-                            "8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n",
-                        "ascii"
-                    );
-
-                    callback(
-                        null, timeSeriesDescription.UniqueId,
-                        during.from, during.to,
-             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
-                        response
-                    );
-                },
-                dvTableBody
-            ],
-                function (error) {
-                    if (error) {
-                        callback(error);
-                        return;
-                    }
-                    else {
-                        callback(null);
-                    }
+                try {
+                    statistic.name = stat[statCd].name;
+                    statistic.description = stat[statCd].description;
                 }
-            ); // async.waterfall
+                catch (error) {
+                    throw 'Invalid statistic code "' + statCd + '"';
+                }
+            })
+            .then(() => {
+                return rdb.header(
+                    "NWIS-I DAILY-VALUES", "NO",
+                    waterServicesSite,
+                    timeSeriesDescription.SubLocationIdentifer,
+                    parameter, statistic,
+                    /**
+                       @todo Hard-coded object here is likely not
+                             correct under all circumstances.
+                    */
+                    {name: "FINAL",
+                     description: "EDITED AND COMPUTED DAILY VALUES"},
+                    {start: during.from, end: during.to}
+                );
+            })
+            .then((header) => {
+                // write RDB column headings
+                response.write(
+                    header +
+                    "DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n" +
+                        "8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n",
+                    "ascii"
+                );
+            })
+            .then(() => {
+                dvTableBody(
+                    timeSeriesDescription.UniqueId,
+                    during.from, during.to,
+             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
+                    response
+                );
+            });
         } // dailyValues
 
         function unitValues(callback) {
             var timeSeriesDescription;
 
-            async.waterfall([
-                function (callback) {
-                    callback(
-                        null, agencyCode, siteNumber,
-                        parameter.aquariusParameter, "Instantaneous",
-                        "Points"
-                    );
-                },
-                aquarius.getTimeSeriesDescription,
-                function (tsd, callback) {
-                    // set variable declared in unitValues() scope
-                    timeSeriesDescription = tsd;
-                    callback(null);
-                },
-                /**
-                   @description Write RDB column names and column data
-                                type definitions to HTTP response.
-                   @callback
-                */
-                function (callback) {
-                    async.waterfall([
-                        /**
-                           @function
-                           @description Write RDB header to HTTP response.
-                           @callback
-                        */
-                        function (callback) {
-                            callback(
-                                null,
-                                rdb.header(
-                                    "NWIS-I UNIT-VALUES", "NO",
-                                    waterServicesSite,
-                                    timeSeriesDescription.SubLocationIdentifer,
-                                    /**
-                                       @todo need to find out what to
-                                             pass in for "statistic"
-                                             parameter when doing UVs
-                                             below.
-                                    */
-                                    parameter, undefined,
-                                    /**
-                                       @todo this is pragmatically
-                                             hard-coded now
-                                    */
-                                    {code: 'C', name: "COMPUTED"},
-                                    {start: during.from, end: during.to}
-                                )
-                            );
-                        },
-                        function (header, callback) {
-                            response.write(
-                                header +
-               "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
-                                    "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
-                                "ascii"
-                            );
-                            callback(null);
-                        }
-                    ]);
-                    callback(null, timeSeriesDescription.UniqueId);
-                },
-                /**
-                   @description Call AQUARIUS GetTimeSeriesCorrectedData
-                                service.
-                   @callback
-                */
-                function (uniqueId, callback) {
-                    // Note: "r" field ("rounding suppression")
-                    // Boolean truth value is inverted below for
-                    // semantic forwards-compatibility with AQUARIUS's
-                    // "ApplyRounding" parameter.
-                    var parameters = {
-                        TimeSeriesUniqueId: uniqueId,
-                        ApplyRounding: applyRounding
-                    };
+            aquarius.getTimeSeriesDescription(
+                agencyCode, siteNumber, parameter.aquariusParameter,
+                "Instantaneous", "Points"
+            )
+            .then((tsd) => {
+                /** @todo Bad. Try to factor out. */
+                // set variable declared in unitValues() scope
+                timeSeriesDescription = tsd;
 
-                    parameters = appendIntervalSearchCondition(
-                        parameters, during,
-                        waterServicesSite.tzCode,
-                        "00000000000000", "99999999999999",
-                        callback
-                    );
+                return rdb.header(
+                    "NWIS-I UNIT-VALUES", "NO",
+                    waterServicesSite,
+                    timeSeriesDescription.SubLocationIdentifer,
+                    /**
+                       @todo need to find out what to pass in for
+                             "statistic" parameter when doing UVs
+                             below.
+                    */
+                    parameter, undefined,
+                    /**
+                       @todo this is pragmatically hard-coded now
+                    */
+                    {code: 'C', name: "COMPUTED"},
+                    {start: during.from, end: during.to}
+                );
+            })
+            .then((header) => {
+                response.write(
+                    header +
+                   "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
+                        "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
+                    "ascii"
+                );
+                return;
+            })
+            .then(() => {
+                var parameters = appendIntervalSearchCondition(
+                    {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
+                     ApplyRounding: applyRounding},
+                    during,
+                    waterServicesSite.tzCode,
+                    "00000000000000", "99999999999999"
+                );
 
-                    try {
-                        aquarius.getTimeSeriesCorrectedData(
-                            parameters, callback
-                        );
-                    }
-                    catch (error) {
-                        callback(error);
-                        return;
-                    }
-                },
-                /**
-                   @description Receive response from AQUARIUS
-                                GetTimeSeriesCorrectedData service.
-                   @callback
-                */
-                aquarius.parseTimeSeriesDataServiceResponse,
-                /**
-                   @description Write time series data as RDB rows to
-                                HTTP response.
-                   @callback
-                */
-                function (timeSeriesDataServiceResponse, callback) {
-                    // Write RDB table body to HTTP response; this is
-                    // a promise interacting with async.waterfall(),
-                    // which is a bit weird, but should be OK until we
-                    // can re-factor the rest.
-                    uvTableBody(
-                        applyRounding,
-                        waterServicesSite.tzCode,
-                        waterServicesSite.localTimeFlag,
-                        // QA code ("QA" RDB column): might not be
-                        // backwards-compatible with nwts2rdb
+                return aquarius.getTimeSeriesCorrectedData(parameters);
+            })
+            .then((messageBody) => {
+                return aquarius.parseTimeSeriesDataServiceResponse(messageBody);
+            })
+            .then((timeSeriesDataServiceResponse) => {
+                return uvTableBody(
+                    applyRounding,
+                    waterServicesSite.tzCode,
+                    waterServicesSite.localTimeFlag,
+                    // QA code ("QA" RDB column): might not be
+                    // backwards-compatible with nwts2rdb
          timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0),
-                        timeSeriesDataServiceResponse.Points,
-                        response
-                    )
-                        .then(() => callback(null))
-                        .catch((error) => callback(error));
-                }
-            ],
-                function (error) {
-                    if (error) {
-                        callback(error);
-                        return;
-                    }
-                    else {
-                        callback(null);
-                    }
-                }
-            ); // async.waterfall
+                    timeSeriesDataServiceResponse.Points,
+                    response
+                );
+            });
         } // unitValues
 
         async.waterfall([
