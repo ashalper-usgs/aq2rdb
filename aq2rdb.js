@@ -584,8 +584,7 @@ function appendIntervalSearchCondition(
                 moment.tz(during.from, "YYYYMMDDHHmmss", tzCode).format();
         }
         catch (error) {
-            log(packageName + ".error", error);
-            callback(error);
+            throw error;
             return;
         }
     }
@@ -597,8 +596,7 @@ function appendIntervalSearchCondition(
                 moment.tz(during.to, "YYYYMMDDHHmmss", tzCode).format();
         }
         catch (error) {
-            log(packageName + ".error", error);
-            callback(error);
+            throw error;
             return;
         }
     }
