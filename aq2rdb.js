@@ -531,27 +531,28 @@ function required(options, propertyList) {
 } // checkRequiredOption
 
 /**
-   @description Parse version number from "package.json" and pass to a
-                callback function.
+   @description Parse version number from "package.json" and return in
+                a promise.
    @private
-   @param {function} Callback function to call if successful.
  */
-function getVersion(callback) {
-    fs.readFile("package.json", function (error, json) {
-        if (error) {
-            callback(error);
-            return;
-        }
-        
-        var pkg;
-        try {
-            pkg = JSON.parse(json);
-        }
-        catch (error) {
-            return;
-        }
+function getVersion() {
+    return new Promise(function (resolve, reject) {
+        fs.readFile("package.json", function (error, json) {
+            if (error) {
+                reject(error);
+                return;
+            }
+            
+            var pkg;
+            try {
+                pkg = JSON.parse(json);
+            }
+            catch (error) {
+                return;
+            }
 
-        callback(pkg.version);  // pass version number to callback function
+            resolve(pkg.version);
+        });
     });
 } // getVersion
 
@@ -1570,7 +1571,7 @@ httpdispatcher.onGet(
        @callback
     */
     function (request, response) {
-        getVersion(function (version) {
+        getVersion().then((version) => {
             response.writeHeader(200, {"Content-Type": "text/html"});  
             response.end(
                 '<?xml version="1.0" encoding="iso-8859-1"?>\n' +
@@ -1587,7 +1588,7 @@ httpdispatcher.onGet(
                     '</body>\n' +
                     '</html>\n'
             );
-        });
+        }).catch((error) => {throw error;});
     }
 ); // version
 
