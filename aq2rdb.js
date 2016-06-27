@@ -882,7 +882,7 @@ httpdispatcher.onGet(
             field = url.parse(request.url, true).query;
         }
         catch (error) {
-            callback(error);
+            throw error;
             return;
         }
 
@@ -1101,6 +1101,74 @@ httpdispatcher.onGet(
 ); // GetUVTable
 
 /**
+   @function
+   @description A Node.js emulation of legacy NWIS,
+   FDVRDBOUT() Fortran subroutine: "Write DV data
+   in rdb FORMAT" [sic].
+*/
+function dailyValues(callback) {
+    var parameters = Object();
+    var timeSeriesDescription;
+
+    if (computationIdentifier[statCd] === undefined) {
+        throw 'Unsupported statistic code "' + statCd + '"';
+        return;
+    }
+
+    aquarius.getTimeSeriesDescription(
+        agencyCode, siteNumber, parameter.aquariusParameter,
+        computationIdentifier[statCd], "Daily"
+    )
+        .then((tsd) => {
+            /** @todo Bad. Try to factor out. */
+            // save TimeSeriesDescription in outer scope
+            timeSeriesDescription = tsd;
+
+            var statistic = {code: statCd};
+
+            try {
+                statistic.name = stat[statCd].name;
+                statistic.description = stat[statCd].description;
+            }
+            catch (error) {
+                throw 'Invalid statistic code "' + statCd + '"';
+            }
+        })
+        .then(() => {
+            return rdb.header(
+                "NWIS-I DAILY-VALUES", "NO",
+                waterServicesSite,
+                timeSeriesDescription.SubLocationIdentifer,
+                parameter, statistic,
+                /**
+                   @todo Hard-coded object here is likely not
+                   correct under all circumstances.
+                */
+                {name: "FINAL",
+                 description: "EDITED AND COMPUTED DAILY VALUES"},
+                {start: during.from, end: during.to}
+            );
+        })
+        .then((header) => {
+            // write RDB column headings
+            response.write(
+                header +
+                    "DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n" +
+                    "8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n",
+                "ascii"
+            );
+        })
+        .then(() => {
+            dvTableBody(
+                timeSeriesDescription.UniqueId,
+                during.from, during.to,
+             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
+                response
+            );
+        });
+} // dailyValues
+
+/**
    @description aq2rdb endpoint, service request handler.
 */
 httpdispatcher.onGet(
@@ -1145,74 +1213,6 @@ httpdispatcher.onGet(
             else
                 callback(null, false);
         }
-
-        /**
-           @function
-           @description A Node.js emulation of legacy NWIS,
-                        FDVRDBOUT() Fortran subroutine: "Write DV data
-                        in rdb FORMAT" [sic].
-        */
-        function dailyValues(callback) {
-            var parameters = Object();
-            var timeSeriesDescription;
-
-            if (computationIdentifier[statCd] === undefined) {
-                throw 'Unsupported statistic code "' + statCd + '"';
-                return;
-            }
-
-            aquarius.getTimeSeriesDescription(
-                agencyCode, siteNumber, parameter.aquariusParameter,
-                computationIdentifier[statCd], "Daily"
-            )
-            .then((tsd) => {
-                /** @todo Bad. Try to factor out. */
-                // save TimeSeriesDescription in outer scope
-                timeSeriesDescription = tsd;
-
-                var statistic = {code: statCd};
-
-                try {
-                    statistic.name = stat[statCd].name;
-                    statistic.description = stat[statCd].description;
-                }
-                catch (error) {
-                    throw 'Invalid statistic code "' + statCd + '"';
-                }
-            })
-            .then(() => {
-                return rdb.header(
-                    "NWIS-I DAILY-VALUES", "NO",
-                    waterServicesSite,
-                    timeSeriesDescription.SubLocationIdentifer,
-                    parameter, statistic,
-                    /**
-                       @todo Hard-coded object here is likely not
-                             correct under all circumstances.
-                    */
-                    {name: "FINAL",
-                     description: "EDITED AND COMPUTED DAILY VALUES"},
-                    {start: during.from, end: during.to}
-                );
-            })
-            .then((header) => {
-                // write RDB column headings
-                response.write(
-                    header +
-                    "DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n" +
-                        "8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n",
-                    "ascii"
-                );
-            })
-            .then(() => {
-                dvTableBody(
-                    timeSeriesDescription.UniqueId,
-                    during.from, during.to,
-             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
-                    response
-                );
-            });
-        } // dailyValues
 
         function unitValues(callback) {
             var timeSeriesDescription;
