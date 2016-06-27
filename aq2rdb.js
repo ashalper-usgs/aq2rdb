@@ -1102,11 +1102,10 @@ httpdispatcher.onGet(
 
 /**
    @function
-   @description A Node.js emulation of legacy NWIS,
-   FDVRDBOUT() Fortran subroutine: "Write DV data
-   in rdb FORMAT" [sic].
+   @description "aq2rdb/" path subroutine to write daily values to HTTP
+                response.
 */
-function dailyValues(callback) {
+function dailyValues() {
     var parameters = Object();
     var timeSeriesDescription;
 
@@ -1115,7 +1114,7 @@ function dailyValues(callback) {
         return;
     }
 
-    aquarius.getTimeSeriesDescription(
+    return aquarius.getTimeSeriesDescription(
         agencyCode, siteNumber, parameter.aquariusParameter,
         computationIdentifier[statCd], "Daily"
     )
@@ -1168,6 +1167,72 @@ function dailyValues(callback) {
         });
 } // dailyValues
 
+function unitValues() {
+    var timeSeriesDescription;
+
+    return aquarius.getTimeSeriesDescription(
+        agencyCode, siteNumber, parameter.aquariusParameter,
+        "Instantaneous", "Points"
+    )
+        .then((tsd) => {
+            /** @todo Bad. Try to factor out. */
+            // set variable declared in unitValues() scope
+            timeSeriesDescription = tsd;
+
+            return rdb.header(
+                "NWIS-I UNIT-VALUES", "NO",
+                waterServicesSite,
+                timeSeriesDescription.SubLocationIdentifer,
+                /**
+                   @todo need to find out what to pass in for
+                   "statistic" parameter when doing UVs
+                   below.
+                */
+                parameter, undefined,
+                /**
+                   @todo this is pragmatically hard-coded now
+                */
+                {code: 'C', name: "COMPUTED"},
+                {start: during.from, end: during.to}
+            );
+        })
+        .then((header) => {
+            response.write(
+                header +
+                    "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
+                    "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
+                "ascii"
+            );
+            return;
+        })
+        .then(() => {
+            var parameters = appendIntervalSearchCondition(
+                {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
+                 ApplyRounding: applyRounding},
+                during,
+                waterServicesSite.tzCode,
+                "00000000000000", "99999999999999"
+            );
+
+            return aquarius.getTimeSeriesCorrectedData(parameters);
+        })
+        .then((messageBody) => {
+            return aquarius.parseTimeSeriesDataServiceResponse(messageBody);
+        })
+        .then((timeSeriesDataServiceResponse) => {
+            return uvTableBody(
+                applyRounding,
+                waterServicesSite.tzCode,
+                waterServicesSite.localTimeFlag,
+                // QA code ("QA" RDB column): might not be
+                // backwards-compatible with nwts2rdb
+         timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0),
+                timeSeriesDataServiceResponse.Points,
+                response
+            );
+        });
+} // unitValues
+
 /**
    @description aq2rdb endpoint, service request handler.
 */
@@ -1213,72 +1278,6 @@ httpdispatcher.onGet(
             else
                 callback(null, false);
         }
-
-        function unitValues(callback) {
-            var timeSeriesDescription;
-
-            aquarius.getTimeSeriesDescription(
-                agencyCode, siteNumber, parameter.aquariusParameter,
-                "Instantaneous", "Points"
-            )
-            .then((tsd) => {
-                /** @todo Bad. Try to factor out. */
-                // set variable declared in unitValues() scope
-                timeSeriesDescription = tsd;
-
-                return rdb.header(
-                    "NWIS-I UNIT-VALUES", "NO",
-                    waterServicesSite,
-                    timeSeriesDescription.SubLocationIdentifer,
-                    /**
-                       @todo need to find out what to pass in for
-                             "statistic" parameter when doing UVs
-                             below.
-                    */
-                    parameter, undefined,
-                    /**
-                       @todo this is pragmatically hard-coded now
-                    */
-                    {code: 'C', name: "COMPUTED"},
-                    {start: during.from, end: during.to}
-                );
-            })
-            .then((header) => {
-                response.write(
-                    header +
-                   "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
-                        "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
-                    "ascii"
-                );
-                return;
-            })
-            .then(() => {
-                var parameters = appendIntervalSearchCondition(
-                    {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
-                     ApplyRounding: applyRounding},
-                    during,
-                    waterServicesSite.tzCode,
-                    "00000000000000", "99999999999999"
-                );
-
-                return aquarius.getTimeSeriesCorrectedData(parameters);
-            })
-            .then((messageBody) => {
-                return aquarius.parseTimeSeriesDataServiceResponse(messageBody);
-            })
-            .then((timeSeriesDataServiceResponse) => {
-                return uvTableBody(
-                    applyRounding,
-                    waterServicesSite.tzCode,
-                    waterServicesSite.localTimeFlag,
-                    // QA code ("QA" RDB column): might not be
-                    // backwards-compatible with nwts2rdb
-         timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0),
-                    timeSeriesDataServiceResponse.Points,
-                    response
-                );
-            });
-        } // unitValues
 
         async.waterfall([
             function (callback) {
