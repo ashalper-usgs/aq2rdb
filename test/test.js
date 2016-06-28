@@ -184,75 +184,77 @@ describe("aquaticInformatics", function () {
     describe("AQUARIUS", function () {
         var aquarius;
 
-        this.timeout(10000);    // AQUARIUS can be slow
-
         describe("#()", function () {
             it("should throw 'Required field \"hostname\" not found' error",
-               function (done) {
-                   aquarius = new aquaticInformatics.AQUARIUS(
-                       "localhost",
-                       undefined,
-                       aq2rdb._private.options.aquariusUserName,
-                       "Not a password",
-                       function (error) {
-                           expect(error).equals(
-                               "Required field \"hostname\" not found"
-                           );
-                           done();
-                       }
-                   );
+               function () {
+                   try {
+                       aquarius = new aquaticInformatics.AQUARIUS(
+                           "localhost",
+                           undefined,
+                           aq2rdb._private.options.aquariusUserName,
+                           "Not a password"
+                       );
+                   }
+                   catch (error) {
+                       expect(error).equals(
+                           "Required field \"hostname\" not found"
+                       );
+                   }
                });
 
             it("should throw 'Required field \"hostname\" must have " +
                "a value' error",
-               function (done) {
-                   aquarius = new aquaticInformatics.AQUARIUS(
-                       "localhost",
-                       "",
-                       aq2rdb._private.options.aquariusUserName,
-                       "Not a password",
-                       function (error) {
-                           expect(error).equals(
-                               "Required field \"hostname\" must have " +
-                                   "a value"
-                           );
-                           done();
-                       }
-                   );
+               function () {
+                   try {
+                       aquarius = new aquaticInformatics.AQUARIUS(
+                           "localhost",
+                           "",
+                           aq2rdb._private.options.aquariusUserName,
+                           "Not a password"
+                       );
+                   }
+                   catch (error) {
+                       expect(error).equals(
+                           "Required field \"hostname\" must have " +
+                               "a value"
+                       );
+                   }
                });
 
             it("should throw 'Required field \"userName\" not found' error",
-               function (done) {
-                   aquarius = new aquaticInformatics.AQUARIUS(
-                       "localhost",
-                       aq2rdb._private.options.aquariusHostname,
-                       undefined,
-                       "Not a password",
-                       function (error) {
-                           expect(error).equals(
-                               "Required field \"userName\" not found"
-                           );
-                           done();
-                       }
-                   );
+               function () {
+                   try {
+                       aquarius = new aquaticInformatics.AQUARIUS(
+                           "localhost",
+                           aq2rdb._private.options.aquariusHostname,
+                           undefined,
+                           "Not a password"
+                       );
+                   }
+                   catch (error) {
+                       expect(error).equals(
+                           "Required field \"userName\" not found"
+                       );
+                   }
                });
 
             it("should throw 'Required field \"userName\" must have " +
                "a value' error",
-               function (done) {
-                   aquarius = new aquaticInformatics.AQUARIUS(
-                       "localhost",
-                       aq2rdb._private.options.aquariusHostname,
-                       "",
-                       "Not a password",
-                       function (error) {
-                           expect(error).equals(
-                               "Required field \"userName\" must have " +
-                                   "a value"
-                           );
-                           done();
-                       }
-                   );
+               function () {
+                   try {
+                       aquarius = new aquaticInformatics.AQUARIUS(
+                           "localhost",
+                           aq2rdb._private.options.aquariusHostname,
+                           "",
+                           "Not a password"
+                       );
+                   }
+                   catch (error) {
+                       expect(error).equals(
+                           "Required field \"userName\" must have " +
+                               "a value"
+                       );
+                   }
                });
 
             it("should have non-empty-string token",
@@ -264,13 +266,12 @@ describe("aquaticInformatics", function () {
                           @see http://stackoverflow.com/questions/16144455/mocha-tests-with-extra-options-or-parameters
                        */
                        process.env.AQUARIUS_USER_NAME,
-                       process.env.AQUARIUS_PASSWORD,
-                       function (error) {
-                           if (error) throw error;
-                           expect(aquarius.token().length).to.be.above(0);
-                           done();
-                       }
+                       process.env.AQUARIUS_PASSWORD
                    );
+                   aquarius.authenticate().then(() => {
+                       expect(aquarius.token().length).to.be.above(0);
+                       done();
+                   });
                });
 
         }); // #()
