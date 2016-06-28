@@ -12,7 +12,6 @@
 'use strict';
 
 // Node.JS modules
-var async = require("async");
 var commandLineArgs = require("command-line-args");
 var ifAsync = require("if-async");
 var fs = require("fs");
@@ -564,7 +563,7 @@ function getVersion() {
    @private
    @param {object} parameters HTTP query parameters to append to REST
           query search condition.
-   @param {object} during Interval object.
+   @param {object} interval Interval object.
    @param {string} tzCode Time zone abbreviation.
    @param {string} fromTheBeginningOfTimeToken Token used in NWIS
           ADAPS to represent the "from the beginning of time" search
@@ -574,14 +573,14 @@ function getVersion() {
    @see http://momentjs.com/timezone/docs/#/using-timezones/
 */
 function appendIntervalSearchCondition(
-    parameters, during, tzCode,
+    parameters, interval, tzCode,
     fromTheBeginningOfTimeToken, toTheEndOfTimeToken
 ) {
     // if "from" interval boundary is not "from the beginning of time"
-    if (during.from !== fromTheBeginningOfTimeToken) {
+    if (interval.from !== fromTheBeginningOfTimeToken) {
         try {
             parameters["QueryFrom"] =
-                moment.tz(during.from, "YYYYMMDDHHmmss", tzCode).format();
+                moment.tz(interval.from, "YYYYMMDDHHmmss", tzCode).format();
         }
         catch (error) {
             throw error;
@@ -590,10 +589,10 @@ function appendIntervalSearchCondition(
     }
 
     // if "to" interval boundary is not "to the end of time"
-    if (during.to !== toTheEndOfTimeToken) {
+    if (interval.to !== toTheEndOfTimeToken) {
         try {
             parameters["QueryTo"] =
-                moment.tz(during.to, "YYYYMMDDHHmmss", tzCode).format();
+                moment.tz(interval.to, "YYYYMMDDHHmmss", tzCode).format();
         }
         catch (error) {
             throw error;
@@ -722,8 +721,7 @@ httpdispatcher.onGet(
         // if this is a documentation page request
         if (request.url === "/aq2rdb/GetDVTable")
             // serve the documentation page
-            docRequest(request.url)
-            .then((html) => {
+            docRequest(request.url).then((html) => {
                 response.writeHeader(200, {"Content-Type": "text/html"});  
                 response.end(html);
             });
@@ -1105,9 +1103,8 @@ httpdispatcher.onGet(
    @description "aq2rdb/" path subroutine to write daily values to HTTP
                 response.
 */
-function dailyValues() {
-    var parameters = Object();
-    var timeSeriesDescription;
+function dailyValues(site, parameter, statCd, interval, response) {
+    var timeSeriesDescription, statistic;
 
     if (computationIdentifier[statCd] === undefined) {
         throw 'Unsupported statistic code "' + statCd + '"';
@@ -1115,15 +1112,16 @@ function dailyValues() {
     }
 
     return aquarius.getTimeSeriesDescription(
-        agencyCode, siteNumber, parameter.aquariusParameter,
+        site.agencyCode, site.number, parameter.aquariusParameter,
         computationIdentifier[statCd], "Daily"
     )
         .then((tsd) => {
             /** @todo Bad. Try to factor out. */
-            // save TimeSeriesDescription in outer scope
-            timeSeriesDescription = tsd;
 
-            var statistic = {code: statCd};
+            // save associated TimeSeriesDescription and statistic in
+            // outer scope
+            timeSeriesDescription = tsd;
+            statistic = {code: statCd};
 
             try {
                 statistic.name = stat[statCd].name;
@@ -1136,7 +1134,7 @@ function dailyValues() {
         .then(() => {
             return rdb.header(
                 "NWIS-I DAILY-VALUES", "NO",
-                waterServicesSite,
+                site,
                 timeSeriesDescription.SubLocationIdentifer,
                 parameter, statistic,
                 /**
@@ -1145,7 +1143,7 @@ function dailyValues() {
                 */
                 {name: "FINAL",
                  description: "EDITED AND COMPUTED DAILY VALUES"},
-                {start: during.from, end: during.to}
+                {start: interval.from, end: interval.to}
             );
         })
         .then((header) => {
@@ -1160,18 +1158,18 @@ function dailyValues() {
         .then(() => {
             dvTableBody(
                 timeSeriesDescription.UniqueId,
-                during.from, during.to,
-             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
+                interval.from, interval.to,
+                tzName[site.tzCode][site.localTimeFlag],
                 response
             );
         });
 } // dailyValues
 
-function unitValues() {
+function unitValues(site, parameter, interval, applyRounding, response) {
     var timeSeriesDescription;
 
     return aquarius.getTimeSeriesDescription(
-        agencyCode, siteNumber, parameter.aquariusParameter,
+        site.agencyCode, site.number, parameter.aquariusParameter,
         "Instantaneous", "Points"
     )
         .then((tsd) => {
@@ -1181,19 +1179,18 @@ function unitValues() {
 
             return rdb.header(
                 "NWIS-I UNIT-VALUES", "NO",
-                waterServicesSite,
+                site,
                 timeSeriesDescription.SubLocationIdentifer,
                 /**
                    @todo need to find out what to pass in for
-                   "statistic" parameter when doing UVs
-                   below.
+                         "statistic" parameter when doing UVs below.
                 */
                 parameter, undefined,
                 /**
                    @todo this is pragmatically hard-coded now
                 */
                 {code: 'C', name: "COMPUTED"},
-                {start: during.from, end: during.to}
+                {start: interval.from, end: interval.to}
             );
         })
         .then((header) => {
@@ -1209,8 +1206,8 @@ function unitValues() {
             var parameters = appendIntervalSearchCondition(
                 {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
                  ApplyRounding: applyRounding},
-                during,
-                waterServicesSite.tzCode,
+                interval,
+                site.tzCode,
                 "00000000000000", "99999999999999"
             );
 
@@ -1222,8 +1219,8 @@ function unitValues() {
         .then((timeSeriesDataServiceResponse) => {
             return uvTableBody(
                 applyRounding,
-                waterServicesSite.tzCode,
-                waterServicesSite.localTimeFlag,
+                site.tzCode,
+                site.localTimeFlag,
                 // QA code ("QA" RDB column): might not be
                 // backwards-compatible with nwts2rdb
          timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0),
@@ -1232,6 +1229,161 @@ function unitValues() {
             );
         });
 } // unitValues
+
+function aq2rdb(requestURL) {
+    return new Promise(function (resolve, reject) {
+        var field;
+
+        try {
+            field = url.parse(requestURL, true).query;
+        }
+        catch (error) {
+            reject(error);
+            return;
+        }
+
+        // if any mandatory fields are missing
+        if (field.t === undefined || field.n === undefined ||
+            field.b === undefined || field.e === undefined ||
+            field.s === undefined || field.p === undefined) {
+            // terminate response with an error
+            reject(
+                "All of \"t\", \"n\", \"b\", \"e\", \"s\" and \"p\" " +
+                    "fields must be present" 
+            );
+            return;
+        }
+
+        if ((field.p || field.s) && field.u) {
+            reject(
+                "Specify either \"-p\" and \"s\", or " +
+                    "\"-u\", but not both"
+            );
+            return;
+        }
+
+        for (var name in field) {
+            if (name.match(/^(a|p|t|s|n|b|e|l|r|u|w|c)$/)) {
+                // aq2rdb fields
+            }
+            else if (name !== "") {
+                reject("Unknown field \"" + name + "\"");
+                return;
+            }
+        }
+
+        // "rounding suppression flag"
+        var applyRounding = (field.r === undefined) ? "True" : "False";
+
+        var dataType = field.t.substring(0, 2).toUpperCase();
+        var agencyCode = ("a" in field) ? field.a.substring(0, 5) : "USGS";
+        // convert station to 15 characters
+        var siteNumber = field.n.substring(0, 15);
+        var parameterCode = field.p;
+        var wyflag = field.w;
+        var cflag = field.c;
+        var vflag = false;
+        var timeSeriesIdentifier = field.u;
+        var begdat = field.b;
+        var enddat = field.e;
+        var locTzCd = ("l" in field) ? field.l : "LOC";
+        var titlline = "";
+
+        var uvType, interval;
+
+        // further processing depends on data type
+
+        if (dataType === 'DV' && "s" in field)
+            statCd = field.s;
+
+        if (dataType === 'DV' || dataType === 'DC' ||
+            dataType === 'SV' || dataType === 'PK') {
+            // convert dates to 8 characters
+            if (begdat !== undefined && enddat !== undefined)
+                interval = new adaps.IntervalDay(begdat, enddat, wyflag);
+        }
+
+        if (dataType === 'UV') {
+            
+            uvType = field.s.charAt(0).toUpperCase();
+            
+            if (! (uvType === 'C' || uvType === 'E' ||
+                   uvType === 'M' || uvType === 'N' ||
+                   uvType === 'R' || uvType === 'S')) {
+                // Position of this is an artifact of the
+                // nwts2rdb legacy code: it might need to be
+                // moved earlier in HTTP query parameter
+                // validation code.
+                reject('UV type code must be ' +
+                       '"M", "N", "E", "R", "S", or "C"');
+                return;
+            }
+
+            // convert date/times to 14 characters
+            if (begdat !== undefined && enddat !== undefined) {
+                interval =
+                    new adaps.IntervalSecond(begdat, enddat, wyflag);
+            }
+
+        }
+
+        locationIdentifier =
+            new aquaticInformatics.LocationIdentifier(agencyCode, siteNumber);
+
+        nwisRA.query(
+            {"parameters.PARM_ALIAS_CD": "AQNAME",
+             "parameters.PARM_CD": parameterCode},
+            options.log
+        )
+            .then((messageBody) => {
+                var parameters;
+
+                try {
+                    parameters = JSON.parse(messageBody);
+                }
+                catch (error) {
+                    throw error;
+                    return;
+                }
+
+                // load fields we need into something more coherent
+                parameter = {
+                    code: parameters.records[0].PARM_CD,
+                    name: parameters.records[0].PARM_NM,
+                    description: parameters.records[0].PARM_DS,
+                    aquariusParameter: parameters.records[0].PARM_ALIAS_NM
+                };
+            })
+            .then(() => site.request(
+                options.waterServicesHostname,
+                locationIdentifier.agencyCode(),
+                locationIdentifier.siteNumber(),
+                options.log
+            ))
+            .then((messageBody) => site.receive(messageBody))
+            .catch((error) => {
+                if (error === 404)
+                    throw "Location " +
+                        locationIdentifier.toString() +
+                        " does not exist";
+                else
+                    throw error;
+            })
+            .then((site) => {
+                if (dataType === "DV")
+                    dailyValues(
+                        site, parameter, statCd, interval, response
+                    );
+                else if (dataType === "UV")
+                    unitValues(
+                        site, parameter, interval, applyRounding,
+                        response
+                    );
+                else
+                    throw 'Unknown data type "' + dataType + '"';
+            });
+    });
+} // aq2rdb
 
 /**
    @description aq2rdb endpoint, service request handler.
@@ -1243,7 +1395,6 @@ httpdispatcher.onGet(
     */
     function (request, response) {
         var dataType, agencyCode, siteNumber, locationIdentifier;
-        var waterServicesSite;
         /**
            @todo Need to check downstream depedendencies in aq2rdb
                  endpoint for presence of former "P" prefix of this
@@ -1251,311 +1402,23 @@ httpdispatcher.onGet(
         */
         var parameterCode;
         var parameter, statCd, extendedFilters;
-        var uniqueId, during, cflag, vflag, applyRounding, locTzCd;
+        var timeSeriesIdentifier, cflag, vflag, applyRounding, locTzCd;
 
-        /**
-           @function
-           @description node-if-async predicate function, called by
-                        ifAsync() in async.waterfall() below.
-           @see https://github.com/ironSource/node-if-async
-        */
-        function dataTypeIsDV(callback) {
-            if (dataType === "DV")
-                callback(null, true);
-            else
-                callback(null, false);
-        }
-
-        /**
-           @function
-           @description node-if-async predicate function, called by
-                        ifAsync() in async.waterfall() below.
-           @see https://github.com/ironSource/node-if-async
-        */
-        function dataTypeIsUV(callback) {
-            if (dataType === "UV")
-                callback(null, true);
-            else
-                callback(null, false);
-        }
-
-        async.waterfall([
-            function (callback) {
-                if (docRequest(request.url, "/aq2rdb", response, callback))
-                    return;
-                callback(null, request.url);
-            },
-            function (requestURL, callback) {
-                var field;
-
-                try {
-                    field = url.parse(requestURL, true).query;
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                // if any mandatory fields are missing
-                if (field.t === undefined || field.n === undefined ||
-                    field.b === undefined || field.e === undefined ||
-                    field.s === undefined || field.p === undefined) {
-                    // terminate response with an error
-                    callback(
-                        "All of \"t\", \"n\", \"b\", \"e\", \"s\" and \"p\" " +
-                            "fields must be present" 
-                    );
-                    return;
-                }
-
-                if ((field.p || field.s) && field.u) {
-                    callback(
-                        "Specify either \"-p\" and \"s\", or " +
-                            "\"-u\", but not both"
-                    );
-                    return;
-                }
-
-                for (var name in field) {
-                    if (name.match(/^(a|p|t|s|n|b|e|l|r|u|w|c)$/)) {
-                        // aq2rdb fields
-                    }
-                    else if (name !== "") {
-                        callback("Unknown field \"" + name + "\"");
-                        return;
-                    }
-                }
-
-                // "rounding suppression flag"
-                applyRounding = (field.r === undefined) ? "True" : "False";
-
-                dataType = field.t.substring(0, 2).toUpperCase();
-                agencyCode = field.a;
-                siteNumber = field.n;
-                parameterCode = field.p;
-
-                // pass parsed field values to next async.waterfall()
-                // function
-                callback(
-                    null, field.w, field.c, false, field.s, field.u,
-                    field.b, field.e, field.l, ""
+        if (request.url === "/aq2rdb")
+            // serve the documentation page
+            docRequest(request.url).then((html) => {
+                response.writeHeader(200, {"Content-Type": "text/html"});  
+                response.end(html);
+            });
+        else
+            aq2rdb(request.url)
+            .then(() => response.end())
+            .catch((error) => {
+                response.end(
+                    "# " + packageName + ": " + error + '\n',
+                    "ascii"
                 );
-            },
-            function rdbOut(
-                wyflag, cflag, vflag, instatCd, uniqueId,
-                begdat, enddat, locTzCd, titlline, callback
-            ) {
-                var datatyp, uvtyp, interval, uvtypPrompted = false;
-
-                if (locTzCd === undefined) locTzCd = "LOC";
-
-                // convert agency to 5 characters - default to USGS
-                if (agencyCode === undefined)
-                    agencyCode = "USGS";
-                else
-                    agencyCode = agencyCode.substring(0, 5);
-
-                // convert station to 15 characters
-                siteNumber = siteNumber.substring(0, 15);
-
-                // further processing depends on data type
-
-                if (dataType === 'DV') {
-                    if (instatCd !== undefined)
-                        statCd = instatCd;
-                }
-
-                if (dataType === 'DV' || dataType === 'DC' ||
-                    dataType === 'SV' || dataType === 'PK') {
-                    // convert dates to 8 characters
-                    if (begdat !== undefined && enddat !== undefined) {
-                        interval =
-                            new adaps.IntervalDay(begdat, enddat, wyflag);
-                    }
-                }
-
-                if (dataType === 'UV') {
-                    
-                    uvtyp = instatCd.charAt(0).toUpperCase();
-                    
-                    if (! (uvtyp === 'C' || uvtyp === 'E' ||
-                           uvtyp === 'M' || uvtyp === 'N' ||
-                           uvtyp === 'R' || uvtyp === 'S')) {
-                        // Position of this is an artifact of the
-                        // nwts2rdb legacy code: it might need to be
-                        // moved earlier in HTTP query parameter
-                        // validation code.
-                        callback(
-                            'UV type code must be ' +
-                                '"M", "N", "E", "R", "S", or "C"'
-                        );
-                        return;
-                    }
-
-                    // convert date/times to 14 characters
-                    if (begdat !== undefined && enddat !== undefined) {
-                        interval =
-                            new adaps.IntervalSecond(begdat, enddat, wyflag);
-                    }
-
-                }
-
-                // This is where, formerly, NWF_RDB_OUT():
-                // 
-                //    get PRIMARY DD that goes with parm if parm supplied
-                //
-                // Since the algorithmic equivalent is now deep within
-                // the bowels of unitValues(), it is no longer
-                // here. This comment is just a reminder that it used
-                // to be here, in case it is later discovered that the
-                // primary identification is necessary before
-                // unitValues() does it.
-
-                // retrieving measured uvs and transport_cd not
-                // supplied, prompt for it
-                if (uvtypPrompted && dataType === "UV" &&
-                    (uvtyp === 'M' || uvtyp === 'N') &&
-                    transport_cd === undefined) {
-                    /**
-                       @todo Convert to callback error?
-                    */
-                    /*
-                      nw_query_meas_uv_type(
-                         agencyCode, siteNumber, ddid, begdtm,
-                         enddtm, loc_tz_cd, transport_cd,
-                         sensor_type_id, *998)
-                      if (transport_cd === undefined) {
-                      WRITE (0,2150) agencyCode, siteNumber, ddid
-                      2150
-                         FORMAT (/,"No MEASURED UV data for station "",A5,A15,
-                      "", DD "',A4,'".  Aborting.",/)
-                      return irc;
-                      END IF
-                    */
-                }
-
-                callback(
-                    null, vflag, dataType, agencyCode, siteNumber,
-                    uniqueId, interval, locTzCd
-                );
-            },
-            /**
-               @todo It would be quite nice to get rid of this scoping
-                     crutch eventually.
-            */
-            function (
-                v, d, a, s, u, interval, locTzCd, callback
-            ) {
-                // save values in outer scope to avoid passing these
-                // values through subsequent async.waterfal()
-                // functions' scopes where they are not referenced at
-                // all
-                vflag = v;
-                dataType = d;
-                locationIdentifier =
-                    new aquaticInformatics.LocationIdentifier(a, s);
-                uniqueId = u;
-                during = interval;
-
-                callback(null);
-            },
-            function (callback) {
-                /**
-                   @todo site.request() and site.receive() can be done
-                         in parallel with the requesting/receiving of
-                         parameter code mapping below.
-                */
-                async.waterfall([
-                    function (callback) {
-                        callback(
-                            null, options.waterServicesHostname,
-                            locationIdentifier.agencyCode(),
-                            locationIdentifier.siteNumber(),
-                            options.log
-                        );
-                    },
-                    site.request,
-                    site.receive,
-                    function (receivedSite, callback) {
-                        waterServicesSite = receivedSite; // set global
-                        callback(null);
-                    }
-                ],
-                    function (error) {
-                        // if the location was not found
-                        if (error === 404)
-                            callback(
-                                "Location " +
-                                    locationIdentifier.toString() +
-                                    " does not exist"
-                            );
-                        else
-                            callback(error);
-                    }
-                );
-            },
-            /**
-               @function
-               @description Query
-                            USGS-parameter-code-to-AQUARIUS-parameter
-                            Web service here to obtain AQUARIUS
-                            parameter from USGS parameter code.
-               @callback
-               @param {string} NWIS-RA authorization token.
-               @param {function} callback async.waterfall() callback
-                                 function.
-            */
-            function (callback) {
-                nwisRA.query(
-                    {"parameters.PARM_ALIAS_CD": "AQNAME",
-                     "parameters.PARM_CD": parameterCode},
-                    options.log,
-                    callback
-                );
-            },
-            function (messageBody, callback) {
-                var parameters;
-
-                try {
-                    parameters = JSON.parse(messageBody);
-                }
-                catch (error) {
-                    callback(error);
-                    return;
-                }
-
-                // load fields we need into something more coherent
-                parameter = {
-                    code: parameters.records[0].PARM_CD,
-                    name: parameters.records[0].PARM_NM,
-                    description: parameters.records[0].PARM_DS,
-                    aquariusParameter: parameters.records[0].PARM_ALIAS_NM
-                };
-
-                callback(null);
-            },
-            //  get data and output to files
-            ifAsync(dataTypeIsDV).then(
-                dailyValues
-            )
-            .elseIf(dataTypeIsUV).then(
-                unitValues
-            )
-        ],
-            /**
-               @description node-async error handler function.
-               @callback
-            */
-            function (error) {
-                if (error)
-                    response.end(
-                        "# " + packageName + ": " + error + '\n',
-                        "ascii"
-                    );
-                else
-                    response.end();
-            }
-        );
+            });
     }
 ); // aq2rdb
 
@@ -1660,156 +1523,124 @@ else {
        This occurs when aq2rdb is already running on the server.
     */
     var server = http.createServer(handleRequest);
-    var passwd = new Object();
 
-    async.waterfall([
-        function (callback) {
-            // if all prerequisite login information is missing on
-            // command-line
-            if (options.aquariusUserName === undefined &&
-                options.aquariusPassword === undefined &&
-                options.nwisRAUserName === undefined &&
-                options.nwisRAPassword === undefined) {
-                /** @todo need some logic here to find the encrypted
-                    volume's mount point. */
-                fs.readFile(
-                    "/encryptedfs/aq2rdb-passwd.json",
-                    function (error, json) {
-                        if (error) {
-                            callback(error);
-                            return;
-                        }
+    var p = new Promise((resolve, reject) => {
+        var passwd = new Object();
 
-                        try {
-                            passwd = JSON.parse(json);
-                        }
-                        catch (error) {
-                            callback(error);
-                            return;
-                        }
-                        callback(null);
+        // if all prerequisite login information is missing on
+        // command-line
+        if (options.aquariusUserName === undefined &&
+            options.aquariusPassword === undefined &&
+            options.nwisRAUserName === undefined &&
+            options.nwisRAPassword === undefined) {
+            /** @todo need some logic here to find the encrypted
+                volume's mount point. */
+            fs.readFile(
+                "/encryptedfs/aq2rdb-passwd.json",
+                function (error, json) {
+                    if (error) {
+                        reject(error);
+                        return;
                     }
-                );
-            }
-            else {
-                // use command-line information
-                passwd.aquariusHostname = options.aquariusHostname;
-                passwd.aquariusUserName = options.aquariusUserName;
-                passwd.aquariusPassword = options.aquariusPassword;
-                passwd.nwisRAHostname = options.nwisRAHostname;
-                passwd.nwisRAUserName = options.nwisRAUserName;
-                passwd.nwisRAPassword = options.nwisRAPassword;
-                callback(null);
-            }
-        },
-        function (callback) {
-            // some server start-up, initialization tasks
-            async.parallel([
-                /**
-                   @function
-                   @description Attempt NWIS-RA handshaking to get
-                                authentication token.
-                */
-                function (callback) {
-                    nwisRA = new usgs.NWISRA(
-                        passwd.nwisRAHostname,
-                        passwd.nwisRAUserName,
-                        passwd.nwisRAPassword, options.log
-                    );
-                    nwisRA.authenticate()
-                        .then(callback(null, "Initialized parameter mapping"))
-                        .catch((error) => callback(error));
-                },
-                /**
-                   @function
-                   @description Attempt AQUARIUS handshaking to get
-                                authentication token.
-                   @private
-                   @param {function} callback Callback function to call when
-                   complete.
-                */
-                function (callback) {
-                    aquarius = new aquaticInformatics.AQUARIUS(
-                        options.aquariusTokenHostname,
-                        options.aquariusHostname,
-                        options.aquariusUserName,
-                        options.aquariusPassword, callback
-                    );
-                },
-                function (callback) {
-                    fs.readFile("stat.json", function (error, json) {
-                        if (error) {
-                            callback(error);
-                            return true;
-                        }
 
-                        try {
-                            stat = JSON.parse(json);
-                        }
-                        catch (error) {
-                            callback(error);
-                            return;
-                        }
-
-                        callback(null, "Loaded stat.json");
-                    });
+                    try {
+                        passwd = JSON.parse(json);
+                    }
+                    catch (error) {
+                        reject(error);
+                        return;
+                    }
+                    resolve(passwd);
                 }
-            ],
-            function (error, results) {
+            );
+        }
+        else {
+            // use command-line information
+            passwd.aquariusHostname = options.aquariusHostname;
+            passwd.aquariusUserName = options.aquariusUserName;
+            passwd.aquariusPassword = options.aquariusPassword;
+            passwd.nwisRAHostname = options.nwisRAHostname;
+            passwd.nwisRAUserName = options.nwisRAUserName;
+            passwd.nwisRAPassword = options.nwisRAPassword;
+            resolve(passwd);
+        }
+    });
+
+    p.then((passwd) => {
+        nwisRA = new usgs.NWISRA(
+            passwd.nwisRAHostname, passwd.nwisRAUserName,
+            passwd.nwisRAPassword, options.log
+        );
+        aquarius = new aquaticInformatics.AQUARIUS(
+            options.aquariusTokenHostname,
+            options.aquariusHostname,
+            options.aquariusUserName,
+            options.aquariusPassword
+        );
+        var loadStat = new Promise((resolve, reject) => {
+            fs.readFile("stat.json", function (error, json) {
                 if (error) {
-                    log(packageName, error);
+                    reject(error);
                     return;
                 }
-                else {
-                    async.each(
-                        results,
-                        function (message, callback) {
-                            log(packageName, message);
-                            callback(null);
-                        }
-                    );
-                    /** @description Start listening for requests. */ 
-                    server.listen(options.port, function () {
-                        log(packageName,
-                            "Server listening on: http://localhost:" +
-                            options.port.toString());
-                        // Reconstruct the "aquarius" object every 59
-                        // minutes to renew lease on authentication
-                        // token. See
-                        // https://nodejs.org/api/timers.html#timers_setinterval_callback_delay_arg
-                        setInterval(
-                            function () {
-                                aquarius = new aquaticInformatics.AQUARIUS(
-                                    options.aquariusTokenHostname,
-                                    options.aquariusHostname,
-                                    options.aquariusUserName,
-                                    options.aquariusPassword,
-                                    function (error, message) {
-                                        if (error)
-                                            log(error);
-                                    }
-                                );
-                            },
-                            // call above function every 59 minutes:
-                            59 * 60 * 1000
-                        );
-                    });
+
+                try {
+                    stat = JSON.parse(json);
                 }
-           }); // async.parallel
-        }
-   ],
-   function (error) {
-       if (error.code === "ENOENT") {
-           log(packageName,
-               "No command-line credentials specified, and no " +
-               "password file found at " +
-               error.path);
-       }
-       else {
-           log(packageName, error);
-       }
-   }
-   ); // async.waterfall
+                catch (error) {
+                    reject(error);
+                    return;
+                }
+
+                resolve();
+            });
+        });
+
+        return Promise.all([
+            nwisRA.authenticate()
+                .then(() => {
+                    log(packageName, "Initialized parameter mapping");
+                }),
+            aquarius.authenticate()
+                .then((message) => {log(packageName, message);}),
+            loadStat
+                .then(() => {log(packageName, "Loaded stat.json");})
+        ])
+            .catch((error) => {log(packageName, error);});
+    })
+        .then(() => {
+            /** @description Start listening for requests. */ 
+            server.listen(options.port, function () {
+                log(packageName,
+                    "Server listening on: http://localhost:" +
+                    options.port.toString());
+                // Reconstruct the "aquarius" object every 59
+                // minutes to renew lease on authentication
+                // token. See
+                // https://nodejs.org/api/timers.html#timers_setinterval_callback_delay_arg
+                setInterval(
+                    function () {
+                        aquarius = new aquaticInformatics.AQUARIUS(
+                            options.aquariusTokenHostname,
+                            options.aquariusHostname,
+                            options.aquariusUserName,
+                            options.aquariusPassword
+                        );
+                    },
+                    // call above function every 59 minutes:
+                    59 * 60 * 1000
+                );
+            });
+        })
+        .catch((error) => {
+            if (error.code === "ENOENT")
+                log(packageName,
+                    "No command-line credentials specified, and no " +
+                    "password file found at " +
+                    error.path);
+            else
+                log(packageName, error);
+        });
 }
 
 /**
