@@ -1143,58 +1143,54 @@ function dailyValues(site, parameter, statCd, interval, response) {
 } // dailyValues
 
 function unitValues(site, parameter, interval, applyRounding, response) {
-    var timeSeriesDescription;
+    var uniqueId;
 
     return aquarius.getTimeSeriesDescription(
         site.agencyCode, site.number, parameter.aquariusParameter,
         "Instantaneous", "Points"
     )
-        .then((tsd) => {
-            /** @todo Bad. Try to factor out. */
-            // set variable declared in unitValues() scope
-            timeSeriesDescription = tsd;
+        .then((timeSeriesDescription) => {
+            // save in outer scope because it gets referenced in a
+            // then() call below
+            uniqueId = timeSeriesDescription.UniqueId;
 
-            return rdb.header(
-                "NWIS-I UNIT-VALUES", "NO",
-                site,
-                timeSeriesDescription.SubLocationIdentifer,
-                /**
-                   @todo need to find out what to pass in for
-                         "statistic" parameter when doing UVs below.
-                */
-                parameter, undefined,
-                /**
-                   @todo this is pragmatically hard-coded now
-                */
-                {code: 'C', name: "COMPUTED"},
-                {start: interval.from, end: interval.to}
-            );
-        })
-        .then((header) => {
             response.write(
-                header +
-                    "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
-                    "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
-                "ascii"
+                rdb.header(
+                    "NWIS-I UNIT-VALUES", "NO",
+                    site,
+                    timeSeriesDescription.SubLocationIdentifer,
+                    /**
+                       @todo need to find out what to pass in for
+                       "statistic" parameter when doing UVs below.
+                    */
+                    parameter, undefined,
+                    /**
+                       @todo this is pragmatically hard-coded now
+                    */
+                    {code: 'C', name: "COMPUTED"},
+                    {start: interval.from, end: interval.to}
+                )
             );
-            return;
         })
-        .then(() => {
-            var parameters = appendIntervalSearchCondition(
-                {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
+        .then(() => response.write(
+            "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
+                "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
+            "ascii"
+        ))
+        .then(() => aquarius.getTimeSeriesCorrectedData(
+            appendIntervalSearchCondition(
+                {TimeSeriesUniqueId: uniqueId,
                  ApplyRounding: applyRounding},
-                interval,
-                site.tzCode,
+                interval, site.tzCode,
                 "00000000000000", "99999999999999"
-            );
-
-            return aquarius.getTimeSeriesCorrectedData(parameters);
-        })
-        .then((messageBody) => {
-            return aquarius.parseTimeSeriesDataServiceResponse(messageBody);
-        })
-        .then((timeSeriesDataServiceResponse) => {
-            return uvTableBody(
+            )
+        ))
+        .then(
+            (messageBody) =>
+                aquarius.parseTimeSeriesDataServiceResponse(messageBody)
+        )
+        .then(
+            (timeSeriesDataServiceResponse) => uvTableBody(
                 applyRounding,
                 site.tzCode,
                 site.localTimeFlag,
@@ -1203,8 +1199,7 @@ function unitValues(site, parameter, interval, applyRounding, response) {
          timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0),
                 timeSeriesDataServiceResponse.Points,
                 response
-            );
-        });
+            ));
 } // unitValues
 
 function query(requestURL, response) {
