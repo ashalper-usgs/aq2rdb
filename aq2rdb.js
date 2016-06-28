@@ -355,16 +355,13 @@ function jsonParseErrorMessage(response, message) {
    @description Check for documentation request, and serve
                 documentation if appropriate.
    @private
-   @param {string} url Endpoint URL.
-   @param {string} name Endpoint name.
-   @param {object} response IncomingMessage object created by Node.js
-                   http.Server.
+   @param {string} name Route name.
 */
-function docRequest(url, servicePath, response) {
+function docRequest(name) {
     return new Promise(function (resolve, reject) {
         // read and serve the documentation page
         fs.readFile(
-            "doc/" + path.basename(servicePath) + ".html",
+            "doc/" + path.basename(name) + ".html",
             function (error, html) {
                 if (error)
                     reject(error);
@@ -719,9 +716,9 @@ httpdispatcher.onGet(
         var field, token, locationIdentifier, timeSeriesDescription;
 
         // if this is a documentation page request
-        if (request.url === "/aq2rdb/GetDVTable")
+        if (request.url === "/" + packageName + "/GetDVTable")
             // serve the documentation page
-            docRequest(request.url).then((html) => {
+            docRequest("GetDVTable").then((html) => {
                 response.writeHeader(200, {"Content-Type": "text/html"});  
                 response.end(html);
             });
@@ -844,34 +841,15 @@ httpdispatcher.onGet(
 
         // if this is a documentation page request
         if (request.url === "/" + packageName + "/GetUVTable") {
-            var p = new Promise(
-                function (resolve, reject) {
-                    // read the documentation page
-                    fs.readFile(
-                        "doc/GetUVTable.html",
-                        function (error, html) {
-                            if (error) {
-                                reject(error);
-                                return;
-                            }
-                            resolve(html);
-                        }
-                    );
-                }
-            );
-
-            p.then(
-                function (html) {
-                    // serve the documentation page
-                    response.writeHeader(200, {"Content-Type": "text/html"});  
-                    response.end(html);
-                })
-                .catch(
-                    function (error) {
-                        response.end("# " + packageName + ": " + error);
-                        log(packageName, error);
-                    });
-
+            docRequest("GetUVTable").then((html) => {
+                // serve the documentation page
+                response.writeHeader(200, {"Content-Type": "text/html"});  
+                response.end(html);
+            })
+                .catch((error) => {
+                    response.end("# " + packageName + ": " + error);
+                    log(packageName, error);
+                });
             return;
         }
 
@@ -1406,7 +1384,7 @@ httpdispatcher.onGet(
 
         if (request.url === "/aq2rdb")
             // serve the documentation page
-            docRequest(request.url).then((html) => {
+            docRequest("aq2rdb").then((html) => {
                 response.writeHeader(200, {"Content-Type": "text/html"});  
                 response.end(html);
             });
