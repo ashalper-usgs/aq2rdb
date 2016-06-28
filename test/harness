@@ -12,6 +12,7 @@ aq2rdb () {
 }
 
 endpoint () {
+    echo "curl -g http://$HOST:8081/aq2rdb/$1?$2"
     curl -g "http://$HOST:8081/aq2rdb/$1?$2"
 }
 
@@ -27,18 +28,6 @@ if [ "$1" = -s ]; then
     # start stub server
     node stub.js &
     stub=$!
-fi
-
-if [ "$1" = -l ]; then
-   node ../aq2rdb.js -t cidasdqaasaq2rd.cr.usgs.gov \
-       -w waterservices.usgs.gov -a nwists.usgs.gov &
-   aq2rdb=$!
-fi
-
-if [ `hostname` = hemi ]; then
-    # Sometimes necessary on systems where the Node.js scripts above
-    # don't start fast enough:
-    sleep 1s
 fi
 
 endpoint GetDVTable "timeSeriesIdentifier=Discharge.ft^3/s.Mean@09380000"
