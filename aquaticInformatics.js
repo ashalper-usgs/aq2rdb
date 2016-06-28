@@ -89,11 +89,9 @@ LocationIdentifier: function (
    @param {string} hostname DNS host name of AQUARIUS server.
    @param {string} userName AQUARIUS account user name.
    @param {string} password AQUARIUS account password.
-   @param {function} callback Callback to call when object
-          constructed.
 */
 AQUARIUS: function (
-    aquariusTokenHostname, hostname, userName, password, callback
+    aquariusTokenHostname, hostname, userName, password
 ) {
     var aquariusTokenHostname, token;
     var port = "8080";
@@ -101,115 +99,123 @@ AQUARIUS: function (
     var uriString = "http://" + hostname + "/AQUARIUS/";
 
     if (aquariusTokenHostname === undefined) {
-        callback('Required field "aquariusTokenHostname" not found');
+        throw 'Required field "aquariusTokenHostname" not found';
         return;
     }
 
     if (aquariusTokenHostname === '') {
-        callback('Required field "aquariusTokenHostname" must have a value');
+        throw 'Required field "aquariusTokenHostname" must have a value';
         return;
     }
 
     aquariusTokenHostname = aquariusTokenHostname;
 
     if (hostname === undefined) {
-        callback('Required field "hostname" not found');
+        throw 'Required field "hostname" not found';
         return;
     }
 
     if (hostname === '') {
-        callback('Required field "hostname" must have a value');
+        throw 'Required field "hostname" must have a value';
         return;
     }
 
     this.hostname = hostname;
 
     if (userName === undefined) {
-        callback('Required field "userName" not found');
+        throw 'Required field "userName" not found';
         return;
     }
 
     if (userName === '') {
-        callback('Required field "userName" must have a value');
+        throw 'Required field "userName" must have a value';
         return;
     }
 
     if (password === undefined) {
-        callback('Required field "password" not found');
+        throw 'Required field "password" not found';
         return;
     }
 
     if (password === '') {
-        callback('Required field "password" must have a value');
+        throw 'Required field "password" must have a value';
         return;
     }
 
-    /**
-       @function
-       @description GetAQToken service response callback.
-       @private
-       @callback
-    */
-    function getAQTokenCallback(response) {
-        var messageBody = '';
+    this.authenticate = function () {
+        return new Promise(function (resolve, reject) {
+            /**
+               @todo see if internals here can be replaced with a call to
+               rest.query()
+            */
 
-        // accumulate response
-        response.on('data', function (chunk) {
-            messageBody += chunk;
-        });
+            /**
+               @function
+               @description GetAQToken service response callback.
+               @private
+               @callback
+            */
+            function getAQTokenCallback(response) {
+                var messageBody = '';
 
-        // Response complete; token received.
-        response.on('end', function () {
-            token = messageBody;
-            callback(
-                null,
-                "Received AQUARIUS authentication token successfully"
+                // accumulate response
+                response.on("data", function (chunk) {
+                    messageBody += chunk;
+                });
+
+                // Response complete; token received.
+                response.on('end', function () {
+                    token = messageBody;
+                    resolve(
+                        "Received AQUARIUS authentication token successfully"
+                    );
+                    return;
+                });
+            } // getAQTokenCallback
+
+            // make sure to not reveal user-name/passwords in log
+            path += querystring.stringify(
+                {userName: userName, password: password,
+                 uriString: uriString}
             );
-            return;
+
+            /**
+               @description GetAQToken service request for AQUARIUS
+               authentication token needed for AQUARIUS API.
+            */
+            var request = http.request({
+                host: aquariusTokenHostname,
+                port: port,             // TODO: make a CLI parameter?
+                path: path
+            }, getAQTokenCallback);
+
+            /**
+               @description Handle GetAQToken service invocation errors.
+               @callback
+            */
+            request.on("error", function (error) {
+                var statusMessage;
+
+                if (error.code === "ECONNREFUSED") {
+                    var message =               
+                        "Could not connect to GetAQToken service at " +
+                        error.address;
+
+                    if (error.port !== undefined)
+                        message += " on port " + error.port.toString();
+
+                    message += " for AQUARIUS authentication token";
+                    reject(message);
+                }
+                else {
+                    reject(error);
+                }
+                return;
+            });
+
+            request.end();
         });
-    } // getAQTokenCallback
-
-    // make sure to not reveal user-name/passwords in log
-    path += querystring.stringify(
-        {userName: userName, password: password,
-         uriString: uriString}
-    );
-
-    /**
-       @description GetAQToken service request for AQUARIUS
-                    authentication token needed for AQUARIUS API.
-    */
-    var request = http.request({
-        host: aquariusTokenHostname,
-        port: port,             // TODO: make a CLI parameter?
-        path: path
-    }, getAQTokenCallback);
-
-    /**
-       @description Handle GetAQToken service invocation errors.
-       @callback
-    */
-    request.on('error', function (error) {
-        var statusMessage;
-
-        if (error.code === "ECONNREFUSED") {
-            var message =               
-                "Could not connect to GetAQToken service at " +
-                error.address;
-
-            if (error.port !== undefined)
-                message += " on port " + error.port.toString();
-
-            message += " for AQUARIUS authentication token";
-            callback(message);
-        }
-        else {
-            callback(error);
-        }
-        return;
-    });
-
-    request.end();
+    } // authenticate
 
     /**
        @method
@@ -374,9 +380,9 @@ AQUARIUS: function (
                      l = primaryTimeSeriesDescriptions.length; i < l;
                      i++) {
                     error += "#   " +
-			primaryTimeSeriesDescriptions[i].Identifier +
-			"\n";
-		}
+                        primaryTimeSeriesDescriptions[i].Identifier +
+                        "\n";
+                }
                 throw error;
             }
         } // switch (timeSeriesDescriptions.length)
