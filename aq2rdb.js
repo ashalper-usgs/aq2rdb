@@ -13,7 +13,6 @@
 
 // Node.JS modules
 var commandLineArgs = require("command-line-args");
-var ifAsync = require("if-async");
 var fs = require("fs");
 var http = require("http");
 var https = require('https');
