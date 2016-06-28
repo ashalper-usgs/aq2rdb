@@ -1207,7 +1207,7 @@ function unitValues(site, parameter, interval, applyRounding, response) {
         });
 } // unitValues
 
-function aq2rdbQuery(requestURL) {
+function query(requestURL, response) {
     return new Promise(function (resolve, reject) {
         var field;
 
@@ -1265,9 +1265,6 @@ function aq2rdbQuery(requestURL) {
         var cflag = field.c;
         var vflag = false;
 
-	/** @todo might be deprecated in this route */
-        var timeSeriesIdentifier = field.u;
-
         var locTzCd = ("l" in field) ? field.l : "LOC";
         var titlline = "";
 
@@ -1312,6 +1309,8 @@ function aq2rdbQuery(requestURL) {
         var locationIdentifier =
             new aquaticInformatics.LocationIdentifier(agencyCode, siteNumber);
 
+        log(packageName + ".query.parameterCode", parameterCode);
+        var parameter;
         nwisRA.query(
             {"parameters.PARM_ALIAS_CD": "AQNAME",
              "parameters.PARM_CD": parameterCode},
@@ -1352,6 +1351,8 @@ function aq2rdbQuery(requestURL) {
                     throw error;
             })
             .then((site) => {
+                log(packageName + ".query.site", JSON.stringify(site));
+
                 if (dataType === "DV")
                     dailyValues(
                         site, parameter, statCd, interval, response
@@ -1365,7 +1366,7 @@ function aq2rdbQuery(requestURL) {
                     throw 'Unknown data type "' + dataType + '"';
             });
     });
-} // aq2rdbQuery
+} // query
 
 /**
    @description aq2rdb endpoint, service request handler.
@@ -1383,14 +1384,11 @@ httpdispatcher.onGet(
                 response.end(html);
             });
         else
-            aq2rdbQuery(request.url)
+            query(request.url, response)
             .then(() => response.end())
-            .catch((error) => {
-                response.end(
-                    "# " + packageName + ": " + error + '\n',
-                    "ascii"
-                );
-            });
+            .catch((error) => response.end(
+                "# " + packageName + ": " + error + '\n',
+                "ascii"));
     }
 ); // aq2rdb
 
