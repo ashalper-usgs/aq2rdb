@@ -253,13 +253,10 @@ AQUARIUS: function (
         fields["token"] = token;
         fields["format"] = "json";
 
-        /**
-           @todo replace with return rest.query()
-        */
         return rest.query(
             "http", hostname, "GET", undefined,
             "/AQUARIUS/Publish/V2/GetTimeSeriesCorrectedData", fields,
-            false
+            true
         );
     } // getTimeSeriesCorrectedData
 
