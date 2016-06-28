@@ -1207,7 +1207,7 @@ function unitValues(site, parameter, interval, applyRounding, response) {
         });
 } // unitValues
 
-function aq2rdb(requestURL) {
+function aq2rdbQuery(requestURL) {
     return new Promise(function (resolve, reject) {
         var field;
 
@@ -1249,24 +1249,27 @@ function aq2rdb(requestURL) {
             }
         }
 
-        // "rounding suppression flag"
-        var applyRounding = (field.r === undefined) ? "True" : "False";
-
         var dataType = field.t.substring(0, 2).toUpperCase();
         var agencyCode = ("a" in field) ? field.a.substring(0, 5) : "USGS";
         // convert station to 15 characters
         var siteNumber = field.n.substring(0, 15);
         var parameterCode = field.p;
+
+        var begdat = field.b;
+        var enddat = field.e;
+
+        // "rounding suppression flag"
+        var applyRounding = (field.r === undefined) ? "True" : "False";
+
         var wyflag = field.w;
         var cflag = field.c;
         var vflag = false;
+
+	/** @todo might be deprecated in this route */
         var timeSeriesIdentifier = field.u;
-        var begdat = field.b;
-        var enddat = field.e;
+
         var locTzCd = ("l" in field) ? field.l : "LOC";
         var titlline = "";
-
-        var uvType, interval;
 
         // further processing depends on data type
 
@@ -1279,6 +1282,8 @@ function aq2rdb(requestURL) {
             if (begdat !== undefined && enddat !== undefined)
                 interval = new adaps.IntervalDay(begdat, enddat, wyflag);
         }
+
+        var uvType, interval;
 
         if (dataType === 'UV') {
             
@@ -1304,7 +1309,7 @@ function aq2rdb(requestURL) {
 
         }
 
-        locationIdentifier =
+        var locationIdentifier =
             new aquaticInformatics.LocationIdentifier(agencyCode, siteNumber);
 
         nwisRA.query(
@@ -1360,7 +1365,7 @@ function aq2rdb(requestURL) {
                     throw 'Unknown data type "' + dataType + '"';
             });
     });
-} // aq2rdb
+} // aq2rdbQuery
 
 /**
    @description aq2rdb endpoint, service request handler.
@@ -1371,16 +1376,6 @@ httpdispatcher.onGet(
        @callback
     */
     function (request, response) {
-        var dataType, agencyCode, siteNumber, locationIdentifier;
-        /**
-           @todo Need to check downstream depedendencies in aq2rdb
-                 endpoint for presence of former "P" prefix of this
-                 value.
-        */
-        var parameterCode;
-        var parameter, statCd, extendedFilters;
-        var timeSeriesIdentifier, cflag, vflag, applyRounding, locTzCd;
-
         if (request.url === "/aq2rdb")
             // serve the documentation page
             docRequest("aq2rdb").then((html) => {
@@ -1388,7 +1383,7 @@ httpdispatcher.onGet(
                 response.end(html);
             });
         else
-            aq2rdb(request.url)
+            aq2rdbQuery(request.url)
             .then(() => response.end())
             .catch((error) => {
                 response.end(
