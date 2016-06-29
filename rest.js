@@ -9,8 +9,6 @@
 'use strict';
 
 // Node.js modules
-var http = require('http');
-var https = require('https');
 var querystring = require('querystring');
 
 var rest = module.exports = {
