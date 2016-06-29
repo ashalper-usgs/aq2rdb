@@ -670,9 +670,16 @@ function uvTableBody (
 ) {
     return new Promise(function (resolve, reject) {
         for (var i = 0, l = points.length; i < l; i++) {
-            var zone, m;
-            var value = (applyRounding === "False") ?
-                point[i].Value.Numeric : point[i].Value.Display;
+            var value, zone;
+
+            if (applyRounding === "True")
+                value = points[i].Value.Display;
+            else if (applyRounding === "False")
+                value = points[i].Value.Numeric.toString();
+            else
+                throw 'Invalid applyRounding value "' +
+                      applyRounding +
+                      '" passed to aq2rdb.uvTableBody()';
 
             try {
                 zone = tzName[tzCode][localTimeFlag];
@@ -688,12 +695,12 @@ function uvTableBody (
 
             // reference AQUARIUS timestamp to site's (NWIS) time zone
             // spec.
-            m = moment.tz(point[i].Timestamp, zone);
+            var m = moment.tz(points[i].Timestamp, zone);
 
             response.write(
                 m.format("YYYYMMDD") + '\t' + m.format("HHmmss") +
-                    '\t' + waterServicesSite.tzCode + '\t' + value +
-                    "\t\t \t\t" + qaCode + '\n'
+                    '\t' + tzCode + '\t' + value + "\t\t \t\t" +
+                    qaCode + '\n'
             );
         }
         resolve();
@@ -1054,7 +1061,7 @@ httpdispatcher.onGet(
                            @todo What should applyRounding be in this
                                  context?
                         */
-                        true,
+                        "True",
                         site.tzCode,
                         site.localTimeFlag,
                         // QA code ("QA" RDB column): might not be
@@ -1188,21 +1195,21 @@ function unitValues(site, parameter, interval, applyRounding, response) {
 
             return timeSeriesDataServiceResponse;
         })
-        .then(
-            (timeSeriesDataServiceResponse) => {
-                console.log(JSON.stringify(timeSeriesDataServiceResponse));
-
-                return uvTableBody(
-                applyRounding,
-                site.tzCode,
-                site.localTimeFlag,
-                // QA code ("QA" RDB column): might not be
-                // backwards-compatible with nwts2rdb
+        .then((timeSeriesDataServiceResponse) => uvTableBody(
+            applyRounding,
+            site.tzCode,
+            site.localTimeFlag,
+            // QA code ("QA" RDB column): might not be
+            // backwards-compatible with nwts2rdb
          timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0),
-                timeSeriesDataServiceResponse.Points,
-                response
-            );
-            });
+            timeSeriesDataServiceResponse.Points,
+            response
+        ))
+        .then(() => response.end())
+        .catch((error) => {
+            log(packageName + ".unitValues()", error);
+            throw error;
+        });
 } // unitValues
 
 function query(requestURL, response) {
