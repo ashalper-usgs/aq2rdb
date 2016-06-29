@@ -1185,12 +1185,17 @@ function unitValues(site, parameter, interval, applyRounding, response) {
                 "00000000000000", "99999999999999"
             )
         ))
+        .then((messageBody) => {
+            var timeSeriesDataServiceResponse =
+                aquarius.parseTimeSeriesDataServiceResponse(messageBody);
+
+            return timeSeriesDataServiceResponse;
+        })
         .then(
-            (messageBody) =>
-                aquarius.parseTimeSeriesDataServiceResponse(messageBody)
-        )
-        .then(
-            (timeSeriesDataServiceResponse) => uvTableBody(
+            (timeSeriesDataServiceResponse) => {
+                console.log(JSON.stringify(timeSeriesDataServiceResponse));
+
+                return uvTableBody(
                 applyRounding,
                 site.tzCode,
                 site.localTimeFlag,
@@ -1199,7 +1204,8 @@ function unitValues(site, parameter, interval, applyRounding, response) {
          timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0),
                 timeSeriesDataServiceResponse.Points,
                 response
-            ));
+            );
+            });
 } // unitValues
 
 function query(requestURL, response) {
@@ -1304,7 +1310,6 @@ function query(requestURL, response) {
         var locationIdentifier =
             new aquaticInformatics.LocationIdentifier(agencyCode, siteNumber);
 
-        log(packageName + ".query.parameterCode", parameterCode);
         var parameter;
         nwisRA.query(
             {"parameters.PARM_ALIAS_CD": "AQNAME",
@@ -1346,8 +1351,6 @@ function query(requestURL, response) {
                     throw error;
             })
             .then((site) => {
-                log(packageName + ".query.site", JSON.stringify(site));
-
                 if (dataType === "DV")
                     dailyValues(
                         site, parameter, statCd, interval, response
