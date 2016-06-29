@@ -6,9 +6,6 @@
  * @author Andrew Halper <ashalper@usgs.gov>
  */
 
-// Node.js modules
-var sprintf = require("sprintf-js").sprintf;
-
 // aq2rdb modules
 var rdb = require('./rdb');
 
