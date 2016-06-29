@@ -15,13 +15,10 @@
 var commandLineArgs = require("command-line-args");
 var fs = require("fs");
 var http = require("http");
-var https = require('https');
 var httpdispatcher = require("httpdispatcher");
 var moment = require("moment-timezone");
 var path = require("path");
-var sprintf = require("sprintf-js").sprintf;
 var url = require("url");
-var querystring = require('querystring');
 
 // aq2rdb modules
 var adaps = require("./adaps");
