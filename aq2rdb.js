@@ -613,7 +613,7 @@ function dvTableBody(
     // load mapping of NWIS remark codes to AQUARIUS qualifiers
     return aquarius.getRemarkCodes()
         .then(() => {
-            var f, t;
+            var from, to;
             var parameters = {
                 TimeSeriesUniqueId: timeSeriesUniqueId,
                 ApplyRounding: "true"
@@ -621,47 +621,50 @@ function dvTableBody(
 
             if (queryFrom !== "00000000") {
                 try {
-                    f = moment.tz(queryFrom, tzName).format("YYYY-MM-DD");
+                    from = moment.tz(queryFrom, tzName).format("YYYY-MM-DD");
                 }
                 catch (error) {
                     throw error;
                     return;
                 }
-                parameters["QueryFrom"] = f;
+                parameters["QueryFrom"] = from;
             }
 
             if (queryTo !== "99999999") {
                 try {
-                    t = moment.tz(queryTo, tzName).format("YYYY-MM-DD");
+                    to = moment.tz(queryTo, tzName).format("YYYY-MM-DD");
                 }
                 catch (error) {
                     throw error;
                     return;
                 }
-                parameters["QueryTo"] = t;
+                parameters["QueryTo"] = to;
             }
 
             return aquarius.getTimeSeriesCorrectedData(parameters);
         })
         .then((messageBody) =>
-	      aquarius.parseTimeSeriesDataServiceResponse(messageBody))
+              aquarius.parseTimeSeriesDataServiceResponse(messageBody))
         .then((timeSeriesDataServiceResponse) => {
-            var p = timeSeriesDataServiceResponse.Points;
+            return new Promise((resolve, reject) => {
+                var p = timeSeriesDataServiceResponse.Points;
 
-            for (var i = 0, l = p.length; i < l; i++) {
-                response.write(
-                    dvTableRow(
-                        p[i].Timestamp,
-                        p[i].Value,
-                        timeSeriesDataServiceResponse.Qualifiers,
-                        aquarius.remarkCodes,
+                for (var i = 0, l = p.length; i < l; i++) {
+                    response.write(
+                        dvTableRow(
+                            p[i].Timestamp,
+                            p[i].Value,
+                            timeSeriesDataServiceResponse.Qualifiers,
+                            aquarius.remarkCodes,
           timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0)
-                    ),
-                    "ascii"
-                );
-            }
+                        ),
+                        "ascii"
+                    );
+                }
+                resolve();
+            });
         })
-        .catch((error) => {throw error;});
+        .catch((error) => log(packageName + ".dvTableBody()", error));
 } // dvTableBody
 
 function uvTableBody (
@@ -703,7 +706,8 @@ function uvTableBody (
             );
         }
         resolve();
-    });
+    })
+    .catch((error) => log(packageName + ".uvTableBody()", error));
 } // uvTableBody
 
 /**
@@ -824,7 +828,7 @@ httpdispatcher.onGet(
                 ))
                 .then(() => response.end())
                 .catch((error) => {
-                    log(packageName + ".GetDVTable()", error);
+                    log("/" + packageName + "/GetDVTable", error);
                     throw error;
                 });
         }
@@ -1110,40 +1114,35 @@ function dailyValues(site, parameter, statCd, interval, response) {
                 return;
             }
 
-            return rdb.header(
-                "NWIS-I DAILY-VALUES", "NO",
-                site,
-                timeSeriesDescription.SubLocationIdentifer,
-                parameter, statistic,
-                /**
-                   @todo Hard-coded object here is likely not
-                   correct under all circumstances.
-                */
-                {name: "FINAL",
-                 description: "EDITED AND COMPUTED DAILY VALUES"},
-                {start: interval.from, end: interval.to}
-            );
-        })
-        .then((header) => {
-            // write RDB column headings
-            response.write(
-                header +
+            return new Promise((resolve, reject) => {
+                response.write(
+                    rdb.header(
+                        "NWIS-I DAILY-VALUES", "NO",
+                        site,
+                        timeSeriesDescription.SubLocationIdentifer,
+                        parameter, statistic,
+                        /**
+                           @todo Hard-coded object here is likely not
+                           correct under all circumstances.
+                        */
+                        {name: "FINAL",
+                         description: "EDITED AND COMPUTED DAILY VALUES"},
+                        {start: interval.from, end: interval.to}
+                    ) +
                     "DATE\tTIME\tVALUE\tPRECISION\tREMARK\tFLAGS\tTYPE\tQA\n" +
-                    "8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n",
-                "ascii"
-            );
+                        "8D\t6S\t16N\t1S\t1S\t32S\t1S\t1S\n",
+                    "ascii"
+                );
+                resolve();
+            });
         })
         .then(() => dvTableBody(
-            timeSeriesDescription.UniqueId,
-            interval.from, interval.to,
-            tzName[site.tzCode][site.localTimeFlag],
-            response
+                timeSeriesDescription.UniqueId,
+                interval.from, interval.to,
+                tzName[site.tzCode][site.localTimeFlag],
+                response
         ))
         .then(() => response.end())
-        .catch((error) => {
-            log(packageName + ".GetDVTable()", error);
-            throw error;
-        });
 } // dailyValues
 
 function unitValues(site, parameter, interval, applyRounding, response) {
