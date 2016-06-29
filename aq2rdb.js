@@ -1212,160 +1212,158 @@ function unitValues(site, parameter, interval, applyRounding, response) {
 } // unitValues
 
 function query(requestURL, response) {
-    return new Promise(function (resolve, reject) {
-        var field;
+    var field;
 
-        try {
-            field = url.parse(requestURL, true).query;
+    try {
+        field = url.parse(requestURL, true).query;
+    }
+    catch (error) {
+        reject(error);
+        return;
+    }
+
+    // if any mandatory fields are missing
+    if (field.t === undefined || field.n === undefined ||
+        field.b === undefined || field.e === undefined ||
+        field.s === undefined || field.p === undefined) {
+        // terminate response with an error
+        reject(
+            "All of \"t\", \"n\", \"b\", \"e\", \"s\" and \"p\" " +
+                "fields must be present" 
+        );
+        return;
+    }
+
+    if ((field.p || field.s) && field.u) {
+        reject(
+            "Specify either \"-p\" and \"s\", or " +
+                "\"-u\", but not both"
+        );
+        return;
+    }
+
+    for (var name in field) {
+        if (name.match(/^(a|p|t|s|n|b|e|l|r|u|w|c)$/)) {
+            // aq2rdb fields
         }
-        catch (error) {
-            reject(error);
+        else if (name !== "") {
+            reject("Unknown field \"" + name + "\"");
+            return;
+        }
+    }
+
+    var dataType = field.t.substring(0, 2).toUpperCase();
+    var agencyCode = ("a" in field) ? field.a.substring(0, 5) : "USGS";
+    // convert station to 15 characters
+    var siteNumber = field.n.substring(0, 15);
+    var parameterCode = field.p;
+
+    var begdat = field.b;
+    var enddat = field.e;
+
+    // "rounding suppression flag"; note that AQUARIUS
+    // ApplyRounding semantics require effectively inverting the
+    // truth value here
+    var applyRounding = ("r" in field) ? "False" : "True";
+
+    var wyflag = field.w;
+    var cflag = field.c;
+    var vflag = false;
+
+    var locTzCd = ("l" in field) ? field.l : "LOC";
+    var titlline = "";
+
+    var statCd = field.s;
+
+    if (dataType === 'DV' || dataType === 'DC' ||
+        dataType === 'SV' || dataType === 'PK') {
+        // convert dates to 8 characters
+        if (begdat !== undefined && enddat !== undefined)
+            interval = new adaps.IntervalDay(begdat, enddat, wyflag);
+    }
+
+    var uvType, interval;
+
+    if (dataType === 'UV') {
+        
+        uvType = field.s.charAt(0).toUpperCase();
+        
+        if (! (uvType === 'C' || uvType === 'E' ||
+               uvType === 'M' || uvType === 'N' ||
+               uvType === 'R' || uvType === 'S')) {
+            // Position of this is an artifact of the
+            // nwts2rdb legacy code: it might need to be
+            // moved earlier in HTTP query parameter
+            // validation code.
+            reject('UV type code must be ' +
+                   '"M", "N", "E", "R", "S", or "C"');
             return;
         }
 
-        // if any mandatory fields are missing
-        if (field.t === undefined || field.n === undefined ||
-            field.b === undefined || field.e === undefined ||
-            field.s === undefined || field.p === undefined) {
-            // terminate response with an error
-            reject(
-                "All of \"t\", \"n\", \"b\", \"e\", \"s\" and \"p\" " +
-                    "fields must be present" 
-            );
-            return;
+        // convert date/times to 14 characters
+        if (begdat !== undefined && enddat !== undefined) {
+            interval =
+                new adaps.IntervalSecond(begdat, enddat, wyflag);
         }
 
-        if ((field.p || field.s) && field.u) {
-            reject(
-                "Specify either \"-p\" and \"s\", or " +
-                    "\"-u\", but not both"
-            );
-            return;
-        }
+    }
 
-        for (var name in field) {
-            if (name.match(/^(a|p|t|s|n|b|e|l|r|u|w|c)$/)) {
-                // aq2rdb fields
+    var locationIdentifier =
+        new aquaticInformatics.LocationIdentifier(agencyCode, siteNumber);
+
+    var parameter;
+    return nwisRA.query(
+        {"parameters.PARM_ALIAS_CD": "AQNAME",
+         "parameters.PARM_CD": parameterCode},
+        options.log
+    )
+        .then((messageBody) => {
+            var parameters;
+
+            try {
+                parameters = JSON.parse(messageBody);
             }
-            else if (name !== "") {
-                reject("Unknown field \"" + name + "\"");
+            catch (error) {
+                throw error;
                 return;
             }
-        }
 
-        var dataType = field.t.substring(0, 2).toUpperCase();
-        var agencyCode = ("a" in field) ? field.a.substring(0, 5) : "USGS";
-        // convert station to 15 characters
-        var siteNumber = field.n.substring(0, 15);
-        var parameterCode = field.p;
-
-        var begdat = field.b;
-        var enddat = field.e;
-
-        // "rounding suppression flag"; note that AQUARIUS
-        // ApplyRounding semantics require effectively inverting the
-        // truth value here
-        var applyRounding = ("r" in field) ? "False" : "True";
-
-        var wyflag = field.w;
-        var cflag = field.c;
-        var vflag = false;
-
-        var locTzCd = ("l" in field) ? field.l : "LOC";
-        var titlline = "";
-
-        var statCd = field.s;
-
-        if (dataType === 'DV' || dataType === 'DC' ||
-            dataType === 'SV' || dataType === 'PK') {
-            // convert dates to 8 characters
-            if (begdat !== undefined && enddat !== undefined)
-                interval = new adaps.IntervalDay(begdat, enddat, wyflag);
-        }
-
-        var uvType, interval;
-
-        if (dataType === 'UV') {
-            
-            uvType = field.s.charAt(0).toUpperCase();
-            
-            if (! (uvType === 'C' || uvType === 'E' ||
-                   uvType === 'M' || uvType === 'N' ||
-                   uvType === 'R' || uvType === 'S')) {
-                // Position of this is an artifact of the
-                // nwts2rdb legacy code: it might need to be
-                // moved earlier in HTTP query parameter
-                // validation code.
-                reject('UV type code must be ' +
-                       '"M", "N", "E", "R", "S", or "C"');
-                return;
-            }
-
-            // convert date/times to 14 characters
-            if (begdat !== undefined && enddat !== undefined) {
-                interval =
-                    new adaps.IntervalSecond(begdat, enddat, wyflag);
-            }
-
-        }
-
-        var locationIdentifier =
-            new aquaticInformatics.LocationIdentifier(agencyCode, siteNumber);
-
-        var parameter;
-        nwisRA.query(
-            {"parameters.PARM_ALIAS_CD": "AQNAME",
-             "parameters.PARM_CD": parameterCode},
+            // load fields we need into something more coherent
+            parameter = {
+                code: parameters.records[0].PARM_CD,
+                name: parameters.records[0].PARM_NM,
+                description: parameters.records[0].PARM_DS,
+                aquariusParameter: parameters.records[0].PARM_ALIAS_NM
+            };
+        })
+        .then(() => site.request(
+            options.waterServicesHostname,
+            locationIdentifier.agencyCode(),
+            locationIdentifier.siteNumber(),
             options.log
-        )
-            .then((messageBody) => {
-                var parameters;
-
-                try {
-                    parameters = JSON.parse(messageBody);
-                }
-                catch (error) {
-                    throw error;
-                    return;
-                }
-
-                // load fields we need into something more coherent
-                parameter = {
-                    code: parameters.records[0].PARM_CD,
-                    name: parameters.records[0].PARM_NM,
-                    description: parameters.records[0].PARM_DS,
-                    aquariusParameter: parameters.records[0].PARM_ALIAS_NM
-                };
-            })
-            .then(() => site.request(
-                options.waterServicesHostname,
-                locationIdentifier.agencyCode(),
-                locationIdentifier.siteNumber(),
-                options.log
-            ))
-            .then((messageBody) => site.receive(messageBody))
-            .catch((error) => {
-                if (error === 404)
-                    throw "Location " +
-                        locationIdentifier.toString() +
-                        " does not exist";
-                else
-                    throw error;
-            })
-            .then((site) => {
-                if (dataType === "DV")
-                    dailyValues(
-                        site, parameter, statCd, interval, response
-                    );
-                else if (dataType === "UV")
-                    unitValues(
-                        site, parameter, interval, applyRounding,
-                        response
-                    );
-                else
-                    throw 'Unknown data type "' + dataType + '"';
-            });
-    });
+        ))
+        .then((messageBody) => site.receive(messageBody))
+        .catch((error) => {
+            /** @todo this might be too generic at this level */
+            if (error === 404)
+                throw "Location " + locationIdentifier.toString() +
+                " does not exist";
+            else
+                throw error;
+        })
+        .then((site) => {
+            if (dataType === "DV")
+                return dailyValues(
+                    site, parameter, statCd, interval, response
+                );
+            else if (dataType === "UV")
+                return unitValues(
+                    site, parameter, interval, applyRounding,
+                    response
+                );
+            else
+                throw 'Unknown data type "' + dataType + '"';
+        });
 } // query
 
 /**
@@ -1386,9 +1384,17 @@ httpdispatcher.onGet(
         else
             query(request.url, response)
             .then(() => response.end())
-            .catch((error) => response.end(
-                "# " + packageName + ": " + error + '\n',
-                "ascii"));
+            .catch((error) => {
+                var headers = {"Content-Type": "text/plain"};
+                var prefix = "More than one primary time series found for";
+
+                if (error.startsWith(prefix))
+                    response.writeHeader(501, headers);  
+                else
+                    response.writeHeader(500, headers);
+
+                response.end("# " + error);
+            });
     }
 ); // aq2rdb
 
