@@ -895,6 +895,24 @@ httpdispatcher.onGet(
             return;
         }
 
+        var timeSeriesIdentifier = field.TimeSeriesIdentifier;
+
+        // parse LocationIdentifier string from TimeSeriesIdentifier
+        var locationIdentifierString = timeSeriesIdentifier.split('@')[1];
+
+        // if LocationIdentifier value is not usable
+        if (locationIdentifierString === undefined ||
+            locationIdentifierString === "") {
+            // end with error message
+            response.writeHeader(400, {"Content-Type": "text/plain"});
+            response.end(
+                "# " + packageName + ": Could not find a " +
+                    "LocationIdentifier in TimeSeriesIdentifier \"" +
+                    field.TimeSeriesIdentifier + "\""
+            );
+            return;
+        }
+
         // check syntax of QueryFrom value
         var queryFrom;
         if ("QueryFrom" in field) {
@@ -921,24 +939,8 @@ httpdispatcher.onGet(
             queryTo = field.QueryTo;
         }
 
-        var timeSeriesIdentifier = field.TimeSeriesIdentifier;
-
-        // parse LocationIdentifier string from TimeSeriesIdentifier
-        var locationIdentifierString =
-            timeSeriesIdentifier.split('@')[1];
-
-        // if LocationIdentifier value is not usable
-        if (locationIdentifierString === undefined ||
-            locationIdentifierString === "") {
-            // end with error message
-            response.writeHeader(400, {"Content-Type": "text/plain"});
-            response.end(
-                "# " + packageName + ": Could not find a " +
-                    "LocationIdentifier in TimeSeriesIdentifier \"" +
-                    field.TimeSeriesIdentifier + "\""
-            );
-            return;
-        }
+        var applyRounding =
+            ("ApplyRounding" in field) ? field.ApplyRounding : "False";
 
         var timeSeriesDescription;
         var site = new usgs.Site(locationIdentifierString);
@@ -1044,9 +1046,8 @@ httpdispatcher.onGet(
         }).then(() => {
             aquarius.getTimeSeriesCorrectedData(
                 {TimeSeriesUniqueId: timeSeriesDescription.UniqueId,
-                 ApplyRounding: "true",
-                 QueryFrom: queryFrom,
-                 QueryTo: queryTo}
+                 ApplyRounding: applyRounding,
+                 QueryFrom: queryFrom, QueryTo: queryTo}
             )
                 .then((timeSeriesDataServiceResponse) => {
                     // if there are no unit values
@@ -1263,8 +1264,10 @@ function query(requestURL, response) {
         var begdat = field.b;
         var enddat = field.e;
 
-        // "rounding suppression flag"
-        var applyRounding = (field.r === undefined) ? "True" : "False";
+        // "rounding suppression flag"; note that AQUARIUS
+        // ApplyRounding semantics require effectively inverting the
+        // truth value here
+        var applyRounding = ("r" in field) ? "False" : "True";
 
         var wyflag = field.w;
         var cflag = field.c;
