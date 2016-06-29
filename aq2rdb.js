@@ -611,7 +611,7 @@ function dvTableBody(
     timeSeriesUniqueId, queryFrom, queryTo, tzName, response
 ) {
     // load mapping of NWIS remark codes to AQUARIUS qualifiers
-    aquarius.getRemarkCodes()
+    return aquarius.getRemarkCodes()
         .then(() => {
             var f, t;
             var parameters = {
@@ -643,9 +643,8 @@ function dvTableBody(
 
             return aquarius.getTimeSeriesCorrectedData(parameters);
         })
-        .then((messageBody) => {
-            return aquarius.parseTimeSeriesDataServiceResponse(messageBody);
-        })
+        .then((messageBody) =>
+	      aquarius.parseTimeSeriesDataServiceResponse(messageBody))
         .then((timeSeriesDataServiceResponse) => {
             var p = timeSeriesDataServiceResponse.Points;
 
@@ -812,21 +811,22 @@ httpdispatcher.onGet(
                             subLocationIdentifer, parameter,
                             {code: "", name: "", description: ""},
                             {start: start, end: end}
-                        ) +
-                            'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
-                            '8D\t6S\t16N\t1S\t32S\t1S\t1S\n', 'ascii'
+                        ) + 'DATE\tTIME\tVALUE\tREMARK\tFLAGS\tTYPE\tQA\n' +
+                            '8D\t6S\t16N\t1S\t32S\t1S\t1S\n',
+                        "ascii"
                     );
-
-                    return;
                 })
-            .then(() => {
-                dvTableBody(
+                .then(() => dvTableBody(
                     timeSeriesDescription.UniqueId,
                     field.QueryFrom, field.QueryTo,
-              tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
+             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
                     response
-                );
-            });
+                ))
+                .then(() => response.end())
+                .catch((error) => {
+                    log(packageName + ".GetDVTable()", error);
+                    throw error;
+                });
         }
     }
 ); // GetDVTable
@@ -1098,10 +1098,6 @@ function dailyValues(site, parameter, statCd, interval, response) {
         computationIdentifier[statCd], "Daily"
     )
         .then((tsd) => {
-            /** @todo Bad. Try to factor out. */
-
-            // save associated TimeSeriesDescription and statistic in
-            // outer scope
             timeSeriesDescription = tsd;
             statistic = {code: statCd};
 
@@ -1111,9 +1107,9 @@ function dailyValues(site, parameter, statCd, interval, response) {
             }
             catch (error) {
                 throw 'Invalid statistic code "' + statCd + '"';
+                return;
             }
-        })
-        .then(() => {
+
             return rdb.header(
                 "NWIS-I DAILY-VALUES", "NO",
                 site,
@@ -1137,13 +1133,16 @@ function dailyValues(site, parameter, statCd, interval, response) {
                 "ascii"
             );
         })
-        .then(() => {
-            dvTableBody(
-                timeSeriesDescription.UniqueId,
-                interval.from, interval.to,
-                tzName[site.tzCode][site.localTimeFlag],
-                response
-            );
+        .then(() => dvTableBody(
+            timeSeriesDescription.UniqueId,
+            interval.from, interval.to,
+            tzName[site.tzCode][site.localTimeFlag],
+            response
+        ))
+        .then(() => response.end())
+        .catch((error) => {
+            log(packageName + ".GetDVTable()", error);
+            throw error;
         });
 } // dailyValues
 
@@ -1276,10 +1275,7 @@ function query(requestURL, response) {
         var locTzCd = ("l" in field) ? field.l : "LOC";
         var titlline = "";
 
-        // further processing depends on data type
-
-        if (dataType === 'DV' && "s" in field)
-            statCd = field.s;
+        var statCd = field.s;
 
         if (dataType === 'DV' || dataType === 'DC' ||
             dataType === 'SV' || dataType === 'PK') {
