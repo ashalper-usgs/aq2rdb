@@ -8,9 +8,6 @@
 
 'use strict';
 
-// Node.js modules
-var path = require('path');
-
 // aq2rdb modules
 var rest = require('./rest');
 
