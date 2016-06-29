@@ -286,43 +286,40 @@ AQUARIUS: function (
        @description Cache remark codes.
     */
     this.getRemarkCodes = function () {
-        // if remark codes have not been loaded yet
-        if (this.remarkCodes === undefined) {
-            return rest.query(
-                "http", hostname, "GET", undefined, // HTTP headers
-                "/AQUARIUS/Publish/V2/GetQualifierList/",
-                {token: token, format: "json"}, false
-            ).then((messageBody) => {
-                var qualifierListServiceResponse;
+        return rest.query(
+            "http", hostname, "GET", undefined, // HTTP headers
+            "/AQUARIUS/Publish/V2/GetQualifierList/",
+            {token: token, format: "json"}, false
+        ).then((messageBody) => {
+            var qualifierListServiceResponse;
 
-                try {
-                    qualifierListServiceResponse =
-                        JSON.parse(messageBody);
-                }
-                catch (error) {
-                    throw error;
-                    return;
-                }
+            try {
+                qualifierListServiceResponse =
+                    JSON.parse(messageBody);
+            }
+            catch (error) {
+                throw error;
+                return;
+            }
 
-                // if we didn't get the remark codes domain table
-                if (qualifierListServiceResponse === undefined) {
-                    throw new Error(
-                        "Could not get remark codes from http://" +
-                            hostname +
-                            "/AQUARIUS/Publish/V2/GetQualifierList/"
-                    );
-                    return;
-                }
+            // if we didn't get the remark codes domain table
+            if (qualifierListServiceResponse === undefined) {
+                throw new Error(
+                    "Could not get remark codes from http://" +
+                        hostname +
+                        "/AQUARIUS/Publish/V2/GetQualifierList/"
+                );
+                return;
+            }
 
-                // store remark codes in object for faster access later
-                this.remarkCodes = new Object();
-                var qualifiers = qualifierListServiceResponse.Qualifiers;
-                for (var i = 0, l = qualifiers.length; i < l; i++) {
-                    this.remarkCodes[qualifiers[i].Identifier] =
-                        qualifiers[i].Code;
-                }
-            }); // .then
-        }
+            // store remark codes in object for faster access later
+            this.remarkCodes = new Object();
+            var qualifiers = qualifierListServiceResponse.Qualifiers;
+            for (var i = 0, l = qualifiers.length; i < l; i++) {
+                this.remarkCodes[qualifiers[i].Identifier] =
+                    qualifiers[i].Code;
+            }
+        }); // .then
     } // getRemarkCodes
 
     /**
