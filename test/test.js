@@ -357,6 +357,7 @@ describe("aquaticInformatics", function () {
                  different AQUARIUS server instances.
         */
 
+        this.timeout(4000);     // needs some extra time
         describe("#getRemarkCodes()", function () {
             it("should load remark codes",
                function (done) {
