@@ -393,9 +393,8 @@ describe("rdb", function () {
                  description: "Discharge, cubic feet per second"},
                 // statistic
                 {code: "00003", name: "MEAN", description: "MEAN VALUES"},
-                // type
-                {name: "FINAL",
-                 description: "EDITED AND COMPUTED DAILY VALUES"},
+                // type comment
+             '# //TYPE NAME="FINAL" DESC = "EDITED AND COMPUTED DAILY VALUES"',
                 {start: "20141001", end: "20150930"} // range
             );
 
