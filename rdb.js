@@ -206,8 +206,8 @@ var rdb = module.exports = {
                 "\"\n";
         }
 
-        if (typeComment)
-            header += typeComment + "\n";
+        if (typeComment !== undefined)
+            header += typeComment + '\n';
 
         /**
            @todo <p>write data aging information:</p>
