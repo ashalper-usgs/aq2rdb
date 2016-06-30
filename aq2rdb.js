@@ -1146,18 +1146,19 @@ function dailyValues(site, parameter, statCd, interval, response) {
 } // dailyValues
 
 class TimeSeries {
-    constructor(type, site, parameter, interval, applyRounding) {
+    constructor(type, site, parameter, applyRounding) {
         this.type = type;
         this.site = site;
         this.parameter = parameter;
-        this.interval = interval;
+        this.applyRounding = applyRounding;
     }
 }
 
 class UVTimeSeries extends TimeSeries {
     constructor(site, parameter, subtypeCode, interval, applyRounding) {
-        super("UV", site, parameter, interval, applyRounding);
+        super("UV", site, parameter, applyRounding);
         this.subtypeCode = subtypeCode;
+        this.interval = interval;
 
         /**
            @todo need to find out where/how these get initialized in
@@ -1194,7 +1195,7 @@ class UVTimeSeries extends TimeSeries {
                            "statistic" parameter when doing UVs below.
                         */
                         this.parameter, undefined, this.typeComment(),
-                        {start: interval.from, end: interval.to}
+                        {start: this.interval.from, end: this.interval.to}
                     )
                 );
             })
@@ -1206,8 +1207,8 @@ class UVTimeSeries extends TimeSeries {
             .then(() => aquarius.getTimeSeriesCorrectedData(
                 appendIntervalSearchCondition(
                     {TimeSeriesUniqueId: uniqueId,
-                     ApplyRounding: applyRounding},
-                    interval, this.site.tzCode,
+                     ApplyRounding: this.applyRounding},
+                    this.interval, this.site.tzCode,
                     "00000000000000", "99999999999999"
                 )
             ))
@@ -1218,7 +1219,7 @@ class UVTimeSeries extends TimeSeries {
                 return timeSeriesDataServiceResponse;
             })
             .then((timeSeriesDataServiceResponse) => uvTableBody(
-                applyRounding,
+                this.applyRounding,
                 this.site.tzCode,
                 this.site.localTimeFlag,
                 // QA code ("QA" RDB column): might not be
