@@ -117,9 +117,6 @@ var computationIdentifier = {
     "00003": "Mean"
 };
 
-var uvType = {
-};
-
 /**
    @description NWIS STAT, domain table object.
    @global
