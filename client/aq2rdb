@@ -316,9 +316,13 @@ def main():
 
         try:
             uo = urlopen(prefix + urlencode(query))
+        # TODO: value from e.read() likely needs to be converted to locale?
         except HTTPError as e:
-            print("# aq2rdb: received HTTP error from server; status code \"" +
-                  str(e.code) + "\"; \"" + e.read() + "\"")
+            if e.code == 501:
+                print(e.read())
+            else:
+                raise
+            sys.exit(1)
 
         response = uo.read()
 
