@@ -1193,13 +1193,7 @@ class UVTimeSeries extends TimeSeries {
                            @todo need to find out what to pass in for
                            "statistic" parameter when doing UVs below.
                         */
-                        this.parameter, undefined,
-                        /**
-                           @todo need to factor-out this comment line from
-                           rdb.header() and replace with call to
-                           this.comment(), because it is UV specific
-                        */
-                        {code: this.subtypeCode, name: this.subtypeName()},
+                        this.parameter, undefined, this.typeComment(),
                         {start: interval.from, end: interval.to}
                     )
                 );
@@ -1240,7 +1234,7 @@ class UVTimeSeries extends TimeSeries {
             });
     } // respond
 
-    comment() {
+    typeComment() {
         // write UV type info
         if (this.subtypeCode === 'meas' || this.subtypeCode === 'msar') {
             if (this.sensor === undefined && this.trans === ' ') {
@@ -1321,7 +1315,7 @@ class UVTimeSeries extends TimeSeries {
             END IF
             */
             return;
-    } // comment()
+    } // typeComment()
 } // UVTimeSeries
 
 function query(requestURL, response) {
