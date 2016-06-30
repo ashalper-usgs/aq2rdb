@@ -823,7 +823,7 @@ httpdispatcher.onGet(
                 .then(() => dvTableBody(
                     timeSeriesDescription.UniqueId,
                     field.QueryFrom, field.QueryTo,
-             tzName[waterServicesSite.tzCode][waterServicesSite.localTimeFlag],
+                    tzName[site.tzCode][site.localTimeFlag],
                     response
                 ))
                 .then(() => response.end())
