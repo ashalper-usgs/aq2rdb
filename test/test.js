@@ -21,8 +21,8 @@ var assert = require("assert");
 var expect = require("chai").expect;
 var fs = require("fs");
 var http = require("http");
-require('should');
-require('should-http');
+require("should");
+require("should-http");
 var sinon = require("sinon");
 var request = require("supertest");  
 
