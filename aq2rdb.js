@@ -117,6 +117,9 @@ var computationIdentifier = {
     "00003": "Mean"
 };
 
+var uvType = {
+};
+
 /**
    @description NWIS STAT, domain table object.
    @global
@@ -1145,71 +1148,184 @@ function dailyValues(site, parameter, statCd, interval, response) {
         .then(() => response.end())
 } // dailyValues
 
-function unitValues(site, parameter, interval, applyRounding, response) {
-    var uniqueId;
+class TimeSeries {
+    constructor(type, site, parameter, interval, applyRounding) {
+        this.type = type;
+        this.site = site;
+        this.parameter = parameter;
+        this.interval = interval;
+    }
+}
 
-    return aquarius.getTimeSeriesDescription(
-        site.agencyCode, site.number, parameter.aquariusParameter,
-        "Instantaneous", "Points"
-    )
-        .then((timeSeriesDescription) => {
-            // save in outer scope because it gets referenced in a
-            // then() call below
-            uniqueId = timeSeriesDescription.UniqueId;
+class UVTimeSeries extends TimeSeries {
+    constructor(site, parameter, subtypeCode, interval, applyRounding) {
+        super("UV", site, parameter, interval, applyRounding);
+        this.subtypeCode = subtypeCode;
 
-            response.write(
-                rdb.header(
-                    "NWIS-I UNIT-VALUES", "NO",
-                    site,
-                    timeSeriesDescription.SubLocationIdentifer,
-                    /**
-                       @todo need to find out what to pass in for
-                       "statistic" parameter when doing UVs below.
-                    */
-                    parameter, undefined,
-                    /**
-                       @todo this is pragmatically hard-coded now
-                    */
-                    {code: 'C', name: "COMPUTED"},
-                    {start: interval.from, end: interval.to}
+        /**
+           @todo need to find out where/how these get initialized in
+                 nwts2rdb; also, they probably don't need public
+                 visibility
+        */
+        this.sensor = undefined;
+        this.trans = ' ';
+    }
+
+    respond(response) {
+        var uniqueId;
+
+        return aquarius.getTimeSeriesDescription(
+            this.site.agencyCode, this.site.number,
+            this.parameter.aquariusParameter,
+            "Instantaneous", "Points"
+        )
+            .then((timeSeriesDescription) => {
+                // save in outer scope because it gets referenced in a
+                // then() call below
+                uniqueId = timeSeriesDescription.UniqueId;
+
+                /** @see NWIS nwf_rdb_out.f and fuvrdbout.f */
+                var editable = (this.subtypeCode === 'E' ||
+                                this.subtypeCode === 'C') ? "YES" : "NO";
+
+                response.write(
+                    rdb.header(
+                        "NWIS-I UNIT-VALUES", editable, this.site,
+                        timeSeriesDescription.SubLocationIdentifer,
+                        /**
+                           @todo need to find out what to pass in for
+                           "statistic" parameter when doing UVs below.
+                        */
+                        this.parameter, undefined,
+                        /**
+                           @todo need to factor-out this comment line from
+                           rdb.header() and replace with call to
+                           this.comment(), because it is UV specific
+                        */
+                        {code: this.subtypeCode, name: this.subtypeName()},
+                        {start: interval.from, end: interval.to}
+                    )
+                );
+            })
+            .then(() => response.write(
+                "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
+                    "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
+                "ascii"
+            ))
+            .then(() => aquarius.getTimeSeriesCorrectedData(
+                appendIntervalSearchCondition(
+                    {TimeSeriesUniqueId: uniqueId,
+                     ApplyRounding: applyRounding},
+                    interval, this.site.tzCode,
+                    "00000000000000", "99999999999999"
                 )
-            );
-        })
-        .then(() => response.write(
-            "DATE\tTIME\tTZCD\tVALUE\tPRECISION\tREMARK\tFLAGS\tQA\n" +
-                "8D\t6S\t6S\t16N\t1S\t1S\t32S\t1S\n",
-            "ascii"
-        ))
-        .then(() => aquarius.getTimeSeriesCorrectedData(
-            appendIntervalSearchCondition(
-                {TimeSeriesUniqueId: uniqueId,
-                 ApplyRounding: applyRounding},
-                interval, site.tzCode,
-                "00000000000000", "99999999999999"
-            )
-        ))
-        .then((messageBody) => {
-            var timeSeriesDataServiceResponse =
-                aquarius.parseTimeSeriesDataServiceResponse(messageBody);
+            ))
+            .then((messageBody) => {
+                var timeSeriesDataServiceResponse =
+                    aquarius.parseTimeSeriesDataServiceResponse(messageBody);
 
-            return timeSeriesDataServiceResponse;
-        })
-        .then((timeSeriesDataServiceResponse) => uvTableBody(
-            applyRounding,
-            site.tzCode,
-            site.localTimeFlag,
-            // QA code ("QA" RDB column): might not be
-            // backwards-compatible with nwts2rdb
+                return timeSeriesDataServiceResponse;
+            })
+            .then((timeSeriesDataServiceResponse) => uvTableBody(
+                applyRounding,
+                this.site.tzCode,
+                this.site.localTimeFlag,
+                // QA code ("QA" RDB column): might not be
+                // backwards-compatible with nwts2rdb
          timeSeriesDataServiceResponse.Approvals[0].LevelDescription.charAt(0),
-            timeSeriesDataServiceResponse.Points,
-            response
-        ))
-        .then(() => response.end())
-        .catch((error) => {
-            log(packageName + ".unitValues()", error);
-            throw error;
-        });
-} // unitValues
+                timeSeriesDataServiceResponse.Points,
+                response
+            ))
+            .then(() => response.end())
+            .catch((error) => {
+                log(packageName + ".UVTimeSeries.respond()", error);
+                throw error;
+            });
+    } // respond
+
+    comment() {
+        // write UV type info
+        if (this.subtypeCode === 'meas' || this.subtypeCode === 'msar') {
+            if (this.sensor === undefined && this.trans === ' ') {
+                if (this.subtypeCode === 'meas') {
+                    return '# //TYPE CODE=M NAME=MEASURED ' +
+                        'METHOD="PREFERRED INPUT"';
+                }
+                else {
+                    return '# //TYPE CODE=N NAME="RAW MEASURED" ' +
+                        'METHOD="PREFERRED INPUT"';
+                }
+            }
+            else {
+                /**
+                   @todo
+
+                   WRITE (csensor, 2050) sensor
+2050               FORMAT (I12)
+                   CALL s_jstrlf (csensor, 12)
+                */
+
+                if (this.subtypeCode === 'meas') {
+                    return '# //TYPE CODE=M NAME=MEASURED ' +
+                        'METHOD=SPECIFIED TRANSPORT_CD=' + this.trans +
+                        ' SENSOR_TYPE_ID=';
+                    /** @todo , csensor(1:nwf_strlen(csensor)) */
+                }
+                else {
+                    return '# //TYPE CODE=N NAME="RAW MEASURED" ' +
+                        'METHOD=SPECIFIED TRANSPORT_CD=' + this.trans +
+                        ' SENSOR_TYPE_ID=';
+                    /** @todo , csensor(1:nwf_strlen(csensor)) */
+                }
+            }
+        }
+        else if (this.subtypeCode === 'edit')
+            return '# //TYPE CODE=E NAME=EDITED';
+        else if (this.subtypeCode === 'corr')
+            return '# //TYPE CODE=R NAME="DATA CORRECTIONS"';
+        else if (this.subtypeCode === 'shift')
+            return '# //TYPE CODE=S NAME=SHIFTS';
+        else if (this.subtypeCode === 'da')
+            return '# //TYPE CODE=C NAME=COMPUTED';
+        else if (this.subtypeCode === 'tsedit')
+            /**
+                @todo
+
+            !  See what kind of data is in the database
+            IF (.NOT. nw_count_edit_meas_uvs (
+     *           db_nu, bnwisdtm, enwisdtm, loc_tz_cd, dd_id,
+     *           neditdays, nmeasdays)) THEN
+               irc = nw_get_error_number()
+               GO TO 99
+            ELSE
+
+               ! If any of it is edited, flag it all as edited so 
+               ! Hydra can activate the "revert to measured" option
+               IF (neditdays .GT. 0) THEN
+                  WRITE (funit, 2040)
+     *                 '# //TYPE CODE=E NAME=EDITED'
+                  IF (nmeasdays .GT. 0) THEN
+                     ! If some of it is measured, use mixed query
+                     useuvtyp = 'tsedit'
+                  ELSE
+                     ! If all of it is edited, just retrieve edited
+                     ! data (a faster query)
+                     useuvtyp = 'edit'
+                  END IF
+               ELSE
+                  WRITE (funit, 2040)
+     *                 '# //TYPE CODE=M NAME=MEASURED ',
+     *                 'METHOD="PREFERRED INPUT"'
+
+                 ! all of it is measured, just retrieve measured
+                 ! data (a faster query)
+                  useuvtyp = 'meas'
+               END IF
+            END IF
+            */
+            return;
+    } // comment()
+} // UVTimeSeries
 
 function query(requestURL, response) {
     var field;
@@ -1356,11 +1472,13 @@ function query(requestURL, response) {
                 return dailyValues(
                     site, parameter, statCd, interval, response
                 );
-            else if (dataType === "UV")
-                return unitValues(
-                    site, parameter, interval, applyRounding,
-                    response
+            else if (dataType === "UV") {
+                var uvTimeSeries = new UVTimeSeries(
+                    site, parameter, uvType, interval, applyRounding
                 );
+
+                return uvTimeSeries.respond(response);
+            }
             else
                 throw 'Unknown data type "' + dataType + '"';
         });
