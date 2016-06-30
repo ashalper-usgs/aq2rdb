@@ -35,13 +35,12 @@ var rdb = module.exports = {
        @param {string} subLocationIdentifer Sublocation identifier.
        @param {object} parameter USGS parameter (a.k.a. "PARM") object.
        @param {object} statistic USGS statistic object.
-       @param {object} type Code and name of type of values
-                       [e.g. ("C","COMPUTED")].
+       @param {string} typeComment Time series type comment string.
        @param {object} range Time series query, date range.
     */
     header: function (
         fileType, editable, site, subLocationIdentifer, parameter,
-        statistic, type, range
+        statistic, typeComment, range
     ) {
         var header =
             "# //UNITED STATES GEOLOGICAL SURVEY " +
@@ -135,9 +134,9 @@ var rdb = module.exports = {
             </ul>
         */
         header +=
-            '# //FILE TYPE="' + fileType + '" ' + 'EDITABLE=NO\n' +
+        '# //FILE TYPE="' + fileType + '" ' + 'EDITABLE=' + editable + '\n' +
             sprintf(
-       '# //STATION AGENCY="%-5s" NUMBER="%-15s" TIME_ZONE="%s" DST_FLAG=%s\n',
+	'# //STATION AGENCY="%-5s" NUMBER="%-15s" TIME_ZONE="%s" DST_FLAG=%s\n',
                 site.agencyCode, site.number, site.tzCode,
                 site.localTimeFlag
             ) + '# //STATION NAME="' + site.name + '"\n';
@@ -207,9 +206,8 @@ var rdb = module.exports = {
                 "\"\n";
         }
 
-        if (type)
-            header += "# //TYPE NAME=\"" + type.name + "\" DESC = \"" +
-                      type.description + "\"\n";
+        if (typeComment)
+            header += typeComment + "\n";
 
         /**
            @todo <p>write data aging information:</p>
