@@ -403,7 +403,7 @@ describe("rdb", function () {
             // https://github.com/jmendiara/karma-jquery-chai/issues/3
             // for more.
             expect(header).to.match(
-/^# \/\/UNITED STATES GEOLOGICAL SURVEY       http:\/\/water.usgs.gov\/\n# \/\/NATIONAL WATER INFORMATION SYSTEM     http:\/\/water.usgs.gov\/data.html\n# \/\/DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS\n# \/\/RETRIEVED: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\n# \/\/FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=NO\n# \/\/STATION AGENCY="USGS " NUMBER="123456789012345" TIME_ZONE="MST" DST_FLAG=Y\n# \/\/STATION NAME="NOT A SITE"\n# \/\/PARAMETER CODE="00060" SNAME="Discharge"\n# \/\/PARAMETER LNAME="Discharge, cubic feet per second"\n# \/\/STATISTIC CODE="00003" SNAME="MEAN"\n# \/\/STATISTIC LNAME="MEAN VALUES"\n# \/\/TYPE NAME="FINAL" DESC = "EDITED AND COMPUTED DAILY VALUES"\n# \/\/RANGE START="20141001" END="20150930"/);
+/^# \/\/UNITED STATES GEOLOGICAL SURVEY       http:\/\/water.usgs.gov\/\n# \/\/NATIONAL WATER INFORMATION SYSTEM     http:\/\/water.usgs.gov\/data.html\n# \/\/DATA ARE PROVISIONAL AND SUBJECT TO CHANGE UNTIL PUBLISHED BY USGS\n# \/\/RETRIEVED: \d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\n# \/\/FILE TYPE="NWIS-I DAILY-VALUES" EDITABLE=YES\n# \/\/STATION AGENCY="USGS " NUMBER="123456789012345" TIME_ZONE="MST" DST_FLAG=Y\n# \/\/STATION NAME="NOT A SITE"\n# \/\/PARAMETER CODE="00060" SNAME="Discharge"\n# \/\/PARAMETER LNAME="Discharge, cubic feet per second"\n# \/\/STATISTIC CODE="00003" SNAME="MEAN"\n# \/\/STATISTIC LNAME="MEAN VALUES"\n# \/\/TYPE NAME="FINAL" DESC = "EDITED AND COMPUTED DAILY VALUES"\n# \/\/RANGE START="20141001" END="20150930"/);
         });
     }); // #header()
 
